@@ -1,4 +1,4 @@
-(*Max*)
+(*Maximilian Hertenstein*)
 open Core;;
 open Async;;
 open Cohttp;;
