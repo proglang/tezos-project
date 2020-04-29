@@ -1,4 +1,3 @@
-(*Doan Ha*)
 open Core
 open Async
 open Cohttp_async
@@ -37,6 +36,14 @@ let query_main_head_operation block =
 	Cohttp_async.Body.to_string body
   >>|Yojson.Basic.from_string
 
+(*get main account counter*)
+let query_counter account =
+	let  query_uri = Uri.of_string ("http://localhost:8732/chains/main/blocks/head/context/contracts/" ^ account ^ "/counter") in
+  Cohttp_async.Client.get query_uri
+  >>= fun (_, body) ->
+	Cohttp_async.Body.to_string body
+  >>|Yojson.Basic.from_string >>| Yojson.Basic.Util.to_string
+
 
 (**************Get data from queries**************************)
 let get_data_from_json_query_gas json =
@@ -55,8 +62,7 @@ let get_data_from_json_query_main_head json =
   let level = json |> member "level" |> to_string in
   let timestamp = json |> member "timestamp" |> to_string in
   let predecessor = json |> member "predecessor" |> to_string in
-  (hash, level, timestamp, predecessor)
-
+ (hash, level, timestamp, predecessor)
 
 (******************Get string from data***********************)
 let get_string_from_data_gas (gas_operation, gas_block) =  "Gas per operation: " ^ gas_operation ^
@@ -67,6 +73,9 @@ let get_string_from_data_bootstrapped (block, timestamp) =  "Block: " ^ block ^
 
 let get_string_from_data_four (hash, level, timestamp, predecessor) =  "Hash: " ^ hash ^ " - Level: " ^ level ^
 								                               " - Timestamp: " ^ timestamp ^ " - Predecessor" ^ predecessor
+
+let get_string_from_data_counter counter =  "Counter: " ^ counter ^
+								                                           "" 
 
 
 (******************Functions**********************************)
@@ -81,4 +90,7 @@ let head () =
 
 let operations block =
 	query_main_head_operation block
+
+let counter account =
+	query_counter account >>| get_string_from_data_counter 
 
