@@ -1,3 +1,4 @@
+(*Max*)
 open Bignum;;
 open Base58;;
 open Base;;
