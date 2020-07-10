@@ -1,4 +1,7 @@
 open Tezos_api
+open Format
+open Error_monad
+
    
 let run =
   Internal_event_unix.init ()
@@ -7,7 +10,7 @@ let run =
   >>= fun result ->
   match result with
   | Ok i -> print_endline @@ string_of_int i; Lwt.return 1
-  | _ -> print_endline "Error"; Lwt.return 0
+  | Error errs -> Format.fprintf std_formatter "%a" Error_monad.pp @@ List.hd errs; Lwt.return 0
   >>= fun retcode ->
   Internal_event_unix.close () >>= fun () -> Lwt.return retcode 
 
