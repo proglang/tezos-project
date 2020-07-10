@@ -24,10 +24,12 @@ let get_puk name =
   >>=? function
   | Some (_,pk,_) -> (
     match pk with
-    | Some pk -> 
+    | Some pk ->
        ctxt#message "Pubkey: %a" Signature.Public_key.pp pk
        >>= fun () -> return 1
-    |None -> 
+    |None ->
+      Format.eprintf
+        "No key found";
       ctxt#message "No key found for address"
       >>= fun () -> return 0
   )
