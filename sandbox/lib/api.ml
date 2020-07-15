@@ -1,5 +1,4 @@
 open Client_keys
-open List
 open Client_context_unix
 
 let context =
@@ -15,7 +14,7 @@ let context =
     ~block:Client_config.default_block
     ~confirmations:None
     ~password_filename:None
-    ~base_dir:"~/.tezos-node/"
+    ~base_dir:"/home/tezos/.tezos-client"
     ~rpc_config:rpc_config   
    
 let get_puk_from_alias name =
@@ -30,15 +29,8 @@ let get_puk_from_alias name =
 
 let get_puk_from_hash pk_hash =
   let ctxt = context in
-  list_keys ctxt
-  >>=? fun keys ->
   Public_key_hash.of_source pk_hash
   >>=? fun pk_hash_ ->
-  let filtered = filter_map (fun (_, pkh, pk,_) ->
-      if pkh = pk_hash_ then pk else None
-    )
-    keys
-  in
-  match filtered with
-  | pk::_ -> return @@ Some pk
-  | [] -> return None
+  Client_keys.get_key ctxt pk_hash_
+  >>=? fun (_, src_pk, _) ->
+  return src_pk
