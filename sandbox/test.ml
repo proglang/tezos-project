@@ -8,7 +8,7 @@ let spec_list = [
     ("-c", Arg.Set_string command, ": specifies which command should be executed; default = " ^ !command);
   ]
 
-let run_puk_from_alias =
+let run_puk_from_alias () =
   Api.get_puk_from_alias "tamara"
    >>= fun result ->
   match result with
@@ -16,7 +16,7 @@ let run_puk_from_alias =
   | Ok None -> print_endline "No pubkey found"; Lwt.return 0
   | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
 
-let run_puk_from_hash =
+let run_puk_from_hash () =
   Api.get_puk_from_hash "tz1XGXdyCAeAsZ8Qo4BFQVkLCnfQ4ZyLgJ1S"
    >>= fun result ->
   match result with
@@ -30,8 +30,8 @@ let main =
     usage;
   Internal_event_unix.init ()
   >>= fun () ->
-  if !command = "puk_alias" then run_puk_from_alias
-  else if !command = "puk_hash" then run_puk_from_hash
+  if !command = "puk_alias" then run_puk_from_alias ()
+  else if !command = "puk_hash" then run_puk_from_hash ()
   else (print_endline "Unknown command" ; Lwt.return 0)
   >>= fun retcode ->
   Internal_event_unix.close () >>= fun () -> Lwt.return retcode 
