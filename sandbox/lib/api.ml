@@ -12,7 +12,6 @@ let context () =
       tls = false;
     }
   in
-  print_endline !(currentstate.basedir);
   new unix_full
     ~chain:Client_config.default_chain
     ~block:Client_config.default_block
@@ -41,4 +40,4 @@ let get_puk_from_hash pk_hash =
 
 let set_port p = (currentstate.port) := p
 
-let set_homedir path = (currentstate.basedir) := path
+let set_basedir path = (currentstate.basedir) := path

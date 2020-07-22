@@ -4,4 +4,4 @@ val get_puk_from_hash: string -> Signature.public_key tzresult Lwt.t
 
 val set_port: int -> unit
 
-val set_homedir: string -> unit
+val set_basedir: string -> unit
