@@ -1,6 +1,9 @@
 open Client_keys
 open Client_context_unix
 
+(* How to hide this?! *)
+type puk = Signature.public_key tzresult Lwt.t
+
 type state = {port : int ref; basedir : string ref}
 let currentstate = {port = ref 8732; basedir = ref "/home/tezos/.tezos-client"}
 
