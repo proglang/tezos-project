@@ -19,8 +19,7 @@ let run_puk_from_alias () =
   Api.get_puk_from_alias "tamara"
    >>= fun result ->
   match result with
-  | Ok (Some pk) -> Format.fprintf std_formatter "%a\n" Signature.Public_key.pp pk ; Lwt.return 1
-  | Ok None -> print_endline "No pubkey found"; Lwt.return 0
+  | Ok pk -> Format.fprintf std_formatter "%a\n" Signature.Public_key.pp pk ; Lwt.return 1
   | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
 
 let run_puk_from_hash () =

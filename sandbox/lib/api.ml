@@ -22,13 +22,11 @@ let context () =
 
 let get_puk_from_alias name =
   let ctxt = context () in
-  alias_keys ctxt name
-  >>=? function
-  | Some (_,pk,_) -> (
-    match pk with
-    | Some pk -> return @@ Some pk
-    |None -> return None )
-  | None -> return None
+  Public_key_hash.find ctxt name
+  >>=? fun pkh ->
+  Client_keys.get_key ctxt pkh
+  >>=? fun (_, src_pk, _) ->
+  return src_pk
 
 let get_puk_from_hash pk_hash =
   let ctxt = context () in
