@@ -78,19 +78,25 @@ let transfer amount src dst fees =
   in
   let fees_tez = tez_of_int fees
   in
-  let dst_contract = Contract.implicit_contract dst in
-  transfer
-      ctxt_proto
-      ~chain:ctxt#chain
-      ~block:ctxt#block
-      ?confirmations:ctxt#confirmations
-      ~dry_run:false
-      ~verbose_signing:false
-      ~source:src
-      ~fee:fees_tez
-      ~src_pk
-      ~src_sk
-      ~destination:dst_contract
-      ~amount: amount_tez
-      ~fee_parameter:fee_param
-      ()
+  Public_key_hash.to_source dst
+  >>=? fun pkh_str ->
+  return @@ Contract.of_b58check pkh_str
+  >>=? fun res ->
+  match res with
+  | Ok dst_contract ->
+     transfer
+       ctxt_proto
+       ~chain:ctxt#chain
+       ~block:ctxt#block
+       ?confirmations:ctxt#confirmations
+       ~dry_run:false
+       ~verbose_signing:false
+       ~source:src
+       ~fee:fees_tez
+       ~src_pk
+       ~src_sk
+       ~destination:dst_contract
+       ~amount: amount_tez
+       ~fee_parameter:fee_param
+       ()
+  | Error _ -> failwith "Invalid destination"
