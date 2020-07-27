@@ -1,8 +1,13 @@
 open Client_keys
 open Client_context_unix
-
+open Tezos_client_006_PsCARTHA.Client_proto_context
+open Tezos_client_006_PsCARTHA.Protocol_client_context
+open Tezos_client_006_PsCARTHA.Injection
+open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
 (* How to hide this?! *)
 type puk = Signature.public_key tzresult Lwt.t
+type pukh = Signature.public_key_hash tzresult Lwt.t
+type tez = int
 
 type config = {port : int ref; basedir : string ref}
 let current_config = {port = ref 8732; basedir = ref "/home/tezos/.tezos-client"}
@@ -39,6 +44,53 @@ let get_puk_from_hash pk_hash =
   >>=? fun (_, src_pk, _) ->
   return src_pk
 
+let get_pukh_from_alias name =
+  let ctxt = context () in
+  Public_key_hash.find ctxt name
+
 let set_port p = (current_config.port) := p
 
 let set_basedir path = (current_config.basedir) := path
+
+let tez_of_int x =
+    match Tez.of_mutez (Int64.mul (Int64.of_int x) 1_000_000L) with
+    | None ->
+        invalid_arg "tez_of_int"
+    | Some x ->
+        x
+
+let transfer amount src dst fees =
+  let ctxt = context () in
+  Client_keys.get_key ctxt src
+  >>=? fun (_, src_pk, src_sk) ->
+  let ctxt_proto = new wrap_full ctxt in
+  let fee_param : fee_parameter =
+    {
+      minimal_fees = (match Tez.of_mutez 100L with None -> assert false | Some t -> t);
+      minimal_nanotez_per_byte = Z.of_int 1000;
+      minimal_nanotez_per_gas_unit = Z.of_int 100;
+      force_low_fee = false;
+      fee_cap = (match Tez.of_string "1.0" with None -> assert false | Some t -> t);
+      burn_cap = (match Tez.of_string "0" with None -> assert false | Some t -> t);
+    }
+  in
+  let amount_tez = tez_of_int amount
+  in
+  let fees_tez = tez_of_int fees
+  in
+  let dst_contract = Contract.implicit_contract dst in
+  transfer
+      ctxt_proto
+      ~chain:ctxt#chain
+      ~block:ctxt#block
+      ?confirmations:ctxt#confirmations
+      ~dry_run:false
+      ~verbose_signing:false
+      ~source:src
+      ~fee:fees_tez
+      ~src_pk
+      ~src_sk
+      ~destination:dst_contract
+      ~amount: amount_tez
+      ~fee_parameter:fee_param
+      ()
