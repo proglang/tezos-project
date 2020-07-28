@@ -4,6 +4,8 @@ open Tezos_client_006_PsCARTHA.Client_proto_context
 open Tezos_client_006_PsCARTHA.Protocol_client_context
 open Tezos_client_006_PsCARTHA.Injection
 open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
+open Tezos_client_006_PsCARTHA.Client_proto_contracts
+
 (* How to hide this?! *)
 type puk = Signature.public_key tzresult Lwt.t
 type pukh = Signature.public_key_hash tzresult Lwt.t
@@ -76,9 +78,9 @@ let transfer amount src dst fees =
   in
   let amount_tez = tez_of_int amount
   in
-  let fees_tez = tez_of_int fees
-  in
-  let dst_contract = Contract.implicit_contract dst in
+  let fees_tez = tez_of_int fees in
+  ContractAlias.get_contract ctxt dst
+  >>=? fun (_, dst_contract) ->
   transfer
       ctxt_proto
       ~chain:ctxt#chain

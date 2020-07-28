@@ -15,4 +15,4 @@ val set_port: int -> unit
 
 val set_basedir: string -> unit
 
-val transfer: tez -> Signature.public_key_hash -> Signature.public_key_hash -> tez -> (Kind.transaction Kind.manager Injection.result * Contract.t list) tzresult Lwt.t
+val transfer: tez -> Signature.public_key_hash -> string -> tez -> (Kind.transaction Kind.manager Injection.result * Contract.t list) tzresult Lwt.t
