@@ -28,7 +28,10 @@ let context () =
     ~confirmations:None
     ~password_filename:None
     ~base_dir: !(current_config.basedir)
-    ~rpc_config:rpc_config   
+    ~rpc_config:rpc_config
+
+let setup_remote_signer =
+  Client_keys.register_signer (module Tezos_signer_backends.Unencrypted)
 
 let get_puk_from_alias name =
   let ctxt = context () in
@@ -63,6 +66,7 @@ let tez_of_int x =
 
 let transfer amount src dst fees =
   let ctxt = context () in
+  setup_remote_signer;
   Client_keys.get_key ctxt src
   >>=? fun (_, src_pk, src_sk) ->
   let ctxt_proto = new wrap_full ctxt in
@@ -72,7 +76,7 @@ let transfer amount src dst fees =
       minimal_nanotez_per_byte = Z.of_int 1000;
       minimal_nanotez_per_gas_unit = Z.of_int 100;
       force_low_fee = false;
-      fee_cap = (match Tez.of_string "1.0" with None -> assert false | Some t -> t);
+      fee_cap = (match Tez.of_string @@ string_of_int fees with None -> assert false | Some t -> t);
       burn_cap = (match Tez.of_string "0" with None -> assert false | Some t -> t);
     }
   in

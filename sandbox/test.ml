@@ -46,7 +46,7 @@ let run_transfer () =
   Api.get_pukh_from_alias "tamara"
   >>= function
   | Ok pkh_1 -> (
-     Api.transfer 10 pkh_1 "tamara2" 10
+     Api.transfer 10 pkh_1 "tamara2" 9
      >>= fun result ->
      match result with
      | Ok ((op_hash,_ ,_), _) -> Format.fprintf std_formatter "%a\n" Operation_hash.pp op_hash ; Lwt.return 1
