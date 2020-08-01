@@ -1,0 +1,91 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{url}
+\usepackage{hyperref}
+
+\title{Contract Orchestration for OCaml \\
+  Progress Report 
+}
+\date{31 July 2020}
+\author{Prof.\ Dr.\ Peter Thiemann, University of Freiburg, Germany}
+\begin{document}
+\maketitle{}
+
+\section{Introduction}
+\label{sec:introduction}
+
+The project Contract Orchestration for OCaml (COOC) is funded by the Tezos foundation. Its overarching  objective is to provide a framework to guarantee correct orchestration of contract invocation from an  application program in the OCaml language.
+
+\section{Timeline of Events}
+\label{sec:timeline-events}
+
+January 2020
+\begin{itemize}
+\item starting employment of postdoc Dr Ha Thi Thu Doan. Her tasks are as follows.
+\begin{itemize}
+\item Supporting the students workers 
+\item Supporting the blockchain lecture
+\item Providing documentation
+\item Working on a formal model
+\end{itemize}
+\item supporting the travel of scientific collaborator Prof. Vasco Vasconcelos of University of Lisbon, Portugal, to conference POPL (New Orleans, LA, USA).
+\end{itemize}
+
+
+March 2020
+\begin{itemize}
+\item acquisition of dedicated server for supporting project work and
+  to run Tezos full node on Carthagenet
+\item hiring of student worker (Max Hertenstein, a Master's student) to reverse engineer functions of the tezos-client; first job: getting up to speed with OCaml; second job: implement transfer as a standalone OCaml program using the Tezos node's RPC API; current job: implement contract invocation in the same way. 
+\end{itemize}
+
+May 2020
+\begin{itemize}
+\item hiring second student worker (Tamara Bernhardt, a Master's student) for administration of the server. In that facility she improved accessibility of the server (which must be installed behind a firewall due to university's security regulations), experimented with running several node instances on the same host, experimented with installing and using the sandbox
+\item At the same time, Tamara is doing a Master's project in my group where she develops a first cut of an OCaml API to invoke Tezos contracts. Her background was Haskell programming, so she also had to get up to speed with OCaml, first. She is building on the results of Max as well as on the recently published Tezos client library. The current status is that she can do transfers using the library, but we find the verbose output inappropriate for a library. Our next step is to have a meeting with Tamara, Ha, and myself (on August 6) to  investigate the structure of the library and to determine whether there are appropriate layers to connect to or whether we will have to rely on the RPC API of the node. 
+\end{itemize}
+For the OCaml API, we envision an asynchronous design based on futures. The first version will only cover transfers. The next version will only the type safe invocation of contracts. We expect that Tamara does her Master's thesis with us on the design and implementation of the OCaml API (starting from about October 2020). 
+
+May 2020-July 2020
+\begin{itemize}
+\item Ha and I are running the course ``Blockchain and Cryptocurrencies''. This course builds on the book ``Bitcoin and Cryptocurrency Technologies'' by Narayanan and others.  It covers seven weeks worth of material from the book; two weeks on Ethereum, Solidity, and its security issues; and two weeks on Tezos, with the bulk of material on Michelson. 
+\item Ha developed slides and exercises, she conducted the weekly exercise session, and she will help with designing and grading the final exam (ongoing in August and September 2020).
+\item We felt that it was easier to do supportive exercises for the book (where students could program in Python) as well as for Ethereum (where there are web interfaces that allow you to check out Solidity). For Tezos, we didn't have a good way to connect the students to our server and we felt it overwhelming for the students to install their own Tezos node just for one week worth of exercises. Hence, our Michelson exercises deal with type checking and dry-running the code.
+\end{itemize}
+
+May 2020-August 2020
+\begin{itemize}
+\item Ha (with Max) is documenting the way the Tezos client accesses the node for various operations, initially for transfers (see attached file model\_transaction.pdf). 
+\item Ha and I are developing an operational semantics suitable for modeling the interaction of an OCaml program with the Tezos blockchain. The challenge is to find the right level of abstraction. The goal is not to model the execution on the blockchain (others have done that in general \cite{DBLP:conf/ccs/LuuCOSH16}, for Bitcoin \cite{DBLP:conf/ccs/BartolettiZ18}, or for the Cardano blockchain  \cite{DBLP:conf/fc/ChakravartyCMMPW20}), but to have just enough detail to describe the interaction between contract invocations on the blockchain and a program (or potentially multiple programs).
+
+  The current version may be found in the attachment model.pdf.
+\end{itemize}
+
+\section{Relation to the Contract}
+\label{sec:relation-contract}
+
+We have made progress on several bullet points in the contract.
+\begin{itemize}
+\item ``Enrich the type system\dots'' Not started because of missing preliminaries.
+\item ``Collaborate with JG\dots'' We haven't reached that point, yet. However, it would be interesting to have a meeting next year (if conditions allow) to find out how work on the type inferencer is proceeding.
+\item ``Provide a framework\dots'' We started with the groundwork for the second subitem. We are now able to write the code by hand that should be generated by the compiler and we work on wrapping that code framework into a library.
+\item ``Apply the newly developed framework\dots'' This framework has just been accepted for publication at ICFP 2020. We are currently working on the first subitem ``A type-safe integration of RPC-invocations of the Tezos API.''
+\item ``Mini-OCaml'' The model that Ha and I work on constitutes the first step.
+\item ``Publish work \dots'' This year, we published work at POPL and ICFP \cite{DBLP:journals/pacmpl/ThiemannV20,DBLP:journals/pacmpl/RadanneST20}. In the past semester, we taught the course ``blockchain and cryptocurrencies'' as well as a course ``essentials of programming languages'', which teaches verified semantics with Agda.
+\end{itemize}
+
+\section{Next Steps}
+\label{sec:next-steps}
+
+We are currently recruiting another student (from the blockchain course) to do his Master's thesis with us. He is interested in coordinating on-chain and off-chain computation, but he has a C++ background. It is unclear whether he could usefully contribute to OCaml development, so we expect that his contribution would be more on a conceptual level with a proof of concept in a different implementation.
+
+We hope to attract further students from the course after the examination period.
+
+Tamara will continue working on design and implementation of the OCaml API. We expect her Master's thesis topic to be the type-safe API for contract invocation and contract creation.
+
+Ha and I will work out the execution model into the operational semantics of the full system that is called Mini-OCaml in the  contract. 
+
+\bibliography{report}
+\bibliographystyle{plainurl}
+\end{document}
