@@ -7,8 +7,9 @@ open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
 open Tezos_client_006_PsCARTHA.Client_proto_contracts
 
 (* How to hide this?! *)
-type puk = Signature.public_key tzresult Lwt.t
-type pukh = Signature.public_key_hash tzresult Lwt.t
+type puk = Signature.public_key
+type pukh = Signature.public_key_hash
+type 'a tz_result = 'a tzresult Lwt.t
 type tez = int
 
 type config = {port : int ref; basedir : string ref}
