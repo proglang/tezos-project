@@ -46,12 +46,16 @@ let run_transfer () =
   Api.get_pukh_from_alias "tamara"
   >>= function
   | Ok pkh_1 -> (
-     Api.transfer 10 pkh_1 "tamara2" 9
-     >>= fun result ->
-     match result with
-     | Ok ((op_hash,_ ,_), _) -> Format.fprintf std_formatter "%a\n" Operation_hash.pp op_hash ; Lwt.return 1
-     | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0 )
-  | Error errs ->  Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
+    Api.get_contract_from_alias "tamara2"
+    >>= function
+    | Ok contr -> (
+      Api.transfer 10 pkh_1 contr 9
+      >>= fun result ->
+      match result with
+      | Ok ((op_hash,_ ,_), _) -> Format.fprintf std_formatter "%a\n" Operation_hash.pp op_hash ; Lwt.return 1
+      | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0 )
+  | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0 )
+| Error errs ->  Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
 
 
 let main =

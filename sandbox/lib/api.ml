@@ -9,6 +9,7 @@ open Tezos_client_006_PsCARTHA.Client_proto_contracts
 (* How to hide this?! *)
 type puk = Signature.public_key
 type pukh = Signature.public_key_hash
+type contract = Contract.t
 type 'a tz_result = 'a tzresult Lwt.t
 type tez = int
 
@@ -31,8 +32,15 @@ let context () =
     ~base_dir: !(current_config.basedir)
     ~rpc_config:rpc_config
 
-let setup_remote_signer =
-  Client_keys.register_signer (module Tezos_signer_backends.Unencrypted)
+let fee_parameter : fee_parameter =
+  {
+    minimal_fees = (match Tez.of_mutez 100L with None -> assert false | Some t -> t);
+    minimal_nanotez_per_byte = Z.of_int 1000;
+    minimal_nanotez_per_gas_unit = Z.of_int 100;
+    force_low_fee = false;
+    fee_cap = (match Tez.of_string "1.0" with None -> assert false | Some t -> t);
+    burn_cap = (match Tez.of_string "0" with None -> assert false | Some t -> t);
+  }
 
 let get_puk_from_alias name =
   let ctxt = context () in
@@ -54,6 +62,12 @@ let get_pukh_from_alias name =
   let ctxt = context () in
   Public_key_hash.find ctxt name
 
+let get_contract_from_alias name =
+  let ctxt = context () in
+  ContractAlias.get_contract ctxt name
+  >>=? fun (_, contract) ->
+  return contract
+
 let set_port p = (current_config.port) := p
 
 let set_basedir path = (current_config.basedir) := path
@@ -65,27 +79,18 @@ let tez_of_int x =
     | Some x ->
         x
 
-let transfer amount src dst fees =
+let setup_remote_signer =
+  Client_keys.register_signer (module Tezos_signer_backends.Unencrypted)
+
+let transfer amount src destination fees =
   let ctxt = context () in
   setup_remote_signer;
   Client_keys.get_key ctxt src
   >>=? fun (_, src_pk, src_sk) ->
   let ctxt_proto = new wrap_full ctxt in
-  let fee_param : fee_parameter =
-    {
-      minimal_fees = (match Tez.of_mutez 100L with None -> assert false | Some t -> t);
-      minimal_nanotez_per_byte = Z.of_int 1000;
-      minimal_nanotez_per_gas_unit = Z.of_int 100;
-      force_low_fee = false;
-      fee_cap = (match Tez.of_string @@ string_of_int fees with None -> assert false | Some t -> t);
-      burn_cap = (match Tez.of_string "0" with None -> assert false | Some t -> t);
-    }
-  in
   let amount_tez = tez_of_int amount
   in
   let fees_tez = tez_of_int fees in
-  ContractAlias.get_contract ctxt dst
-  >>=? fun (_, dst_contract) ->
   transfer
       ctxt_proto
       ~chain:ctxt#chain
@@ -97,7 +102,7 @@ let transfer amount src dst fees =
       ~fee:fees_tez
       ~src_pk
       ~src_sk
-      ~destination:dst_contract
+      ~destination
       ~amount: amount_tez
-      ~fee_parameter:fee_param
+      ~fee_parameter
       ()
