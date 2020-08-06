@@ -49,7 +49,7 @@ let run_transfer () =
     Api.get_contract_from_alias "tamara2"
     >>= function
     | Ok contr -> (
-      Api.transfer 10 pkh_1 contr 9
+      Api.transfer 10.0 pkh_1 contr 0.001
       >>= fun result ->
       match result with
       | Ok ((op_hash,_ ,_), _) -> Format.fprintf std_formatter "%a\n" Operation_hash.pp op_hash ; Lwt.return 1

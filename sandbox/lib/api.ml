@@ -11,7 +11,7 @@ type puk = Signature.public_key
 type pukh = Signature.public_key_hash
 type contract = Contract.t
 type 'a tz_result = 'a tzresult Lwt.t
-type tez = int
+type tez = float
 
 type config = {port : int ref; basedir : string ref}
 let current_config = {port = ref 8732; basedir = ref "/home/tezos/.tezos-client"}
@@ -72,10 +72,11 @@ let set_port p = (current_config.port) := p
 
 let set_basedir path = (current_config.basedir) := path
 
-let tez_of_int x =
-    match Tez.of_mutez (Int64.mul (Int64.of_int x) 1_000_000L) with
+let tez_of_float x =
+  let tez_str = Printf.sprintf "%.6f" x in
+  match Tez.of_string tez_str with
     | None ->
-        invalid_arg "tez_of_int"
+        invalid_arg "tez_of_float"
     | Some x ->
         x
 
@@ -88,9 +89,9 @@ let transfer amount src destination fees =
   Client_keys.get_key ctxt src
   >>=? fun (_, src_pk, src_sk) ->
   let ctxt_proto = new wrap_full ctxt in
-  let amount_tez = tez_of_int amount
+  let amount_tez = tez_of_float amount
   in
-  let fees_tez = tez_of_int fees in
+  let fees_tez = tez_of_float fees in
   transfer
       ctxt_proto
       ~chain:ctxt#chain

@@ -5,7 +5,7 @@ type puk = Signature.public_key
 type pukh = Signature.public_key_hash
 type contract = Contract.t
 type 'a tz_result = 'a tzresult Lwt.t
-type tez = int
+type tez = float
 
 val get_puk_from_alias: string -> puk tz_result
 
