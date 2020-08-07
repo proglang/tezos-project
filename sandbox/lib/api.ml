@@ -42,6 +42,13 @@ let fee_parameter : fee_parameter =
     burn_cap = (match Tez.of_string "0" with None -> assert false | Some t -> t);
   }
 
+let exception_handler =
+  (function
+  | Failure msg ->
+     fail (Exn (Failure msg))
+  | exn ->
+     Lwt.return @@ error_exn exn )
+
 let get_puk_from_alias name =
   let ctxt = context () in
   Public_key_hash.find ctxt name
@@ -92,18 +99,21 @@ let transfer amount src destination fees =
   let amount_tez = tez_of_float amount
   in
   let fees_tez = tez_of_float fees in
-  transfer
-      ctxt_proto
-      ~chain:ctxt#chain
-      ~block:ctxt#block
-      ?confirmations:ctxt#confirmations
-      ~dry_run:false
-      ~verbose_signing:false
-      ~source:src
-      ~fee:fees_tez
-      ~src_pk
-      ~src_sk
-      ~destination
-      ~amount: amount_tez
-      ~fee_parameter
-      ()
+  Lwt.catch
+    (fun () ->
+      transfer
+        ctxt_proto
+        ~chain:ctxt#chain
+        ~block:ctxt#block
+        ?confirmations:ctxt#confirmations
+        ~dry_run:false
+        ~verbose_signing:false
+        ~source:src
+        ~fee:fees_tez
+        ~src_pk
+        ~src_sk
+        ~destination
+        ~amount: amount_tez
+        ~fee_parameter
+        ())
+    exception_handler

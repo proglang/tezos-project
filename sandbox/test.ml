@@ -48,27 +48,12 @@ let run_transfer () =
   | Ok pkh_1 -> (
     Api.get_contract_from_alias "tamara2"
     >>= function
-    | Ok contr ->
-       Lwt.catch
-         (fun () ->
-           Api.transfer 10.0 pkh_1 contr 0.001
-           >>= fun result ->
-           match result with
-           | Ok ((op_hash,_ ,_), _) -> Format.fprintf std_formatter "%a\n" Operation_hash.pp op_hash ; Lwt.return 1
-           | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0 )
-         (function
-          | Failure message ->
-             Format.eprintf
-               "%a"
-               Format.pp_print_text
-               message ;
-             Lwt.return 0
-          | exn ->
-             Format.printf
-            "%a"
-            Format.pp_print_text
-            (Printexc.to_string exn) ;
-             Lwt.return 0)
+    | Ok contr -> (
+       Api.transfer 10.0 pkh_1 contr 0.01
+       >>= fun result ->
+       match result with
+       | Ok ((op_hash,_ ,_), _) -> Format.fprintf std_formatter "%a\n" Operation_hash.pp op_hash ; Lwt.return 1
+       | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0 )
   | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0 )
 | Error errs ->  Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
 

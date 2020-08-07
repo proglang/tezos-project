@@ -20,3 +20,5 @@ val set_port: int -> unit
 val set_basedir: string -> unit
 
 val transfer: tez -> pukh -> contract -> tez -> (Kind.transaction Kind.manager Injection.result * Contract.t list) tzresult Lwt.t
+
+val exception_handler : exn -> 'a tzresult Lwt.t
