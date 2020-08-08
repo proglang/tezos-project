@@ -1,10 +1,10 @@
 open Client_keys
-open Client_context_unix
 open Tezos_client_006_PsCARTHA.Client_proto_context
 open Tezos_client_006_PsCARTHA.Protocol_client_context
 open Tezos_client_006_PsCARTHA.Injection
-open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
 open Tezos_client_006_PsCARTHA.Client_proto_contracts
+open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
+open Api_context
 
 (* How to hide this?! *)
 type puk = Signature.public_key
@@ -24,7 +24,7 @@ let context () =
       tls = false;
     }
   in
-  new unix_full
+  new unix_full_silent
     ~chain:Client_config.default_chain
     ~block:Client_config.default_block
     ~confirmations:None
