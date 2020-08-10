@@ -1,6 +1,8 @@
 open Tezos_api
 open Format
 open Error_monad
+open Tezos_protocol_006_PsCARTHA.Protocol.Contract_storage
+open Tezos_protocol_environment_006_PsCARTHA
    
 let command = ref "puk_alias"
 let port = ref 0
@@ -45,8 +47,12 @@ let run_transfer () =
        Api.transfer 10.0 pkh_1 contr 0.01
        >>= fun result ->
        match result with
-       | Ok ((op_hash,_ ,_), _) -> Format.fprintf std_formatter "%a\n" Operation_hash.pp op_hash ; Lwt.return 1
-       | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0 )
+       | Ok op_hash -> Format.fprintf std_formatter "%a\n" Operation_hash.pp op_hash ; Lwt.return 1
+       | Error ((Environment.Ecoproto_error Balance_too_low _ as err) :: _)  -> Format.fprintf std_formatter "Balance - %a\n" Error_monad.pp err; Lwt.return 0
+       | Error ((Environment.Ecoproto_error Counter_in_the_past _ as err) :: _) -> Format.fprintf std_formatter "Counter past %a\n" Error_monad.pp err; Lwt.return 0
+       | Error ((Environment.Ecoproto_error Counter_in_the_future  _ as err ):: _) -> Format.fprintf std_formatter "Counter future %a\n" Error_monad.pp err; Lwt.return 0
+       | Error errs ->
+          Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0 )
   | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0 )
 | Error errs ->  Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
 

@@ -12,6 +12,7 @@ type pukh = Signature.public_key_hash
 type contract = Contract.t
 type 'a tz_result = 'a tzresult Lwt.t
 type tez = float
+type oph = Operation_hash.t
 
 type config = {port : int ref; basedir : string ref}
 let current_config = {port = ref 8732; basedir = ref "/home/tezos/.tezos-client"}
@@ -117,3 +118,5 @@ let transfer amount src destination fees =
         ~fee_parameter
         ())
     exception_handler
+  >>=? fun ((oph,_,_),_) ->
+  return oph
