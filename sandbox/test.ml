@@ -14,8 +14,6 @@ let spec_list = [
   ]
 
 let run_puk_from_alias () =
-  if !port != 0 then Api.set_port !port;
-  if !basedir <> "" then Api.set_basedir !basedir;
   Api.get_puk_from_alias "tamara"
    >>= fun result ->
   match result with
@@ -23,8 +21,6 @@ let run_puk_from_alias () =
   | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
 
 let run_puk_from_hash () =
-  if !port != 0 then Api.set_port !port;
-  if !basedir <> "" then Api.set_basedir !basedir;
   Api.get_puk_from_hash "tz1XGXdyCAeAsZ8Qo4BFQVkLCnfQ4ZyLgJ1S"
    >>= fun result ->
   match result with
@@ -32,17 +28,14 @@ let run_puk_from_hash () =
   | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
 
 let run_pukh_from_alias () =
-  if !port != 0 then Api.set_port !port;
-  if !basedir <> "" then Api.set_basedir !basedir;
   Api.get_pukh_from_alias "tamara"
   >>= fun result ->
   match result with
-  | Ok pkh -> Format.fprintf std_formatter "%a\n" Signature.Public_key_hash.pp pkh ; Lwt.return 1
+  | Ok pkh -> Format.fprintf std_formatter "%a\n" Signature.Public_key_hash.pp pkh ;
+              Lwt.return 1
   | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
 
 let run_transfer () =
-  if !port != 0 then Api.set_port !port;
-  if !basedir <> "" then Api.set_basedir !basedir;
   Api.get_pukh_from_alias "tamara"
   >>= function
   | Ok pkh_1 -> (
@@ -65,6 +58,8 @@ let main =
     usage;
   Internal_event_unix.init ()
   >>= fun () ->
+  if !port != 0 then Api.set_port !port;
+  if !basedir <> "" then Api.set_basedir !basedir;
   if !command = "puk_alias" then run_puk_from_alias ()
   else if !command = "puk_hash" then run_puk_from_hash ()
   else if !command = "pukh_alias" then run_pukh_from_alias ()
