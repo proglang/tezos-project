@@ -13,7 +13,7 @@ val get_puk_from_hash: string -> puk tz_result
 
 val get_pukh_from_alias: string -> pukh tz_result
 
-val get_contract_from_alias: string -> contract tz_result
+val get_contract: string -> contract tz_result
 
 val set_port: int -> unit
 

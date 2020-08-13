@@ -41,7 +41,7 @@ let run_transfer () =
   Api.get_pukh_from_alias "tamara"
   >>= function
   | Ok pkh_1 -> (
-    Api.get_contract_from_alias "tamara2"
+    Api.get_contract "tamara2"
     >>= function
     | Ok contr -> (
        Api.transfer 10.0 pkh_1 contr 0.01

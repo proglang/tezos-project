@@ -4,6 +4,7 @@ open Tezos_client_006_PsCARTHA.Protocol_client_context
 open Tezos_client_006_PsCARTHA.Injection
 open Tezos_client_006_PsCARTHA.Client_proto_contracts
 open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
+open Tezos_protocol_environment_006_PsCARTHA
 open Api_context
 
 (* How to hide this?! *)
@@ -70,11 +71,16 @@ let get_pukh_from_alias name =
   let ctxt = context () in
   Public_key_hash.find ctxt name
 
-let get_contract_from_alias name =
+let get_contract s =
   let ctxt = context () in
-  ContractAlias.get_contract ctxt name
-  >>=? fun (_, contract) ->
-  return contract
+  ContractAlias.get_contract ctxt s
+  >>= function
+  | Ok (_,v) -> return v
+  | Error _ -> (
+    match Contract.of_b58check s with
+    | Error _ as err ->
+       Lwt.return (Environment.wrap_error err) |> trace (failure "bad contract notation")
+    | Ok v -> return v )
 
 let set_port p = (current_config.port) := p
 
