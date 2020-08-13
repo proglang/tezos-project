@@ -1,0 +1,135 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{mathpartir}
+\usepackage{listings}
+
+\input{solidity-highlighting}
+
+\title{Expos\'{e} Master Thesis\\
+  Checking Assertions for Smart Contracts}
+\author{Peter Thiemann}
+\begin{document}
+\maketitle{}
+
+\section{Introduction}
+\label{sec:introduction}
+
+Every computation performed by a Smart Contract on the blockchain generates costs. Each
+unit of computation and each unit of storage used by an algorithm must be paid for. To
+avoid this cost, users might perform some computation offchain and submit the result as a
+parameter to a contract. Typically, such a computation asserts certain properties of the
+submitted parameter. 
+
+However, this approach raises the issue that on the one hand the contract should take
+advantage of the offchain computation and just assume that the submitted parameter has
+these properties, but on the other hand, the offchain computation might be wrong and
+submit illegal parameters. So, we need a mechanism that checks the validity of the
+assumptions before the contract starts executing.
+
+As an example, consider a contract that takes a prime number as a parameter.
+\begin{lstlisting}[numbers=none]
+contract Example {
+  function (int p) public {
+    // assume p is prime
+    ...
+  }
+}
+\end{lstlisting}
+We express the assumption with an explicit assertion.
+\begin{displaymath}
+  (\forall n) (2 \le n \le \sqrt p) \Rightarrow (p \mathbin{\%} n) \ne 0
+\end{displaymath}
+We could test this assumption with a loop in the contract, but the test would take
+$O(\sqrt p)$ time (assuming constant time for computing the modulus) and thus produce cost
+depending on $p$ accordingly. 
+However, we could do better by recruiting the validators of the contract for a distributed
+effort to find a counterexample. To this end, we consider the negation of the assertion.
+\begin{displaymath}
+  (\exists n) (2 \le n \le \sqrt p) \wedge (p \mathbin{\%} n) = 0
+\end{displaymath}
+This assertion can be checked pointwise by having each validator independently choose a
+random $n$ fulfilling $2 \le n \le 
+\sqrt p$ and checking whether $(p \mathbin{\%} n) = 0$. If the remainder is $0$, the
+validator found a counterexample, posts its veto to the P2P net, and stops further
+exection. Otherwise, it accepts $p$ knowing that other points will be checked by other
+validators.
+
+In this scenario, each validator only needs to be paid to generate a random number and
+perform a division, which is a constant cost independant from $p$.
+
+Of course, this validation is only probabilistic, so its effectiveness depends on the
+number of validators. One could say that the community of validators implements a Bloom
+filter for the set of primes: if a value $p$ is rejected it is certainly not a prime (because
+there exists a counterexample); if a value $p$ is not rejected it is prime with a
+probability that depends on $p$ and the number of validators. 
+
+As another example, consider a contract that takes a sorted array of integers.
+\begin{lstlisting}[numbers=none]
+contract Sorted {
+  function find (int[50] a, int v) public {
+    // assume a is sorted
+  }
+}
+\end{lstlisting}
+The explicit assertion would be
+\begin{displaymath}
+  (\forall k) (0\le k <49) \Rightarrow a[k] \le a[k+1]
+\end{displaymath}
+While we can check this contract in $O(1)$ time, the constant factor is large! So we
+consider its negation.
+\begin{displaymath}
+  (\exists k) (0\le k <49) \wedge a[k] > a[k+1]
+\end{displaymath}
+Again, we can have the validators generate a random number $k$ and check the
+condition. If it is true, then the validator found a counterexample for the sortedness
+of the array. Otherwise, the validator relies on the others.
+
+Let's assume the array is unsorted only at position $0$, the size of the array is $n$,
+and the number of validators is $m$. Each validator independently has a probability of
+$1/n$ to detect the problem. The probability that no validator checks at
+position $0$ converges to $0$ as the number of validators approaches infinity.
+\begin{displaymath}
+  \lim_{m\to\infty}\frac{(n-1)^m}{n^m}
+  = \lim_{m\to\infty} \left(\frac{n-1}{n}\right)^m
+  = 0
+\end{displaymath}
+
+\section{Further Thoughts}
+\label{sec:further-thoughts}
+
+There may be an alternative way of implementing this scheme without modifying the
+protocol, but instead adding instructions to the virtual machine. One instruction would
+generate a random number (EVM uses 512 bit unsigned integer IIRC), the other would
+raise an overriding failure. Ideally, once a counterexample has been found, this
+counterexample is broadcast to the network where it can be verified by further nodes.
+
+This approach poses the danger of a DOS attack. Someone could post a false
+counterexample, which does not really lead to a failure. If everyone switches to check
+this proposed counterexample instead of generating a random number, then the real
+problem may remain hidden. So, there has to be a component in the protocol that
+penalizes someone who broadcasts a false counterexample. Moreover, not all validators
+should switch to recheck a proposed counterexample; or they could check it in addition
+to their own random check.
+
+The interesting assertion formulas are those with prenex universal
+quantification. Negation turns them into prenex existential quantification. But it
+would be ineffective to generate a random integer and then check that it falls in the
+interesting range (e.g., $2\le n \le \sqrt p$ and $0\le k< n-1$). Rather, the formula
+needs to be analzed and the random generator should be restricted to only generate
+interesting values. 
+
+It would not be significantly more expensive to have every validator perform a
+predetermined finite number of checks for each assertion.
+
+What is the minimum number $m$ of validators such that the probability of spotting an
+error is less than a given threshold $q$?
+
+Instead of using random numbers, is there a way to coordinate a systematic exploration
+of the iteration space? (Is this at all necessary?)
+
+One could also check properties of the values stored by the contract.
+
+
+\end{document}
