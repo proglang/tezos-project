@@ -6,6 +6,14 @@
 \usepackage{listings}
 \usepackage{url}
 
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable}
+
+\newenvironment{changethis}{%
+  \begin{tcolorbox}[breakable,notitle,boxrule=0pt,colback=blue!20,colframe=blue!20]}{%
+  \end{tcolorbox}}
+
 \input{solidity-highlighting}
 
 \title{Expos\'{e} Master Thesis\\
@@ -105,7 +113,22 @@ protocol, but instead adding instructions to the virtual machine. One instructio
 generate a random number (EVM uses 512 bit unsigned integer IIRC), the other would
 raise an overriding failure. Ideally, once a counterexample has been found, this
 counterexample is broadcast to the network where it can be verified by further nodes.
+But this broadcast and the reaction to this broadcast requires an update of the
+protocol: all receivers of the broadcast will check the counterexample and revert the
+transaction. This probably means that a transaction using this feature has to wait for
+a couple of cycles in the transaction pool until the node feels safe to include the
+transaction in a block.
 
+\begin{changethis}
+  Tezos specific remarks, here the number of validators is really small compared to
+  Bitcoin or Ethereum
+  \begin{itemize}
+  \item maybe we need to propose and validate the same block multiple times before it
+    gets accepted. E.g, a transaction containing this feature is only accepted if it is
+    revalidated $n$ times.
+  \item Extra validators only for this kind of transaction.
+  \end{itemize}
+\end{changethis}
 This approach poses the danger of a DOS attack. Someone could post a false
 counterexample, which does not really lead to a failure. If everyone switches to check
 this proposed counterexample instead of generating a random number, then the real
