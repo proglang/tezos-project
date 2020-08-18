@@ -58,11 +58,11 @@ $\mathbf{op}$ ::= transfer  $\mathbf{n}$ from $\mathbf{pkh}$ to $\mathbf{pkh'}$ 
 \begin{definition}[Query]
 An query is expressed as the following syntax:
 \\
-$\mathbf{qry}$ ::= get balance for $\mathbf{pkh}$
+$\mathbf{qry}$ ::= get balance for $\mathbf{pkh}$ $/$ $\mathbf{puh}$
 %$\mid$ get delegate for $\mathbf{pkh}$
 \\$\mid$ get status for $\mathbf{oph}$ 
-\\$\mid$ get contract storage $\mathbf{pkh}$ 
-\\$\mid$ get code for $\mathbf{pkh}$ 
+\\$\mid$ get contract storage $\mathbf{puh}$ 
+\\$\mid$ get code for $\mathbf{puh}$ 
 %\\$\mid$ waiting for $\mathbf{oph}$ to be included in $\mathbf{m}$ blocks
 %\\$\mid$ get timestamp
 %\\$\mid$ get contracts
@@ -105,7 +105,8 @@ such as $\forall$ c $\in$ C $\implies$ $\exists$ k $\in$ K, k.pkh = c.pkh and $\
 
 \section{Rules}
 \subsection{Transfers}
-
+\\
+\\
 Rule 1 [proposal]:
 
 \begin{equation}{}
@@ -117,7 +118,7 @@ Rule 2 [injected]:
 
 \begin{equation}{}
 \frac{\text{checkBan(K, $pkh$, $n$, $m$) $\wedge$ checkCou(K, $pkh$) $\wedge$ checkPub(K, $pkh'$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer $n$ from $pkh$ to $pkh'$ fee $m$) :: O, S], [P, A, K, T, t]$\rangle$ $\rightarrow$}\\
-\text{$\langle$[C, O, S],[($<$ transfer $n$ from $puk$ to $puk'$ fee $m$, generateOph($pkh$, }\\
+\text{$\langle$[C, O, S], [($<$ transfer $n$ from $puk$ to $puk'$ fee $m$, generateOph($pkh$, }\\
 \text{$pkh'$, $n$, $m$, t), t $>$) :: P, A, updateCou(K, $pkh$, True), T, t]$\rangle$}}} 
 \end{equation}
 \\
@@ -149,7 +150,7 @@ Rule 5 [rejected of public key]:
 Rule 6 [included]:
 \begin{equation}{}
 \frac{}{\parbox{4.2in}{\text{[$<$ transfer $n$ from $puk$ to  $puk'$ fee $m$, oph, t $>$ :: P, A, K, T, t' ] $\rightarrow$ } \\
- \text{[P,$<$ transfer $n$ from  $puk$ to $puk'$ fee $m$, oph, t' $>$ :: A, updateSucc(K, } \\
+ \text{[P, $<$ transfer $n$ from  $puk$ to $puk'$ fee $m$, oph, t' $>$ :: A, updateSucc(K, } \\
 \text{$puk$, $puk'$, $n$, $m$), T, t' + 1]}}} 
 \end{equation}
 \\
@@ -160,110 +161,126 @@ Rule 7 [timeout]:
 \end{equation}
 
 \subsection{Smart Contracts}
-
-\subsubsection*{A. Originate}
-
+\\
+A. Originate
+\\
+\\
 Rule 1 [proposal]:
 
 \begin{equation}{}
-\frac{\text{checkAcc($pkh$, C) $\wedge$ checkId($id$, S) $\wedge$ \text{checkPrg($code$, $s$)}}}{\parbox{4.2in}{\text{$\langle$[C, O, S], [P, A, K, T, t]$\rangle$ $\rightarrow$ $\langle$[C, (originate contract ${puh}$ transferring} \\
+\frac{\text{checkAcc($pkh$, C) $\wedge$ checkId($id$, S)}}{\parbox{4.2in}{\text{$\langle$[C, O, S], [P, A, K, T, t]$\rangle$ $\rightarrow$ $\langle$[C, (originate contract ${id}$ transferring} \\
   \text{${n}$ from ${pkh}$} \text{running ${code}$ init ${s}$) :: O, S], [P, A, K, T, t]$\rangle$}}} 
 \end{equation}
-
-\subsubsection*{Rule 2 [injected]:}
+\\
+\\
+Rule 2 [injected]:
 
 \begin{equation}{}
-\frac{\text{checkBan(K, $pkh$, $n$, $m$) $\wedge$ checkCou(K, $pkh$)}}{\parbox{4.2in}{\text{$\langle$[C, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{ :: O, S], [P, A, K, T, t] $\rangle$ $\rightarrow$ $\langle$ [C, O, S],} \text{[(originate contract ${id}$ transferring ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: P, A, updateCou(K, $pkh$, True), T, t] $\rangle$}}} 
+\frac{\text{checkBan(K, $pkh$, $n$, $m$) $\wedge$ checkCou(K, $pkh$) $\wedge$ \text{checkPrg($code$, $s$)}}}{\parbox{4.2in}{\text{$\langle$[C, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{ :: O, S], [P, A, K, T, t] $\rangle$ $\rightarrow$ $\langle$ [C, O, S],} \text{[(originate contract ${id}$ transferring ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: P, A, updateCou(K, $pkh$, True), T, t] $\rangle$}}} 
 \end{equation}
-
-\subsubsection*{Rule 3 [rejected of code]:}
+\\
+\\
+Rule 3 [rejected of code]:
 
 \begin{equation}{}
 \frac{\text{$\neg$ checkPrg($code$, $s$)}}{\parbox{4.2in}{\text{$\langle$[C, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: O, S], [P, A, K, T, t]$\rangle$ $\rightarrow$ $\langle$[C, O, S],} \text{[P, A, K, T, t]$\rangle$}}} 
 \end{equation}
-
-\subsubsection*{Rule 4 [rejected of counter]:}
+\\
+\\
+Rule 4 [rejected of counter]:
 
 \begin{equation}{}
 \frac{\text{$\neg$ checkCou(K, $pkh$)}}{\parbox{4.2in}{\text{$\langle$[C, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$))} \text{:: O, S], [P, A, K, T, t]$\rangle$ $\rightarrow$ $\langle$ [C, O, S],} \text{[P, A, K, T, t]$\rangle$}}} 
 \end{equation}
-
-\subsubsection*{Rule 5 [rejected of balance]:}
+\\
+\\
+Rule 5 [rejected of balance]:
 
 \begin{equation}{}
 \frac{\text{$\neg$ checkBan(K, $pkh$, $n$, $m$)}}{\parbox{4.2in}{\text{$\langle$[C, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: O, S], [P, A, K, T, t]$\rangle$ $\rightarrow$ $\langle$[C, O, S],} \text{[P, A, K, T, t]$\rangle$}}} 
 \end{equation}
-
-\subsubsection*{Rule 6 [included]:}
+\\
+\\
+Rule 6 [included]:
 \begin{equation}{}
 \frac{}{\parbox{4.2in}{\text{$\langle$[C, O, S], [$<$ (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running } \\
-\text{${code}$ init ${s}$), t $>$ :: P, A, K, T, t' ]$\rangle$ $\rightarrow$ $\langle$[C, O, addContr(S, $id$, } \\
-\text{generateHash($id$, $code$, $s$, t'), $code$)], [P,$<$ (originate contract ${id}$ } \\
+\text{${code}$ init ${s}$), t $>$ :: P, A, K, T, t' ]$\rangle$ $\rightarrow$ $\langle$[C, O,($<$ $id$, } \\
+\text{generateHash($id$, $code$, $s$, t'), $code$ $>$ :: S)], [P, $<$ (originate contract ${id}$ } \\
 \text{transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$), t' $>$ :: A, updateSucc(K, } \\
-\text{$puk$, $n$, $m$), addOrig(T, $<$ generateHash($id$, $code$, $s$, t'), $0$, $code$, } \\
- \text{getStorage($code$, $s$) $>$), t' + 1]$\rangle$}}} 
+\text{$puk$, $n$, $m$), ($<$ generateHash($id$, $code$, $s$, t'), $n$, $code$, } \\
+ \text{getStorage($code$, $s$) $>$) :: T), t' + 1]$\rangle$}}} 
 \end{equation}
-
-\subsubsection*{Rule 7 [timeout]:}
+\\
+Rule 7 [timeout]:
 \begin{equation}{}
 \frac{\text{t' - t $>=$ 60}}{\parbox{4.2in}{\text{[$<$ (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$) $>$ } \\
 \text{:: P, A, K, T, t' ] $\rightarrow$[P, A, updateCou(K, $puk$, False), T, t']}}} 
 \end{equation}
-
-\subsubsection*{B. Transfer}
-
-\subsubsection*{Rule 1 [proposal]:}
+\\
+\\
+B. \mathbf{Transfer}
+\\
+\\
+Rule 1 [proposal]:
 
 \begin{equation}{}
 \frac{\text{checkAcc($pkh$, C)  }}{\parbox{4.2in}{\text{$\langle$[C, O, S], [P, A, K, T, t]$\rangle$ $\rightarrow$ $\langle$[C, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ }  \\
 \text{fee ${m}$) :: O, S], [P, A, K, T, t]$\rangle$}}} 
 \end{equation}
-
-\subsubsection*{Rule 2 [injected]:}
+\\
+\\
+Rule 2 [injected]:
 
 \begin{equation}{}
-\frac{\text{checkBan(K, $pkh$, $n$, $m$) $\wedge$ checkCou(K, $pkh$) $\wedge$ checkContr(T, $puh$, s) }}{\parbox{4.2in}{\text{$\langle$[C, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: O, S], [P, A, K, T, t]$\rangle$}\\
+\frac{\text{checkBan(K, $pkh$, $n$, $m$) $\wedge$ checkCou(K, $pkh$) $\wedge$ checkPuh(T, $puh$)}
+\\
+\text{ $\wedge$ checkArg(T, $puh$, $s$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: O, S], [P, A, K, T, t]$\rangle$}\\
 \text{$\rightarrow$  $\langle$[C, O, S], [($<$ (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$), }\\
- \text{generateOph($pkh$, $puh$, $s$, $n$, $m$, t $>$) :: P, A, updateCou(K, $pkh$, True), }\\
+ \text{generateOph($pkh$, $puh$, $s$, $n$, $m$, t), t $>$) :: P, A, updateCou(K, $pkh$, True), }\\
 \text{T, t] $\rangle$}}} 
 \end{equation}
-
-\subsubsection*{Rule 3 [rejected of counter]:}
+\\
+\\
+Rule 3 [rejected of counter]:
 
 \begin{equation}{}
 \frac{\text{$\neg$ checkCou(K, $pkh$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: O, S], [P, A, K, T, t]$\rangle$  }\\
 \text{$\rightarrow$ $\langle$[C, O, S], [P, A, K, T, t]$\rangle$}}} 
 \end{equation}
-
-\subsubsection*{Rule 4 [rejected of balance]:}
+\\
+\\
+Rule 4 [rejected of balance]:
 
 \begin{equation}{}
 \frac{\text{$\neg$ checkBan(K, $pkh$, $n$, $m$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: O, S], [P, A, K, T, t]$\rangle$ }\\
 \text{$\rightarrow$ $\langle$[C, O, S], [P, A, K, T, t]$\rangle$}}} 
 \end{equation}
-
-\subsubsection*{Rule 5 [rejected of public key]:}
+\\
+\\
+Rule 5 [rejected of public hash]:
 
 \begin{equation}{}
-\frac{\text{$\neg$ checkContr(T, $puh$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: O, S], [P, A, K, T, t]$\rangle$ }\\
+\frac{\text{$\neg$ checkPuh(T, $puh$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: O, S], [P, A, K, T, t]$\rangle$ }\\
 \text{$\rightarrow$ $\langle$[C, O, S], [P, A, K, T, t]$\rangle$}}} 
 \end{equation}
-
-\subsubsection*{Rule 6 [rejected of argument]:}
+\\
+\\
+Rule 6 [rejected of argument]:
 
 \begin{equation}{}
 \frac{\text{$\neg$ checkArg(T, $puh$, $s$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: O, S], [P, A, K, T, t]$\rangle$}\\
 \text{$\rightarrow$ $\langle$[C, O, S], [P, A, K, T, t]$\rangle$}}} 
 \end{equation}
-
-\subsubsection*{Rule 7 [included]:}
+\\
+\\
+Rule 7 [included]:
 \begin{equation}{}
 \frac{}{\parbox{4.2in}{\text{[$<$ transfer $n$ from $puk$ to  $puh$ fee $m$, oph, t $>$ :: P, A, K, T, t' ] $\rightarrow$ } \\
 \text{[P, $<$ (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$), oph, t' $>$ :: A, } \\
-\text{updateSucc(K, puk, '', $n$, $m$), updateConstr(T, $puh$, $s$), t' + 1]}}} 
+\text{updateSucc(K, puk, \'\', $n$, $m$), updateConstr(T, $puh$, $n$, $s$), t' + 1]}}} 
 \end{equation}
-
-\subsubsection*{Rule 8 [timeout]:}
+\\
+Rule 8 [timeout]:
 \begin{equation}{}
 \frac{\text{t' - t $>=$ 60}}{\parbox{4.2in}{\text{[transfer $n$ from $puk$ to  $puh$ fee $m$, t $>$ :: P, A, K, T, t' ] $\rightarrow$} \\
 \text{[P, A, updatecou(K, $puk$, False), T, t']}}} 
@@ -286,17 +303,17 @@ Rule 1 [proposal]:
         \item  \verb!< puk, pkh, bal, (n, b) >!  \verb!=>! \verb!< puk, pkh, bal, (n, b') >!
     \end{itemize}
     
-    \item Function \verb!checkId(id, S)! checks whether a contract $id$ exists in S
+    \item Function \verb!checkId(id, S)! checks whether a contract $id$ does not already exist in S
     
     \item Function \verb!checkPrg(code, s)! checks whether the code $code$ are well type and $s$ is well type input 
     
-    \item Function \verb!addContr(S, id, puh, code)! adds a new  contract $<$ $id$, $puh$, $code$ $>$  into S
+    %\item Function \verb!addContr(S, id, puh, code)! adds a new  contract $<$ $id$, $puh$, $code$ $>$  into S
     
-    \item Function \verb! generateOph(pkh,pkh', n, m, t)! generates a operation hash
+    \item Function \verb! generateOph(pkh,pkh′, n, m, t)! generates a operation hash
 
     \item Function \verb!generateHash(S, id, puh, code, t)! generates the public hash of a contract 
      
-    \item Function \verb!addOrig(T,< hash, 0, code, storage >)! add the a new originator $<$ $puh$, 0, $code$, $storage$ $>$ 
+   % \item Function \verb!addOrig(T,< hash, 0, code, storage >)! add the a new originator $<$ $puh$, 0, $code$, $storage$ $>$ 
     \item Function \verb!getStorage(code, s)! gets the storage for the code $code$ and the input $s$
 \end{enumerate}
 
