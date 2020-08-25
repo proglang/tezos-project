@@ -129,11 +129,19 @@ $\langle \mathbf{M}, \mathbf{B} \rangle$ where
 
 \section{Rules}
 \subsection{Transfers}
-~\\
+
 Rule 1 [proposal]:
 
 \begin{equation}{}
-\frac{\text{checkAcc($pkh$, \ACCOUNTS)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow \langle$[\ACCOUNTS, (transfer $n$ from $pkh$ to $pkh'$ fee $m$)} ~\\\text{ :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
+  \frac{
+    \text{checkAcc($pkh$, \ACCOUNTS)}
+  }{
+    \parbox{4.5in}{\text{$\langle[\ACCOUNTS, \OPERATIONS,
+        \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS,
+        \TIME]\rangle \rightarrow$} \\
+      \text{$\langle [\ACCOUNTS, (\TRANSFER\NTEZ\PKH{\PKH'}\MTEZ)$ ::
+        \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS,
+        \CONTRACTORS, \TIME]$\rangle$}}}  
 \end{equation}
 ~\\
 ~\\
