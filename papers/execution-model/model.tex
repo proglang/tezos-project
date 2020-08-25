@@ -21,7 +21,7 @@
 
 \begin{document}
 \maketitle
-
+\pagestyle{plain}
 
 \section{Definitions}
 \begin{definition}[Set]
@@ -148,7 +148,7 @@ Rule 1 [proposal]:
 Rule 2 [injected]:
 
 \begin{equation}{}
-\frac{\text{checkBan(\MANAGERS, $pkh, n, m$) $\wedge$ checkCou(\MANAGERS, $pkh$) $\wedge$ checkPub(\MANAGERS, $pkh'$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer $n$ from $pkh$ to $pkh'$ fee $m$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow$}\\
+\frac{\text{checkBal(\MANAGERS, $pkh, n, m$) $\wedge$ checkCou(\MANAGERS, $pkh$) $\wedge$ checkPub(\MANAGERS, $pkh'$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer $n$ from $pkh$ to $pkh'$ fee $m$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow$}\\
 \text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [($<$ transfer $n$ from $puk$ to $puk'$ fee $m$, generateOph($pkh$, }\\
 \text{$pkh', n, m$, \TIME), \TIME $>$) :: \PENDING, \ACCEPTED, updateCou(\MANAGERS, $pkh$, True), \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
@@ -165,7 +165,7 @@ Rule 3 [rejected of counter]:
 Rule 4 [rejected of balance]:
 
 \begin{equation}{}
-\frac{\text{$\neg$ checkBan(\MANAGERS, $pkh, m, n$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer $n$ from $pkh$ to $pkh'$ fee $m$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow$ }\\
+\frac{\text{$\neg$ checkBal(\MANAGERS, $pkh, m, n$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer $n$ from $pkh$ to $pkh'$ fee $m$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow$ }\\
 \text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
@@ -187,7 +187,7 @@ Rule 6 [included]:
 ~\\
 Rule 7 [timeout]:
 \begin{equation}{}
-\frac{\text{\TIME' - \TIME $\ge$ 60}}{\parbox{4.2in}{\text{[$<$ transfer $n$ from $puk$ to  $puk'$ fee $m$, oph, \TIME $>$ :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ] $\rightarrow$} \\
+\frac{\TIME' - \TIME \ge 60}{\parbox{4.2in}{\text{[$<$ transfer $n$ from $puk$ to  $puk'$ fee $m$, oph, \TIME $>$ :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ] $\rightarrow$} \\
  \hspace*{0cm} \text{[\PENDING, \ACCEPTED, updateCou(\MANAGERS, $puk$, False), \CONTRACTORS, \TIME']}}} 
 \end{equation}
 
@@ -207,7 +207,7 @@ Rule 1 [proposal]:
 Rule 2 [injected]:
 
 \begin{equation}{}
-\frac{\text{checkBan(\MANAGERS, $pkh, n, m$) $\wedge$ checkCou(\MANAGERS, $pkh$) $\wedge$ \text{checkPrg($code, s$)}}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{ :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] $\rangle \rightarrow \langle$ [\ACCOUNTS, \OPERATIONS, \CONTRACTS],} \text{[(originate contract ${id}$ transferring ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: \PENDING, \ACCEPTED, updateCou(\MANAGERS, $pkh$, True), \CONTRACTORS, \TIME] $\rangle$}}} 
+\frac{\text{checkBal(\MANAGERS, $pkh, n, m$) $\wedge$ checkCou(\MANAGERS, $pkh$) $\wedge$ \text{checkPrg($code, s$)}}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{ :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] $\rangle \rightarrow \langle$ [\ACCOUNTS, \OPERATIONS, \CONTRACTS],} \text{[(originate contract ${id}$ transferring ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: \PENDING, \ACCEPTED, updateCou(\MANAGERS, $pkh$, True), \CONTRACTORS, \TIME] $\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
@@ -228,7 +228,7 @@ Rule 4 [rejected of counter]:
 Rule 5 [rejected of balance]:
 
 \begin{equation}{}
-\frac{\text{$\neg$ checkBan(\MANAGERS, $pkh, n, m$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow \langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS],} \text{[\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
+\frac{\text{$\neg$ checkBal(\MANAGERS, $pkh, n, m$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow \langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS],} \text{[\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
@@ -263,7 +263,7 @@ Rule 1 [proposal]:
 Rule 2 [injected]:
 
 \begin{equation}{}
-\frac{\text{checkBan(\MANAGERS, $pkh, n, m$) $\wedge$ checkCou(\MANAGERS, $pkh$) $\wedge$ checkPuh(\CONTRACTORS, $puh$)}
+\frac{\text{checkBal(\MANAGERS, $pkh, n, m$) $\wedge$ checkCou(\MANAGERS, $pkh$) $\wedge$ checkPuh(\CONTRACTORS, $puh$)}
 \\
 \text{ $\wedge$ checkArg(\CONTRACTORS, $puh, s$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}\\
 \text{$\rightarrow$  $\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [($<$ (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$), }\\
@@ -283,7 +283,7 @@ Rule 3 [rejected of counter]:
 Rule 4 [rejected of balance]:
 
 \begin{equation}{}
-\frac{\text{$\neg$ checkBan(\MANAGERS, $pkh, n, m$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$ }\\
+\frac{\text{$\neg$ checkBal(\MANAGERS, $pkh, n, m$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$ }\\
 \text{$\rightarrow \langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
@@ -309,17 +309,19 @@ Rule 7 [included]:
 \begin{equation}
 \frac{}{
   \begin{array}{l}
-\text{[$<$ transfer $n$ from $puk$ to  $puh$ fee $m$, oph, \TIME $>$ :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ] $\rightarrow$ } \\
-\text{[\PENDING, $<$ (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$), oph, \TIME' $>$ :: \ACCEPTED, } \\
-\text{updateSucc(\MANAGERS, puk, '', $n, m$), updateConstr(\CONTRACTORS, $puh, n$,
-  $s$), $\TIME' + 1$]}
+    {[\langle \TRANSFER[\STRING]\NTEZ\PUK\PUH\MTEZ, \OPH, \TIME
+    \rangle :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME']}
+    \rightarrow \\
+    {}[\PENDING, \langle \TRANSFER[\STRING]\NTEZ\PUK\PUH\MTEZ, \OPH, \TIME' \rangle :: \ACCEPTED,  \\
+    \text{updateSucc(\MANAGERS, \PUK, '', \NTEZ, \MTEZ), updateConstr$(\CONTRACTORS, \PUH, \NTEZ,
+  s)$, $\TIME' + 1$]}
   \end{array}
 }\label{eq:1}
 \end{equation}
 ~\\
 Rule 8 [timeout]:
 \begin{equation}{}
-\frac{\text{\TIME' - \TIME $\ge$ 60}}{\parbox{4.2in}{\text{[transfer $n$ from $puk$ to  $puh$ fee $m$, \TIME $>$ :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ] $\rightarrow$} \\
+\frac{\TIME' - \TIME \ge 60}{\parbox{4.2in}{\text{[transfer $n$ from $puk$ to  $puh$ fee $m$, \TIME $>$ :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ] $\rightarrow$} \\
 \text{[\PENDING, \ACCEPTED, updatecou(\MANAGERS, $puk$, False), \CONTRACTORS, \TIME']}}} 
 \end{equation}
 
@@ -327,15 +329,17 @@ Rule 8 [timeout]:
 \begin{enumerate}
     \item Function \verb!checkAcc(pkh, C)! checks whether an account $pkh$ exists in \ACCOUNTS
     \item Function \verb!checkPub(K, pkh)! checks whether the public key of the public key hash $pkh$ is reveled to the blockchain.
-    \item Function \verb!checkBan(K, pkh, n, m)! checks whether the balance of the account $pkh$ is greater or equal to $m$ + $n$
-    \item Function \verb!checkCou(K, pkh)! checks whether the current counter of an account $phk$ is used
-    \item Function \verb!updateSuc(K, pkh, pkh', n, m)! updates the balance and the counter of the account $phk$ and the balance of the account $phk'$, where
+    \item Function \verb!checkBal(K, pkh, n, m)! checks whether the balance of the account $pkh$ is greater or equal to $m$ + $n$
+    \item Function \verb!checkCou(K, pkh)! checks whether the current
+      counter of an account $phk$ is unlocked (i.e., its flag is False)
+    \item Function \verb!updateSucc(K, pkh, pkh', n, m)! updates the balance and the counter of the account $phk$ and the balance of the account $phk'$, where
     \begin{itemize}
         \item  \verb!< puk, pkh, bal, (n, True) >!  \verb!=>! \\ \verb!< puk, pkh, bal - n - m, (n + 1, False) >!
         \item  \verb!< puk', pkh', bal', cou' >! \verb!=>! \verb!< puk', pkh', bal' + n, cou' >!
     \end{itemize}
     
-    \item Function \verb!updateCou(K, puk, b')! updates the counter of the account $phk$, where
+    \item Function \verb!updateCou(K, puk, b')! updates the counter
+      lock of the account $phk$ (True $=$ lockeed, False $=$ unlocked), where
     \begin{itemize}
         \item  \verb!< puk, pkh, bal, (n, b) >!  \verb!=>! \verb!< puk, pkh, bal, (n, b') >!
     \end{itemize}
@@ -415,15 +419,15 @@ let rec updateCou K puk =
 \end{verbatim}
 
 \begin{verbatim}
-let rec updateSuc K puk puk' m n =
+let rec updateSucc K puk puk' m n =
   match K with
   | 0 -> 0
   | < puk'', bal, cou > :: K' ->
     if (puk = puk'') then < puk'', bal - (n + m), T > 
-       :: updateSuc (K', puk, puk', n, m)
+       :: updateSucc (K', puk, puk', n, m)
     else if (puk' = puk'') then < puk'', bal + n, cou > :: K'
          else  < puk'', bal, cou > 
-               ::updateSuc (K', puk, puk', n, m)
+               ::updateSucc (K', puk, puk', n, m)
 \end{verbatim}
 
 
