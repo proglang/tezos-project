@@ -41,57 +41,59 @@ $\CODE$ is the code of the contract.
 \end{definition}
 
 \begin{definition}[Manager]
-An manager manages accounts on the blockchain. It is represented by a
+A manager manages a single account. It is represented by a
 tuple $\langle  \PUK, \PKH, \BAL, \COU \rangle $, where  $\PUK$ is the
 public key of an account, $\PKH$ is its public key hash, $\BAL$ is its
-balance and $\COU$ is its counter whose form is a pair ($\mathbf{n},
-\mathbf{b}$), where $\mathbf{n}$ is a nature number and $\mathbf{b}$
+balance and $\COU$ is its counter whose form is a pair $(n, b)$, where $n$ is a natural number and ${b}$
 is a boolean value.  
 \end{definition}
 
 \begin{definition}[Contractor]
-  A contractor manages smart contracts on the blockchain. It is
+  A contractor manages a smart contract. It is
   represented by a tuple
   $\langle \PUH, \BAL, \CODE, \STORAGE \rangle $, where $\PUH$ is the
-  public hash of the contract, $\BAL$ is its balance, $\CODE$ is its
-  code and $\STORAGE$ is its storage.
+  public key hash of the contract, $\BAL$ is its current balance, $\CODE$ is its
+  code, and $\STORAGE$ is its current storage.
 \end{definition}
 
 \begin{definition}[Operation]
-An operation is expressed as the following syntax:
-\\
-$\OP$ ::= transfer  $\mathbf{n}$ from $\PKH$ to $\PKH'$ fee $\mathbf{m}$
+  Operations are defined by the following grammar:
+  \begin{align*}
+    \OP &::= \TRANSFER[\STRING]\NTEZ\PKH{\PKH'}\MTEZ
+    \\&\mid \ORIGINATE\ID\NTEZ\PKH\CODE\STRING\MTEZ
+    % \\&\mid transfer $\mathbf{n}$ from $\PKH$ to  $\PUH$ arg $\mathbf{s}$ fee $\mathbf{m}$
+  \end{align*}
 %\\$\mid$ register key $\PKH$ as delegate fee $\mathbf{m}$ 
 %\\$\mid$ set delegate for $\PKH$ to $\PKH'$  fee $\mathbf{m}$ 
 %\\$\mid$ withdraw delegate from $\PKH$ fee $\mathbf{m}$ 
-\\$\mid$ originate contract $\mathbf{id}$ transferring  $\mathbf{n}$ from $\PKH$ running $\CODE$ init $\mathbf{s}$ fee $\mathbf{m}$
-\\$\mid$ transfer $\mathbf{n}$ from $\PKH$ to  $\PUH$ arg $\mathbf{s}$ fee $\mathbf{m}$
 \end{definition}
 
 \begin{definition}[Query]
-An query is expressed as the following syntax:
-\\
-$\mathbf{qry}$ ::= get balance for $\PKH / \PUH$
+Queries are defined by the following grammar:
+\begin{align*}
+  \QRY & ::= \GETBALANCE {\PKH / \PUH}
+  \\&\mid \GETSTATUS\OPH
+  \\&\mid \GETSTORAGE\PUH
+  \\&\mid \GETCODE\PUH 
+  \\&\mid \GETPUBLICKEY\PKH
+  \\&\mid \GETCOUNTER\PKH
+\end{align*}
+
 %$\mid$ get delegate for $\PKH$
-\\$\mid$ get status for $\OPH$ 
-\\$\mid$ get contract storage $\PUH$ 
-\\$\mid$ get code for $\PUH$ 
 %\\$\mid$ waiting for $\OPH$ to be included in $\mathbf{m}$ blocks
 %\\$\mid$ get timestamp
 %\\$\mid$ get contracts
 %\\$\mid$ show contracts for $\PKH$
-\\$\mid$ get public key for $\PKH$
 %\\$\mid$ get balance for $\PKH$
-\\$\mid$ get counter for $\PKH$
 
 \end{definition}
  \begin{definition}[State of a node]
    The state of a node is a tuple
-   $[\mathbf{C}, \mathbf{O}, \mathbf{S}]$ where $\mathbf{C}$ is a set of accounts,
-   $\mathbf{O}$ a set of operations, and $\mathbf{S}$  a set of contracts. 
+   $[\ACCOUNTS, \OPERATIONS, \CONTRACTS]$ where $\ACCOUNTS$ is a set of accounts,
+   $\OPERATIONS$ a set of operations, and $\CONTRACTS$  a set of contracts. 
 \end{definition}
 
-When an operation is injected in a node, it enters in a pending pool
+When an operation is injected in a node, it enters a \emph{pending pool}
 (and is called a pending operation). 
  \begin{definition}[Pending operation]
 A pending operation is a tuple  $\langle  \OP, \OPH, \TIME
@@ -101,7 +103,9 @@ and $\TIME$ is the time when the operation was injected.
 After some time, a pending operation may be included in the blockchain as an accepted operation.
 %Let \textit{P} is the set of pending operations.
  \begin{definition}[Accepted operation]
-An accepted operation  is expressed as a tuple $\langle  \OP, \OPH, \TIME \rangle $, where $\OP$ is an operation, $\OPH$ is the operation hash and $\TIME$ is the time when it is included in the blockchain. 
+An accepted operation  is a tuple $\langle  \OP, \OPH, \TIME \rangle
+$, where $\OP$ is an operation, $\OPH$ is the operation hash and
+$\TIME$ is the time when it was included in the blockchain. 
 \end{definition}
 
 \begin{definition}[Blockchain]
@@ -114,12 +118,12 @@ An accepted operation  is expressed as a tuple $\langle  \OP, \OPH, \TIME \rangl
 
 \begin{definition}[Blockchain system]
 A blockchain system is a pair
-$\mathbf{S} \triangleq\langle \mathbf{M}, \mathbf{B} \rangle$ where
+$\langle \mathbf{M}, \mathbf{B} \rangle$ where
 \begin{enumerate}
-\item $\mathbf{M} = [C, O, S]$ is the state of a node, and
-\item $\mathbf{B} = [P, A, K, T, t]$ is the state of a blockchain 
-  such that $\forall c \in C \implies \exists k\in K, k.pkh = c.pkh$
-  and $\forall s \in S \implies \exists p \in T, s.puh = p.puh$.
+\item $\mathbf{M} = [\ACCOUNTS, \OPERATIONS, \CONTRACTS]$ is the state of a node, and
+\item $\mathbf{B} = [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$ is the state of a blockchain 
+  such that $\forall c \in \ACCOUNTS \implies \exists k\in \MANAGERS, k.pkh = c.pkh$
+  and $\forall s \in \CONTRACTS \implies \exists p \in \CONTRACTORS, s.puh = p.puh$.
 \end{enumerate}
 \end{definition}
 
@@ -129,54 +133,54 @@ $\mathbf{S} \triangleq\langle \mathbf{M}, \mathbf{B} \rangle$ where
 Rule 1 [proposal]:
 
 \begin{equation}{}
-\frac{\text{checkAcc($pkh$, C)}}{\parbox{4.2in}{\text{$\langle$[C, O, S], [P, A, K, T, t]$\rangle \rightarrow \langle$[C, (transfer $n$ from $pkh$ to $pkh'$ fee $m$)} ~\\\text{ :: O, S], [P, A, K, T, t]$\rangle$}}} 
+\frac{\text{checkAcc($pkh$, \ACCOUNTS)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow \langle$[\ACCOUNTS, (transfer $n$ from $pkh$ to $pkh'$ fee $m$)} ~\\\text{ :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
 Rule 2 [injected]:
 
 \begin{equation}{}
-\frac{\text{checkBan(K, $pkh, n, m$) $\wedge$ checkCou(K, $pkh$) $\wedge$ checkPub(K, $pkh'$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer $n$ from $pkh$ to $pkh'$ fee $m$) :: O, S], [P, A, K, T, t]$\rangle \rightarrow$}\\
-\text{$\langle$[C, O, S], [($<$ transfer $n$ from $puk$ to $puk'$ fee $m$, generateOph($pkh$, }\\
-\text{$pkh', n, m$, t), t $>$) :: P, A, updateCou(K, $pkh$, True), T, t]$\rangle$}}} 
+\frac{\text{checkBan(\MANAGERS, $pkh, n, m$) $\wedge$ checkCou(\MANAGERS, $pkh$) $\wedge$ checkPub(\MANAGERS, $pkh'$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer $n$ from $pkh$ to $pkh'$ fee $m$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow$}\\
+\text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [($<$ transfer $n$ from $puk$ to $puk'$ fee $m$, generateOph($pkh$, }\\
+\text{$pkh', n, m$, \TIME), \TIME $>$) :: \PENDING, \ACCEPTED, updateCou(\MANAGERS, $pkh$, True), \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
 Rule 3 [rejected of counter]:
 
 \begin{equation}{}
-\frac{\text{$\neg$ checkCou(K, $pkh$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer $n$ from $pkh$ to $pkh'$ fee $m$) :: O, S], [P, A, K, T, t]$\rangle \rightarrow$ }\\
-\text{$\langle$[C, O, S], [P, A, K, T, t]$\rangle$}}} 
+\frac{\text{$\neg$ checkCou(\MANAGERS, $pkh$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer $n$ from $pkh$ to $pkh'$ fee $m$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow$ }\\
+\text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
 Rule 4 [rejected of balance]:
 
 \begin{equation}{}
-\frac{\text{$\neg$ checkBan(K, $pkh, m, n$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer $n$ from $pkh$ to $pkh'$ fee $m$) :: O, S], [P, A, K, T, t]$\rangle \rightarrow$ }\\
-\text{$\langle$[C, O, S], [P, A, K, T, t]$\rangle$}}} 
+\frac{\text{$\neg$ checkBan(\MANAGERS, $pkh, m, n$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer $n$ from $pkh$ to $pkh'$ fee $m$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow$ }\\
+\text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
 Rule 5 [rejected of public key]:
 
 \begin{equation}{}
-\frac{\text{$\neg$ checkPub(K, $pkh'$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer $n$ from $pkh$ to $pkh'$ fee $m$) :: O, S], [P, A, K, T, t]$\rangle \rightarrow$ }\\
-\text{$\langle$[C, O, S], [P, A, K, T, t]$\rangle$}}} 
+\frac{\text{$\neg$ checkPub(\MANAGERS, $pkh'$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer $n$ from $pkh$ to $pkh'$ fee $m$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow$ }\\
+\text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
 Rule 6 [included]:
 \begin{equation}{}
-\frac{}{\parbox{4.2in}{\text{[$<$ transfer $n$ from $puk$ to  $puk'$ fee $m$, oph, t $>$ :: P, A, K, T, t' ] $\rightarrow$ } \\
- \text{[P, $<$ transfer $n$ from  $puk$ to $puk'$ fee $m$, oph, t' $>$ :: A, updateSucc(K, } \\
-\text{$puk, puk', n, m$), T, t' + 1]}}} 
+\frac{}{\parbox{4.2in}{\text{[$<$ transfer $n$ from $puk$ to  $puk'$ fee $m$, oph, \TIME $>$ :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ] $\rightarrow$ } \\
+ \text{[\PENDING, $<$ transfer $n$ from  $puk$ to $puk'$ fee $m$, oph, \TIME' $>$ :: \ACCEPTED, updateSucc(\MANAGERS, } \\
+\text{$puk, puk', n, m$), \CONTRACTORS, \TIME' + 1]}}} 
 \end{equation}
 ~\\
 Rule 7 [timeout]:
 \begin{equation}{}
-\frac{\text{t' - t $\ge$ 60}}{\parbox{4.2in}{\text{[$<$ transfer $n$ from $puk$ to  $puk'$ fee $m$, oph, t $>$ :: P, A, K, T, t' ] $\rightarrow$} \\
- \hspace*{0cm} \text{[P, A, updateCou(K, $puk$, False), T, t']}}} 
+\frac{\text{\TIME' - \TIME $\ge$ 60}}{\parbox{4.2in}{\text{[$<$ transfer $n$ from $puk$ to  $puk'$ fee $m$, oph, \TIME $>$ :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ] $\rightarrow$} \\
+ \hspace*{0cm} \text{[\PENDING, \ACCEPTED, updateCou(\MANAGERS, $puk$, False), \CONTRACTORS, \TIME']}}} 
 \end{equation}
 
 \subsection{Smart Contracts}
@@ -187,53 +191,53 @@ A. Originate
 Rule 1 [proposal]:
 
 \begin{equation}{}
-\frac{\text{checkAcc($pkh$, C) $\wedge$ checkId($id$, S)}}{\parbox{4.2in}{\text{$\langle$[C, O, S], [P, A, K, T, t]$\rangle \rightarrow \langle$[C, (originate contract ${id}$ transferring} \\
-  \text{${n}$ from ${pkh}$} \text{running ${code}$ init ${s}$) :: O, S], [P, A, K, T, t]$\rangle$}}} 
+\frac{\text{checkAcc($pkh$, \ACCOUNTS) $\wedge$ checkId($id$, \CONTRACTS)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow \langle$[\ACCOUNTS, (originate contract ${id}$ transferring} \\
+  \text{${n}$ from ${pkh}$} \text{running ${code}$ init ${s}$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
 Rule 2 [injected]:
 
 \begin{equation}{}
-\frac{\text{checkBan(K, $pkh, n, m$) $\wedge$ checkCou(K, $pkh$) $\wedge$ \text{checkPrg($code, s$)}}}{\parbox{4.2in}{\text{$\langle$[C, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{ :: O, S], [P, A, K, T, t] $\rangle \rightarrow \langle$ [C, O, S],} \text{[(originate contract ${id}$ transferring ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: P, A, updateCou(K, $pkh$, True), T, t] $\rangle$}}} 
+\frac{\text{checkBan(\MANAGERS, $pkh, n, m$) $\wedge$ checkCou(\MANAGERS, $pkh$) $\wedge$ \text{checkPrg($code, s$)}}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{ :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] $\rangle \rightarrow \langle$ [\ACCOUNTS, \OPERATIONS, \CONTRACTS],} \text{[(originate contract ${id}$ transferring ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: \PENDING, \ACCEPTED, updateCou(\MANAGERS, $pkh$, True), \CONTRACTORS, \TIME] $\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
 Rule 3 [rejected of code]:
 
 \begin{equation}{}
-\frac{\text{$\neg$ checkPrg($code, s$)}}{\parbox{4.2in}{\text{$\langle$[C, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: O, S], [P, A, K, T, t]$\rangle \rightarrow \langle$[C, O, S],} \text{[P, A, K, T, t]$\rangle$}}} 
+\frac{\text{$\neg$ checkPrg($code, s$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow \langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS],} \text{[\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
 Rule 4 [rejected of counter]:
 
 \begin{equation}{}
-\frac{\text{$\neg$ checkCou(K, $pkh$)}}{\parbox{4.2in}{\text{$\langle$[C, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$))} \text{:: O, S], [P, A, K, T, t]$\rangle \rightarrow \langle$ [C, O, S],} \text{[P, A, K, T, t]$\rangle$}}} 
+\frac{\text{$\neg$ checkCou(\MANAGERS, $pkh$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$))} \text{:: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow \langle$ [\ACCOUNTS, \OPERATIONS, \CONTRACTS],} \text{[\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
 Rule 5 [rejected of balance]:
 
 \begin{equation}{}
-\frac{\text{$\neg$ checkBan(K, $pkh, n, m$)}}{\parbox{4.2in}{\text{$\langle$[C, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: O, S], [P, A, K, T, t]$\rangle \rightarrow \langle$[C, O, S],} \text{[P, A, K, T, t]$\rangle$}}} 
+\frac{\text{$\neg$ checkBan(\MANAGERS, $pkh, n, m$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow \langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS],} \text{[\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
 Rule 6 [included]:
 \begin{equation}{}
-\frac{}{\parbox{4.2in}{\text{$\langle$[C, O, S], [$<$ (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running } \\
-\text{${code}$ init ${s}$), t $>$ :: P, A, K, T, t' ]$\rangle \rightarrow \langle$[C, O,($< id$, } \\
-\text{generateHash($id, code, s$, t'), $code >$ :: S)], [P, $<$ (originate contract ${id}$ } \\
-\text{transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$), t' $>$ :: A, updateSucc(K, } \\
-\text{$puk, n, m$), ($<$ generateHash($id, code, s$, t'), $n, code$, } \\
- \text{getStorage($code, s$) $>$) :: T), t' + 1]$\rangle$}}} 
+\frac{}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [$<$ (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running } \\
+\text{${code}$ init ${s}$), \TIME $>$ :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ]$\rangle \rightarrow \langle$[\ACCOUNTS, \OPERATIONS,($< id$, } \\
+\text{generateHash($id, code, s$, \TIME'), $code >$ :: \CONTRACTS)], [\PENDING, $<$ (originate contract ${id}$ } \\
+\text{transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$), \TIME' $>$ :: \ACCEPTED, updateSucc(\MANAGERS, } \\
+\text{$puk, n, m$), ($<$ generateHash($id, code, s$, \TIME'), $n, code$, } \\
+ \text{getStorage($code, s$) $>$) :: \CONTRACTORS), \TIME' + 1]$\rangle$}}} 
 \end{equation}
 ~\\
 Rule 7 [timeout]:
 \begin{equation}{}
-\frac{\text{t' - t $\ge$ 60}}{\parbox{4.2in}{\text{[$<$ (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$) $>$ } \\
-\text{:: P, A, K, T, t' ] $\rightarrow$[P, A, updateCou(K, $puk$, False), T, t']}}} 
+\frac{\text{\TIME' - \TIME $\ge$ 60}}{\parbox{4.2in}{\text{[$<$ (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$) $>$ } \\
+\text{:: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ] $\rightarrow$[\PENDING, \ACCEPTED, updateCou(\MANAGERS, $puk$, False), \CONTRACTORS, \TIME']}}} 
 \end{equation}
 ~\\
 ~\\
@@ -243,52 +247,52 @@ B. \textbf{Transfer}
 Rule 1 [proposal]:
 
 \begin{equation}{}
-\frac{\text{checkAcc($pkh$, C)  }}{\parbox{4.2in}{\text{$\langle$[C, O, S], [P, A, K, T, t]$\rangle \rightarrow \langle$[C, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ }  \\
-\text{fee ${m}$) :: O, S], [P, A, K, T, t]$\rangle$}}} 
+\frac{\text{checkAcc($pkh$, \ACCOUNTS)  }}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow \langle$[\ACCOUNTS, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ }  \\
+\text{fee ${m}$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
 Rule 2 [injected]:
 
 \begin{equation}{}
-\frac{\text{checkBan(K, $pkh, n, m$) $\wedge$ checkCou(K, $pkh$) $\wedge$ checkPuh(T, $puh$)}
+\frac{\text{checkBan(\MANAGERS, $pkh, n, m$) $\wedge$ checkCou(\MANAGERS, $pkh$) $\wedge$ checkPuh(\CONTRACTORS, $puh$)}
 \\
-\text{ $\wedge$ checkArg(T, $puh, s$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: O, S], [P, A, K, T, t]$\rangle$}\\
-\text{$\rightarrow$  $\langle$[C, O, S], [($<$ (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$), }\\
- \text{generateOph($pkh, puh, s, n, m$, t), t $>$) :: P, A, updateCou(K, $pkh$, True), }\\
-\text{T, t] $\rangle$}}} 
+\text{ $\wedge$ checkArg(\CONTRACTORS, $puh, s$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}\\
+\text{$\rightarrow$  $\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [($<$ (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$), }\\
+ \text{generateOph($pkh, puh, s, n, m$, \TIME), \TIME $>$) :: \PENDING, \ACCEPTED, updateCou(\MANAGERS, $pkh$, True), }\\
+\text{\CONTRACTORS, \TIME] $\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
 Rule 3 [rejected of counter]:
 
 \begin{equation}{}
-\frac{\text{$\neg$ checkCou(K, $pkh$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: O, S], [P, A, K, T, t]$\rangle$  }\\
-\text{$\rightarrow \langle$[C, O, S], [P, A, K, T, t]$\rangle$}}} 
+\frac{\text{$\neg$ checkCou(\MANAGERS, $pkh$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$  }\\
+\text{$\rightarrow \langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
 Rule 4 [rejected of balance]:
 
 \begin{equation}{}
-\frac{\text{$\neg$ checkBan(K, $pkh, n, m$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: O, S], [P, A, K, T, t]$\rangle$ }\\
-\text{$\rightarrow \langle$[C, O, S], [P, A, K, T, t]$\rangle$}}} 
+\frac{\text{$\neg$ checkBan(\MANAGERS, $pkh, n, m$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$ }\\
+\text{$\rightarrow \langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
 Rule 5 [rejected of public hash]:
 
 \begin{equation}{}
-\frac{\text{$\neg$ checkPuh(T, $puh$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: O, S], [P, A, K, T, t]$\rangle$ }\\
-\text{$\rightarrow \langle$[C, O, S], [P, A, K, T, t]$\rangle$}}} 
+\frac{\text{$\neg$ checkPuh(\CONTRACTORS, $puh$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$ }\\
+\text{$\rightarrow \langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
 Rule 6 [rejected of argument]:
 
 \begin{equation}{}
-\frac{\text{$\neg$ checkArg(T, $puh, s$)}}{\parbox{4.2in}{\text{$\langle$[C, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: O, S], [P, A, K, T, t]$\rangle$}\\
-\text{$\rightarrow \langle$[C, O, S], [P, A, K, T, t]$\rangle$}}} 
+\frac{\text{$\neg$ checkArg(\CONTRACTORS, $puh, s$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}\\
+\text{$\rightarrow \langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
 ~\\
@@ -297,23 +301,23 @@ Rule 7 [included]:
 \begin{equation}
 \frac{}{
   \begin{array}{l}
-\text{[$<$ transfer $n$ from $puk$ to  $puh$ fee $m$, oph, t $>$ :: P, A, K, T, t' ] $\rightarrow$ } \\
-\text{[P, $<$ (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$), oph, t' $>$ :: A, } \\
-\text{updateSucc(K, puk, '', $n, m$), updateConstr(T, $puh, n$,
-  $s$), $t' + 1$]}
+\text{[$<$ transfer $n$ from $puk$ to  $puh$ fee $m$, oph, \TIME $>$ :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ] $\rightarrow$ } \\
+\text{[\PENDING, $<$ (transfer ${n}$ from ${pkh}$ to  ${puh}$ arg ${s}$ fee ${m}$), oph, \TIME' $>$ :: \ACCEPTED, } \\
+\text{updateSucc(\MANAGERS, puk, '', $n, m$), updateConstr(\CONTRACTORS, $puh, n$,
+  $s$), $\TIME' + 1$]}
   \end{array}
 }\label{eq:1}
 \end{equation}
 ~\\
 Rule 8 [timeout]:
 \begin{equation}{}
-\frac{\text{t' - t $\ge$ 60}}{\parbox{4.2in}{\text{[transfer $n$ from $puk$ to  $puh$ fee $m$, t $>$ :: P, A, K, T, t' ] $\rightarrow$} \\
-\text{[P, A, updatecou(K, $puk$, False), T, t']}}} 
+\frac{\text{\TIME' - \TIME $\ge$ 60}}{\parbox{4.2in}{\text{[transfer $n$ from $puk$ to  $puh$ fee $m$, \TIME $>$ :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ] $\rightarrow$} \\
+\text{[\PENDING, \ACCEPTED, updatecou(\MANAGERS, $puk$, False), \CONTRACTORS, \TIME']}}} 
 \end{equation}
 
 \section{Functions}
 \begin{enumerate}
-    \item Function \verb!checkAcc(pkh, C)! checks whether an account $pkh$ exists in C
+    \item Function \verb!checkAcc(pkh, C)! checks whether an account $pkh$ exists in \ACCOUNTS
     \item Function \verb!checkPub(K, pkh)! checks whether the public key of the public key hash $pkh$ is reveled to the blockchain.
     \item Function \verb!checkBan(K, pkh, n, m)! checks whether the balance of the account $pkh$ is greater or equal to $m$ + $n$
     \item Function \verb!checkCou(K, pkh)! checks whether the current counter of an account $phk$ is used
@@ -328,11 +332,11 @@ Rule 8 [timeout]:
         \item  \verb!< puk, pkh, bal, (n, b) >!  \verb!=>! \verb!< puk, pkh, bal, (n, b') >!
     \end{itemize}
     
-    \item Function \verb!checkId(id, S)! checks whether a contract $id$ does not already exist in S
+    \item Function \verb!checkId(id, S)! checks whether a contract $id$ does not already exist in \CONTRACTS
     
     \item Function \verb!checkPrg(code, s)! checks whether the code $code$ are well type and $s$ is well type input 
     
-    %\item Function \verb!addContr(S, id, puh, code)! adds a new  contract $< id, puh, code >$  into S
+    %\item Function \verb!addContr(S, id, puh, code)! adds a new  contract $< id, puh, code >$  into \CONTRACTS
     
     \item Function \verb! generateOph(pkh,pkh', n, m, t)! generates a operation hash
 
