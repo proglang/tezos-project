@@ -5,10 +5,7 @@
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage[colorinlistoftodos]{todonotes}
-\newtheorem{mydef}{Definition}
-\newtheorem{mylemma}{Lemma}
-\newtheorem{mytheorem}{Theorem}
-\newtheorem{mypro}{Proposition}
+\usepackage{mathpartir}
 
 \input{macros}
 
@@ -89,7 +86,7 @@ Queries are defined by the following grammar:
 \end{definition}
  \begin{definition}[State of a node]
    The state of a node is a tuple
-   $[\ACCOUNTS, \OPERATIONS, \CONTRACTS]$ where $\ACCOUNTS$ is a set of accounts,
+   $\NODE = [\ACCOUNTS, \OPERATIONS, \CONTRACTS]$ where $\ACCOUNTS$ is a set of accounts,
    $\OPERATIONS$ a set of operations, and $\CONTRACTS$  a set of contracts. 
 \end{definition}
 
@@ -118,16 +115,45 @@ $\TIME$ is the time when it was included in the blockchain.
 
 \begin{definition}[Blockchain system]
 A blockchain system is a pair
-$\langle \mathbf{M}, \mathbf{B} \rangle$ where
+$ \NODE \| \BLOCKCHAIN$ where
 \begin{enumerate}
-\item $\mathbf{M} = [\ACCOUNTS, \OPERATIONS, \CONTRACTS]$ is the state of a node, and
-\item $\mathbf{B} = [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$ is the state of a blockchain 
+\item $\NODE = [\ACCOUNTS, \OPERATIONS, \CONTRACTS]$ is the state of a node, and
+\item $\BLOCKCHAIN = [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$ is the state of a blockchain 
   such that $\forall c \in \ACCOUNTS \implies \exists k\in \MANAGERS, k.pkh = c.pkh$
   and $\forall s \in \CONTRACTS \implies \exists p \in \CONTRACTORS, s.puh = p.puh$.
 \end{enumerate}
 \end{definition}
 
 \section{Rules}
+
+\subsection{Transitions on Nodes}
+\label{sec:transitions-nodes}
+
+Each node has (nondeterministic) rules to propose an operation.
+
+\begin{mathpar}
+  \inferrule[Node-Transfer]
+  {\CHECKACC (\PUK, \ACCOUNTS)
+  }{
+    [\ACCOUNTS, \OPERATIONS, \CONTRACTS]
+    \NodeTrans
+    [\ACCOUNTS, (\TRANSFER\NTEZ\PUK{\PUK'}\MTEZ) :: \OPERATIONS, \CONTRACTS]
+  }
+
+  \inferrule[Node-Originate]
+  {\CHECKACC (\PUK, \ACCOUNTS) \\
+    \CHECKID (\ID, \CONTRACTS)
+  }{
+    [\ACCOUNTS, \OPERATIONS, \CONTRACTS]
+    \NodeTrans \\
+    [\ACCOUNTS, (\ORIGINATE\ID\NTEZ\PUK\CODE\STRING\MTEZ) :: \OPERATIONS, \CONTRACTS]
+  }
+
+  \inferrule[Node-System]
+  {\NODE \NodeTrans \NODE'}
+  { {\NODE \| \BLOCKCHAIN} \SystemTrans {\NODE'\| \BLOCKCHAIN}}
+\end{mathpar}
+
 \subsection{Transfers}
 
 Rule 1 [proposal]:
@@ -147,11 +173,31 @@ Rule 1 [proposal]:
 ~\\
 Rule 2 [injected]:
 
-\begin{equation}{}
-\frac{\text{checkBal(\MANAGERS, $pkh, n, m$) $\wedge$ checkCou(\MANAGERS, $pkh$) $\wedge$ checkPub(\MANAGERS, $pkh'$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer $n$ from $pkh$ to $pkh'$ fee $m$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow$}\\
-\text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [($<$ transfer $n$ from $puk$ to $puk'$ fee $m$, generateOph($pkh$, }\\
-\text{$pkh', n, m$, \TIME), \TIME $>$) :: \PENDING, \ACCEPTED, updateCou(\MANAGERS, $pkh$, True), \CONTRACTORS, \TIME]$\rangle$}}} 
-\end{equation}
+\begin{mathpar}
+  \inferrule{
+    \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+    \CHECKCOU (\MANAGERS, \PUK) \\
+    \CHECKPUB (\MANAGERS, \PUK') \\\\
+    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \OPH = \GENERATEOPH (\PUK, \PUK', \NTEZ, \MTEZ)
+  }{
+   { [\ACCOUNTS, \OP :: \OPERATIONS, \CONTRACTS] \| [\PENDING,
+     \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans \\
+   { [\ACCOUNTS, \OPERATIONS, \CONTRACTS] \|
+     [ \Angle{\OP,\OPH, \TIME}
+     ::\PENDING,
+     \ACCEPTED,
+     \UPDATECOU(\MANAGERS, \PUK, \TRUE),
+     \CONTRACTORS,
+     \TIME]
+   }
+  }
+\end{mathpar}
+% \begin{equation}{}
+% \frac{\text{checkBal(\MANAGERS, $pkh, n, m$) $\wedge$ checkCou(\MANAGERS, $pkh$) $\wedge$ checkPub(\MANAGERS, $pkh'$)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (transfer $n$ from $pkh$ to $pkh'$ fee $m$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow$}\\
+% \text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [($<$ transfer $n$ from $puk$ to $puk'$ fee $m$, generateOph($pkh$, }\\
+% \text{$pkh', n, m$, \TIME), \TIME $>$) :: \PENDING, \ACCEPTED, updateCou(\MANAGERS, $pkh$, True), \CONTRACTORS, \TIME]$\rangle$}}} 
+% \end{equation}
 ~\\
 ~\\
 Rule 3 [rejected of counter]:
@@ -199,7 +245,11 @@ A. Originate
 Rule 1 [proposal]:
 
 \begin{equation}{}
-\frac{\text{checkAcc($pkh$, \ACCOUNTS) $\wedge$ checkId($id$, \CONTRACTS)}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle \rightarrow \langle$[\ACCOUNTS, (originate contract ${id}$ transferring} \\
+  \frac{\text{checkAcc($pkh$, \ACCOUNTS) $\wedge$ checkId($id$, \CONTRACTS)}}
+  {\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS],
+        [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle
+        \rightarrow \langle$[\ACCOUNTS, 
+        (originate contract ${id}$ transferring} \\
   \text{${n}$ from ${pkh}$} \text{running ${code}$ init ${s}$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
 \end{equation}
 ~\\
@@ -321,8 +371,14 @@ Rule 7 [included]:
 ~\\
 Rule 8 [timeout]:
 \begin{equation}{}
-\frac{\TIME' - \TIME \ge 60}{\parbox{4.2in}{\text{[transfer $n$ from $puk$ to  $puh$ fee $m$, \TIME $>$ :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ] $\rightarrow$} \\
-\text{[\PENDING, \ACCEPTED, updatecou(\MANAGERS, $puk$, False), \CONTRACTORS, \TIME']}}} 
+  \frac{\TIME' - \TIME \ge 60}{
+    \begin{array}{l}
+      {}[\langle\TRANSFER[\STRING]\NTEZ\PUK\PUH\MTEZ, \TIME\rangle ::
+      \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ]
+      \rightarrow \\
+      {}[\PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS, \PUK, \FALSE), \CONTRACTORS, \TIME']
+    \end{array}
+    }
 \end{equation}
 
 \section{Functions}
