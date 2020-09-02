@@ -27,13 +27,14 @@
 
 Every computation performed by a Smart Contract on the blockchain generates costs. Each
 unit of computation and each unit of storage used by an algorithm must be paid for. To
-avoid this cost, users might perform some computation offchain and submit the result as a
-parameter to a contract. Typically, such a computation asserts certain properties of the
+avoid this cost, an application might perform some computation away from the blockchain
+(i.e., off-chain) and submit the result as a parameter to a contract on the
+blockchain. Typically, such a computation asserts certain properties of the 
 submitted parameter. 
 
 However, this approach raises the issue that on the one hand the contract should take
-advantage of the offchain computation and just assume that the submitted parameter has
-these properties, but on the other hand, the offchain computation might be wrong and
+advantage of the offchain computation and assume that the submitted parameter has
+these properties, but on the other hand, the off-chain computation might be wrong and
 submit illegal parameters. So, we need a mechanism that checks the validity of the
 assumptions before the contract starts executing.
 
@@ -46,18 +47,18 @@ contract Example {
   }
 }
 \end{lstlisting}
-We express the assumption with an explicit assertion.
+This assumption can be expressed with an explicit assertion in predicate logic.
 \begin{displaymath}
   (\forall n) (2 \le n \le \sqrt p) \Rightarrow (p \mathbin{\%} n) \ne 0
 \end{displaymath}
-We could test this assumption with a loop in the contract, but the test would take
-$O(\sqrt p)$ time (assuming constant time for computing the modulus) and thus produce cost
-depending on $p$ accordingly. 
+To test the validity of this assumption requires a loop in the contract, but the test would take
+$O(\sqrt p)$ time (assuming constant time for computing the remainder) and thus produce extra cost
+linear in $\sqrt p$ accordingly. 
 However, we could do better by recruiting the validators of the contract for a distributed
 effort to find a counterexample. To this end, we consider the negation of the assertion.
-\begin{displaymath}
+\begin{gather}\label{eq:4}
   (\exists n) (2 \le n \le \sqrt p) \wedge (p \mathbin{\%} n) = 0
-\end{displaymath}
+\end{gather}
 This assertion can be checked pointwise by having each validator independently choose a
 random $n$ fulfilling $2 \le n \le 
 \sqrt p$ and checking whether $(p \mathbin{\%} n) = 0$. If the remainder is $0$, the
@@ -66,7 +67,7 @@ exection. Otherwise, it accepts $p$ knowing that other points will be checked by
 validators.
 
 In this scenario, each validator only needs to be paid to generate a random number and
-perform a division, which is a constant cost independant from $p$.
+perform a division, which is a constant cost independent from $p$.
 
 Of course, this validation is only probabilistic, so its effectiveness depends on the
 number of validators. One could say that the community of validators implements a Bloom
@@ -86,18 +87,23 @@ The explicit assertion would be
 \begin{gather}\label{eq:1}
   (\forall k) (0\le k <49) \Rightarrow a[k] \le a[k+1]
 \end{gather}
-While we can check this contract in $O(1)$ time, the constant factor is large! So we
+While we can check this contract in $O(1)$ time, the constant factor is big! So we
 consider its negation.
 \begin{displaymath}
   (\exists k) (0\le k <49) \wedge a[k] > a[k+1]
 \end{displaymath}
-Again, we can have the validators generate a random number $k$ and check the
-condition. If it is true, then the validator found a counterexample for the sortedness
-of the array. Otherwise, the validator relies on the others.
+Again, we can have every validator generate a random number $k$. If the
+condition is true for such $k$, then the validator found a counterexample for the sortedness
+of the array. Otherwise, the validator relies on the other validators to check
+different numbers.
 
-Let's assume the array is unsorted only at position $0$, the size of the array is $n$,
+To obtain an estimate of the number of validators needed to find a counterexample with
+high probibility, 
+let's assume the array is unsorted only at position $0$, the size of the array is $n$,
 and the number of validators is $m$. Each validator independently has a probability of
-$1/n$ to detect the problem. The probability that no validator checks at
+$1/n$ to detect the problem and thus probability $\frac{n-1} n$ not to detect the
+problem. Hence, if we assume that each $k$ is chosen independenty from a uniform distribution,
+the probability that no validator checks at
 position $0$ converges to $0$ as the number of validators approaches infinity.
 \begin{displaymath}
   \lim_{m\to\infty}\frac{(n-1)^m}{n^m}
@@ -120,7 +126,7 @@ a couple of cycles in the transaction pool until the node feels safe to include 
 transaction in a block.
 
 \begin{changethis}
-  Tezos specific remarks, here the number of validators is really small compared to
+  Tezos specific remarks: here the number of validators is really small compared to
   Bitcoin or Ethereum
   \begin{itemize}
   \item maybe we need to propose and validate the same block multiple times before it
@@ -178,6 +184,61 @@ Another condition that might be tested on an array is the heap condition
   (\forall i) (0 \le i < \lfloor|a|/2\rfloor) \Rightarrow a[i] \le a[2i+1] \wedge (2i+2
   < |a| \Rightarrow a[i] \le a[2i+2])
 \end{gather}
+
+\section{Tasks}
+\label{sec:tasks}
+
+\subsection{Offline Design}
+\label{sec:offline-design}
+
+\begin{itemize}
+\item Identify a set of logical formulas that are amenable to the kind of checking
+  described above.
+\item Formalize the cost incurred by checking a formula.
+\item Extend the contract language with assertions stating these logical formulas.
+\item Implement the transformation: negation of the formula followed by transformation
+  of existentials to picking a random value.
+
+  The random choice should be performed in a ``clever'' way that does not waste too
+  much effort. For a wasteful example, consider~\eqref{eq:2}:
+  \begin{gather*}
+    (\exists j, k ) (0\le j< k < |a|) \wedge a[j] > a[k]
+  \end{gather*}
+  In the worst case, we would generate two arbitrary non-negative integers $j$ and $k$
+  and then check the predicate. However, the predicate $(0\le j< k < |a|)$ will fail
+  almost always, so we do not get to test the interesting part of the predicate
+  $a[j]>a[k]$.
+
+  In the best case, the generated testing code would be equivalent to the following code fragment
+  in Python
+\begin{lstlisting}[language=Python]
+def exists_counterexample (a : list) -> bool:
+  if len(a) < 2: return False
+  j = random.randint (0, len(a) - 2)
+  k = random.randint (j+1, len(a) - 1)
+  return a[j] > a[k]
+\end{lstlisting}
+
+  As another, simpler example consider~\eqref{eq:4} (checking for prime numbers)
+\begin{lstlisting}[language=Python]
+def exists_counterexample (p : int) -> bool:
+  r = math.isqrt (p)
+  if r < 2: return False
+  n = random.randint (2, r)
+  return (p % n) == 0
+\end{lstlisting}
+
+  Observe that in each case there is a test to eliminate trivial cases, which avoids
+  illegal invocations of \lstinline/randint/.
+\item Each test function should come with a formula that gives an estimate of
+  its effectiveness, i.e., how many times do we have to run the test to find a
+  counterexample with a given probability $p$. Ideally, the formula returns a lower
+  bound on the number of tests for any $p$.
+\end{itemize}
+
+\subsection{Protocol Design}
+\label{sec:protocol-design}
+
 
 \end{document}
 
