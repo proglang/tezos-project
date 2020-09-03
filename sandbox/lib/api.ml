@@ -6,6 +6,7 @@ open Tezos_client_006_PsCARTHA.Client_proto_contracts
 open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
 open Tezos_protocol_environment_006_PsCARTHA
 open Api_context
+open Base
 
 (* How to hide this?! *)
 type puk = Signature.public_key
@@ -14,6 +15,14 @@ type contract = Contract.t
 type 'a tz_result = 'a tzresult Lwt.t
 type tez = float
 type oph = Operation_hash.t
+
+type failure_message = Insufficient_balance
+                     | Counter_mismatch
+                     | Invalid_receiver
+                     | Insufficient_fee
+                     | Reached_burncap
+                     | Reached_feecap
+type answer = Pending of oph | Fail of failure_message
 
 type config = {port : int ref; basedir : string ref}
 let current_config = {port = ref 8732; basedir = ref "/home/tezos/.tezos-client"}
@@ -50,6 +59,13 @@ let exception_handler =
      fail (Exn (Failure msg))
   | exn ->
      Lwt.return @@ error_exn exn )
+
+let errors_of_strings =
+  Map.of_alist_exn (module String)
+    [
+      ("The proposed fee .* are higher than the configured fee cap", Reached_feecap);
+      ("The proposed fee .* are lower than the fee that baker expect", Insufficient_fee)
+    ]
 
 let get_puk_from_alias name =
   let ctxt = context () in

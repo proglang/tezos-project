@@ -3,6 +3,7 @@ open Format
 open Error_monad
 open Tezos_protocol_006_PsCARTHA.Protocol.Contract_storage
 open Tezos_protocol_environment_006_PsCARTHA
+open Str
    
 let command = ref "puk_alias"
 let port = ref 0
@@ -52,7 +53,11 @@ let run_transfer () =
        | Error ((Environment.Ecoproto_error Counter_in_the_past _ as err) :: _) -> Format.fprintf std_formatter "Counter past %a\n" Error_monad.pp err; Lwt.return 0
        | Error ((Environment.Ecoproto_error Counter_in_the_future  _ as err ):: _) -> Format.fprintf std_formatter "Counter future %a\n" Error_monad.pp err; Lwt.return 0
        | Error errs ->
-          Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0 )
+          let r = Str.regexp "The proposed fee .* are higher than the configured fee cap" in
+          let err_str = Format.asprintf "%a" Error_monad.pp @@ List.hd errs in
+          if string_match r err_str 0 then print_endline "Proposed fee higher than cap!!!"
+          else Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs;
+          Lwt.return 0 )
   | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0 )
 | Error errs ->  Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
 
