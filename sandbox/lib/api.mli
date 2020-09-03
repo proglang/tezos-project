@@ -14,6 +14,7 @@ type failure_message = Insufficient_balance
                      | Insufficient_fee
                      | Reached_burncap
                      | Reached_feecap
+                     | Unknown
 type answer = Pending of oph | Fail of failure_message
 
 val errors_of_strings: (string, failure_message, String.comparator_witness) Map.t

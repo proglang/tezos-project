@@ -53,11 +53,21 @@ let run_transfer () =
        | Error ((Environment.Ecoproto_error Counter_in_the_past _ as err) :: _) -> Format.fprintf std_formatter "Counter past %a\n" Error_monad.pp err; Lwt.return 0
        | Error ((Environment.Ecoproto_error Counter_in_the_future  _ as err ):: _) -> Format.fprintf std_formatter "Counter future %a\n" Error_monad.pp err; Lwt.return 0
        | Error errs ->
-          let r = Str.regexp "The proposed fee .* are higher than the configured fee cap" in
           let err_str = Format.asprintf "%a" Error_monad.pp @@ List.hd errs in
-          if string_match r err_str 0 then print_endline "Proposed fee higher than cap!!!"
-          else Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs;
-          Lwt.return 0 )
+          let rec match_error l str = match l with
+            | [] -> Api.Unknown
+            | x::xs -> (
+              let r = Str.regexp x in
+              if string_match r err_str 0 then Base.Map.find_exn Api.errors_of_strings x
+              else match_error xs str
+            )
+          in
+          let keys = Base.Map.keys Api.errors_of_strings in
+          match match_error keys err_str with
+          | Api.Unknown -> print_endline "Unknown"; Lwt.return 0
+          | Api.Insufficient_fee -> print_endline "Insufficient fee"; Lwt.return 0
+          | _ -> print_endline "Some other"; Lwt.return 0
+    )
   | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0 )
 | Error errs ->  Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
 

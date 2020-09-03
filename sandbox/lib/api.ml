@@ -22,6 +22,7 @@ type failure_message = Insufficient_balance
                      | Insufficient_fee
                      | Reached_burncap
                      | Reached_feecap
+                     | Unknown
 type answer = Pending of oph | Fail of failure_message
 
 type config = {port : int ref; basedir : string ref}
