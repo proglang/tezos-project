@@ -27,10 +27,35 @@ type failure_message = Insufficient_balance
                      | Unknown
 type answer = Pending of oph | Fail of failure_message
 
-type config = {port : int ref; basedir : string ref}
-let current_config = {port = ref 8732; basedir = ref "/home/tezos/.tezos-client"}
+type config = {
+    port : int ref;
+    basedir : string ref
+  }
 
-let context () =
+type fee_config = {
+    minimal_fees : Tez.t ref;
+    minimal_nanotez_per_byte : counter ref;
+    minimal_nanotez_per_gas_unit : counter ref;
+    force_low_fee : bool ref;
+    fee_cap : Tez.t ref;
+    burn_cap : Tez.t ref
+  }
+
+let current_config = {
+    port = ref 8732;
+    basedir = ref "/home/tezos/.tezos-client"
+  }
+
+let current_fee_config = {
+    minimal_fees = ref (match Tez.of_mutez 100L with None -> assert false | Some t -> t);
+    minimal_nanotez_per_byte = ref @@ Z.of_int 1000;
+    minimal_nanotez_per_gas_unit = ref @@ Z.of_int 100;
+    force_low_fee = ref false;
+    fee_cap = ref (match Tez.of_string "1.0" with None -> assert false | Some t -> t);
+    burn_cap = ref (match Tez.of_string "0" with None -> assert false | Some t -> t);
+  }
+
+let make_context () =
   let rpc_config : RPC_client_unix.config = {
       RPC_client_unix.default_config with
       host = "127.0.0.1";
@@ -46,17 +71,21 @@ let context () =
     ~base_dir: !(current_config.basedir)
     ~rpc_config:rpc_config
 
-let ctxt = ref (context ())
+let ctxt = ref (make_context ())
 
-let fee_parameter : fee_parameter =
-  {
-    minimal_fees = (match Tez.of_mutez 100L with None -> assert false | Some t -> t);
-    minimal_nanotez_per_byte = Z.of_int 1000;
-    minimal_nanotez_per_gas_unit = Z.of_int 100;
-    force_low_fee = false;
-    fee_cap = (match Tez.of_string "1.0" with None -> assert false | Some t -> t);
-    burn_cap = (match Tez.of_string "0" with None -> assert false | Some t -> t);
-  }
+let make_fee_parameter () =
+  let fp : fee_parameter = {
+    minimal_fees = !(current_fee_config.minimal_fees);
+    minimal_nanotez_per_byte = !(current_fee_config.minimal_nanotez_per_byte);
+    minimal_nanotez_per_gas_unit = !(current_fee_config.minimal_nanotez_per_gas_unit);
+    force_low_fee = !(current_fee_config.force_low_fee);
+    fee_cap = !(current_fee_config.fee_cap);
+    burn_cap = !(current_fee_config.burn_cap);
+    }
+  in
+  fp
+
+let fee_parameter = ref (make_fee_parameter ())
 
 let exception_handler =
   (function
@@ -101,11 +130,11 @@ let get_contract s =
 
 let set_port p =
   (current_config.port) := p;
-  ctxt := context ()
+  ctxt := make_context ()
 
 let set_basedir path =
   (current_config.basedir) := path;
-  ctxt := context ()
+  ctxt := make_context ()
 
 let tez_of_float x =
   let tez_str = Printf.sprintf "%.6f" x in
@@ -144,7 +173,7 @@ let transfer amount src destination fees =
              ~src_sk
              ~destination
              ~amount: amount_tez
-             ~fee_parameter
+             ~fee_parameter: !fee_parameter
              ())
          exception_handler
        >>= fun res ->
