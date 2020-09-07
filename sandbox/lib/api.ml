@@ -46,6 +46,8 @@ let context () =
     ~base_dir: !(current_config.basedir)
     ~rpc_config:rpc_config
 
+let ctxt = ref (context ())
+
 let fee_parameter : fee_parameter =
   {
     minimal_fees = (match Tez.of_mutez 100L with None -> assert false | Some t -> t);
@@ -71,28 +73,24 @@ let errors_of_strings =
     ]
 
 let get_puk_from_alias name =
-  let ctxt = context () in
-  Public_key_hash.find ctxt name
+  Public_key_hash.find !ctxt name
   >>=? fun pkh ->
-  Client_keys.get_key ctxt pkh
+  Client_keys.get_key !ctxt pkh
   >>=? fun (_, src_pk, _) ->
   return src_pk
 
 let get_puk_from_hash pk_hash =
-  let ctxt = context () in
   Public_key_hash.of_source pk_hash
   >>=? fun pk_hash_ ->
-  Client_keys.get_key ctxt pk_hash_
+  Client_keys.get_key !ctxt pk_hash_
   >>=? fun (_, src_pk, _) ->
   return src_pk
 
 let get_pukh_from_alias name =
-  let ctxt = context () in
-  Public_key_hash.find ctxt name
+  Public_key_hash.find !ctxt name
 
 let get_contract s =
-  let ctxt = context () in
-  ContractAlias.get_contract ctxt s
+  ContractAlias.get_contract !ctxt s
   >>= function
   | Ok (_,v) -> return v
   | Error _ -> (
@@ -101,9 +99,13 @@ let get_contract s =
        Lwt.return (Environment.wrap_error err) |> trace (failure "bad contract notation")
     | Ok v -> return v )
 
-let set_port p = (current_config.port) := p
+let set_port p =
+  (current_config.port) := p;
+  ctxt := context ()
 
-let set_basedir path = (current_config.basedir) := path
+let set_basedir path =
+  (current_config.basedir) := path;
+  ctxt := context ()
 
 let tez_of_float x =
   let tez_str = Printf.sprintf "%.6f" x in
@@ -117,14 +119,13 @@ let setup_remote_signer =
   Client_keys.register_signer (module Tezos_signer_backends.Unencrypted)
 
 let transfer amount src destination fees =
-  let ctxt = context () in
   setup_remote_signer;
-  Client_keys.get_key ctxt src
+  Client_keys.get_key !ctxt src
   >>= function
   | Error _ -> Lwt.return @@ Fail Invalid_receiver
   | Ok (_, src_pk, src_sk) ->
      begin
-       let ctxt_proto = new wrap_full ctxt in
+       let ctxt_proto = new wrap_full !ctxt in
        let amount_tez = tez_of_float amount
        in
        let fees_tez = tez_of_float fees in
@@ -132,9 +133,9 @@ let transfer amount src destination fees =
          (fun () ->
            transfer
              ctxt_proto
-             ~chain:ctxt#chain
-             ~block:ctxt#block
-             ?confirmations:ctxt#confirmations
+             ~chain:!ctxt#chain
+             ~block:!ctxt#block
+             ?confirmations:!ctxt#confirmations
              ~dry_run:false
              ~verbose_signing:false
              ~source:src
