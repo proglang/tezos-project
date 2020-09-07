@@ -13,7 +13,6 @@
             tezos-client-base
             tezos-client-commands
             tezos-mockup-commands
-	    str
 
             (select void_for_linking-genesis from
               (tezos-client-genesis -> void_for_linking)

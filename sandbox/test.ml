@@ -1,9 +1,6 @@
 open Tezos_api
 open Format
 open Error_monad
-open Tezos_protocol_006_PsCARTHA.Protocol.Contract_storage
-open Tezos_protocol_environment_006_PsCARTHA
-open Str
    
 let command = ref "puk_alias"
 let port = ref 0
@@ -15,6 +12,15 @@ let spec_list = [
     ("-p", Arg.Set_int port, ": specifies RPC port of the Tezos node; default =8732");
     ("-d", Arg.Set_string basedir, ": specifies base directory of the Tezos client; default = /home/tezos/.tezos-client")
   ]
+
+let str_of_err err = match err with
+  | Api.Insufficient_balance -> "Insufficient_balance"
+  | Api.Insufficient_fee -> "Insufficient_fee"
+  | Api.Counter_mismatch -> "Counter_mismatch"
+  | Api.Invalid_receiver -> "Invalid_receiver"
+  | Api.Reached_burncap -> "Reached_burncap"
+  | Api.Reached_feecap -> "Reached_feecap"
+  | Api.Unknown -> "Unknown"
 
 let run_puk_from_alias () =
   Api.get_puk_from_alias "tamara"
@@ -48,25 +54,8 @@ let run_transfer () =
        Api.transfer 10.0 pkh_1 contr 0.01
        >>= fun result ->
        match result with
-       | Ok op_hash -> Format.fprintf std_formatter "%a\n" Operation_hash.pp op_hash ; Lwt.return 1
-       | Error ((Environment.Ecoproto_error Balance_too_low _ as err) :: _)  -> Format.fprintf std_formatter "Balance - %a\n" Error_monad.pp err; Lwt.return 0
-       | Error ((Environment.Ecoproto_error Counter_in_the_past _ as err) :: _) -> Format.fprintf std_formatter "Counter past %a\n" Error_monad.pp err; Lwt.return 0
-       | Error ((Environment.Ecoproto_error Counter_in_the_future  _ as err ):: _) -> Format.fprintf std_formatter "Counter future %a\n" Error_monad.pp err; Lwt.return 0
-       | Error errs ->
-          let err_str = Format.asprintf "%a" Error_monad.pp @@ List.hd errs in
-          let rec match_error l str = match l with
-            | [] -> Api.Unknown
-            | x::xs -> (
-              let r = Str.regexp x in
-              if string_match r err_str 0 then Base.Map.find_exn Api.errors_of_strings x
-              else match_error xs str
-            )
-          in
-          let keys = Base.Map.keys Api.errors_of_strings in
-          match match_error keys err_str with
-          | Api.Unknown -> print_endline "Unknown"; Lwt.return 0
-          | Api.Insufficient_fee -> print_endline "Insufficient fee"; Lwt.return 0
-          | _ -> print_endline "Some other"; Lwt.return 0
+       | Fail err -> print_endline @@ str_of_err err; Lwt.return 0
+       | Pending oph -> Format.fprintf std_formatter "%a\n" Operation_hash.pp oph ; Lwt.return 0
     )
   | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0 )
 | Error errs ->  Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0

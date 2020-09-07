@@ -31,6 +31,6 @@ val set_port: int -> unit
 
 val set_basedir: string -> unit
 
-val transfer: tez -> pukh -> contract -> tez -> oph tzresult Lwt.t
+val transfer: tez -> pukh -> contract -> tez -> answer Lwt.t
 
 val exception_handler : exn -> 'a tzresult Lwt.t

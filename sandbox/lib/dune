@@ -11,6 +11,7 @@
             tezos-client-base
             tezos-client-commands
             tezos-mockup-commands
+	    str
 
 	    (select void_for_linking-006-PsCARTHA from
               (tezos-client-006-PsCARTHA-commands.registration -> void_for_linking)
