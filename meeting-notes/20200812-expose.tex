@@ -14,6 +14,11 @@
   \begin{tcolorbox}[breakable,notitle,boxrule=0pt,colback=blue!20,colframe=blue!20]}{%
   \end{tcolorbox}}
 
+\newenvironment{ethereum}{%
+  \begin{tcolorbox}[breakable,notitle,boxrule=0pt,colback=red!20,colframe=red!20]}{%
+  \end{tcolorbox}}
+
+
 \input{solidity-highlighting}
 
 \title{Expos\'{e} Master Thesis\\
@@ -111,58 +116,6 @@ position $0$ converges to $0$ as the number of validators approaches infinity.
   = 0
 \end{displaymath}
 
-\section{Further Thoughts}
-\label{sec:further-thoughts}
-
-There may be an alternative way of implementing this scheme without modifying the
-protocol, but instead adding instructions to the virtual machine. One instruction would
-generate a random number (EVM uses 512 bit unsigned integer IIRC), the other would
-raise an overriding failure. Ideally, once a counterexample has been found, this
-counterexample is broadcast to the network where it can be verified by further nodes.
-But this broadcast and the reaction to this broadcast requires an update of the
-protocol: all receivers of the broadcast will check the counterexample and revert the
-transaction. This probably means that a transaction using this feature has to wait for
-a couple of cycles in the transaction pool until the node feels safe to include the
-transaction in a block.
-
-\begin{changethis}
-  Tezos specific remarks: here the number of validators is really small compared to
-  Bitcoin or Ethereum
-  \begin{itemize}
-  \item maybe we need to propose and validate the same block multiple times before it
-    gets accepted. E.g, a transaction containing this feature is only accepted if it is
-    revalidated $n$ times.
-  \item Extra validators only for this kind of transaction.
-  \end{itemize}
-\end{changethis}
-This approach poses the danger of a DOS attack. Someone could post a false
-counterexample, which does not really lead to a failure. If everyone switches to check
-this proposed counterexample instead of generating a random number, then the real
-problem may remain hidden. So, there has to be a component in the protocol that
-penalizes someone who broadcasts a false counterexample. Moreover, not all validators
-should switch to recheck a proposed counterexample; or they could check it in addition
-to their own random check.
-
-The interesting assertion formulas are those with prenex universal
-quantification. Negation turns them into prenex existential quantification. But it
-would be ineffective to generate a random integer and then check that it falls in the
-interesting range (e.g., $2\le n \le \sqrt p$ and $0\le k< n-1$). Rather, the formula
-needs to be analzed and the random generator should be restricted to only generate
-interesting values. 
-
-It would not be significantly more expensive to have every validator perform a
-predetermined finite number of checks for each assertion.
-
-What is the minimum number $m$ of validators such that the probability of spotting an
-error is less than a given threshold $q$?
-
-Instead of using random numbers, is there a way to coordinate a systematic exploration
-of the iteration space? (Is this at all necessary?)
-
-One could also check properties of the values stored by the contract.
-
-Connections to random testing?
-
 In Dafny (citation) \url{https://rise4fun.com/Dafny/tutorialcontent/guide#h29} you can
 write
 \begin{lstlisting}
@@ -185,6 +138,7 @@ Another condition that might be tested on an array is the heap condition
   < |a| \Rightarrow a[i] \le a[2i+2])
 \end{gather}
 
+
 \section{Tasks}
 \label{sec:tasks}
 
@@ -192,12 +146,22 @@ Another condition that might be tested on an array is the heap condition
 \label{sec:offline-design}
 
 \begin{itemize}
-\item Identify a set of logical formulas that are amenable to the kind of checking
-  described above.
+\item Formally define a set of logical formulas that are amenable to the kind of checking
+  described above. In a first approximation, the interesting assertion formulas seem to
+  be those with prenex universal quantification. 
+\item Collect examples for interesting formulas.
 \item Formalize the cost incurred by checking a formula.
 \item Extend the contract language with assertions stating these logical formulas.
 \item Implement the transformation: negation of the formula followed by transformation
-  of existentials to picking a random value.
+  of existentials to picking a random value. For initial experiments, the target of the
+  translation can be any language; later on, the target has to be a language hosted on
+  the blockchain.
+
+  Negation turns prenex universial quantification into prenex existential quantification. But it
+  would be ineffective to generate a random integer and then check that it falls in the
+  interesting range (e.g., $2\le n \le \sqrt p$ and $0\le k< n-1$). Rather, the formula
+  needs to be analzed and the random generator should be restricted to only generate
+  interesting values. 
 
   The random choice should be performed in a ``clever'' way that does not waste too
   much effort. For a wasteful example, consider~\eqref{eq:2}:
@@ -234,11 +198,111 @@ def exists_counterexample (p : int) -> bool:
   its effectiveness, i.e., how many times do we have to run the test to find a
   counterexample with a given probability $p$. Ideally, the formula returns a lower
   bound on the number of tests for any $p$.
+\item What is the minimum number $m$ of validators such that the probability of
+  spotting an error is less than a given threshold $q$?
+\item Instead of using random numbers, is there a way to coordinate a systematic
+  exploration of the iteration space? (Is this at all necessary?)
+\item What are the connections to random testing? 
+\item I think this scheme implements a Bloom filter, globally? We are testing whether a value is a
+  member of an implicitly given set. We may accept a value even if it does not belong
+  to the set, but if we reject a value, it definitely does not belong to the set.
 \end{itemize}
 
+\subsection{Blockchain-Specific Tasks}
+\label{sec:blockch-spec-tasks}
+
+\begin{ethereum}
+  Ethereum-specific remarks:
+  Implementing this scheme requires adding instructions to the virtual machine. One
+  instruction would generate a random number (EVM uses 512 bit unsigned integer IIRC),
+  the other would raise an overriding failure. This failure will have to indicate that
+  validation of the contract fails.
+\end{ethereum}
+
+\begin{itemize}
+\item The VM interpreter needs to be extended with these instructions.
+\item The translation (of formulas) needs to retargetted to VM code. This may have to
+  be hacked into the compiler.
+\item The translation has to be amended so that counterexamples can also be checked.
+\item (extension) Every validator could perform a predetermined finite number of checks for each
+  assertion. This would not be significantly more expensive. Moreover, the number of
+  checks could be set individually depending on the contract and on the size of the
+  input.
+\item (extension) One could also check properties of the values stored with the contract.
+\end{itemize}
 \subsection{Protocol Design}
 \label{sec:protocol-design}
 
+\begin{changethis}
+  Tezos specific remarks: here the number of validators is really small compared to
+  Bitcoin or Ethereum
+  \begin{itemize}
+  \item Maybe we need to propose and validate the same block multiple times before it
+    gets accepted. E.g, a transaction containing this feature is only accepted if it is
+    revalidated $n$ times.
+  \item Extra validators only for this kind of transaction.
+  \item Maybe each validator needs to conduct multiple test runs.
+  \item Maybe test runs need to be coordinated
+  \end{itemize}
+\end{changethis}
+
+\begin{itemize}
+\item   Once a counterexample has been found,
+  this counterexample is broadcast to the network where it can be verified by further
+  nodes.  I think this broadcast and the reaction to this broadcast requires an update of
+  the protocol: all receivers of the broadcast will check the counterexample and revert
+  the transaction. 
+\item A transaction using counterexamples has to
+  wait for a couple of cycles in the transaction pool until the node feels safe to
+  include the transaction in a block.
+  The number of cycles to wait depends on the contract and on the size of the input.
+  So that number should be variable.
+\item (low priority) This approach poses the danger of a DOS attack. Someone could post a false
+  counterexample, which does not really lead to a failure. If everyone switches to
+  check this proposed counterexample instead of generating a random number, then the
+  real problem may remain hidden. So, there has to be a component in the protocol that
+  penalizes someone who broadcasts a false counterexample. Moreover, not all validators
+  should switch to recheck a proposed counterexample; or they could check it in
+  addition to their own random check.
+
+  More precisely:
+  \begin{itemize}
+  \item Every validator must run at least one (round of) random tests.  
+  \item If it receives a proposed counterexample, it must check the counterexample,
+    too.
+  \item It remains to investigate a countermeasure for nodes generating a flood of
+    false counterexamples, which would keep every validator busy. Perhaps checking of
+    the counterexample should also be done probabilistically.
+  \end{itemize}
+\end{itemize}
+
+\section{Rejected Ideas}
+\label{sec:rejected-ideas}
+
+This section contains some ideas that we discussed but rejected. Feel free to resurrect
+any of this if you find new arguments.
+
+\begin{itemize}
+\item Q: How about instead of generating and checking random number, it could
+  store a Bloom filter for already checked number, so a validator can
+  generate a random number and check it if it is rejected by Bloom filter,
+  but this also happen that there will be some number never get checked
+  because it is rejected by Bloom filter, but actually never been checked.
+
+  A: This is not a good idea for several reasons.
+  \begin{enumerate}
+  \item It's not clear where we should store the Bloom filter. It has to be available
+    everywhere, so it has to be stored on the blockchain.
+  \item If it's on the blockchain, then it serializes the tests for counterexamples:
+    the point of the scheme is to test many random values concurrently without
+    interference.
+  \item The Bloom filter errs in the wrong direction. It may accept elements that have
+    not been added before, which means that elements that should be tested are not. We
+    would need a co-Bloom filter that errs in the other direction: it should reject all
+    elements that have not been added, and it may also reject elements that have been added.
+  \end{enumerate}
+
+\end{itemize}
 
 \end{document}
 
