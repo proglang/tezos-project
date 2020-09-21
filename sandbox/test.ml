@@ -6,7 +6,7 @@ let command = ref "puk_alias"
 let port = ref 0
 let basedir = ref "/home/tamara/Studium/Tezos/project/tezos-project/sandbox"
 
-let usage = "Usage: " ^ Sys.argv.(0) ^ " -c (puk_alias | puk_hash | pukh_alias | transfer)"
+let usage = "Usage: " ^ Sys.argv.(0) ^ " -c (puk_alias | puk_hash | pukh_alias | transfer | query)"
 let spec_list = [
     ("-c", Arg.Set_string command, ": specifies which command should be executed; default = " ^ !command);
     ("-p", Arg.Set_int port, ": specifies RPC port of the Tezos node; default =8732");
@@ -101,6 +101,7 @@ let main =
   else if !command = "puk_hash" then run_puk_from_hash ()
   else if !command = "pukh_alias" then run_pukh_from_alias ()
   else if !command = "transfer" then run_transfer ()
+  else if !command = "query" then run_query()
   else (print_endline "Unknown command" ; Lwt.return 0)
   >>= fun retcode ->
   Internal_event_unix.close () >>= fun () -> Lwt.return retcode 
