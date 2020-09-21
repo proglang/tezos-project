@@ -20,7 +20,24 @@ let str_of_err err = match err with
   | Api.Invalid_receiver -> "Invalid_receiver"
   | Api.Reached_burncap -> "Reached_burncap"
   | Api.Reached_feecap -> "Reached_feecap"
+  | Api.Storage_limit_too_high -> "Storage_limit_too_high"
+  | Api.Operation_quota_exceeded -> "Operation_quota_exceeded"
+  | Api.Cannot_pay_storage_fee -> "Cannot_pay_storage_fee"
   | Api.Unknown -> "Unknown"
+
+let str_of_status st = match st with
+  | Api.Still_pending -> "Still_pending"
+  | Api.Accepted _ -> "Accepted"
+  | Api.Missing -> "Missing"
+  | Api.Rejected (Reason r) -> (
+     let err_str = str_of_err r in
+     "Rejected - " ^ err_str)
+  | Api.Rejected Timeout -> "Rejected - Timeout"
+  | Api.Rejected Skipped -> "Rejected - Skipped"
+  | Api.Rejected Backtracked -> "Rejected - Backtracked"
+  | Api.Error Unknown -> "Error - Unknown"
+  | Api.Error Unexpected_result -> "Error - Unexpected_result"
+  | Api.Error RPC_error _ -> "Error - RPC"
 
 let run_puk_from_alias () =
   Api.get_puk_from_alias "tamara"
@@ -48,7 +65,7 @@ let run_transfer () =
   Api.get_pukh_from_alias "tamara"
   >>= function
   | Ok pkh_1 -> (
-    Api.get_contract "tamara2"
+    Api.get_contract "tamara"
     >>= function
     | Ok contr -> (
        Api.transfer 10.0 pkh_1 contr 0.01
@@ -60,6 +77,16 @@ let run_transfer () =
   | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0 )
 | Error errs ->  Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
 
+let run_query () =
+  let oph = Operation_hash.of_b58check "opFVcseqXgajPVLzXisws6912Sxy8ifpr9y3xFYNp6KjEG6Nj8u" in
+  match oph with
+  | Ok oph -> (
+    Api.query oph
+    >>= fun st ->
+    print_endline @@ str_of_status st;
+    Lwt.return 1
+  )
+  | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
 
 let main =
   Arg.parse

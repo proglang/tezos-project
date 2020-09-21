@@ -4,7 +4,10 @@ open Tezos_client_006_PsCARTHA.Protocol_client_context
 open Tezos_client_006_PsCARTHA.Injection
 open Tezos_client_006_PsCARTHA.Client_proto_contracts
 open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
+open Tezos_protocol_006_PsCARTHA.Protocol.Fees_storage
+open Tezos_raw_protocol_006_PsCARTHA
 open Tezos_protocol_environment_006_PsCARTHA
+open Apply_results
 open Api_context
 open Format
 open Base
@@ -24,8 +27,28 @@ type failure_message = Insufficient_balance
                      | Insufficient_fee
                      | Reached_burncap
                      | Reached_feecap
+                     | Operation_quota_exceeded (* Needed? *)
+                     | Storage_limit_too_high (* Needed? *)
+                     | Cannot_pay_storage_fee (* Handled by Insufficient_fee?*)
                      | Unknown
-type answer = Pending of oph | Fail of failure_message
+type answer = Pending of oph
+            | Fail of failure_message
+
+type result = unit (* which information is returned??? *)
+type reason = Timeout
+            | Skipped
+            | Backtracked
+            | Reason of failure_message
+
+type error_message = RPC_error of {uri: string}
+                   | Unexpected_result
+                   | Unknown
+
+type status = Still_pending
+            | Accepted of result
+            | Rejected of reason
+            | Missing
+            | Error of error_message
 
 type config = {
     port : int ref;
@@ -205,3 +228,113 @@ let transfer amount src destination fees =
                Lwt.return @@ match_error keys err_str
              end
      end
+
+let catch_rpc_error err =
+  match err with
+  | (RPC_context.Not_found {uri; _}) ::_
+    | (RPC_context.Gone {uri;_}) ::_
+    | (RPC_context.Generic_error {uri;_}) ::_ ->
+     Lwt.return (Error (RPC_error {uri = Uri.to_string uri }))
+  | _ -> Lwt.return (Error Unknown)
+
+let check_result ((op, res) : 'kind contents_list * 'kind contents_result_list) =
+  let rec cr : type kind. kind contents_and_result_list -> status =
+    function
+    | Single_and_result (Manager_operation {operation; _},
+                         Manager_operation_result {operation_result;_}) ->
+       begin
+         let open Tezos_protocol_006_PsCARTHA.Protocol.Contract_storage in
+         match operation with
+         | Transaction _ -> (
+           match operation_result with
+           | Failed (_, errs) -> (
+              match errs with
+              | (Non_existing_contract _) ::_ -> (Rejected (Reason Invalid_receiver))
+              | (Cannot_pay_storage_fee) :: _ -> Rejected (Reason Cannot_pay_storage_fee)
+              | (Operation_quota_exceeded) :: _ -> Rejected (Reason Operation_quota_exceeded)
+              | (Storage_limit_too_high) :: _ -> Rejected (Reason Storage_limit_too_high)
+              | _ -> Rejected (Reason Unknown))
+           | Applied (Transaction_result _ ) -> (Accepted ())
+           | Backtracked ((Transaction_result _), _) -> (Rejected Backtracked)
+           | Skipped _ -> (Rejected Skipped))
+         | _ -> (Error Unexpected_result)
+       end
+    | Cons_and_result ((Manager_operation {operation;_} as op), (Manager_operation_result _ as res), rest) ->
+       begin
+         match operation with
+         | Transaction _ -> cr @@ Single_and_result (op, res)
+         | _ -> cr rest
+       end
+    | _ -> (Error Unexpected_result)
+  in
+  let contents_result_l = Apply_results.pack_contents_list op res
+  in
+  Lwt.return @@ cr contents_result_l
+
+let check_mempool oph =
+  Alpha_block_services.Mempool.pending_operations
+       !ctxt
+       ~chain: !ctxt#chain
+       ()
+  >>= function
+  | Ok {applied; unprocessed; refused; branch_refused; branch_delayed} ->
+     begin
+       let rec find_op_subpool = function
+         | [] -> false
+         | (oph_, _)::ops -> if Operation_hash.equal oph_ oph then true else find_op_subpool ops
+       in
+       let rec find_op = function
+         | [] -> Missing
+         | (pool, status) :: pools -> if find_op_subpool pool then status else find_op pools
+       in
+       let f = (fun (a, (b, _)) -> (a,b)) in
+       let unproc_ops = Operation_hash.Map.bindings unprocessed in
+       let refused_ops = List.map ~f (Operation_hash.Map.bindings refused)
+       in
+       let branch_refused_ops = List.map ~f (Operation_hash.Map.bindings branch_refused)
+       in
+       let branch_delayed_ops = List.map ~f (Operation_hash.Map.bindings branch_delayed)
+       in
+       let pools_pending = applied @ branch_delayed_ops @ unproc_ops in
+       let pools = (pools_pending, Still_pending)
+                   :: (refused_ops, Rejected (Reason Unknown)) (* @TODO*)
+                   :: (branch_refused_ops, Rejected (Reason Unknown))
+                   :: (branch_delayed_ops, Still_pending)
+                   :: [] in
+       Lwt.return @@ find_op pools
+     end
+  | Error _ -> Lwt.return (Error Unknown)
+
+let query oph =
+  let ctxt_proto = new wrap_full !ctxt in
+  Client_confirmations.lookup_operation_in_previous_blocks
+    ctxt_proto
+    ~chain:ctxt_proto#chain
+    ~predecessors:10
+    oph
+  >>= function
+  | Ok None ->
+    check_mempool oph
+  | Ok (Some (block, i, j)) ->
+     begin
+      Alpha_block_services.Operations.operation
+        ctxt_proto
+        ~chain:ctxt_proto#chain
+        ~block:(`Hash (block, 0))
+        i
+        j
+      >>= function
+      | Ok op -> (
+         match (op.receipt, op.protocol_data) with
+         | (Apply_results.Operation_metadata omd, Operation_data od) ->
+            begin
+              match Apply_results.kind_equal_list od.contents omd.contents with
+              | Some Apply_results.Eq ->
+                 check_result (od.contents, omd.contents)
+              | None -> Lwt.return (Error Unexpected_result)
+            end
+         | _ ->  Lwt.return (Error Unexpected_result)
+      )
+      | Error err -> catch_rpc_error err
+     end
+  | Error err -> catch_rpc_error err
