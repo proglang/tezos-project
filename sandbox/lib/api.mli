@@ -18,7 +18,10 @@ type tez = float
  (** Operation hash *)
 type oph = Operation_hash.t
 
-(** Provides information about a transaction failure *)
+(** Block hash *)
+type blockh = Block_hash.t
+
+(** Provides information about why a transaction failed / is invalid *)
 type failure_message = Insufficient_balance
                      | Counter_mismatch
                      | Invalid_receiver

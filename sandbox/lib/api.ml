@@ -20,6 +20,7 @@ type contract = Contract.t
 type 'a tz_result = 'a tzresult Lwt.t
 type tez = float
 type oph = Operation_hash.t
+type blockh = Block_hash.t
 
 type failure_message = Insufficient_balance
                      | Counter_mismatch
@@ -34,7 +35,18 @@ type failure_message = Insufficient_balance
 type answer = Pending of oph
             | Fail of failure_message
 
-type result = unit (* which information is returned??? *)
+type result = {
+    block_hash : blockh;
+    rpc_position : (int * int);
+    balance_updates : Delegate.balance_updates;
+    consumed_gas : int;
+    storage : Script.expr option;
+    originated_contracts : contract list;
+    storage_size : int;
+    paid_storage_size_diff : int ;
+    big_map_diff : Contract.big_map_diff option;
+    allocated_destination_contract : bool}
+
 type reason = Timeout
             | Skipped
             | Backtracked
