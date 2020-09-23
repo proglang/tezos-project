@@ -1,12 +1,13 @@
 open Tezos_api
 open Format
 open Error_monad
+open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
    
 let command = ref "puk_alias"
 let port = ref 0
 let basedir = ref "/home/tamara/Studium/Tezos/project/tezos-project/sandbox"
 
-let usage = "Usage: " ^ Sys.argv.(0) ^ " -c (puk_alias | puk_hash | pukh_alias | transfer | query)"
+let usage = "Usage: " ^ Sys.argv.(0) ^ " -c (puk_alias | puk_hash | pukh_alias | get_contr | transfer | query)"
 let spec_list = [
     ("-c", Arg.Set_string command, ": specifies which command should be executed; default = " ^ !command);
     ("-p", Arg.Set_int port, ": specifies RPC port of the Tezos node; default =8732");
@@ -61,6 +62,14 @@ let run_pukh_from_alias () =
               Lwt.return 1
   | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
 
+let run_get_contract () =
+  Api.get_contract "tamara"
+  >>= fun result ->
+  match result with
+  | Ok c -> Format.fprintf std_formatter "%a\n" Contract.pp c ;
+            Lwt.return 1
+  | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
+
 let run_transfer () =
   Api.get_pukh_from_alias "tamara"
   >>= function
@@ -101,7 +110,8 @@ let main =
   else if !command = "puk_hash" then run_puk_from_hash ()
   else if !command = "pukh_alias" then run_pukh_from_alias ()
   else if !command = "transfer" then run_transfer ()
-  else if !command = "query" then run_query()
+  else if !command = "query" then run_query ()
+  else if !command = "get_contr" then run_get_contract ()
   else (print_endline "Unknown command" ; Lwt.return 0)
   >>= fun retcode ->
   Internal_event_unix.close () >>= fun () -> Lwt.return retcode 
