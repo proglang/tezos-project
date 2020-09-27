@@ -16,7 +16,6 @@ open Str
 type puk = Signature.public_key
 type pukh = Signature.public_key_hash
 type contract = Contract.t
-type 'a tz_result = 'a tzresult Lwt.t
 type tez = float
 type oph = Operation_hash.t
 type blockh = Block_hash.t
@@ -140,30 +139,38 @@ let env_err_to_str = asprintf "%a" Environment.Error_monad.pp
 
 let get_puk_from_alias name =
   Public_key_hash.find !ctxt name
-  >>=? fun pkh ->
-  Client_keys.get_key !ctxt pkh
-  >>=? fun (_, src_pk, _) ->
-  return src_pk
+  >>= function
+  | Ok pkh -> (
+     Client_keys.get_key !ctxt pkh
+     >>= function
+     | Ok (_, src_pk, _) -> Lwt.return_some src_pk
+     | _ -> Lwt.return_none )
+  | _ -> Lwt.return_none
 
 let get_puk_from_hash pk_hash =
   Public_key_hash.of_source pk_hash
-  >>=? fun pk_hash_ ->
-  Client_keys.get_key !ctxt pk_hash_
-  >>=? fun (_, src_pk, _) ->
-  return src_pk
+  >>= function
+  | Ok pkh -> (
+    Client_keys.get_key !ctxt pkh
+    >>= function
+    | Ok (_, src_pk, _) -> Lwt.return_some src_pk
+    | _ -> Lwt.return_none )
+  | _ -> Lwt.return_none
 
 let get_pukh_from_alias name =
   Public_key_hash.find !ctxt name
+  >>= function
+  | Ok pkh -> Lwt.return_some pkh
+  | _ -> Lwt.return_none
 
 let get_contract s =
   ContractAlias.get_contract !ctxt s
   >>= function
-  | Ok (_,v) -> return v
+  | Ok (_,v) -> Lwt.return_some v
   | Error _ -> (
     match Contract.of_b58check s with
-    | Error _ as err ->
-       Lwt.return (Environment.wrap_error err) |> trace (failure "bad contract notation")
-    | Ok v -> return v )
+    | Ok v -> Lwt.return_some v
+    | Error _ -> Lwt.return_none )
 
 let set_port p =
   (current_config.port) := p;

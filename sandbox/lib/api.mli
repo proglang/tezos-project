@@ -10,8 +10,6 @@ type pukh = Signature.public_key_hash
  (** Contract representation (implicit or originated) *)
 type contract = Contract.t
 
-type 'a tz_result = 'a tzresult Lwt.t
-
 (** Representation of Tezos tokens (tezzies) *)
 type tez = float
 
@@ -72,28 +70,28 @@ type status = Still_pending (** Transaction hasn't been included yet (prevalidat
     @param s alias of implicit account
     @return {!type:puk} the associated public key
 *)
-val get_puk_from_alias: string -> puk tz_result
+val get_puk_from_alias: string -> puk option Lwt.t
 
 (** [get_puk_from_hash s] expects a public key hash as string and returns the associated
     public key of the account.
     @param s public key hash
     @return {!type:puk} the associated public key
  *)
-val get_puk_from_hash: string -> puk tz_result
+val get_puk_from_hash: string -> puk option Lwt.t
 
 (** [get_pukh_from_alias s] expects an alias of an implicit account and returns 
     the associated public key hash.
     @param s alias of implicit account
     @return {!type:pukh} the associated public key hash
 *)
-val get_pukh_from_alias: string -> pukh tz_result
+val get_pukh_from_alias: string -> pukh option Lwt.t
 
 (** [get_contract s] expects an alias, public key hash or contract hash as string
     and returns the associated contract representation.
     @param s alias, public key hash or contract hash
     @return {!type:contract} the associated contract representation
 *)
-val get_contract: string -> contract tz_result
+val get_contract: string -> contract option Lwt.t
 
 (** [set_port p] specifies under which port the RPC interface of the node is
     reachable if the default (8732) does not apply.

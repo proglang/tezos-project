@@ -40,49 +40,44 @@ let str_of_status st = match st with
 
 let run_puk_from_alias () =
   Api.get_puk_from_alias "tamara"
-   >>= fun result ->
-  match result with
-  | Ok pk -> Format.fprintf std_formatter "%a\n" Signature.Public_key.pp pk ; Lwt.return 1
-  | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
+   >>= function
+  | Some pk -> Format.fprintf std_formatter "%a\n" Signature.Public_key.pp pk ; Lwt.return 1
+  | None -> print_endline "Unknown key alias"; Lwt.return 0
 
 let run_puk_from_hash () =
   Api.get_puk_from_hash "tz1XGXdyCAeAsZ8Qo4BFQVkLCnfQ4ZyLgJ1S"
-   >>= fun result ->
-  match result with
-  | Ok pk -> Format.fprintf std_formatter "%a\n" Signature.Public_key.pp pk ; Lwt.return 1
-  | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
+  >>= function
+  | Some pk -> Format.fprintf std_formatter "%a\n" Signature.Public_key.pp pk ; Lwt.return 1
+  | None -> print_endline "Invalid public key hash"; Lwt.return 0
 
 let run_pukh_from_alias () =
   Api.get_pukh_from_alias "tamara"
-  >>= fun result ->
-  match result with
-  | Ok pkh -> Format.fprintf std_formatter "%a\n" Signature.Public_key_hash.pp pkh ;
+  >>= function
+  | Some pkh -> Format.fprintf std_formatter "%a\n" Signature.Public_key_hash.pp pkh ;
               Lwt.return 1
-  | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
+  | None -> print_endline "Unknown key alias"; Lwt.return 0
 
 let run_get_contract () =
   Api.get_contract "tamara"
-  >>= fun result ->
-  match result with
-  | Ok c -> Format.fprintf std_formatter "%a\n" Contract.pp c ;
+  >>= function
+  | Some c -> Format.fprintf std_formatter "%a\n" Contract.pp c ;
             Lwt.return 1
-  | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
+  | None -> print_endline "Invalid contract notation/Unknown contract"; Lwt.return 0
 
 let run_transfer () =
   Api.get_pukh_from_alias "tamara"
   >>= function
-  | Ok pkh_1 -> (
+  | Some pkh_1 -> (
     Api.get_contract "tamara"
     >>= function
-    | Ok contr -> (
+    | Some contr -> (
        Api.transfer 10.0 pkh_1 contr 0.01
-       >>= fun result ->
-       match result with
+       >>= function
        | Fail err -> print_endline @@ str_of_err err; Lwt.return 0
        | Pending oph -> Format.fprintf std_formatter "%a\n" Operation_hash.pp oph ; Lwt.return 0
     )
-  | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0 )
-| Error errs ->  Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
+    | None -> print_endline "Invalid/unknown destination contract"; Lwt.return 0 )
+  | None -> print_endline "Unknown source key alias"; Lwt.return 0
 
 let run_query () =
   let oph = Operation_hash.of_b58check "opFVcseqXgajPVLzXisws6912Sxy8ifpr9y3xFYNp6KjEG6Nj8u" in
