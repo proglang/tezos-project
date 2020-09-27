@@ -10,14 +10,17 @@ type pukh = Signature.public_key_hash
  (** Contract representation (implicit or originated) *)
 type contract = Contract.t
 
-(** Representation of Tezos tokens (tezzies) *)
-type tez = float
-
  (** Operation hash *)
 type oph = Operation_hash.t
 
 (** Block hash *)
 type blockh = Block_hash.t
+
+(** Representation of Tezos tokens (tezzies) *)
+module Tez_t : sig
+  type t
+  val tez : float -> t
+end
 
 (** Provides information about why a transaction failed / is invalid *)
 type failure_message = Insufficient_balance
@@ -113,7 +116,7 @@ val set_basedir: string -> unit
     @return {!type:answer} the operation hash of the injected transaction or
     error
 *)
-val transfer: tez -> pukh -> contract -> tez -> answer Lwt.t
+val transfer: Tez_t.t -> pukh -> contract -> Tez_t.t -> answer Lwt.t
 
 (** [query op] retrieves the current status of an injected transaction
     @param op the operation hash of the injected transaction

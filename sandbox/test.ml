@@ -7,7 +7,7 @@ let command = ref "puk_alias"
 let port = ref 0
 let basedir = ref "/home/tamara/Studium/Tezos/project/tezos-project/sandbox"
 
-let usage = "Usage: " ^ Sys.argv.(0) ^ " -c (puk_alias | puk_hash | pukh_alias | get_contr | transfer | query)"
+let usage = "Usage: " ^ Sys.argv.(0) ^ " -c (puk_alias | puk_hash | pukh_alias | get_contr | tez | transfer | query)"
 let spec_list = [
     ("-c", Arg.Set_string command, ": specifies which command should be executed; default = " ^ !command);
     ("-p", Arg.Set_int port, ": specifies RPC port of the Tezos node; default =8732");
@@ -59,6 +59,7 @@ let run_pukh_from_alias () =
 
 let run_get_contract () =
   Api.get_contract "tamara"
+  (* Api.get_contract "tz1XGXdyCAeAsZ8Qo4BFQVkLCnfQ4ZyLgJ1S" alternatively *)
   >>= function
   | Some c -> Format.fprintf std_formatter "%a\n" Contract.pp c ;
             Lwt.return 1
@@ -71,7 +72,9 @@ let run_transfer () =
     Api.get_contract "tamara"
     >>= function
     | Some contr -> (
-       Api.transfer 10.0 pkh_1 contr 0.01
+      let amount = Api.Tez_t.tez 10.0 in
+      let fees = Api.Tez_t.tez 0.0001 in
+       Api.transfer amount pkh_1 contr fees
        >>= function
        | Fail err -> print_endline @@ str_of_err err; Lwt.return 0
        | Pending oph -> Format.fprintf std_formatter "%a\n" Operation_hash.pp oph ; Lwt.return 0
@@ -90,6 +93,12 @@ let run_query () =
   )
   | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
 
+let run_tez () =
+  let eq_classes = [1.0; 0.000001; 0.0000001] in
+  let f = (fun tz -> print_endline @@ string_of_float tz; Api.Tez_t.tez tz) in
+  let _ = List.map f eq_classes in
+  Lwt.return 1
+
 let main =
   Arg.parse
     spec_list
@@ -105,6 +114,7 @@ let main =
   else if !command = "transfer" then run_transfer ()
   else if !command = "query" then run_query ()
   else if !command = "get_contr" then run_get_contract ()
+  else if !command = "tez" then run_tez ()
   else (print_endline "Unknown command" ; Lwt.return 0)
   >>= fun retcode ->
   Internal_event_unix.close () >>= fun () -> Lwt.return retcode 

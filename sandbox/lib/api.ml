@@ -11,14 +11,27 @@ open Api_context
 open Format
 open Base
 open Str
+open Int64
 
 (* How to hide this?! *)
 type puk = Signature.public_key
 type pukh = Signature.public_key_hash
 type contract = Contract.t
-type tez = float
 type oph = Operation_hash.t
 type blockh = Block_hash.t
+
+module Tez_t : sig
+  type t = Tez.t
+  val tez : float -> t
+end = struct
+  type t = Tez.t
+  let tez f =
+    let mutez = Int64.of_float( f *. 1000000.0 ) in
+    assert (mutez >= Int64.one);
+    match Tez.( *? ) Tez.one_mutez mutez with
+    | Ok tz -> tz
+    | _ -> failwith "Illegal Tez value"
+end
 
 type failure_message = Insufficient_balance
                      | Counter_mismatch
@@ -180,14 +193,6 @@ let set_basedir path =
   (current_config.basedir) := path;
   ctxt := make_context ()
 
-let tez_of_float x =
-  let tez_str = Printf.sprintf "%.6f" x in
-  match Tez.of_string tez_str with
-    | None ->
-        invalid_arg "tez_of_float"
-    | Some x ->
-        x
-
 let setup_remote_signer =
   Client_keys.register_signer (module Tezos_signer_backends.Unencrypted)
 
@@ -199,9 +204,6 @@ let transfer amount src destination fees =
   | Ok (_, src_pk, src_sk) ->
      begin
        let ctxt_proto = new wrap_full !ctxt in
-       let amount_tez = tez_of_float amount
-       in
-       let fees_tez = tez_of_float fees in
        Lwt.catch
          (fun () ->
            transfer
@@ -212,11 +214,11 @@ let transfer amount src destination fees =
              ~dry_run:false
              ~verbose_signing:false
              ~source:src
-             ~fee:fees_tez
+             ~fee:fees
              ~src_pk
              ~src_sk
              ~destination
-             ~amount: amount_tez
+             ~amount
              ~fee_parameter: !fee_parameter
              ())
          exception_handler
