@@ -28,10 +28,7 @@ type failure_message = Insufficient_balance
                      | Insufficient_fee
                      | Reached_burncap
                      | Reached_feecap
-                     | Operation_quota_exceeded (* Needed? *)
-                     | Storage_limit_too_high (* Needed? *)
-                     | Cannot_pay_storage_fee (* Handled by Insufficient_fee? *)
-                     | Unknown (** None of the above match - error list should be extended if this occurs *)
+                     | Unknown_failure of string (** None of the above match - error list should be extended if this occurs *)
 
 (** Result of a transaction injection*)
 type answer = Pending of oph (** The operation hash of the successfully injected transaction *)
@@ -59,12 +56,13 @@ type reason = Timeout (** The transaction timed out and was removed from the Mem
 (** Errors which might occur during retrieval of transaction status (unrelated to the transaction result) *)
 type error_message = RPC_error of {uri: string} (** Error occured during RPC call *)
                    | Unexpected_result (** The {!type:oph} did not refer to a transaction operation *)
-                   | Unknown (** Unknown error - error list should be extended if this occurs *)
+                   | Unknown_error of string (** Unknown error - error list should be extended if this occurs *)
 
 (** Status of an injected transaction *)
 type status = Still_pending (** Transaction hasn't been included yet (prevalidated, delayed or unprocessed) *)
             | Accepted of result (** Transaction was included with {!type:result} *)
             | Rejected of reason (** Transaction was rejected due to {!type:reason} *)
+            | Unprocessed (** Transaction not yet prevalidated *)
             | Missing (** Transaction couldn't be found (tbd should this be timeout?) *)
             | Error of error_message (** Status couldn't be retrieved due to {!type:error_message} *)
 

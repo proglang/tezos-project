@@ -4,7 +4,6 @@ open Tezos_client_006_PsCARTHA.Protocol_client_context
 open Tezos_client_006_PsCARTHA.Injection
 open Tezos_client_006_PsCARTHA.Client_proto_contracts
 open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
-open Tezos_protocol_006_PsCARTHA.Protocol.Fees_storage
 open Tezos_raw_protocol_006_PsCARTHA
 open Tezos_protocol_environment_006_PsCARTHA
 open Apply_results
@@ -28,10 +27,7 @@ type failure_message = Insufficient_balance
                      | Insufficient_fee
                      | Reached_burncap
                      | Reached_feecap
-                     | Operation_quota_exceeded (* Needed? *)
-                     | Storage_limit_too_high (* Needed? *)
-                     | Cannot_pay_storage_fee (* Handled by Insufficient_fee?*)
-                     | Unknown
+                     | Unknown_failure of string
 type answer = Pending of oph
             | Fail of failure_message
 
@@ -54,11 +50,12 @@ type reason = Timeout
 
 type error_message = RPC_error of {uri: string}
                    | Unexpected_result
-                   | Unknown
+                   | Unknown_error of string
 
 type status = Still_pending
             | Accepted of result
             | Rejected of reason
+            | Unprocessed
             | Missing
             | Error of error_message
 
@@ -133,8 +130,12 @@ let errors_of_strings =
   Base.Map.of_alist_exn (module String)
     [
       ("The proposed fee .* are higher than the configured fee cap", Reached_feecap);
-      ("The proposed fee .* are lower than the fee that baker expect", Insufficient_fee)
+      ("The proposed fee .* are lower than the fee that baker expect", Insufficient_fee);
+      ("The operation will burn .* which is higher than the configured burn cap", Reached_burncap);
     ]
+
+let err_to_str = asprintf "%a" Error_monad.pp
+let env_err_to_str = asprintf "%a" Environment.Error_monad.pp
 
 let get_puk_from_alias name =
   Public_key_hash.find !ctxt name
@@ -224,12 +225,12 @@ let transfer amount src destination fees =
        | Error errs ->
           let last_err = List.hd errs in
           match last_err with
-          | None -> Lwt.return @@ Fail Unknown
+          | None -> Lwt.return @@ Fail (Unknown_failure "Empty trace")
           | Some err ->
              begin
-               let err_str = asprintf "%a" Error_monad.pp err in
+               let err_str = err_to_str err in
                let rec match_error l str = match l with
-                 | [] -> Fail Unknown
+                 | [] -> Fail (Unknown_failure err_str)
                  | x::xs -> (
                    let r = Str.regexp x in
                    if string_match r err_str 0 then Fail (Base.Map.find_exn errors_of_strings x)
@@ -241,13 +242,14 @@ let transfer amount src destination fees =
              end
      end
 
-let catch_rpc_error err =
-  match err with
+let catch_rpc_error errs =
+  match errs with
   | (RPC_context.Not_found {uri; _}) ::_
     | (RPC_context.Gone {uri;_}) ::_
     | (RPC_context.Generic_error {uri;_}) ::_ ->
      Lwt.return (Error (RPC_error {uri = Uri.to_string uri }))
-  | _ -> Lwt.return (Error Unknown)
+  | err :: _ -> Lwt.return (Error (Unknown_error (err_to_str err)))
+  | _ ->  Lwt.return (Error (Unknown_error "Empty trace"))
 
 let check_result ((op, res) : 'kind contents_list * 'kind contents_result_list) =
   let rec cr : type kind. kind contents_and_result_list -> status =
@@ -261,15 +263,13 @@ let check_result ((op, res) : 'kind contents_list * 'kind contents_result_list) 
            match operation_result with
            | Failed (_, errs) -> (
               match errs with
-              | (Non_existing_contract _) ::_ -> (Rejected (Reason Invalid_receiver))
-              | (Cannot_pay_storage_fee) :: _ -> Rejected (Reason Cannot_pay_storage_fee)
-              | (Operation_quota_exceeded) :: _ -> Rejected (Reason Operation_quota_exceeded)
-              | (Storage_limit_too_high) :: _ -> Rejected (Reason Storage_limit_too_high)
-              | _ -> Rejected (Reason Unknown))
-           | Applied (Transaction_result _ ) -> (Accepted ())
-           | Backtracked ((Transaction_result _), _) -> (Rejected Backtracked)
-           | Skipped _ -> (Rejected Skipped))
-         | _ -> (Error Unexpected_result)
+              | (Non_existing_contract _) ::_ -> Rejected (Reason Invalid_receiver)
+              | err :: _ -> Rejected (Reason (Unknown_failure (env_err_to_str err)))
+              | _ -> Rejected (Reason (Unknown_failure "Empty trace")))
+           | Applied (Transaction_result _ ) -> Still_pending (* TODO*)
+           | Backtracked ((Transaction_result _), _) -> Rejected Backtracked
+           | Skipped _ -> Rejected Skipped)
+         | _ -> Error Unexpected_result
        end
     | Cons_and_result ((Manager_operation {operation;_} as op), (Manager_operation_result _ as res), rest) ->
        begin
@@ -307,15 +307,18 @@ let check_mempool oph =
        in
        let branch_delayed_ops = List.map ~f (Operation_hash.Map.bindings branch_delayed)
        in
-       let pools_pending = applied @ branch_delayed_ops @ unproc_ops in
+       let pools_pending = applied @ branch_delayed_ops in
        let pools = (pools_pending, Still_pending)
-                   :: (refused_ops, Rejected (Reason Unknown)) (* @TODO*)
-                   :: (branch_refused_ops, Rejected (Reason Unknown))
+                   :: (refused_ops, Rejected (Reason (Unknown_failure "Unknown")))
+                   :: (branch_refused_ops, Still_pending)
                    :: (branch_delayed_ops, Still_pending)
+                   :: (unproc_ops, Unprocessed)
                    :: [] in
        Lwt.return @@ find_op pools
      end
-  | Error _ -> Lwt.return (Error Unknown)
+  | Error errs -> match errs with
+                  | err :: _ -> Lwt.return (Error (Unknown_error (err_to_str err)))
+                  | _ -> Lwt.return (Error (Unknown_error ("Empty trace")))
 
 let query oph =
   let ctxt_proto = new wrap_full !ctxt in

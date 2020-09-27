@@ -21,10 +21,7 @@ let str_of_err err = match err with
   | Api.Invalid_receiver -> "Invalid_receiver"
   | Api.Reached_burncap -> "Reached_burncap"
   | Api.Reached_feecap -> "Reached_feecap"
-  | Api.Storage_limit_too_high -> "Storage_limit_too_high"
-  | Api.Operation_quota_exceeded -> "Operation_quota_exceeded"
-  | Api.Cannot_pay_storage_fee -> "Cannot_pay_storage_fee"
-  | Api.Unknown -> "Unknown"
+  | Api.Unknown_failure str -> str
 
 let str_of_status st = match st with
   | Api.Still_pending -> "Still_pending"
@@ -36,7 +33,8 @@ let str_of_status st = match st with
   | Api.Rejected Timeout -> "Rejected - Timeout"
   | Api.Rejected Skipped -> "Rejected - Skipped"
   | Api.Rejected Backtracked -> "Rejected - Backtracked"
-  | Api.Error Unknown -> "Error - Unknown"
+  | Api.Unprocessed -> "Unprocessed"
+  | Api.Error (Unknown_error str) -> str
   | Api.Error Unexpected_result -> "Error - Unexpected_result"
   | Api.Error RPC_error _ -> "Error - RPC"
 
