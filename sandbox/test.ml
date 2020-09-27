@@ -25,7 +25,7 @@ let str_of_err err = match err with
 
 let str_of_status st = match st with
   | Api.Still_pending -> "Still_pending"
-  | Api.Accepted _ -> "Accepted"
+  | Api.Accepted r -> "Accepted - block " ^ (asprintf "%a" Block_hash.pp r.block_hash)
   | Api.Missing -> "Missing"
   | Api.Rejected (Reason r) -> (
      let err_str = str_of_err r in

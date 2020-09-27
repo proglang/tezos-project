@@ -41,7 +41,8 @@ type result = {
     storage_size : int;
     paid_storage_size_diff : int ;
     big_map_diff : Contract.big_map_diff option;
-    allocated_destination_contract : bool}
+    allocated_destination_contract : bool
+  }
 
 type reason = Timeout
             | Skipped
@@ -251,7 +252,7 @@ let catch_rpc_error errs =
   | err :: _ -> Lwt.return (Error (Unknown_error (err_to_str err)))
   | _ ->  Lwt.return (Error (Unknown_error "Empty trace"))
 
-let check_result ((op, res) : 'kind contents_list * 'kind contents_result_list) =
+let get_result ((op, res) : 'kind contents_list * 'kind contents_result_list) (b,i,j) =
   let rec cr : type kind. kind contents_and_result_list -> status =
     function
     | Single_and_result (Manager_operation {operation; _},
@@ -266,7 +267,22 @@ let check_result ((op, res) : 'kind contents_list * 'kind contents_result_list) 
               | (Non_existing_contract _) ::_ -> Rejected (Reason Invalid_receiver)
               | err :: _ -> Rejected (Reason (Unknown_failure (env_err_to_str err)))
               | _ -> Rejected (Reason (Unknown_failure "Empty trace")))
-           | Applied (Transaction_result _ ) -> Still_pending (* TODO*)
+           | Applied (Transaction_result r) ->
+              begin
+                let res : result = {
+                    block_hash = b;
+                    rpc_position = (i,j);
+                    balance_updates = r.balance_updates;
+                    consumed_gas = Z.to_int r.consumed_gas;
+                    storage = r.storage;
+                    originated_contracts = r.originated_contracts;
+                    storage_size = Z.to_int r.storage_size;
+                    paid_storage_size_diff = Z.to_int r.paid_storage_size_diff;
+                    big_map_diff = r.big_map_diff;
+                    allocated_destination_contract = r.allocated_destination_contract
+                  } in
+                Accepted res
+              end
            | Backtracked ((Transaction_result _), _) -> Rejected Backtracked
            | Skipped _ -> Rejected Skipped)
          | _ -> Error Unexpected_result
@@ -345,7 +361,7 @@ let query oph =
             begin
               match Apply_results.kind_equal_list od.contents omd.contents with
               | Some Apply_results.Eq ->
-                 check_result (od.contents, omd.contents)
+                 get_result (od.contents, omd.contents) (block, i, j)
               | None -> Lwt.return (Error Unexpected_result)
             end
          | _ ->  Lwt.return (Error Unexpected_result)

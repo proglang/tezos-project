@@ -45,7 +45,8 @@ type result = {
     storage_size : int; (** Amount of storage used during transaction *)
     paid_storage_size_diff : int ; (** Storage fees paid *)
     big_map_diff : Contract.big_map_diff option; (** Changes in the BigMap *)
-    allocated_destination_contract : bool} (** Indicates whether the dest account was empty or not *)
+    allocated_destination_contract : bool (** Indicates whether the dest account was empty or not *)
+  }
 
 (** Possible reasons for a transaction rejection *)
 type reason = Timeout (** The transaction timed out and was removed from the Mempool (tbd if this case can be distinguished clearly from others) *)
