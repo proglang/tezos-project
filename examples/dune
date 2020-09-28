@@ -1,0 +1,13 @@
+; See src/bin_node/dune to understand in detail how this file abuses
+; the alternative dependency mechanism of dune to implement optional
+; dependencies.
+
+(executables
+ (names test )
+ (libraries tezos_api
+ 	    lwt
+	    lwt.unix)
+
+  (flags (:standard -open Lwt
+  	 	    -linkall)))
+
