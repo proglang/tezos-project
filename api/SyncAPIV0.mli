@@ -2,24 +2,25 @@
 open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
 
 (** A public key of an account (implicit or originated)*)
-type puk = Signature.public_key
+type puk
 
 (** A public key hash of an account (implicit or originated) *)
-type pukh = Signature.public_key_hash
+type pukh
 
  (** Contract representation (implicit or originated) *)
-type contract = Contract.t
-
-type 'a tz_result = 'a tzresult Lwt.t
-
-(** Representation of Tezos tokens (tezzies) *)
-type tez = float
+type contract
 
  (** Operation hash *)
-type oph = Operation_hash.t
+type oph
 
 (** Block hash *)
-type blockh = Block_hash.t
+type blockh
+
+(** Representation of Tezos tokens (tezzies) *)
+module Tez_t : sig
+  type t
+  val tez : float -> t
+end
 
 (** Provides information about why a transaction failed / is invalid *)
 type failure_message = Insufficient_balance
@@ -28,10 +29,7 @@ type failure_message = Insufficient_balance
                      | Insufficient_fee
                      | Reached_burncap
                      | Reached_feecap
-                     | Operation_quota_exceeded (* Needed? *)
-                     | Storage_limit_too_high (* Needed? *)
-                     | Cannot_pay_storage_fee (* Handled by Insufficient_fee? *)
-                     | Unknown (** None of the above match - error list should be extended if this occurs *)
+                     | Unknown_failure of string (** None of the above match - error list should be extended if this occurs *)
 
 (** Result of a transaction injection*)
 type answer = Pending of oph (** The operation hash of the successfully injected transaction *)
@@ -48,7 +46,8 @@ type result = {
     storage_size : int; (** Amount of storage used during transaction *)
     paid_storage_size_diff : int ; (** Storage fees paid *)
     big_map_diff : Contract.big_map_diff option; (** Changes in the BigMap *)
-    allocated_destination_contract : bool} (** Indicates whether the dest account was empty or not *)
+    allocated_destination_contract : bool (** Indicates whether the dest account was empty or not *)
+  }
 
 (** Possible reasons for a transaction rejection *)
 type reason = Timeout (** The transaction timed out and was removed from the Mempool (tbd if this case can be distinguished clearly from others) *)
@@ -59,12 +58,13 @@ type reason = Timeout (** The transaction timed out and was removed from the Mem
 (** Errors which might occur during retrieval of transaction status (unrelated to the transaction result) *)
 type error_message = RPC_error of {uri: string} (** Error occured during RPC call *)
                    | Unexpected_result (** The {!type:oph} did not refer to a transaction operation *)
-                   | Unknown (** Unknown error - error list should be extended if this occurs *)
+                   | Unknown_error of string (** Unknown error - error list should be extended if this occurs *)
 
 (** Status of an injected transaction *)
 type status = Still_pending (** Transaction hasn't been included yet (prevalidated, delayed or unprocessed) *)
             | Accepted of result (** Transaction was included with {!type:result} *)
             | Rejected of reason (** Transaction was rejected due to {!type:reason} *)
+            | Unprocessed (** Transaction not yet prevalidated *)
             | Missing (** Transaction couldn't be found (tbd should this be timeout?) *)
             | Error of error_message (** Status couldn't be retrieved due to {!type:error_message} *)
 
@@ -73,28 +73,28 @@ type status = Still_pending (** Transaction hasn't been included yet (prevalidat
     @param s alias of implicit account
     @return {!type:puk} the associated public key
 *)
-val get_puk_from_alias: string -> puk tz_result
+val get_puk_from_alias: string -> puk option Lwt.t
 
 (** [get_puk_from_hash s] expects a public key hash as string and returns the associated
     public key of the account.
     @param s public key hash
     @return {!type:puk} the associated public key
  *)
-val get_puk_from_hash: string -> puk tz_result
+val get_puk_from_hash: string -> puk option Lwt.t
 
 (** [get_pukh_from_alias s] expects an alias of an implicit account and returns 
     the associated public key hash.
     @param s alias of implicit account
     @return {!type:pukh} the associated public key hash
 *)
-val get_pukh_from_alias: string -> pukh tz_result
+val get_pukh_from_alias: string -> pukh option Lwt.t
 
 (** [get_contract s] expects an alias, public key hash or contract hash as string
     and returns the associated contract representation.
     @param s alias, public key hash or contract hash
     @return {!type:contract} the associated contract representation
 *)
-val get_contract: string -> contract tz_result
+val get_contract: string -> contract option Lwt.t
 
 (** [set_port p] specifies under which port the RPC interface of the node is
     reachable if the default (8732) does not apply.
@@ -116,7 +116,7 @@ val set_basedir: string -> unit
     @return {!type:answer} the operation hash of the injected transaction or
     error
 *)
-val transfer: tez -> pukh -> contract -> tez -> answer Lwt.t
+val transfer: Tez_t.t -> pukh -> contract -> Tez_t.t -> answer Lwt.t
 
 (** [query op] retrieves the current status of an injected transaction
     @param op the operation hash of the injected transaction
