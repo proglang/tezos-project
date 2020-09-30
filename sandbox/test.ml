@@ -1,6 +1,5 @@
 open Tezos_api
 open Format
-open Error_monad
 open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
    
 let command = ref "puk_alias"
@@ -15,81 +14,84 @@ let spec_list = [
   ]
 
 let str_of_err err = match err with
-  | Api.Insufficient_balance -> "Insufficient_balance"
-  | Api.Insufficient_fee -> "Insufficient_fee"
-  | Api.Counter_mismatch -> "Counter_mismatch"
-  | Api.Invalid_receiver -> "Invalid_receiver"
-  | Api.Reached_burncap -> "Reached_burncap"
-  | Api.Reached_feecap -> "Reached_feecap"
-  | Api.Unknown_failure str -> str
+  | Api_error.Rejection Insufficient_balance -> "Insufficient_balance"
+  | Api_error.Rejection Insufficient_fee -> "Insufficient_fee"
+  | Api_error.Rejection Counter_mismatch -> "Counter_mismatch"
+  | Api_error.Rejection Invalid_receiver -> "Invalid_receiver"
+  | Api_error.Rejection Reached_burncap -> "Reached_burncap"
+  | Api_error.Rejection Reached_feecap -> "Reached_feecap"
+  | Api_error.RPC_error {uri} -> "RPC error at " ^ uri
+  | Api_error.Unexpected_result -> "Unexpected_result"
+  | Api_error.Unknown_public_key -> "Unknown public key"
+  | Api_error.Unknown_secret_key -> "Unknown secret_key"
+  | Api_error.Keys_not_found -> "Keys not found"
+  | Api_error.Unknown e -> e
 
 let str_of_status st = match st with
   | Api.Still_pending -> "Still_pending"
   | Api.Accepted r -> "Accepted - block " ^ (asprintf "%a" Block_hash.pp r.block_hash)
   | Api.Missing -> "Missing"
   | Api.Rejected (Reason r) -> (
-     let err_str = str_of_err r in
+     let err_str = str_of_err (Rejection r) in
      "Rejected - " ^ err_str)
+  | Api.Rejected (Unknown_reason s) -> s
   | Api.Rejected Timeout -> "Rejected - Timeout"
   | Api.Rejected Skipped -> "Rejected - Skipped"
   | Api.Rejected Backtracked -> "Rejected - Backtracked"
   | Api.Unprocessed -> "Unprocessed"
-  | Api.Error (Unknown_error str) -> str
-  | Api.Error Unexpected_result -> "Error - Unexpected_result"
-  | Api.Error RPC_error _ -> "Error - RPC"
 
 let run_puk_from_alias () =
   Api.get_puk_from_alias "tamara"
    >>= function
-  | Some pk -> Format.fprintf std_formatter "%a\n" Signature.Public_key.pp pk ; Lwt.return 1
-  | None -> print_endline "Unknown key alias"; Lwt.return 0
+  | Ok pk -> Format.fprintf std_formatter "%a\n" Signature.Public_key.pp pk ; Lwt.return 1
+  | Error err -> print_endline @@ str_of_err err; Lwt.return 0
 
 let run_puk_from_hash () =
   Api.get_puk_from_hash "tz1XGXdyCAeAsZ8Qo4BFQVkLCnfQ4ZyLgJ1S"
   >>= function
-  | Some pk -> Format.fprintf std_formatter "%a\n" Signature.Public_key.pp pk ; Lwt.return 1
-  | None -> print_endline "Invalid public key hash"; Lwt.return 0
+  | Ok pk -> Format.fprintf std_formatter "%a\n" Signature.Public_key.pp pk ; Lwt.return 1
+  | Error err -> print_endline @@ str_of_err err; Lwt.return 0
 
 let run_pukh_from_alias () =
   Api.get_pukh_from_alias "tamara"
   >>= function
-  | Some pkh -> Format.fprintf std_formatter "%a\n" Signature.Public_key_hash.pp pkh ;
+  | Ok pkh -> Format.fprintf std_formatter "%a\n" Signature.Public_key_hash.pp pkh ;
               Lwt.return 1
-  | None -> print_endline "Unknown key alias"; Lwt.return 0
+  | Error err -> print_endline @@ str_of_err err; Lwt.return 0
 
 let run_get_contract () =
   Api.get_contract "tamara"
   (* Api.get_contract "tz1XGXdyCAeAsZ8Qo4BFQVkLCnfQ4ZyLgJ1S" alternatively *)
   >>= function
-  | Some c -> Format.fprintf std_formatter "%a\n" Contract.pp c ;
+  | Ok c -> Format.fprintf std_formatter "%a\n" Contract.pp c ;
             Lwt.return 1
-  | None -> print_endline "Invalid contract notation/Unknown contract"; Lwt.return 0
+  | Error err -> print_endline @@ str_of_err err; Lwt.return 0
 
 let run_transfer () =
   Api.get_pukh_from_alias "tamara"
   >>= function
-  | Some pkh_1 -> (
-    Api.get_contract "tamara"
-    >>= function
-    | Some contr -> (
-      let amount = Api.Tez_t.tez 10.0 in
-      let fees = Api.Tez_t.tez 0.0001 in
-       Api.transfer amount pkh_1 contr fees
+  | Ok pukh -> (
+     Api.get_contract "tamara"
+     >>= function
+     | Ok contr -> (
+       let amount = Api.Tez_t.tez 10.0 in
+       let fees = Api.Tez_t.tez 0.0001 in
+       Api.transfer amount pukh contr fees
        >>= function
-       | Fail err -> print_endline @@ str_of_err err; Lwt.return 0
-       | Pending oph -> Format.fprintf std_formatter "%a\n" Operation_hash.pp oph ; Lwt.return 0
-    )
-    | None -> print_endline "Invalid/unknown destination contract"; Lwt.return 0 )
-  | None -> print_endline "Unknown source key alias"; Lwt.return 0
+       | Ok oph -> Format.fprintf std_formatter "%a\n" Operation_hash.pp oph ;
+                   Lwt.return 1
+       | Error err -> print_endline @@ str_of_err err; Lwt.return 0 )
+     | Error err -> print_endline @@ str_of_err err; Lwt.return 0 )
+  | Error err -> print_endline @@ str_of_err err; Lwt.return 0
 
 let run_query () =
   let oph = Operation_hash.of_b58check "opFVcseqXgajPVLzXisws6912Sxy8ifpr9y3xFYNp6KjEG6Nj8u" in
   match oph with
   | Ok oph -> (
     Api.query oph
-    >>= fun st ->
-    print_endline @@ str_of_status st;
-    Lwt.return 1
+    >>= function
+    | Ok st -> print_endline @@ str_of_status st; Lwt.return 1
+    | Error err -> print_endline @@ str_of_err err; Lwt.return 0
   )
   | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
 
@@ -104,8 +106,6 @@ let main =
     spec_list
     (fun x -> raise (Arg.Bad ("Bad argument: " ^ x)))
     usage;
-  Internal_event_unix.init ()
-  >>= fun () ->
   if !port != 0 then Api.set_port !port;
   if !basedir <> "" then Api.set_basedir !basedir;
   if !command = "puk_alias" then run_puk_from_alias ()
@@ -116,12 +116,9 @@ let main =
   else if !command = "get_contr" then run_get_contract ()
   else if !command = "tez" then run_tez ()
   else (print_endline "Unknown command" ; Lwt.return 0)
-  >>= fun retcode ->
-  Internal_event_unix.close () >>= fun () -> Lwt.return retcode 
+  >>= fun retcode -> Lwt.return retcode
 
 let () =
-  Lwt_exit.exit_on Sys.sigint ;
-  Lwt_exit.exit_on Sys.sigterm ;
   Stdlib.exit @@ Lwt_main.run main
 
   

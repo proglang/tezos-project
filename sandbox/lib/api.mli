@@ -1,5 +1,6 @@
 (** This API provides functions to interact with a Tezos node *)
 open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
+open Api_error
 
 (** A public key of an account (implicit or originated)*)
 type puk = Signature.public_key
@@ -22,19 +23,6 @@ module Tez_t : sig
   val tez : float -> t
 end
 
-(** Provides information about why a transaction failed / is invalid *)
-type failure_message = Insufficient_balance
-                     | Counter_mismatch
-                     | Invalid_receiver
-                     | Insufficient_fee
-                     | Reached_burncap
-                     | Reached_feecap
-                     | Unknown_failure of string (** None of the above match - error list should be extended if this occurs *)
-
-(** Result of a transaction injection*)
-type answer = Pending of oph (** The operation hash of the successfully injected transaction *)
-            | Fail of failure_message (** An error with the respective {!type:failure_message} *)
-
 (** Result of an operation which has been successfully included into a block *)
 type op_result = {
     block_hash : blockh; (** Block in which transaction was included *)
@@ -53,12 +41,8 @@ type op_result = {
 type reason = Timeout (** The transaction timed out and was removed from the Mempool (tbd if this case can be distinguished clearly from others) *)
             | Skipped (** The transaction was skipped due to a previously failed operation *)
             | Backtracked (** The transaction was backtracked due to a subsequently failed operation *)
-            | Reason of failure_message  (** The transaction failed due to {!type: failure_message} *)
-
-(** Errors which might occur during retrieval of transaction status (unrelated to the transaction result) *)
-type error_message = RPC_error of {uri: string} (** Error occured during RPC call *)
-                   | Unexpected_result (** The {!type:oph} did not refer to a transaction operation *)
-                   | Unknown_error of string (** Unknown error - error list should be extended if this occurs *)
+            | Reason of rejection_message  (** The transaction failed due to {!type: failure_message} *)
+            | Unknown_reason of string
 
 (** Status of an injected transaction *)
 type status = Still_pending (** Transaction hasn't been included yet (prevalidated, delayed or unprocessed) *)
@@ -66,35 +50,34 @@ type status = Still_pending (** Transaction hasn't been included yet (prevalidat
             | Rejected of reason (** Transaction was rejected due to {!type:reason} *)
             | Unprocessed (** Transaction not yet prevalidated *)
             | Missing (** Transaction couldn't be found (tbd should this be timeout?) *)
-            | Error of error_message (** Status couldn't be retrieved due to {!type:error_message} *)
 
 (** [get_puk_from_alias s] expects an alias of an implicit account and returns
     the associated public key of the account.
     @param s alias of implicit account
     @return {!type:puk} the associated public key
 *)
-val get_puk_from_alias: string -> puk option Lwt.t
+val get_puk_from_alias: string -> puk Answer.t
 
 (** [get_puk_from_hash s] expects a public key hash as string and returns the associated
     public key of the account.
     @param s public key hash
     @return {!type:puk} the associated public key
  *)
-val get_puk_from_hash: string -> puk option Lwt.t
+val get_puk_from_hash: string -> puk Answer.t
 
 (** [get_pukh_from_alias s] expects an alias of an implicit account and returns 
     the associated public key hash.
     @param s alias of implicit account
     @return {!type:pukh} the associated public key hash
 *)
-val get_pukh_from_alias: string -> pukh option Lwt.t
+val get_pukh_from_alias: string -> pukh Answer.t
 
 (** [get_contract s] expects an alias, public key hash or contract hash as string
     and returns the associated contract representation.
     @param s alias, public key hash or contract hash
     @return {!type:contract} the associated contract representation
 *)
-val get_contract: string -> contract option Lwt.t
+val get_contract: string -> contract Answer.t
 
 (** [set_port p] specifies under which port the RPC interface of the node is
     reachable if the default (8732) does not apply.
@@ -116,10 +99,10 @@ val set_basedir: string -> unit
     @return {!type:answer} the operation hash of the injected transaction or
     error
 *)
-val transfer: Tez_t.t -> pukh -> contract -> Tez_t.t -> answer Lwt.t
+val transfer: Tez_t.t -> pukh -> contract -> Tez_t.t -> oph Answer.t
 
 (** [query op] retrieves the current status of an injected transaction
     @param op the operation hash of the injected transaction
     @return {!type:status} a status or error
 *)
-val query : oph -> status Lwt.t
+val query : oph -> status Answer.t
