@@ -36,7 +36,7 @@ type answer = Pending of oph (** The operation hash of the successfully injected
             | Fail of failure_message (** An error with the respective {!type:failure_message} *)
 
 (** Result of an operation which has been successfully included into a block *)
-type result = {
+type op_result = {
     block_hash : blockh; (** Block in which transaction was included *)
     rpc_position : (int * int); (** The indices where the operation can be found within the block *)
     balance_updates : Delegate.balance_updates; (** List of balance updates *)
@@ -62,7 +62,7 @@ type error_message = RPC_error of {uri: string} (** Error occured during RPC cal
 
 (** Status of an injected transaction *)
 type status = Still_pending (** Transaction hasn't been included yet (prevalidated, delayed or unprocessed) *)
-            | Accepted of result (** Transaction was included with {!type:result} *)
+            | Accepted of op_result (** Transaction was included with {!type:result} *)
             | Rejected of reason (** Transaction was rejected due to {!type:reason} *)
             | Unprocessed (** Transaction not yet prevalidated *)
             | Missing (** Transaction couldn't be found (tbd should this be timeout?) *)

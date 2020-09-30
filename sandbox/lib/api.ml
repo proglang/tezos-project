@@ -43,7 +43,7 @@ type failure_message = Insufficient_balance
 type answer = Pending of oph
             | Fail of failure_message
 
-type result = {
+type op_result = {
     block_hash : blockh;
     rpc_position : (int * int);
     balance_updates : Delegate.balance_updates;
@@ -66,7 +66,7 @@ type error_message = RPC_error of {uri: string}
                    | Unknown_error of string
 
 type status = Still_pending
-            | Accepted of result
+            | Accepted of op_result
             | Rejected of reason
             | Unprocessed
             | Missing
@@ -278,7 +278,7 @@ let get_result ((op, res) : 'kind contents_list * 'kind contents_result_list) (b
               | _ -> Rejected (Reason (Unknown_failure "Empty trace")))
            | Applied (Transaction_result r) ->
               begin
-                let res : result = {
+                let res : op_result = {
                     block_hash = b;
                     rpc_position = (i,j);
                     balance_updates = r.balance_updates;
