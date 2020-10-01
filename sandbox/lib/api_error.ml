@@ -1,5 +1,6 @@
 open Tezos_protocol_environment_006_PsCARTHA
 open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
+open Tezos_raw_protocol_006_PsCARTHA.Contract_repr
 open Format
 open Str
 
@@ -17,6 +18,7 @@ type error = Rejection of rejection_message
            | Unknown_secret_key
            | Unknown_public_key
            | Keys_not_found
+           | Wrong_contract_notation of string
            | Unknown of string
 
 let errors_of_strings =
@@ -29,6 +31,7 @@ let errors_of_strings =
       ("Unknown secret key for .*", Unknown_secret_key);
       ("Unknown public key for .*", Unknown_public_key);
       ("no keys for the source contract manager", Keys_not_found);
+      ("no .* alias named .*", Keys_not_found)
     ]
 
 let err_to_str = asprintf "%a" Error_monad.pp
@@ -49,12 +52,14 @@ end
 
 let catch_env_error errs =
   match errs with
+  | (Invalid_contract_notation s)::_ -> Answer.fail (Wrong_contract_notation s)
   | err :: _ -> Answer.fail (Unknown (env_err_to_str err))
   | _ -> Answer.fail (Unknown "Empty trace")
 
 let catch_error errs =
   let open Tezos_protocol_006_PsCARTHA.Protocol.Contract_storage in
   match errs with
+  | (Environment.Ecoproto_error (Invalid_contract_notation s)) :: _ -> Answer.fail (Wrong_contract_notation s)
   | (RPC_context.Not_found {uri; _}) ::_
     | (RPC_context.Gone {uri;_}) ::_
     | (RPC_context.Generic_error {uri;_}) ::_ ->

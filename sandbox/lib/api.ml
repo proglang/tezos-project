@@ -175,11 +175,11 @@ let set_basedir path =
 let setup_remote_signer =
   Client_keys.register_signer (module Tezos_signer_backends.Unencrypted)
 
-let transfer amount src destination fees =
+let transfer amount src destination fee =
   setup_remote_signer;
   Client_keys.get_key !ctxt src
   >>= function
-  | Error _ -> Answer.fail (Rejection Invalid_receiver)
+  | Error err -> catch_error err
   | Ok (_, src_pk, src_sk) ->
      begin
        let ctxt_proto = new wrap_full !ctxt in
@@ -193,7 +193,7 @@ let transfer amount src destination fees =
              ~dry_run:false
              ~verbose_signing:false
              ~source:src
-             ~fee:fees
+             ~fee
              ~src_pk
              ~src_sk
              ~destination
