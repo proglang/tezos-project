@@ -1,6 +1,7 @@
 open Tezos_api
 open Format
 open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
+open Tezos_client_006_PsCARTHA
    
 let command = ref "puk_alias"
 let port = ref 0
@@ -107,7 +108,10 @@ let run_get_balance () =
   | Ok contr -> (
     Api.get_balance contr
     >>= function
-    | Ok tz -> print_endline @@ string_of_float @@ Api.Tez_t.to_float tz; Lwt.return 1
+    | Ok tz -> (
+      let tz_str = string_of_float @@ Api.Tez_t.to_float tz in
+      print_endline (tz_str ^ " " ^ Client_proto_args.tez_sym); Lwt.return 1
+    )
     | Error err -> print_endline @@ str_of_err err; Lwt.return 0 )
   | Error err -> print_endline @@ str_of_err err; Lwt.return 0
 
