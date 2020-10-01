@@ -22,14 +22,19 @@ type blockh = Block_hash.t
 module Tez_t : sig
   type t = Tez.t
   val tez : float -> t
+  val to_float : Tez.t -> float
 end = struct
   type t = Tez.t
+  let conversion_factor = 1000000.0
   let tez f =
-    let mutez = Int64.of_float( f *. 1000000.0 ) in
+    let mutez = Int64.of_float( f *. conversion_factor ) in
     assert (mutez >= Int64.one);
     match Tez.( *? ) Tez.one_mutez mutez with
     | Ok tz -> tz
     | _ -> failwith "Illegal Tez value"
+  let to_float tz =
+    let mutez_f = Int64.to_float @@ Tez.to_mutez tz in
+    (mutez_f /. conversion_factor)
 end
 
 type op_result = {
@@ -319,4 +324,11 @@ let query oph =
       )
       | Error err -> catch_error err
      end
+  | Error err -> catch_error err
+
+let get_balance c =
+  let ctxt_proto = new wrap_full !ctxt in
+  get_balance ctxt_proto ~chain:ctxt_proto#chain ~block:ctxt_proto#block c
+  >>= function
+  | Ok amount -> Answer.return amount
   | Error err -> catch_error err

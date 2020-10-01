@@ -21,6 +21,7 @@ type blockh = Block_hash.t
 module Tez_t : sig
   type t
   val tez : float -> t
+  val to_float : t -> float
 end
 
 (** Result of an operation which has been successfully included into a block *)
@@ -106,3 +107,5 @@ val transfer: Tez_t.t -> pukh -> contract -> Tez_t.t -> oph Answer.t
     @return {!type:status} a status or error
 *)
 val query : oph -> status Answer.t
+
+val get_balance : contract -> Tez_t.t Answer.t

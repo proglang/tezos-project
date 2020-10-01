@@ -6,7 +6,7 @@ let command = ref "puk_alias"
 let port = ref 0
 let basedir = ref "/home/tamara/Studium/Tezos/project/tezos-project/sandbox"
 
-let usage = "Usage: " ^ Sys.argv.(0) ^ " -c (puk_alias | puk_hash | pukh_alias | get_contr | tez | transfer | query)"
+let usage = "Usage: " ^ Sys.argv.(0) ^ " -c (puk_alias | puk_hash | pukh_alias | get_contr | tez | transfer | query | balance)"
 let spec_list = [
     ("-c", Arg.Set_string command, ": specifies which command should be executed; default = " ^ !command);
     ("-p", Arg.Set_int port, ": specifies RPC port of the Tezos node; default =8732");
@@ -101,6 +101,16 @@ let run_tez () =
   let _ = List.map f eq_classes in
   Lwt.return 1
 
+let run_get_balance () =
+  Api.get_contract "tamara"
+  >>= function
+  | Ok contr -> (
+    Api.get_balance contr
+    >>= function
+    | Ok tz -> print_endline @@ string_of_float @@ Api.Tez_t.to_float tz; Lwt.return 1
+    | Error err -> print_endline @@ str_of_err err; Lwt.return 0 )
+  | Error err -> print_endline @@ str_of_err err; Lwt.return 0
+
 let main =
   Arg.parse
     spec_list
@@ -115,6 +125,7 @@ let main =
   else if !command = "query" then run_query ()
   else if !command = "get_contr" then run_get_contract ()
   else if !command = "tez" then run_tez ()
+  else if !command = "balance" then run_get_balance ()
   else (print_endline "Unknown command" ; Lwt.return 0)
   >>= fun retcode -> Lwt.return retcode
 
