@@ -22,6 +22,7 @@ let str_of_err err = match err with
   | Api_error.Rejection Reached_burncap -> "Reached_burncap"
   | Api_error.Rejection Reached_feecap -> "Reached_feecap"
   | Api_error.Rejection Michelson_parser_error -> "Michelson_parser_error"
+  | Api_error.Rejection Michelson_runtime_error -> "Michelson_runtime_error"
   | Api_error.RPC_error {uri} -> "RPC error at " ^ uri
   | Api_error.Unexpected_result -> "Unexpected_result"
   | Api_error.Unknown_public_key -> "Unknown public key"

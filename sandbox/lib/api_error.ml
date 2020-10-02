@@ -1,5 +1,6 @@
 open Tezos_protocol_environment_006_PsCARTHA
 open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
+open Tezos_protocol_006_PsCARTHA.Protocol.Script_interpreter
 open Tezos_raw_protocol_006_PsCARTHA.Contract_repr
 open Tezos_micheline.Micheline_parser
 open Format
@@ -13,6 +14,7 @@ type rejection_message = Insufficient_balance
                      | Reached_burncap
                      | Reached_feecap
                      | Michelson_parser_error
+                     | Michelson_runtime_error
 
 type error = Rejection of rejection_message
            | RPC_error of {uri: string}
@@ -53,56 +55,68 @@ end = struct
 end
 
 let catch_env_error errs =
+  let open Answer in
   match errs with
-  | (Invalid_contract_notation s)::_ -> Answer.fail (Wrong_contract_notation s)
-  | err :: _ -> Answer.fail (Unknown (env_err_to_str err))
-  | _ -> Answer.fail (Unknown "Empty trace")
+  | [] -> Answer.fail (Unknown "Empty trace")
+  | e :: _s -> Answer.return e
+  >>=? fun err ->
+  match err with
+  | Invalid_contract_notation s -> Answer.fail (Wrong_contract_notation s)
+  | _ -> Answer.fail (Unknown (env_err_to_str err))
 
 let catch_error errs =
-  let open Tezos_protocol_006_PsCARTHA.Protocol.Contract_storage in
+  let open Answer in
   match errs with
-  | (Environment.Ecoproto_error (Invalid_contract_notation s)) :: _ -> Answer.fail (Wrong_contract_notation s)
-  | (RPC_context.Not_found {uri; _}) ::_
-    | (RPC_context.Gone {uri;_}) ::_
-    | (RPC_context.Generic_error {uri;_}) ::_ ->
+  | [] -> Answer.fail (Unknown "Empty trace")
+  | e :: _s -> Answer.return e
+  >>=? fun err ->
+  let open Tezos_protocol_006_PsCARTHA.Protocol.Contract_storage in
+  match err with
+  | Environment.Ecoproto_error (Invalid_contract_notation s) -> Answer.fail (Wrong_contract_notation s)
+  | RPC_context.Not_found {uri; _}
+    | RPC_context.Gone {uri;_}
+    | RPC_context.Generic_error {uri;_} ->
      Answer.fail (RPC_error {uri = Uri.to_string uri })
-  | (Environment.Ecoproto_error Contract.Balance_too_low _) :: _
+  | Environment.Ecoproto_error Contract.Balance_too_low _
     -> Answer.fail (Rejection Insufficient_balance)
-  | (Environment.Ecoproto_error Counter_in_the_past _) :: _
+  | Environment.Ecoproto_error (Counter_in_the_past _)
     -> Answer.fail (Rejection Counter_mismatch)
-  | (Environment.Ecoproto_error Counter_in_the_future _):: _
+  | Environment.Ecoproto_error Counter_in_the_future _
     -> Answer.fail (Rejection Counter_mismatch)
-  | (Invalid_utf8_sequence _ ) :: _
-    | (Unexpected_character _ ) :: _
-    | (Undefined_escape_sequence _ ) :: _
-    | (Missing_break_after_number _ ) :: _
-    | (Unterminated_string _ ) :: _
-    | (Unterminated_integer _ ) :: _
-    | (Odd_lengthed_bytes _ ) :: _
-    | (Unterminated_comment _ ) :: _
-    | (Annotation_length _ ) :: _
-    | (Unclosed _ ) :: _
-    | (Unexpected _ ) :: _
-    | (Extra _ ) :: _
-    | (Misaligned _ ) :: _
-    | Empty :: _ -> Answer.fail (Rejection Michelson_parser_error)
-  | errs ->
-     let open Base in
-     let last_err = List.hd errs in
-     match last_err with
-     | None -> Answer.fail (Unknown "Empty trace")
-     | Some err ->
-        begin
-          let err_str = err_to_str err in
-          let rec match_error l str = match l with
-            | [] -> Unknown err_str
-            | x::xs -> (
-              let r = Str.regexp x in
-              if string_match r err_str 0 then (Base.Map.find_exn errors_of_strings x)
-              else match_error xs str
-            )
-          in
-          let keys = Base.Map.keys errors_of_strings in
-          Answer.fail (match_error keys err_str)
-        end
+  | Invalid_utf8_sequence _
+    | Unexpected_character _
+    | Undefined_escape_sequence _
+    | Missing_break_after_number _
+    | Unterminated_string _
+    | Unterminated_integer _
+    | Odd_lengthed_bytes _
+    | Unterminated_comment _
+    | Annotation_length _
+    | Unclosed _
+    | Unexpected _
+    | Extra _
+    | Misaligned _
+    | Empty -> Answer.fail (Rejection Michelson_parser_error)
+  | Environment.Ecoproto_error
+      ( Reject _
+      | Overflow _
+      | Runtime_contract_error _
+      | Bad_contract_parameter _
+      | Cannot_serialize_log
+      | Cannot_serialize_failure
+      | Cannot_serialize_storage ) -> Answer.fail (Rejection Michelson_runtime_error)
+  | _ ->
+     begin
+       let err_str = err_to_str err in
+       let rec match_error l str = match l with
+         | [] -> Unknown err_str
+         | x::xs -> (
+           let r = Str.regexp x in
+           if string_match r err_str 0 then (Base.Map.find_exn errors_of_strings x)
+           else match_error xs str
+         )
+       in
+       let keys = Base.Map.keys errors_of_strings in
+       Answer.fail (match_error keys err_str)
+     end
 
