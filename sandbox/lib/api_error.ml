@@ -1,6 +1,7 @@
 open Tezos_protocol_environment_006_PsCARTHA
 open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
 open Tezos_raw_protocol_006_PsCARTHA.Contract_repr
+open Tezos_micheline.Micheline_parser
 open Format
 open Str
 
@@ -11,6 +12,7 @@ type rejection_message = Insufficient_balance
                      | Insufficient_fee
                      | Reached_burncap
                      | Reached_feecap
+                     | Michelson_parser_error
 
 type error = Rejection of rejection_message
            | RPC_error of {uri: string}
@@ -70,6 +72,20 @@ let catch_error errs =
     -> Answer.fail (Rejection Counter_mismatch)
   | (Environment.Ecoproto_error Counter_in_the_future _):: _
     -> Answer.fail (Rejection Counter_mismatch)
+  | (Invalid_utf8_sequence _ ) :: _
+    | (Unexpected_character _ ) :: _
+    | (Undefined_escape_sequence _ ) :: _
+    | (Missing_break_after_number _ ) :: _
+    | (Unterminated_string _ ) :: _
+    | (Unterminated_integer _ ) :: _
+    | (Odd_lengthed_bytes _ ) :: _
+    | (Unterminated_comment _ ) :: _
+    | (Annotation_length _ ) :: _
+    | (Unclosed _ ) :: _
+    | (Unexpected _ ) :: _
+    | (Extra _ ) :: _
+    | (Misaligned _ ) :: _
+    | Empty :: _ -> Answer.fail (Rejection Michelson_parser_error)
   | errs ->
      let open Base in
      let last_err = List.hd errs in

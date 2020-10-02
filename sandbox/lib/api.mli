@@ -109,3 +109,5 @@ val transfer: Tez_t.t -> pukh -> contract -> Tez_t.t -> oph Answer.t
 val query : oph -> status Answer.t
 
 val get_balance : contract -> Tez_t.t Answer.t
+
+val call_contract : Tez_t.t -> pukh -> contract -> ?entrypoint:string -> ?arg:string -> Tez_t.t -> oph Answer.t

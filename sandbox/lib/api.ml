@@ -1,5 +1,5 @@
 open Client_keys
-open Tezos_client_006_PsCARTHA.Client_proto_context
+open Tezos_client_006_PsCARTHA
 open Tezos_client_006_PsCARTHA.Protocol_client_context
 open Tezos_client_006_PsCARTHA.Injection
 open Tezos_client_006_PsCARTHA.Client_proto_contracts
@@ -185,7 +185,7 @@ let transfer amount src destination fee =
        let ctxt_proto = new wrap_full !ctxt in
        Lwt.catch
          (fun () ->
-           transfer
+           Client_proto_context.transfer
              ctxt_proto
              ~chain:!ctxt#chain
              ~block:!ctxt#block
@@ -197,6 +197,39 @@ let transfer amount src destination fee =
              ~src_pk
              ~src_sk
              ~destination
+             ~amount
+             ~fee_parameter: !fee_parameter
+             ())
+         exception_handler
+       >>= fun res ->
+       match res with
+       | Ok ((oph,_,_),_) -> Answer.return oph
+       | Error err -> catch_error err
+     end
+
+let call_contract amount src destination ?entrypoint ?arg fee =
+  Client_keys.get_key !ctxt src
+  >>= function
+  | Error err -> catch_error err
+  | Ok (_, src_pk, src_sk) ->
+     begin
+       let ctxt_proto = new wrap_full !ctxt in
+       Lwt.catch
+         (fun () ->
+           Client_proto_context.transfer
+             ctxt_proto
+             ~chain:!ctxt#chain
+             ~block:!ctxt#block
+             ?confirmations:!ctxt#confirmations
+             ~dry_run:false
+             ~verbose_signing:false
+             ~source:src
+             ~fee
+             ~src_pk
+             ~src_sk
+             ~destination
+             ?entrypoint:entrypoint
+             ?arg:arg
              ~amount
              ~fee_parameter: !fee_parameter
              ())
@@ -328,7 +361,10 @@ let query oph =
 
 let get_balance c =
   let ctxt_proto = new wrap_full !ctxt in
-  get_balance ctxt_proto ~chain:ctxt_proto#chain ~block:ctxt_proto#block c
+  Client_proto_context.get_balance
+    ctxt_proto
+    ~chain:ctxt_proto#chain
+    ~block:ctxt_proto#block c
   >>= function
   | Ok amount -> Answer.return amount
   | Error err -> catch_error err
