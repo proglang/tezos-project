@@ -87,6 +87,8 @@ val get_contract: string -> contract Answer.t
 *)
 val set_port: int -> unit
 
+val set_debugmode : bool -> unit
+
 (** [set_basedir d] specifies the path of the tezos-client base directory
     (normally /home/<username>/.tezos-client/)
     @param d path of the tezos-client base directory

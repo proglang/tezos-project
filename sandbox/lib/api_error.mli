@@ -27,5 +27,6 @@ module Answer : sig
   val ( >>=? ) : 'a t -> ('a -> 'b t) -> 'b t
 end
 
-val catch_env_error : Environment.Error_monad.error list -> 'a Answer.t
-val catch_error : Error_monad.error list -> 'a Answer.t
+val catch_last_env_error : Environment.Error_monad.error list -> 'a Answer.t
+val catch_last_error : Error_monad.error list -> 'a Answer.t
+val catch_trace : Error_monad.error list -> 'a Answer.t

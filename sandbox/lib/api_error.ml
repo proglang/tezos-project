@@ -56,7 +56,7 @@ end = struct
     v >>= function Error _ as err -> Lwt.return err | Result.Ok v -> f v
 end
 
-let catch_env_error errs =
+let catch_last_env_error errs =
   let open Answer in
   match errs with
   | [] -> Answer.fail (Unknown "Empty trace")
@@ -66,7 +66,7 @@ let catch_env_error errs =
   | Invalid_contract_notation s -> Answer.fail (Wrong_contract_notation s)
   | _ -> Answer.fail (Unknown (env_err_to_str err))
 
-let catch_error errs =
+let catch_last_error errs =
   let open Answer in
   match errs with
   | [] -> Answer.fail (Unknown "Empty trace")
@@ -130,3 +130,7 @@ let catch_error errs =
        Answer.fail (match_error keys err_str)
      end
 
+let catch_trace errs =
+  let f = (fun s err -> s ^ (err_to_str err) ^ "\n+++++++++++ \n") in
+  let trace_str = List.fold_left f "+++ Error trace +++ \n" errs in
+  Answer.fail (Unknown trace_str)

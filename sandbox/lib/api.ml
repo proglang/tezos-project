@@ -66,7 +66,8 @@ type status = Still_pending
 
 type config = {
     port : int ref;
-    basedir : string ref
+    basedir : string ref;
+    debug_mode : bool ref
   }
 
 type fee_config = {
@@ -80,7 +81,8 @@ type fee_config = {
 
 let current_config = {
     port = ref 8732;
-    basedir = ref "/home/tezos/.tezos-client"
+    basedir = ref "/home/tezos/.tezos-client";
+    debug_mode = ref false
   }
 
 let current_fee_config = {
@@ -109,6 +111,8 @@ let make_context () =
     ~rpc_config:rpc_config
 
 let ctxt = ref (make_context ())
+let catch_error_f err = if !(current_config.debug_mode) then catch_trace err
+                        else catch_last_error err
 
 let make_fee_parameter () =
   let fp : fee_parameter = {
@@ -138,8 +142,8 @@ let get_puk_from_alias name =
      Client_keys.get_key !ctxt pkh
      >>= function
      | Ok (_, src_pk, _) -> Answer.return src_pk
-     | Error err -> catch_error err )
-  | Error err -> catch_error err
+     | Error err -> catch_error_f err )
+  | Error err -> catch_error_f err
 
 let get_puk_from_hash pk_hash =
   Public_key_hash.of_source pk_hash
@@ -148,14 +152,14 @@ let get_puk_from_hash pk_hash =
     Client_keys.get_key !ctxt pkh
     >>= function
     | Ok (_, src_pk, _) -> Answer.return src_pk
-    | Error err -> catch_error err )
-  | Error err -> catch_error err
+    | Error err -> catch_error_f err)
+  | Error err -> catch_error_f err
 
 let get_pukh_from_alias name =
   Public_key_hash.find !ctxt name
   >>= function
   | Ok pkh -> Answer.return pkh
-  | Error err -> catch_error err
+  | Error err -> catch_error_f err
 
 let get_contract s =
   ContractAlias.get_contract !ctxt s
@@ -164,7 +168,7 @@ let get_contract s =
   | Error _ -> (
     match Contract.of_b58check s with
     | Ok v -> Answer.return v
-    | Error err -> catch_env_error err )
+    | Error err -> catch_last_env_error err )
 
 let set_port p =
   (current_config.port) := p;
@@ -174,6 +178,10 @@ let set_basedir path =
   (current_config.basedir) := path;
   ctxt := make_context ()
 
+let set_debugmode flag =
+  (current_config.debug_mode) := flag;
+  ()
+
 let setup_remote_signer =
   Client_keys.register_signer (module Tezos_signer_backends.Unencrypted)
 
@@ -181,7 +189,7 @@ let transfer amount src destination fee =
   setup_remote_signer;
   Client_keys.get_key !ctxt src
   >>= function
-  | Error err -> catch_error err
+  | Error err -> catch_error_f err
   | Ok (_, src_pk, src_sk) ->
      begin
        let ctxt_proto = new wrap_full !ctxt in
@@ -206,13 +214,13 @@ let transfer amount src destination fee =
        >>= fun res ->
        match res with
        | Ok ((oph,_,_),_) -> Answer.return oph
-       | Error err -> catch_error err
+       | Error err -> catch_error_f err
      end
 
 let call_contract amount src destination ?entrypoint ?arg fee =
   Client_keys.get_key !ctxt src
   >>= function
-  | Error err -> catch_error err
+  | Error err -> catch_error_f err
   | Ok (_, src_pk, src_sk) ->
      begin
        let ctxt_proto = new wrap_full !ctxt in
@@ -239,7 +247,7 @@ let call_contract amount src destination ?entrypoint ?arg fee =
        >>= fun res ->
        match res with
        | Ok ((oph,_,_),_) -> Answer.return oph
-       | Error err -> catch_error err
+       | Error err -> catch_error_f err
      end
 
 let get_result ((op, res) : 'kind contents_list * 'kind contents_result_list) (b,i,j) =
@@ -325,7 +333,7 @@ let check_mempool oph =
                    :: [] in
       Answer.return @@ find_op pools
      end
-  | Error errs -> catch_error errs
+  | Error errs -> catch_error_f errs
 
 let query oph =
   let ctxt_proto = new wrap_full !ctxt in
@@ -357,9 +365,9 @@ let query oph =
             end
          | _ -> Answer.fail Unexpected_result
       )
-      | Error err -> catch_error err
+      | Error err -> catch_error_f err
      end
-  | Error err -> catch_error err
+  | Error err -> catch_error_f err
 
 let get_balance c =
   let ctxt_proto = new wrap_full !ctxt in
@@ -369,4 +377,4 @@ let get_balance c =
     ~block:ctxt_proto#block c
   >>= function
   | Ok amount -> Answer.return amount
-  | Error err -> catch_error err
+  | Error err -> catch_error_f err

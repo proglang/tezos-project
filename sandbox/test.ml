@@ -6,12 +6,14 @@ open Tezos_client_006_PsCARTHA
 let command = ref "puk_alias"
 let port = ref 0
 let basedir = ref "/home/tamara/Studium/Tezos/project/tezos-project/sandbox"
+let debug = ref false
 
 let usage = "Usage: " ^ Sys.argv.(0) ^ " -c (puk_alias | puk_hash | pukh_alias | get_contr | tez | transfer | query | balance | call)"
 let spec_list = [
     ("-c", Arg.Set_string command, ": specifies which command should be executed; default = " ^ !command);
     ("-p", Arg.Set_int port, ": specifies RPC port of the Tezos node; default =8732");
-    ("-d", Arg.Set_string basedir, ": specifies base directory of the Tezos client; default = /home/tezos/.tezos-client")
+    ("-d", Arg.Set_string basedir, ": specifies base directory of the Tezos client; default = /home/tezos/.tezos-client");
+    ("-v", Arg.Set debug, ": enables debug mode (prints the whole Tezos error trace)")
   ]
 
 let str_of_err err = match err with
@@ -143,6 +145,7 @@ let main =
     usage;
   if !port != 0 then Api.set_port !port;
   if !basedir <> "" then Api.set_basedir !basedir;
+  if !debug then Api.set_debugmode true;
   if !command = "puk_alias" then run_puk_from_alias ()
   else if !command = "puk_hash" then run_puk_from_hash ()
   else if !command = "pukh_alias" then run_pukh_from_alias ()
