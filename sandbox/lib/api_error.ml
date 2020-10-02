@@ -3,6 +3,7 @@ open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
 open Tezos_protocol_006_PsCARTHA.Protocol.Script_interpreter
 open Tezos_raw_protocol_006_PsCARTHA.Contract_repr
 open Tezos_micheline.Micheline_parser
+open Tezos_rpc_http.RPC_client_errors
 open Format
 open Str
 
@@ -18,6 +19,7 @@ type rejection_message = Insufficient_balance
 
 type error = Rejection of rejection_message
            | RPC_error of {uri: string}
+           | Node_connection_failed
            | Unexpected_result
            | Unknown_secret_key
            | Unknown_public_key
@@ -77,6 +79,10 @@ let catch_error errs =
     | RPC_context.Gone {uri;_}
     | RPC_context.Generic_error {uri;_} ->
      Answer.fail (RPC_error {uri = Uri.to_string uri })
+  | Request_failed {uri; error; _} -> (
+     match error with
+     | Connection_failed _ -> Answer.fail (Node_connection_failed)
+     | _ -> (Answer.fail (RPC_error {uri = Uri.to_string uri})))
   | Environment.Ecoproto_error Contract.Balance_too_low _
     -> Answer.fail (Rejection Insufficient_balance)
   | Environment.Ecoproto_error (Counter_in_the_past _)

@@ -12,6 +12,7 @@ type rejection_message = Insufficient_balance
 
 type error = Rejection of rejection_message
            | RPC_error of {uri: string}
+           | Node_connection_failed
            | Unexpected_result
            | Unknown_secret_key
            | Unknown_public_key

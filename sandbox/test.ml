@@ -24,6 +24,7 @@ let str_of_err err = match err with
   | Api_error.Rejection Michelson_parser_error s -> "Michelson_parser_error - " ^ s
   | Api_error.Rejection Michelson_runtime_error s -> "Michelson_runtime_error - " ^ s
   | Api_error.RPC_error {uri} -> "RPC error at " ^ uri
+  | Api_error.Node_connection_failed -> "Node_connection_failed"
   | Api_error.Unexpected_result -> "Unexpected_result"
   | Api_error.Unknown_public_key -> "Unknown public key"
   | Api_error.Unknown_secret_key -> "Unknown secret_key"
