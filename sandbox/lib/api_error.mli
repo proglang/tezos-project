@@ -7,8 +7,8 @@ type rejection_message = Insufficient_balance
                      | Insufficient_fee
                      | Reached_burncap
                      | Reached_feecap
-                     | Michelson_parser_error
-                     | Michelson_runtime_error
+                     | Michelson_parser_error of string
+                     | Michelson_runtime_error of string
 
 type error = Rejection of rejection_message
            | RPC_error of {uri: string}

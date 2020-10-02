@@ -13,8 +13,8 @@ type rejection_message = Insufficient_balance
                      | Insufficient_fee
                      | Reached_burncap
                      | Reached_feecap
-                     | Michelson_parser_error
-                     | Michelson_runtime_error
+                     | Michelson_parser_error of string
+                     | Michelson_runtime_error of string
 
 type error = Rejection of rejection_message
            | RPC_error of {uri: string}
@@ -96,7 +96,9 @@ let catch_error errs =
     | Unexpected _
     | Extra _
     | Misaligned _
-    | Empty -> Answer.fail (Rejection Michelson_parser_error)
+    | Empty ->
+     let err_str = err_to_str err in
+     Answer.fail (Rejection (Michelson_parser_error err_str))
   | Environment.Ecoproto_error
       ( Reject _
       | Overflow _
@@ -104,7 +106,9 @@ let catch_error errs =
       | Bad_contract_parameter _
       | Cannot_serialize_log
       | Cannot_serialize_failure
-      | Cannot_serialize_storage ) -> Answer.fail (Rejection Michelson_runtime_error)
+      | Cannot_serialize_storage ) ->
+     let err_str = err_to_str err in
+     Answer.fail (Rejection (Michelson_runtime_error err_str))
   | _ ->
      begin
        let err_str = err_to_str err in
