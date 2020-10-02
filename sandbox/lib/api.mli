@@ -21,6 +21,7 @@ type blockh = Block_hash.t
 module Tez_t : sig
   type t
   val tez : float -> t
+  val zero : t
   val to_float : t -> float
 end
 

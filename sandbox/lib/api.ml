@@ -22,6 +22,7 @@ type blockh = Block_hash.t
 module Tez_t : sig
   type t = Tez.t
   val tez : float -> t
+  val zero : t
   val to_float : Tez.t -> float
 end = struct
   type t = Tez.t
@@ -32,6 +33,7 @@ end = struct
     match Tez.( *? ) Tez.one_mutez mutez with
     | Ok tz -> tz
     | _ -> failwith "Illegal Tez value"
+  let zero = Tez.zero
   let to_float tz =
     let mutez_f = Int64.to_float @@ Tez.to_mutez tz in
     (mutez_f /. conversion_factor)
