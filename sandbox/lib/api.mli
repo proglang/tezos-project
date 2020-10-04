@@ -17,11 +17,19 @@ type oph = Operation_hash.t
 (** Block hash *)
 type blockh = Block_hash.t
 
-(** Representation of Tezos tokens (tezzies) *)
+(** Representation of Tezos tokens (tez) *)
 module Tez_t : sig
   type t
+
+  (** [tez f] convert amount to the internal Tez representation
+      throws an exception if value is below 1 micro tez (0.000001)
+   *)
   val tez : float -> t
+
+  (** [zero] represents the value of 0 Tez *)
   val zero : t
+
+  (** [to_float t] returns amount of tez in float represention *)
   val to_float : t -> float
 end
 
@@ -44,7 +52,7 @@ type reason = Timeout (** The transaction timed out and was removed from the Mem
             | Skipped (** The transaction was skipped due to a previously failed operation *)
             | Backtracked (** The transaction was backtracked due to a subsequently failed operation *)
             | Reason of rejection_message  (** The transaction failed due to {!type: failure_message} *)
-            | Unknown_reason of string
+            | Unknown_reason of string (** None of the above match - reason list should be extended if this occurs *)
 
 (** Status of an injected transaction *)
 type status = Still_pending (** Transaction hasn't been included yet (prevalidated, delayed or unprocessed) *)
@@ -87,6 +95,7 @@ val get_contract: string -> contract Answer.t
 *)
 val set_port: int -> unit
 
+(** [set_debugmode f] enable/disable the debug mode - in debug mode, the whole Tezos error trace is printed *)
 val set_debugmode : bool -> unit
 
 (** [set_basedir d] specifies the path of the tezos-client base directory
@@ -96,21 +105,32 @@ val set_debugmode : bool -> unit
 val set_basedir: string -> unit
 
 (** [transfer a src dst fee] injects a transfer transaction.
-    @param a the amount of tezzies to be transferred
+    @param a the amount of tez to transfer
     @param src the public key hash of the sender
     @param dst the contract representation of the receiver
-    @param fee the amount of fees to be paid for the baker
-    @return {!type:answer} the operation hash of the injected transaction or
-    error
+    @param fee the amount of fees to pay to the baker
+    @return {!type:oph} the operation hash of the injected transaction
 *)
 val transfer: Tez_t.t -> pukh -> contract -> Tez_t.t -> oph Answer.t
 
 (** [query op] retrieves the current status of an injected transaction
     @param op the operation hash of the injected transaction
-    @return {!type:status} a status or error
+    @return {!type:status} the status of the transaction
 *)
 val query : oph -> status Answer.t
 
+(** [get_balance c] returns the balance of a contract (implicit or originated)
+    @param f the contract representation of the target
+    @return {!type:Tez_t.t} the balance of the target contract
+*)
 val get_balance : contract -> Tez_t.t Answer.t
 
+(** [call_contract a src dst ?ep ?arg fee] calls a contract.
+    @param a amount of tez to transfer
+    @param src the public key hash of the caller
+    @param dst the contract representation of the callee
+    @param ?ep specifies the entrypoint - if not set, the default entrypoint will be called
+    @param ?arg argument passed to the contract's script (if needed)
+    @param fee the amount of fees to pay to the baker
+ *)
 val call_contract : Tez_t.t -> pukh -> contract -> ?entrypoint:string -> ?arg:string -> Tez_t.t -> oph Answer.t
