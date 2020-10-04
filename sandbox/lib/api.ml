@@ -218,6 +218,11 @@ let transfer amount src destination fee =
      end
 
 let call_contract amount src destination ?entrypoint ?arg fee =
+  let open Answer in
+  (match Contract.is_implicit destination with
+   | None -> Answer.return ()
+   | Some _ -> Answer.fail Not_callable )
+  >>=? fun () ->
   Client_keys.get_key !ctxt src
   >>= function
   | Error err -> catch_error_f err
@@ -238,8 +243,8 @@ let call_contract amount src destination ?entrypoint ?arg fee =
              ~src_pk
              ~src_sk
              ~destination
-             ?entrypoint:entrypoint
-             ?arg:arg
+             ?entrypoint
+             ?arg
              ~amount
              ~fee_parameter: !fee_parameter
              ())

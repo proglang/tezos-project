@@ -32,6 +32,7 @@ let str_of_err err = match err with
   | Api_error.Unknown_secret_key -> "Unknown secret_key"
   | Api_error.Keys_not_found -> "Keys not found"
   | Api_error.Wrong_contract_notation s -> "Wrong_contract_notation " ^ s
+  | Api_error.Not_callable -> "Not_callable"
   | Api_error.Unknown e -> e
 
 let str_of_status st = match st with

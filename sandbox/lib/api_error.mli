@@ -18,6 +18,7 @@ type error = Rejection of rejection_message
            | Unknown_public_key
            | Keys_not_found
            | Wrong_contract_notation of string
+           | Not_callable
            | Unknown of string
 
 module Answer : sig
