@@ -7,7 +7,6 @@
             tezos-shell-services
             tezos-client-base
             tezos-client-commands
-            tezos-mockup-commands
 	    str
 
 	    (select void_for_linking-006-PsCARTHA from
@@ -15,8 +14,7 @@
               (-> void_for_linking))
 
 	    tezos-stdlib-unix
-            tezos-client-base-unix
-            tezos-signer-backends.unix)
+            tezos-client-base-unix)
  (flags (:standard -open Tezos_base__TzPervasives
                    -open Tezos_rpc_http_client
 		   -open Tezos_rpc_http_client_unix
@@ -24,7 +22,6 @@
                    -open Tezos_shell_services
                    -open Tezos_client_base
                    -open Tezos_client_commands
-                   -open Tezos_mockup_commands
                    -open Tezos_client_base_unix
                    -linkall))
 )
