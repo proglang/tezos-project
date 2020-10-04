@@ -151,12 +151,27 @@ Another condition that might be tested on an array is the heap condition
   be those with prenex universal quantification. 
 \item Collect examples for interesting formulas.
 \item Formalize the cost incurred by checking a formula.
-\item Extend the contract language with assertions stating these logical formulas.
-\item Implement the transformation: negation of the formula followed by transformation
-  of existentials to picking a random value. For initial experiments, the target of the
-  translation can be any language; later on, the target has to be a language hosted on
-  the blockchain.
-
+\item Extend the contract language with assertions stating these logical
+  formulas. There are several approaches to perform this extension.
+  \begin{enumerate}
+  \item (Solidity) Extend the syntax of the assert statement. Requires an extension of
+    the compiler.
+  \item (Tezos/Solidity) The assertion is stated in its own syntax in a file separate from the
+    contract implementation. Requires a dedicated compiler of assertions to
+    Michelson. The generated code is either combined with the contract implementation
+    or stored separately on the blockchain. Several entry points may lead to difficulties.
+  \end{enumerate}
+\item Implement the transformation in two steps:
+  \begin{enumerate}
+  \item negation of the formula
+  \item followed by the translation of an existentially quantified formula to code that picks a
+    random value subject to predicate. For initial experiments, the target of the
+    translation can be any programming 
+    language; later on, the target has to be a language hosted on the blockchain
+    (e.g. Michelson or Solidity). These languages have to be extended with a random
+    generator. There has to be a special execution mode for ``challenge contracts''
+    that search for a counterexample of an assertion.
+  \end{enumerate}
   Negation turns prenex universial quantification into prenex existential quantification. But it
   would be ineffective to generate a random integer and then check that it falls in the
   interesting range (e.g., $2\le n \le \sqrt p$ and $0\le k< n-1$). Rather, the formula
@@ -247,12 +262,27 @@ def exists_counterexample (p : int) -> bool:
 \end{changethis}
 
 \begin{itemize}
+\item (Tezos) Proposal for an architecture. The assertion for contract C gets compiled
+  to a separate contract A(C). A(C) takes C's argument x and attempts to challenge 
+  the assertion by finding a counterexample. Given x, we determine a number n of
+  ``probation cycles'' during which the net attempts to find a counterexample. The
+  injecting node broadcasts A(C)(x) for n cycles. If A(C)(x) finishes successfully,
+  this execution vanishes (as no counterexample has been found). If A(C)(x) finds a
+  counterexample, it records the counterexample along with the data to check it on the
+  blockchain as in A(C,x,y) where it can be validated by the net as usual.
+  After n cycles the injecting node broadcasts C(x), which is processed as
+  usual. However, a valid blockchain either contains C(x) or A(C,x,y), but not both. It
+  is an error to attempt to enter C(x) after A(C,x,y) is on the chain, and vice versa.
+
+  It needs to be investigated which aspects of the protocol need to be
+  adapted. Moreover, A(C,x) must execute in a different mode that enables the random
+  instruction. This instruction is not available in the default execution mode.
 \item   Once a counterexample has been found,
   this counterexample is broadcast to the network where it can be verified by further
   nodes.  I think this broadcast and the reaction to this broadcast requires an update of
   the protocol: all receivers of the broadcast will check the counterexample and revert
   the transaction. 
-\item A transaction using counterexamples has to
+\item (see above for a revised approach) A transaction using counterexamples has to
   wait for a couple of cycles in the transaction pool until the node feels safe to
   include the transaction in a block.
   The number of cycles to wait depends on the contract and on the size of the input.
