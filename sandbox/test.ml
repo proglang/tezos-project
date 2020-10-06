@@ -23,6 +23,8 @@ let str_of_err err = match err with
   | Api_error.Rejection Invalid_receiver -> "Invalid_receiver"
   | Api_error.Rejection Reached_burncap -> "Reached_burncap"
   | Api_error.Rejection Reached_feecap -> "Reached_feecap"
+  | Api_error.Rejection Empty_transaction -> "Empty_transaction"
+  | Api_error.Rejection Empty_implicit_contract -> "Empty_implicit_contract"
   | Api_error.Rejection Michelson_parser_error -> "Michelson_parser_error"
   | Api_error.Rejection Michelson_runtime_error -> "Michelson_runtime_error"
   | Api_error.RPC_error {uri} -> "RPC error at " ^ uri
@@ -32,6 +34,7 @@ let str_of_err err = match err with
   | Api_error.Unknown_secret_key -> "Unknown secret_key"
   | Api_error.Keys_not_found -> "Keys not found"
   | Api_error.Wrong_contract_notation s -> "Wrong_contract_notation " ^ s
+  | Api_error.Invalid_public_key_hash -> "Invalid_public_key_hash"
   | Api_error.Not_callable -> "Not_callable"
   | Api_error.Unknown e -> e
 
