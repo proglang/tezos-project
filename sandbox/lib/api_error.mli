@@ -13,7 +13,7 @@ type rejection_message = Insufficient_balance
 type error = Rejection of rejection_message (** Injection failed due to {!type:rejection_message} *)
            | RPC_error of {uri: string} (** Error occured during RPC call *)
            | Node_connection_failed (** Connecting to the node fail *)
-           | Unexpected_result (** The {!type:oph} did not refer to a transaction operation *)
+           | Unexpected_result (** The {!type:oph} did not refer to a manager operation or the result doesn't match the expected form/type *)
            | Unknown_secret_key (** The secret key of the given account was not found *)
            | Unknown_public_key (** The public key of the given account was not found *)
            | Keys_not_found (** Unknown alias or no keys found for the given contract *)

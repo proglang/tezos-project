@@ -262,21 +262,19 @@ let call_contract amount src destination ?entrypoint ?arg fee =
 let get_result ((op, res) : 'kind contents_list * 'kind contents_result_list) (b,i,j) =
   let rec cr : type kind. kind contents_and_result_list -> status Answer.t =
     function
-    | Single_and_result (Manager_operation {operation; _},
+    | Single_and_result (Manager_operation _,
                          Manager_operation_result {operation_result;_}) ->
        begin
          let open Tezos_protocol_006_PsCARTHA.Protocol.Contract_storage in
-         match operation with
-         | Transaction _ -> (
-           match operation_result with
+         match operation_result with
            | Failed (_, errs) -> (
-              match errs with
-              | (Non_existing_contract _) ::_ ->
-                 Answer.return (Rejected (Reason Invalid_receiver))
-              | err :: _ ->
-                 let err_str = asprintf "%a" Environment.Error_monad.pp err in
-                 Answer.return (Rejected (Unknown_reason err_str))
-              | _ -> Answer.return (Rejected (Unknown_reason "Empty trace")))
+             match errs with
+             | (Non_existing_contract _) ::_ ->
+                Answer.return (Rejected (Reason Invalid_receiver))
+             | err :: _ ->
+                let err_str = asprintf "%a" Environment.Error_monad.pp err in
+                Answer.return (Rejected (Unknown_reason err_str))
+             | _ -> Answer.return (Rejected (Unknown_reason "Empty trace")))
            | Applied (Transaction_result r) ->
               begin
                 let res : op_result = {
@@ -294,8 +292,8 @@ let get_result ((op, res) : 'kind contents_list * 'kind contents_result_list) (b
                 Answer.return (Accepted res)
               end
            | Backtracked ((Transaction_result _), _) -> Answer.return (Rejected Backtracked)
-           | Skipped _ -> Answer.return (Rejected Skipped))
-         | _ -> Answer.fail Unexpected_result
+           | Skipped _ -> Answer.return (Rejected Skipped)
+           | _ -> Answer.fail Unexpected_result
        end
     | Cons_and_result ((Manager_operation {operation;_} as op), (Manager_operation_result _ as res), rest) ->
        begin
@@ -349,7 +347,7 @@ let query oph =
   Client_confirmations.lookup_operation_in_previous_blocks
     ctxt_proto
     ~chain:ctxt_proto#chain
-    ~predecessors:10
+    ~predecessors:60
     oph
   >>= function
   | Ok None ->
