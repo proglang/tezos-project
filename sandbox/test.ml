@@ -45,7 +45,7 @@ let str_of_status st = match st with
   | Api.Rejected (Reason r) -> (
      let err_str = str_of_err (Rejection r) in
      "Rejected - " ^ err_str)
-  | Api.Rejected (Unknown_reason s) -> s
+  | Api.Rejected (Unknown_reason s) -> "Rejected - " ^ s
   | Api.Rejected Timeout -> "Rejected - Timeout"
   | Api.Rejected Skipped -> "Rejected - Skipped"
   | Api.Rejected Backtracked -> "Rejected - Backtracked"

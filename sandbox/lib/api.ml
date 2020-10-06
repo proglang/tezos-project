@@ -29,7 +29,7 @@ end = struct
   let conversion_factor = 1000000.0
   let tez f =
     let mutez = Int64.of_float( f *. conversion_factor ) in
-    assert (mutez >= Int64.one);
+    if (mutez <= Int64.zero) then failwith ("Invalid value - must be at least 1 mutez");
     match Tez.( *? ) Tez.one_mutez mutez with
     | Ok tz -> tz
     | _ -> failwith "Illegal Tez value"
@@ -381,7 +381,8 @@ let get_balance c =
   Client_proto_context.get_balance
     ctxt_proto
     ~chain:ctxt_proto#chain
-    ~block:ctxt_proto#block c
+    ~block:ctxt_proto#block
+    c
   >>= function
   | Ok amount -> Answer.return amount
   | Error err -> catch_error_f err
