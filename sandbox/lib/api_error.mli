@@ -1,5 +1,3 @@
-open Tezos_protocol_environment_006_PsCARTHA
-
 (** Provides information about why a transaction was rejected *)
 type rejection_message = Insufficient_balance
                      | Counter_mismatch
@@ -28,9 +26,6 @@ module Answer : sig
   val fail : error -> 'a t
   val ( >>=? ) : 'a t -> ('a -> 'b t) -> 'b t
 end
-
-(** Error handling for Tezos Environment errors - only handles the top error on the Tezos error trace *)
-val catch_last_env_error : Environment.Error_monad.error list -> 'a Answer.t
 
 (** Error handling - only handles the top error on the Tezos error trace *)
 val catch_last_error : Error_monad.error list -> 'a Answer.t

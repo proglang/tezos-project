@@ -165,10 +165,14 @@ let get_contract s =
   ContractAlias.get_contract !ctxt s
   >>= function
   | Ok (_,v) -> Answer.return v
-  | Error _ -> (
+  | Error err -> (
     match Contract.of_b58check s with
     | Ok v -> Answer.return v
-    | Error err -> catch_last_env_error err )
+    | Error _ as err2 -> (
+       let wrapped = Environment.wrap_error err2 in
+       match wrapped with
+       | Error e -> catch_error_f (e @ err)
+       | Ok _ -> catch_error_f err))
 
 let set_port p =
   (current_config.port) := p;

@@ -42,7 +42,6 @@ let errors_of_strings =
     ]
 
 let err_to_str = asprintf "%a" Error_monad.pp
-let env_err_to_str = asprintf "%a" Environment.Error_monad.pp
 
 module Answer : sig
   type 'a t = ('a, error) Result.t Lwt.t
@@ -56,16 +55,6 @@ end = struct
   let ( >>=? ) v f =
     v >>= function Error _ as err -> Lwt.return err | Result.Ok v -> f v
 end
-
-let catch_last_env_error errs =
-  let open Answer in
-  match errs with
-  | [] -> Answer.fail (Unknown "Empty trace")
-  | e :: _s -> Answer.return e
-  >>=? fun err ->
-  match err with
-  | Invalid_contract_notation s -> Answer.fail (Wrong_contract_notation s)
-  | _ -> Answer.fail (Unknown (env_err_to_str err))
 
 let catch_last_error errs =
   let open Answer in
