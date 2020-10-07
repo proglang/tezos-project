@@ -43,11 +43,11 @@ type op_result = {
     block_hash : blockh;
     rpc_position : (int * int);
     balance_updates : Delegate.balance_updates;
-    consumed_gas : int;
+    consumed_gas : float;
     storage : Script.expr option;
     originated_contracts : contract list;
-    storage_size : int;
-    paid_storage_size_diff : int ;
+    storage_size : float;
+    paid_storage_size_diff : float ;
     big_map_diff : Contract.big_map_diff option;
     allocated_destination_contract : bool
   }
@@ -281,11 +281,11 @@ let get_result ((op, res) : 'kind contents_list * 'kind contents_result_list) (b
                     block_hash = b;
                     rpc_position = (i,j);
                     balance_updates = r.balance_updates;
-                    consumed_gas = Z.to_int r.consumed_gas;
+                    consumed_gas = Z.to_float r.consumed_gas;
                     storage = r.storage;
                     originated_contracts = r.originated_contracts;
-                    storage_size = Z.to_int r.storage_size;
-                    paid_storage_size_diff = Z.to_int r.paid_storage_size_diff;
+                    storage_size = Z.to_float r.storage_size;
+                    paid_storage_size_diff = Z.to_float r.paid_storage_size_diff;
                     big_map_diff = r.big_map_diff;
                     allocated_destination_contract = r.allocated_destination_contract
                   } in
