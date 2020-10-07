@@ -1,11 +1,11 @@
 open Client_keys
-open Tezos_client_006_PsCARTHA
-open Tezos_client_006_PsCARTHA.Protocol_client_context
-open Tezos_client_006_PsCARTHA.Injection
-open Tezos_client_006_PsCARTHA.Client_proto_contracts
-open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
-open Tezos_raw_protocol_006_PsCARTHA
-open Tezos_protocol_environment_006_PsCARTHA
+open Tezos_client_007_PsDELPH1
+open Tezos_client_007_PsDELPH1.Protocol_client_context
+open Tezos_client_007_PsDELPH1.Injection
+open Tezos_client_007_PsDELPH1.Client_proto_contracts
+open Tezos_protocol_007_PsDELPH1.Protocol.Alpha_context
+open Tezos_raw_protocol_007_PsDELPH1
+open Tezos_protocol_environment_007_PsDELPH1
 open Apply_results
 open Api_context
 open Api_error
@@ -72,8 +72,8 @@ type config = {
 
 type fee_config = {
     minimal_fees : Tez.t ref;
-    minimal_nanotez_per_byte : counter ref;
-    minimal_nanotez_per_gas_unit : counter ref;
+    minimal_nanotez_per_byte : Q.t ref;
+    minimal_nanotez_per_gas_unit : Q.t ref;
     force_low_fee : bool ref;
     fee_cap : Tez.t ref;
     burn_cap : Tez.t ref
@@ -87,8 +87,8 @@ let current_config = {
 
 let current_fee_config = {
     minimal_fees = ref (match Tez.of_mutez 100L with None -> assert false | Some t -> t);
-    minimal_nanotez_per_byte = ref @@ Z.of_int 1000;
-    minimal_nanotez_per_gas_unit = ref @@ Z.of_int 100;
+    minimal_nanotez_per_byte = ref @@ Q.of_int 1000;
+    minimal_nanotez_per_gas_unit = ref @@ Q.of_int 100;
     force_low_fee = ref false;
     fee_cap = ref (match Tez.of_string "1.0" with None -> assert false | Some t -> t);
     burn_cap = ref (match Tez.of_string "0" with None -> assert false | Some t -> t);
@@ -265,7 +265,7 @@ let get_result ((op, res) : 'kind contents_list * 'kind contents_result_list) (b
     | Single_and_result (Manager_operation _,
                          Manager_operation_result {operation_result;_}) ->
        begin
-         let open Tezos_protocol_006_PsCARTHA.Protocol.Contract_storage in
+         let open Tezos_protocol_007_PsDELPH1.Protocol.Contract_storage in
          match operation_result with
            | Failed (_, errs) -> (
              match errs with
@@ -277,11 +277,12 @@ let get_result ((op, res) : 'kind contents_list * 'kind contents_result_list) (b
              | _ -> Answer.return (Rejected (Unknown_reason "Empty trace")))
            | Applied (Transaction_result r) ->
               begin
+                let consumed = Float.of_string @@ asprintf "%a" Gas.Arith.pp r.consumed_gas in
                 let res : op_result = {
                     block_hash = b;
                     rpc_position = (i,j);
                     balance_updates = r.balance_updates;
-                    consumed_gas = Z.to_float r.consumed_gas;
+                    consumed_gas = consumed;
                     storage = r.storage;
                     originated_contracts = r.originated_contracts;
                     storage_size = Z.to_float r.storage_size;

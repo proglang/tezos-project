@@ -9,6 +9,9 @@
             tezos-client-commands
 	    str
 
+	    (select void_for_linking-007-PsDELPH1 from
+              (tezos-client-007-PsDELPH1-commands-registration -> void_for_linking)
+              (-> void_for_linking))
 	    (select void_for_linking-006-PsCARTHA from
               (tezos-client-006-PsCARTHA-commands.registration -> void_for_linking)
               (-> void_for_linking))

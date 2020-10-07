@@ -1,7 +1,7 @@
 open Tezos_api
 open Format
-open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
-open Tezos_client_006_PsCARTHA
+open Tezos_protocol_007_PsDELPH1.Protocol.Alpha_context
+open Tezos_client_007_PsDELPH1
    
 let command = ref "puk_alias"
 let port = ref 0
