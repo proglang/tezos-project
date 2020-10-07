@@ -14,6 +14,8 @@ type rejection_message = Insufficient_balance
                      | Insufficient_fee
                      | Reached_burncap
                      | Reached_feecap
+                     | Empty_transaction
+                     | Empty_implicit_contract
                      | Michelson_parser_error
                      | Michelson_runtime_error
 
@@ -25,6 +27,7 @@ type error = Rejection of rejection_message
            | Unknown_public_key
            | Keys_not_found
            | Wrong_contract_notation of string
+           | Invalid_public_key_hash
            | Not_callable
            | Unknown of string
 
@@ -38,11 +41,12 @@ let errors_of_strings =
       ("Unknown secret key for .*", Unknown_secret_key);
       ("Unknown public key for .*", Unknown_public_key);
       ("no keys for the source contract manager", Keys_not_found);
-      ("no .* alias named .*", Keys_not_found)
+      ("no .* alias named .*", Keys_not_found);
+      ("Failed to read a b58check_encoding data (Signature.Public_key_hash): .*", Invalid_public_key_hash);
+        ("no contract or key named .*", Keys_not_found)
     ]
 
 let err_to_str = asprintf "%a" Error_monad.pp
-let env_err_to_str = asprintf "%a" Environment.Error_monad.pp
 
 module Answer : sig
   type 'a t = ('a, error) Result.t Lwt.t
@@ -56,16 +60,6 @@ end = struct
   let ( >>=? ) v f =
     v >>= function Error _ as err -> Lwt.return err | Result.Ok v -> f v
 end
-
-let catch_last_env_error errs =
-  let open Answer in
-  match errs with
-  | [] -> Answer.fail (Unknown "Empty trace")
-  | e :: _s -> Answer.return e
-  >>=? fun err ->
-  match err with
-  | Invalid_contract_notation s -> Answer.fail (Wrong_contract_notation s)
-  | _ -> Answer.fail (Unknown (env_err_to_str err))
 
 let catch_last_error errs =
   let open Answer in
@@ -90,6 +84,10 @@ let catch_last_error errs =
     -> Answer.fail (Rejection Counter_mismatch)
   | Environment.Ecoproto_error Counter_in_the_future _
     -> Answer.fail (Rejection Counter_mismatch)
+  | Environment.Ecoproto_error Empty_transaction _
+    -> Answer.fail (Rejection Empty_transaction)
+  | Environment.Ecoproto_error Empty_implicit_contract _
+    -> Answer.fail (Rejection Empty_implicit_contract)
   | Invalid_utf8_sequence _
     | Unexpected_character _
     | Undefined_escape_sequence _

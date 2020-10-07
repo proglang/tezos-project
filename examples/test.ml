@@ -6,7 +6,7 @@ let port = ref 0
 let basedir = ref "/home/tamara/Studium/Tezos/project/tezos-project/sandbox"
 let debug = ref false
 
-let usage = "Usage: " ^ Sys.argv.(0) ^ " -c  (puk_alias | puk_hash | pukh_alias | get_contr | tez | transfer | query | balance | call)"
+let usage = "Usage: " ^ Sys.argv.(0) ^ " -c (puk_alias | puk_hash | pukh_alias | get_contr | tez | transfer | query | balance | call)"
 let spec_list = [
     ("-c", Arg.Set_string command, ": specifies which command should be executed; default = " ^ !command);
     ("-p", Arg.Set_int port, ": specifies RPC port of the Tezos node; default =8732");
@@ -15,23 +15,26 @@ let spec_list = [
   ]
 
 let str_of_err = function
-  | SyncAPIV0_error.Rejection Insufficient_balance -> "Insufficient_balance"
-  | SyncAPIV0_error.Rejection Insufficient_fee -> "Insufficient_fee"
-  | SyncAPIV0_error.Rejection Counter_mismatch -> "Counter_mismatch"
-  | SyncAPIV0_error.Rejection Invalid_receiver -> "Invalid_receiver"
-  | SyncAPIV0_error.Rejection Reached_burncap -> "Reached_burncap"
-  | SyncAPIV0_error.Rejection Reached_feecap -> "Reached_feecap"
-  | SyncAPIV0_error.Rejection Michelson_parser_error -> "Michelson_parser_error"
-  | SyncAPIV0_error.Rejection Michelson_runtime_error -> "Michelson_runtime_error"
-  | SyncAPIV0_error.RPC_error {uri} -> "RPC error at " ^ uri
-  | SyncAPIV0_error.Node_connection_failed -> "Node_connection_failed"
-  | SyncAPIV0_error.Unexpected_result -> "Unexpected_result"
-  | SyncAPIV0_error.Unknown_public_key -> "Unknown public key"
-  | SyncAPIV0_error.Unknown_secret_key -> "Unknown secret_key"
-  | SyncAPIV0_error.Keys_not_found -> "Keys not found"
-  | SyncAPIV0_error.Wrong_contract_notation s -> "Wrong_contract_notation " ^ s
-  | SyncAPIV0_error.Not_callable -> "Not_callable"
-  | SyncAPIV0_error.Unknown e -> e
+  | Api_error.Rejection Insufficient_balance -> "Insufficient_balance"
+  | Api_error.Rejection Insufficient_fee -> "Insufficient_fee"
+  | Api_error.Rejection Counter_mismatch -> "Counter_mismatch"
+  | Api_error.Rejection Invalid_receiver -> "Invalid_receiver"
+  | Api_error.Rejection Reached_burncap -> "Reached_burncap"
+  | Api_error.Rejection Reached_feecap -> "Reached_feecap"
+  | Api_error.Rejection Empty_transaction -> "Empty_transaction"
+  | Api_error.Rejection Empty_implicit_contract -> "Empty_implicit_contract"
+  | Api_error.Rejection Michelson_parser_error -> "Michelson_parser_error"
+  | Api_error.Rejection Michelson_runtime_error -> "Michelson_runtime_error"
+  | Api_error.RPC_error {uri} -> "RPC error at " ^ uri
+  | Api_error.Node_connection_failed -> "Node_connection_failed"
+  | Api_error.Unexpected_result -> "Unexpected_result"
+  | Api_error.Unknown_public_key -> "Unknown public key"
+  | Api_error.Unknown_secret_key -> "Unknown secret_key"
+  | Api_error.Keys_not_found -> "Keys not found"
+  | Api_error.Wrong_contract_notation s -> "Wrong_contract_notation " ^ s
+  | Api_error.Invalid_public_key_hash -> "Invalid_public_key_hash"
+  | Api_error.Not_callable -> "Not_callable"
+  | Api_error.Unknown e -> e
 
 let str_of_status = function
   | SyncAPIV0.Still_pending -> "Still_pending"
@@ -40,7 +43,7 @@ let str_of_status = function
   | SyncAPIV0.Rejected (Reason r) -> (
      let err_str = str_of_err (Rejection r) in
      "Rejected - " ^ err_str)
-  | SyncAPIV0.Rejected (Unknown_reason s) -> s
+  | Api.Rejected (Unknown_reason s) -> "Rejected - " ^ s
   | SyncAPIV0.Rejected Timeout -> "Rejected - Timeout"
   | SyncAPIV0.Rejected Skipped -> "Rejected - Skipped"
   | SyncAPIV0.Rejected Backtracked -> "Rejected - Backtracked"
