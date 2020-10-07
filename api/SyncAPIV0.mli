@@ -26,7 +26,7 @@ module Tez_t : sig
    *)
   val tez : float -> t
 
-  (** [zero] represents the value of 0 Tez *)
+  (** [zero] represents the value of 0 tez *)
   val zero : t
 
   (** [to_float t] returns amount of tez in float represention *)
