@@ -17,7 +17,7 @@ type rejection_message = Insufficient_balance
                      | Empty_transaction
                      | Empty_implicit_contract
                      | Michelson_parser_error
-                     | Michelson_runtime_error
+                     | Michelson_runtime_error of string
 
 type error = Rejection of rejection_message
            | RPC_error of {uri: string}
@@ -109,7 +109,9 @@ let catch_last_error errs =
       | Bad_contract_parameter _
       | Cannot_serialize_log
       | Cannot_serialize_failure
-      | Cannot_serialize_storage ) -> Answer.fail (Rejection Michelson_runtime_error)
+      | Cannot_serialize_storage ) ->
+     let err_str = err_to_str err in
+     Answer.fail (Rejection (Michelson_runtime_error err_str))
   | _ ->
      begin
        let err_str = err_to_str err in

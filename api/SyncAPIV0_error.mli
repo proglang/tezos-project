@@ -8,7 +8,7 @@ type rejection_message = Insufficient_balance
                      | Empty_transaction
                      | Empty_implicit_contract
                      | Michelson_parser_error
-                     | Michelson_runtime_error
+                     | Michelson_runtime_error of string
 
 type error = Rejection of rejection_message (** Injection failed due to {!type:rejection_message} *)
            | RPC_error of {uri: string} (** Error occured during RPC call *)

@@ -1,6 +1,7 @@
 open Tezos_api
 open Tezos_api.SyncAPIV0_error.Answer
 open Tezos_api.SyncAPIV0_error
+open Str
 
 let src_arg = ref "tamara"
 let contract_arg = ref "auction"
@@ -23,6 +24,30 @@ let spec_list = [
     ("--charge", Arg.Set_float charge_arg, ": sets the participation charge in tez; default = " ^ (string_of_float !charge_arg))
   ]
 
+type runtime_error = Bid_too_low | Auction_closed | Other
+
+let runtime_errors_map =
+  let open Base in
+  Base.Map.of_alist_exn (module String)
+    [
+      ("your bid is lower than or equal to the current highest bid.", Bid_too_low);
+      ("The auction is closed since the number of accepted bids exceeds 10.", Auction_closed);
+    ]
+
+let print_fatal_error msg =
+  print_endline @@ Format.asprintf "\027[1;4;31mERROR:%a" Fmt.string "";
+  print_endline @@ Format.asprintf "\027[0m%a" Fmt.string msg;
+  print_endline "";
+  print_endline @@ Format.asprintf "\027[1;4mUsage:%a" Fmt.string "";
+  print_endline @@ Format.asprintf "\027[0m%a" Fmt.string usage
+
+let print_result succ msg =
+  print_endline @@ Format.asprintf "\027[1;4;mAUCTION RESULT:%a" Fmt.string "";
+  if succ then print_endline @@ Format.asprintf "\027[32m[%a]" Fmt.string "Success"
+  else print_endline @@ Format.asprintf "\027[33m[%a]" Fmt.string "Defeat";
+  print_endline "";
+  print_endline @@ Format.asprintf "\027[0m%a" Fmt.string msg
+
 let parse_acc acc_arg =
   SyncAPIV0.get_pukh_from_alias acc_arg
   >>= function
@@ -36,25 +61,35 @@ let place_bid src contr bid charge fee =
   let fee_tz = SyncAPIV0.Tez_t.tez fee in
   SyncAPIV0.call_contract charge src contr ~arg fee_tz
 
-let print_fatal_error msg =
-        print_endline @@ Format.asprintf "\027[1;4;31mERROR:%a" Fmt.string "";
-        print_endline @@ Format.asprintf "\027[0m%a" Fmt.string msg;
-        print_endline "";
-        print_endline @@ Format.asprintf "\027[1;4mUsage:%a" Fmt.string "";
-        print_endline @@ Format.asprintf "\027[0m%a" Fmt.string usage
+let match_runtime_error s =
+  let rec match_error l str = match l with
+    | [] -> Other
+    | x::xs -> (
+      let r = Str.regexp x in
+      if string_match r s 0 then (Base.Map.find_exn runtime_errors_map x)
+      else match_error xs str
+    )
+  in
+  let keys = Base.Map.keys runtime_errors_map in
+  return @@ match_error keys s
 
-let run_bidding () =
+let rec run_bidding src contr bid charge base_fee =
   begin
-    let charge = SyncAPIV0.Tez_t.tez !charge_arg in
-    parse_acc !src_arg
-    >>=? fun src ->
-    SyncAPIV0.get_contract !contract_arg
-    >>=? fun contract ->
-    place_bid src contract !min_bid_arg charge !base_fee_arg
+    place_bid src contr bid charge base_fee
+  (* wait loop etc.*)
   end
   >>= function
   | Ok _ -> return 1
-  | Error (Rejection _) -> print_endline "Transaction rejected"; return 0
+  | Error (Rejection Michelson_runtime_error s) ->
+     begin
+       match_runtime_error s
+       >>=? function
+       | Bid_too_low ->
+          let new_bid = bid + !step_arg in
+          if new_bid > !max_bid_arg then print_result false "The maximum bid was reached - cannot bid higher."; return 1
+       | Auction_closed -> print_result false "A bid couldn't be placed because the auction was closed"; return 1
+       | Other -> print_fatal_error s; return 0
+     end
   | Error Node_connection_failed -> print_fatal_error "Connection to Tezos node failed!"; return 0
   | Error RPC_error {uri} -> print_fatal_error ("An error occurred during a RPC call to this address: " ^ uri); return 0
   | Error Keys_not_found
@@ -72,10 +107,17 @@ let main =
     (fun x -> raise (Arg.Bad ("Bad argument: " ^ x)))
     usage;
   SyncAPIV0.set_basedir !base_dir_arg;
-  run_bidding ()
+  begin
+    let charge = SyncAPIV0.Tez_t.tez !charge_arg in
+    parse_acc !src_arg
+    >>=? fun src ->
+    SyncAPIV0.get_contract !contract_arg
+    >>=? fun contract ->
+    run_bidding src contract !min_bid_arg charge !base_fee_arg
+  end
   >>= function
   | Ok retcode -> Lwt.return retcode
-  | Error _-> Lwt.return 0
+  | Error _ -> Lwt.return 0
   
   let () =
     Stdlib.exit @@ Lwt_main.run main
