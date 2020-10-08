@@ -161,6 +161,15 @@ let get_pukh_from_alias name =
   | Ok pkh -> Answer.return pkh
   | Error err -> catch_error_f err
 
+let get_pukh_from_hash pk_hash =
+  Public_key_hash.of_source pk_hash
+  >>= function
+  | Ok pkh -> Answer.return pkh
+  | Error err -> catch_error_f err
+
+let string_of_pukh pkh =
+  asprintf "%a" Signature.Public_key_hash.pp pkh
+
 let get_contract s =
   ContractAlias.get_contract !ctxt s
   >>= function

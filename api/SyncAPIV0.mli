@@ -82,6 +82,19 @@ val get_puk_from_hash: string -> puk Answer.t
 *)
 val get_pukh_from_alias: string -> pukh Answer.t
 
+(** [get_pukh_from_hash s] expects a public key hash as string and returns 
+    the associated public key hash.
+    @param s public key hash of implicit account
+    @return {!type:pukh} the associated public key hash
+*)
+val get_pukh_from_hash: string -> pukh Answer.t
+
+(** [string_of_pukh pkh] expects a public key hash and returns it's string representation..
+    @param pkh public key hash of implicit account
+    @return its string representation
+*)
+val string_of_pukh: pukh -> string
+
 (** [get_contract s] expects an alias, public key hash or contract hash as string
     and returns the associated contract representation.
     @param s alias, public key hash or contract hash
