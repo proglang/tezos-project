@@ -36,19 +36,7 @@ let place_bid src contr bid charge fee =
   let fee_tz = SyncAPIV0.Tez_t.tez fee in
   SyncAPIV0.call_contract charge src contr ~arg fee_tz
 
-  (*
-let run_bid src contr bid charge fee =
-  place_bid src contr bid charge fee
-  >>= function
-  | Ok oph -> return (oph, )
-  | Error 
-   *)
-let main =
-  Arg.parse
-    spec_list
-    (fun x -> raise (Arg.Bad ("Bad argument: " ^ x)))
-    usage;
-  SyncAPIV0.set_basedir !base_dir_arg;
+let run_bidding () =
   let charge = SyncAPIV0.Tez_t.tez !charge_arg in
   parse_acc !src_arg
   >>=? fun src ->
@@ -59,6 +47,17 @@ let main =
   | Ok _ -> print_endline "Injection successful"; return 1
   | Error (Rejection Michelson_runtime_error) -> print_endline "Michelson_runtime_error"; return 0
   | Error _ -> print_endline "Error"; return 0
+
+let main =
+  Arg.parse
+    spec_list
+    (fun x -> raise (Arg.Bad ("Bad argument: " ^ x)))
+    usage;
+  SyncAPIV0.set_basedir !base_dir_arg;
+  run_bidding ()
+  >>= function
+  | Ok retcode -> Lwt.return retcode
+  | Error _-> Lwt.return 0
   
   let () =
-    Stdlib.exit @@ Lwt_main.run ((fun () -> main >>= fun _ -> Lwt.return 1) ())
+    Stdlib.exit @@ Lwt_main.run main
