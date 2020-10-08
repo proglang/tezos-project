@@ -37,16 +37,25 @@ let place_bid src contr bid charge fee =
   SyncAPIV0.call_contract charge src contr ~arg fee_tz
 
 let run_bidding () =
-  let charge = SyncAPIV0.Tez_t.tez !charge_arg in
-  parse_acc !src_arg
-  >>=? fun src ->
-  SyncAPIV0.get_contract !contract_arg
-  >>=? fun contract ->
-  place_bid src contract !min_bid_arg charge !base_fee_arg
+  begin
+    let charge = SyncAPIV0.Tez_t.tez !charge_arg in
+    parse_acc !src_arg
+    >>=? fun src ->
+    SyncAPIV0.get_contract !contract_arg
+    >>=? fun contract ->
+    place_bid src contract !min_bid_arg charge !base_fee_arg
+  end
   >>= function
-  | Ok _ -> print_endline "Injection successful"; return 1
-  | Error (Rejection Michelson_runtime_error) -> print_endline "Michelson_runtime_error"; return 0
-  | Error _ -> print_endline "Error"; return 0
+  | Ok _ -> return 1
+  | Error (Rejection _) -> print_endline "Transaction rejected"; return 0
+  | Error Node_connection_failed -> print_endline "Connection to Tezos node failed!"; return 0
+  | Error RPC_error {uri} -> print_endline ("An error occurred during a RPC call to this address: " ^ uri); return 0
+  | Error Keys_not_found
+    | Error Unknown_secret_key
+    | Error Unknown_public_key -> print_endline "Keys of the bidder account were not found"; return 0
+  | Error (Wrong_contract_notation c) -> print_endline ("Contract notation is malformed : " ^ c); return 0
+  | Error Not_callable -> print_endline "Given contract address/alias is not an originated contract" ; return 0
+  | Error _ -> print_endline "Some other fatal error"; return 0
 
 let main =
   Arg.parse
