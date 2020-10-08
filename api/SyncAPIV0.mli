@@ -117,6 +117,24 @@ val set_debugmode : bool -> unit
 *)
 val set_basedir: string -> unit
 
+(** [set_fee_parameters min_fee min_ntz_byte min_ntz_gas force_low fee_cap burn_cap]
+ sets the fee parameters for transactions and calls. Unspecified parameters are reset to their default values.
+    @param min_fee exclude operations with fees lower than this threshold
+    @param min_ntz_byte exclude operations with fees per byte lower than this threshold (in nanotez)
+    @param min_ntz_gas exclude operations with fees per gas lower than this threshold (in nanotez)
+    @param force_low Don't check that the fee is lower than the estimated default value
+    @param fee_cap
+    @param burn_cap
+*)
+val set_fee_parameters: ?min_fee:Tez_t.t
+                        -> ?min_ntz_byte:int
+                        -> ?min_ntz_gas:int
+                        -> ?force_low:bool
+                        -> ?fee_cap:Tez_t.t
+                        -> ?burn_cap:Tez_t.t
+                        -> unit
+                        -> unit
+
 (** [transfer a src dst fee] injects a transfer transaction.
     @param a the amount of tez to transfer
     @param src the public key hash of the sender
