@@ -8,7 +8,7 @@ let min_bid_arg = ref 50
 let max_bid_arg = ref 1000
 let step_arg = ref 50
 let base_fee_arg = ref 0.00232
-let base_dir_arg = ref "$HOME/.tezos-client"
+let base_dir_arg = ref "/home/bernhard/.tezos-client"
 let charge_arg = ref 2.0
 
 let usage = "Usage: " ^ Sys.argv.(0) ^ " [--src s] [--dst d] [--min i] [--max i] [--step i] [--base-fee f] [--dir d])"
@@ -36,6 +36,13 @@ let place_bid src contr bid charge fee =
   let fee_tz = SyncAPIV0.Tez_t.tez fee in
   SyncAPIV0.call_contract charge src contr ~arg fee_tz
 
+let print_fatal_error msg =
+        print_endline @@ Format.asprintf "\027[1;4;31mERROR:%a" Fmt.string "";
+        print_endline @@ Format.asprintf "\027[0m%a" Fmt.string msg;
+        print_endline "";
+        print_endline @@ Format.asprintf "\027[1;4mUsage:%a" Fmt.string "";
+        print_endline @@ Format.asprintf "\027[0m%a" Fmt.string usage
+
 let run_bidding () =
   begin
     let charge = SyncAPIV0.Tez_t.tez !charge_arg in
@@ -48,14 +55,16 @@ let run_bidding () =
   >>= function
   | Ok _ -> return 1
   | Error (Rejection _) -> print_endline "Transaction rejected"; return 0
-  | Error Node_connection_failed -> print_endline "Connection to Tezos node failed!"; return 0
-  | Error RPC_error {uri} -> print_endline ("An error occurred during a RPC call to this address: " ^ uri); return 0
+  | Error Node_connection_failed -> print_fatal_error "Connection to Tezos node failed!"; return 0
+  | Error RPC_error {uri} -> print_fatal_error ("An error occurred during a RPC call to this address: " ^ uri); return 0
   | Error Keys_not_found
     | Error Unknown_secret_key
-    | Error Unknown_public_key -> print_endline "Keys of the bidder account were not found"; return 0
-  | Error (Wrong_contract_notation c) -> print_endline ("Contract notation is malformed : " ^ c); return 0
-  | Error Not_callable -> print_endline "Given contract address/alias is not an originated contract" ; return 0
-  | Error _ -> print_endline "Some other fatal error"; return 0
+    | Error Unknown_public_key -> print_fatal_error "Keys of the bidder account were not found"; return 0
+  | Error Invalid_public_key_hash -> print_fatal_error "Public key hash of the bidder account is malformed"; return 0
+  | Error (Wrong_contract_notation c) -> print_fatal_error ("Unknown contract or malformed notation: " ^ c); return 0
+  | Error Not_callable -> print_fatal_error "Given contract address/alias is not an originated contract" ; return 0
+  | Error (Unknown s) -> print_fatal_error s; return 0
+  | Error _ -> print_fatal_error "Some other fatal error"; return 0
 
 let main =
   Arg.parse
