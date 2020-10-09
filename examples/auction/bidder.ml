@@ -30,8 +30,8 @@ let runtime_errors_map =
   let open Base in
   Base.Map.of_alist_exn (module String)
     [
-      ("your bid is lower than or equal to the current highest bid.", Bid_too_low);
-      ("The auction is closed since the number of accepted bids exceeds 10.", Auction_closed);
+      (".*your bid is lower than or equal to the current highest bid..*", Bid_too_low);
+      (".*The auction is closed since the number of accepted bids exceeds 10..*", Auction_closed);
     ]
 
 let print_fatal_error msg =
@@ -71,7 +71,9 @@ let match_runtime_error s =
     )
   in
   let keys = Base.Map.keys runtime_errors_map in
-  return @@ match_error keys s
+  let newline = Str.regexp "\n" in
+  let stripped = s |> Str.global_replace newline "" in
+  return @@ match_error keys stripped
 
 let rec run_bidding src contr bid charge base_fee =
   begin
