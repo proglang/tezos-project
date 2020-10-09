@@ -84,9 +84,10 @@ let rec run_bidding src contr bid charge base_fee =
      begin
        match_runtime_error s
        >>=? function
-       | Bid_too_low ->
+       | Bid_too_low -> (
           let new_bid = bid + !step_arg in
-          if new_bid > !max_bid_arg then print_result false "The maximum bid was reached - cannot bid higher."; return 1
+          if new_bid > !max_bid_arg then (print_result false "The maximum bid was reached - cannot bid higher."; return 1)
+          else run_bidding src contr new_bid charge base_fee)
        | Auction_closed -> print_result false "A bid couldn't be placed because the auction was closed"; return 1
        | Other -> print_fatal_error s; return 0
      end
