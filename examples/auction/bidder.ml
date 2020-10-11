@@ -12,6 +12,8 @@ let base_fee_arg = ref 0.00232
 let fee_increase_arg = ref 0.001
 let base_dir_arg = ref "/home/bernhard/.tezos-client"
 let charge_arg = ref 2.0
+let burn_cap_arg = ref 1.0
+let fee_cap_arg = ref 1.0
 
 let usage = "Usage: " ^ Sys.argv.(0) ^ " [--src s] [--dst d] [--min i] [--max i] [--step i] [--base-fee f] [--dir d])"
 let spec_list = [
@@ -23,7 +25,9 @@ let spec_list = [
     ("--base-fee", Arg.Set_float base_fee_arg, ": sets the base fee to be paid; default = " ^ (string_of_float !base_fee_arg));
     ("--fee_incr", Arg.Set_float fee_increase_arg, ": sets the fee increase; default = " ^ (string_of_float !fee_increase_arg));
     ("--dir", Arg.Set_string base_dir_arg, ": the path to the tezos-client base directory; default = " ^ !base_dir_arg);
-    ("--charge", Arg.Set_float charge_arg, ": sets the participation charge in tez; default = " ^ (string_of_float !charge_arg))
+    ("--charge", Arg.Set_float charge_arg, ": sets the participation charge in tez; default = " ^ (string_of_float !charge_arg));
+    ("--fee-cap", Arg.Set_float fee_cap_arg, ": sets the fee cap in tez; default = " ^ (string_of_float !fee_cap_arg));
+    ("--burn-cap", Arg.Set_float burn_cap_arg, ": sets the burn cap in tez; default = " ^ (string_of_float !burn_cap_arg))
   ]
 
 type runtime_error = Bid_too_low | Auction_closed | Other
@@ -131,6 +135,11 @@ let main =
     (fun x -> raise (Arg.Bad ("Bad argument: " ^ x)))
     usage;
   SyncAPIV0.set_basedir !base_dir_arg;
+  let burn_cap = if !burn_cap_arg > 0.0 then SyncAPIV0.Tez_t.tez !burn_cap_arg
+                 else SyncAPIV0.Tez_t.zero in
+  let fee_cap = if !fee_cap_arg > 0.0 then SyncAPIV0.Tez_t.tez !fee_cap_arg
+                 else SyncAPIV0.Tez_t.zero in
+  SyncAPIV0.set_fee_parameters ~fee_cap:fee_cap ~burn_cap:burn_cap ();
   begin
     let charge = SyncAPIV0.Tez_t.tez !charge_arg in
     parse_acc !src_arg
