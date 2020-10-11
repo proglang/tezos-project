@@ -30,8 +30,8 @@ let runtime_errors_map =
   let open Base in
   Base.Map.of_alist_exn (module String)
     [
-      (".*your bid is lower than or equal to the current highest bid..*", Bid_too_low);
-      (".*The auction is closed since the number of accepted bids exceeds 10..*", Auction_closed);
+      ("A FAILWITH instruction was reached.*your bid is lower than or equal to the current highest bid.", Bid_too_low);
+      ("A FAILWITH instruction was reached.*The auction is closed since the number of accepted bids exceeds 10.", Auction_closed);
     ]
 
 let print_fatal_error msg =
@@ -66,8 +66,10 @@ let match_runtime_error s =
     | [] -> Other
     | x::xs -> (
       let r = Str.regexp x in
-      if string_match r s 0 then (Base.Map.find_exn runtime_errors_map x)
-      else match_error xs str
+      try
+        let _ = search_forward r str 0 in
+        Base.Map.find_exn runtime_errors_map x
+      with Not_found -> match_error xs str
     )
   in
   let keys = Base.Map.keys runtime_errors_map in
