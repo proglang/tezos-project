@@ -14,6 +14,7 @@ let base_dir_arg = ref "/home/bernhard/.tezos-client"
 let charge_arg = ref 2.0
 let burn_cap_arg = ref 1.0
 let fee_cap_arg = ref 1.0
+let wait_conf_arg = ref 10
 
 let usage = "Usage: " ^ Sys.argv.(0) ^ " [--src s] [--dst d] [--min i] [--max i] [--step i] [--base-fee f] [--dir d])"
 let spec_list = [
@@ -83,6 +84,11 @@ let match_runtime_error s =
   let stripped = s |> Str.global_replace newline "" in
   return @@ match_error keys stripped
 
+let increase_bid current_bid =
+  let new_bid = current_bid + !step_arg in
+  if new_bid > !max_bid_arg then None
+  else Some new_bid
+
 let rec wait_for_inclusion oph =
   Unix.sleep 2;
   SyncAPIV0.query oph
@@ -94,13 +100,34 @@ let rec wait_for_inclusion oph =
   | Missing -> fail (Unknown "Operation has timed out")
   | Unprocessed -> (wait_for_inclusion oph)
 
+let rec wait_for_confirmation to_wait addr balance =
+  if to_wait = 0 then return true
+  else
+  begin
+    Unix.sleep 1;
+    SyncAPIV0.get_balance addr
+    >>=? fun cur_balance ->
+    if cur_balance > balance then (print_endline "Someone placed a higher bid!"; return false)
+    else wait_for_confirmation (to_wait - 1) addr balance
+  end
+
 let rec run_bidding src contr bid charge fee =
   begin
     print_endline ("Placing a bid of " ^ (string_of_int bid) ^ " mutez");
     place_bid src contr bid charge fee
     >>=? fun oph ->
-    print_endline "Waiting for inclusion..";
+    print_endline "Waiting for inclusion...";
     wait_for_inclusion oph
+    >>=? fun _ ->
+    SyncAPIV0.get_contract !src_arg
+    >>=? fun src_contr ->
+    SyncAPIV0.get_balance src_contr
+    >>=? fun balance ->
+    print_endline "Waiting for counterbids...";
+    wait_for_confirmation !wait_conf_arg src_contr balance
+    >>=? function
+    | true -> return 1
+    | false -> run_bidding src contr bid charge fee
   end
   >>= function
   | Ok _ -> print_result true ("Placed the currently highest bid (" ^ (string_of_int bid) ^ " mutez)"); return 1
@@ -109,9 +136,9 @@ let rec run_bidding src contr bid charge fee =
        match_runtime_error s
        >>=? function
        | Bid_too_low -> (
-          let new_bid = bid + !step_arg in
-          if new_bid > !max_bid_arg then (print_result false "The maximum bid was reached - cannot bid higher."; return 1)
-          else (print_endline "Bid too low - trying again with a higher bid.." ; run_bidding src contr new_bid charge fee))
+         match increase_bid bid with
+         | Some new_bid -> (print_endline "Bid too low - trying again with a higher bid.." ; run_bidding src contr new_bid charge fee)
+         | None -> (print_result false "The maximum bid was reached - cannot bid higher."; return 1))
        | Auction_closed -> print_result false "A bid couldn't be placed because the auction was closed"; return 1
        | Other -> print_fatal_error s; return 0
      end
