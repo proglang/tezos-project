@@ -3,10 +3,11 @@
 ; dependencies.
 
 (executables
- (names test )
+ (names bidder)
  (libraries tezos_api
  	    lwt
-	    lwt.unix)
+	    lwt.unix
+	    unix)
 
   (flags (:standard -open Lwt
   	 	    -linkall)))
