@@ -3,6 +3,7 @@ open Tezos_api.SyncAPIV0_error.Answer
 open Tezos_api.SyncAPIV0_error
 open Str
 
+(* CLI arguments (all optional) *)
 let src_arg = ref "tamara"
 let contract_arg = ref "auction"
 let min_bid_arg = ref 50
@@ -10,7 +11,7 @@ let max_bid_arg = ref 1000
 let step_arg = ref 50
 let base_fee_arg = ref 0.00232
 let fee_increase_arg = ref 0.001
-let base_dir_arg = ref "/home/bernhard/.tezos-client"
+let base_dir_arg = ref "/home/tezos/.tezos-client"
 let charge_arg = ref 2.0
 let burn_cap_arg = ref 1.0
 let fee_cap_arg = ref 1.0
@@ -32,8 +33,10 @@ let spec_list = [
     ("--confirmation", Arg.Set_int wait_conf_arg, ": sets timespan in seconds to wait for counterbids; default = " ^ (string_of_int !wait_conf_arg))
   ]
 
+(* Error types to handle contract specific runtime errors *)
 type runtime_error = Bid_too_low | Auction_closed | Other
 
+(* Maps FAILWITH Messages to error types *)
 let runtime_errors_map =
   let open Base in
   Base.Map.of_alist_exn (module String)
@@ -42,6 +45,7 @@ let runtime_errors_map =
       ("A FAILWITH instruction was reached.*The auction is closed since the number of accepted bids exceeds 10.", Auction_closed);
     ]
 
+(* Pretty printing fatal errors *)
 let print_fatal_error msg =
   print_endline @@ Format.asprintf "\027[1;4;31mERROR:%a" Fmt.string "";
   print_endline @@ Format.asprintf "\027[0m%a" Fmt.string msg;
@@ -49,6 +53,7 @@ let print_fatal_error msg =
   print_endline @@ Format.asprintf "\027[1;4mUsage:%a" Fmt.string "";
   print_endline @@ Format.asprintf "\027[0m%a" Fmt.string usage
 
+(* Pretty printing auction result *)
 let print_result succ msg =
   print_endline @@ Format.asprintf "\027[1;4;mAUCTION RESULT:%a" Fmt.string "";
   if succ then print_endline @@ Format.asprintf "\027[32m[%a]" Fmt.string "Success"
@@ -56,12 +61,14 @@ let print_result succ msg =
   print_endline "";
   print_endline @@ Format.asprintf "\027[0m%a" Fmt.string msg
 
+(* Handle ambiguous input of the source/bidder contract (may be given as alias or address) *)
 let parse_acc acc_arg =
   SyncAPIV0.get_pukh_from_alias acc_arg
   >>= function
   | Ok pkh -> return pkh
   | Error _ -> SyncAPIV0.get_pukh_from_hash acc_arg
 
+(* Places a bid (calls the auction contract) *)
 let place_bid src contr bid charge fee =
   let bid_str = string_of_int bid in
   let src_str = SyncAPIV0.string_of_pukh src in
@@ -69,6 +76,7 @@ let place_bid src contr bid charge fee =
   let fee_tz = SyncAPIV0.Tez_t.tez fee in
   SyncAPIV0.call_contract charge src contr ~arg fee_tz
 
+(* Maps the contract specific runtime error to the respective error types *)
 let match_runtime_error s =
   let rec match_error l str = match l with
     | [] -> Other
@@ -85,11 +93,13 @@ let match_runtime_error s =
   let stripped = s |> Str.global_replace newline "" in
   return @@ match_error keys stripped
 
+(* Increases the bid and checks if the max amount is reached *)
 let increase_bid current_bid =
   let new_bid = current_bid + !step_arg in
   if new_bid > !max_bid_arg then None
   else Some new_bid
 
+(* Queries periodically if the transaction was included or failed *)
 let rec wait_for_inclusion oph =
   Unix.sleep 2;
   SyncAPIV0.query oph
@@ -101,6 +111,7 @@ let rec wait_for_inclusion oph =
   | Missing -> fail (Unknown "Operation has timed out")
   | Unprocessed -> (wait_for_inclusion oph)
 
+(* Checks periodically, if the last bid was topped by someone else. If yes, try to place a new bid *)
 let rec wait_for_confirmation to_wait addr balance =
   if to_wait = 0 then return true
   else
@@ -108,11 +119,13 @@ let rec wait_for_confirmation to_wait addr balance =
     Unix.sleep 1;
     SyncAPIV0.get_balance addr
     >>=? fun cur_balance ->
-    if cur_balance > balance then (print_endline "Someone placed a higher bid!"; return false)
+    (* Bid was refunded *)
+    if cur_balance = balance then (print_endline "Someone placed a higher bid!"; return false)
     else wait_for_confirmation (to_wait - 1) addr balance
   end
 
-let rec run_bidding src contr bid charge fee =
+(* Runs a full bidding cycle - reacts to other bids and errors (e.g. increases fees if necessecary) *)
+let rec run_bidding src contr bid charge fee balance =
   begin
     print_endline ("Placing a bid of " ^ (string_of_int bid) ^ " mutez");
     place_bid src contr bid charge fee
@@ -122,28 +135,31 @@ let rec run_bidding src contr bid charge fee =
     >>=? fun _ ->
     SyncAPIV0.get_contract !src_arg
     >>=? fun src_contr ->
-    SyncAPIV0.get_balance src_contr
-    >>=? fun balance ->
     print_endline "Waiting for counterbids...";
     wait_for_confirmation !wait_conf_arg src_contr balance
     >>=? function
     | true -> return 1
-    | false -> run_bidding src contr bid charge fee
+    | false -> run_bidding src contr bid charge fee balance
   end
   >>= function
-  | Ok _ -> print_result true ("Placed the currently highest bid (" ^ (string_of_int bid) ^ " mutez)"); return 1
+  (* Error handling - some errors are temporary and can be fixed (e.g. low fees, runtime errors); others are permanent and will cause the program to terminate*)
+  (* Bidding was successful *)
+  | Ok _ -> print_result true ("Placed the highest bid (" ^ (string_of_int bid) ^ " mutez)"); return 1
+  (* Handle contract specific and general runtime errors *)
   | Error (Rejection Michelson_runtime_error s) ->
      begin
        match_runtime_error s
        >>=? function
        | Bid_too_low -> (
          match increase_bid bid with
-         | Some new_bid -> (print_endline "Bid too low - trying again with a higher bid.." ; run_bidding src contr new_bid charge fee)
+         | Some new_bid -> (print_endline "Bid too low - trying again with a higher bid.." ; run_bidding src contr new_bid charge fee balance)
          | None -> (print_result false "The maximum bid was reached - cannot bid higher."; return 1))
        | Auction_closed -> print_result false "A bid couldn't be placed because the auction was closed"; return 1
        | Other -> print_fatal_error s; return 0
      end
-  | Error (Rejection Insufficient_fee) -> print_endline "Fee too low - trying again with higher fee..." ; run_bidding src contr bid charge (fee +. !fee_increase_arg)
+  (* Fee to low - increase if possible *)
+  | Error (Rejection Insufficient_fee) -> print_endline "Fee too low - trying again with higher fee..." ; run_bidding src contr bid charge (fee +. !fee_increase_arg) balance
+  (* Fatal errors -> can't be fixed and cause program termination *)
   | Error Node_connection_failed -> print_fatal_error "Connection to Tezos node failed!"; return 0
   | Error RPC_error {uri} -> print_fatal_error ("An error occurred during a RPC call to this address: " ^ uri); return 0
   | Error Keys_not_found
@@ -160,6 +176,7 @@ let rec run_bidding src contr bid charge fee =
   | Error _ -> print_fatal_error "Some other fatal error"; return 0
 
 let main =
+  (* Parse/handle CLI input & call the main bidding function *)
   Arg.parse
     spec_list
     (fun x -> raise (Arg.Bad ("Bad argument: " ^ x)))
@@ -176,7 +193,11 @@ let main =
     >>=? fun src ->
     SyncAPIV0.get_contract !contract_arg
     >>=? fun contract ->
-    run_bidding src contract !min_bid_arg charge !base_fee_arg
+    SyncAPIV0.get_contract !src_arg
+    >>=? fun src_contr ->
+    SyncAPIV0.get_balance src_contr
+    >>=? fun balance ->
+    run_bidding src contract !min_bid_arg charge !base_fee_arg balance
   end
   >>= function
   | Ok retcode -> Lwt.return retcode
