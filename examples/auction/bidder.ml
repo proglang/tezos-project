@@ -28,7 +28,8 @@ let spec_list = [
     ("--dir", Arg.Set_string base_dir_arg, ": the path to the tezos-client base directory; default = " ^ !base_dir_arg);
     ("--charge", Arg.Set_float charge_arg, ": sets the participation charge in tez; default = " ^ (string_of_float !charge_arg));
     ("--fee-cap", Arg.Set_float fee_cap_arg, ": sets the fee cap in tez; default = " ^ (string_of_float !fee_cap_arg));
-    ("--burn-cap", Arg.Set_float burn_cap_arg, ": sets the burn cap in tez; default = " ^ (string_of_float !burn_cap_arg))
+    ("--burn-cap", Arg.Set_float burn_cap_arg, ": sets the burn cap in tez; default = " ^ (string_of_float !burn_cap_arg));
+    ("--confirmation", Arg.Set_int wait_conf_arg, ": sets timespan in seconds to wait for counterbids; default = " ^ (string_of_int !wait_conf_arg))
   ]
 
 type runtime_error = Bid_too_low | Auction_closed | Other
