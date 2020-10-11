@@ -96,12 +96,14 @@ let rec wait_for_inclusion oph =
 
 let rec run_bidding src contr bid charge fee =
   begin
+    print_endline ("Placing a bid of " ^ (string_of_int bid) ^ " mutez");
     place_bid src contr bid charge fee
     >>=? fun oph ->
+    print_endline "Waiting for inclusion..";
     wait_for_inclusion oph
   end
   >>= function
-  | Ok _ -> return 1
+  | Ok _ -> print_result true ("Placed the currently highest bid (" ^ (string_of_int bid) ^ " mutez)"); return 1
   | Error (Rejection Michelson_runtime_error s) ->
      begin
        match_runtime_error s
@@ -109,11 +111,11 @@ let rec run_bidding src contr bid charge fee =
        | Bid_too_low -> (
           let new_bid = bid + !step_arg in
           if new_bid > !max_bid_arg then (print_result false "The maximum bid was reached - cannot bid higher."; return 1)
-          else run_bidding src contr new_bid charge fee)
+          else (print_endline "Bid too low - trying again with a higher bid.." ; run_bidding src contr new_bid charge fee))
        | Auction_closed -> print_result false "A bid couldn't be placed because the auction was closed"; return 1
        | Other -> print_fatal_error s; return 0
      end
-  | Error (Rejection Insufficient_fee) -> run_bidding src contr bid charge (fee +. !fee_increase_arg)
+  | Error (Rejection Insufficient_fee) -> print_endline "Fee too low - trying again with higher fee..." ; run_bidding src contr bid charge (fee +. !fee_increase_arg)
   | Error Node_connection_failed -> print_fatal_error "Connection to Tezos node failed!"; return 0
   | Error RPC_error {uri} -> print_fatal_error ("An error occurred during a RPC call to this address: " ^ uri); return 0
   | Error Keys_not_found
