@@ -9,6 +9,7 @@ let min_bid_arg = ref 50
 let max_bid_arg = ref 1000
 let step_arg = ref 50
 let base_fee_arg = ref 0.00232
+let fee_increase_arg = ref 0.001
 let base_dir_arg = ref "/home/bernhard/.tezos-client"
 let charge_arg = ref 2.0
 
@@ -20,6 +21,7 @@ let spec_list = [
     ("--max", Arg.Set_int max_bid_arg, ": sets the maximum bid in mutez; default = " ^ (string_of_int !max_bid_arg));
     ("--step", Arg.Set_int step_arg, ": sets the bid increase in mutez; default = " ^ (string_of_int !step_arg));
     ("--base-fee", Arg.Set_float base_fee_arg, ": sets the base fee to be paid; default = " ^ (string_of_float !base_fee_arg));
+    ("--fee_incr", Arg.Set_float fee_increase_arg, ": sets the fee increase; default = " ^ (string_of_float !fee_increase_arg));
     ("--dir", Arg.Set_string base_dir_arg, ": the path to the tezos-client base directory; default = " ^ !base_dir_arg);
     ("--charge", Arg.Set_float charge_arg, ": sets the participation charge in tez; default = " ^ (string_of_float !charge_arg))
   ]
@@ -77,10 +79,22 @@ let match_runtime_error s =
   let stripped = s |> Str.global_replace newline "" in
   return @@ match_error keys stripped
 
-let rec run_bidding src contr bid charge base_fee =
+let rec wait_for_inclusion oph =
+  Unix.sleep 2;
+  SyncAPIV0.query oph
+  >>=? function
+  | Accepted res -> return res
+  | Still_pending -> (wait_for_inclusion oph)
+  | Rejected (Reason failure) -> fail (Rejection failure)
+  | Rejected _ -> fail (Unknown "Operation was rejected for some unknown reason")
+  | Missing -> fail (Unknown "Operation has timed out")
+  | Unprocessed -> (wait_for_inclusion oph)
+
+let rec run_bidding src contr bid charge fee =
   begin
-    place_bid src contr bid charge base_fee
-  (* wait loop etc.*)
+    place_bid src contr bid charge fee
+    >>=? fun oph ->
+    wait_for_inclusion oph
   end
   >>= function
   | Ok _ -> return 1
@@ -91,10 +105,11 @@ let rec run_bidding src contr bid charge base_fee =
        | Bid_too_low -> (
           let new_bid = bid + !step_arg in
           if new_bid > !max_bid_arg then (print_result false "The maximum bid was reached - cannot bid higher."; return 1)
-          else run_bidding src contr new_bid charge base_fee)
+          else run_bidding src contr new_bid charge fee)
        | Auction_closed -> print_result false "A bid couldn't be placed because the auction was closed"; return 1
        | Other -> print_fatal_error s; return 0
      end
+  | Error (Rejection Insufficient_fee) -> run_bidding src contr bid charge (fee +. !fee_increase_arg)
   | Error Node_connection_failed -> print_fatal_error "Connection to Tezos node failed!"; return 0
   | Error RPC_error {uri} -> print_fatal_error ("An error occurred during a RPC call to this address: " ^ uri); return 0
   | Error Keys_not_found
@@ -103,6 +118,10 @@ let rec run_bidding src contr bid charge base_fee =
   | Error Invalid_public_key_hash -> print_fatal_error "Public key hash of the bidder account is malformed"; return 0
   | Error (Wrong_contract_notation c) -> print_fatal_error ("Unknown contract or malformed notation: " ^ c); return 0
   | Error Not_callable -> print_fatal_error "Given contract address/alias is not an originated contract" ; return 0
+  | Error (Rejection Insufficient_balance) -> print_fatal_error "Insufficient balance of the bidder account" ; return 0
+  | Error (Rejection Reached_burncap) -> print_fatal_error "The burncap was reached" ; return 0
+  | Error (Rejection Reached_feecap) -> print_fatal_error "The feecap was reached" ; return 0
+  | Error (Rejection Michelson_parser_error) -> print_fatal_error "Invalid/malformed contract arguments" ; return 0
   | Error (Unknown s) -> print_fatal_error s; return 0
   | Error _ -> print_fatal_error "Some other fatal error"; return 0
 
