@@ -8,7 +8,7 @@ type rejection_message = Insufficient_balance
                      | Empty_transaction
                      | Empty_implicit_contract
                      | Michelson_parser_error
-                     | Michelson_runtime_error
+                     | Michelson_runtime_error of string
 
 type error = Rejection of rejection_message (** Injection failed due to {!type:rejection_message} *)
            | RPC_error of {uri: string} (** Error occured during RPC call *)
@@ -17,7 +17,7 @@ type error = Rejection of rejection_message (** Injection failed due to {!type:r
            | Unknown_secret_key (** The secret key of the given account was not found *)
            | Unknown_public_key (** The public key of the given account was not found *)
            | Keys_not_found (** Unknown alias or no keys found for the given contract *)
-           | Wrong_contract_notation of string (** A malformed contract notation was given *)
+           | Wrong_contract_notation of string (** Contract unknown or malformed notation *)
            | Invalid_public_key_hash (** A malformed public key hash was given *)
            | Not_callable (** The given contract is not originated *)
            | Unknown of string (** Unknown error - error list should be extended if this occurs; used by debug_mode to return the Tezos error trace*)

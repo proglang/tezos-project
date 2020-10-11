@@ -17,7 +17,7 @@ type rejection_message = Insufficient_balance
                      | Empty_transaction
                      | Empty_implicit_contract
                      | Michelson_parser_error
-                     | Michelson_runtime_error
+                     | Michelson_runtime_error of string
 
 type error = Rejection of rejection_message
            | RPC_error of {uri: string}
@@ -61,11 +61,11 @@ end = struct
     v >>= function Error _ as err -> Lwt.return err | Result.Ok v -> f v
 end
 
-let catch_last_error errs =
+let rec catch_last_error errs =
   let open Answer in
   match errs with
   | [] -> Answer.fail (Unknown "Empty trace")
-  | e :: _s -> Answer.return e
+  | e :: _ -> Answer.return e
   >>=? fun err ->
   let open Tezos_protocol_006_PsCARTHA.Protocol.Contract_storage in
   match err with
@@ -102,14 +102,23 @@ let catch_last_error errs =
     | Extra _
     | Misaligned _
     | Empty -> Answer.fail (Rejection Michelson_parser_error)
+  (* Remove toplevel runtime error from the top of the trace as it contains no specific information*)
+  | Environment.Ecoproto_error Runtime_contract_error _ ->
+     begin
+       match errs with
+       | _ :: e :: _ -> catch_last_error [e]
+       | _ -> let err_str = err_to_str err in
+              Answer.fail (Rejection (Michelson_runtime_error err_str))
+     end
   | Environment.Ecoproto_error
       ( Reject _
       | Overflow _
-      | Runtime_contract_error _
       | Bad_contract_parameter _
       | Cannot_serialize_log
       | Cannot_serialize_failure
-      | Cannot_serialize_storage ) -> Answer.fail (Rejection Michelson_runtime_error)
+      | Cannot_serialize_storage ) ->
+     let err_str = err_to_str err in
+     Answer.fail (Rejection (Michelson_runtime_error err_str))
   | _ ->
      begin
        let err_str = err_to_str err in

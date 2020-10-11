@@ -82,6 +82,19 @@ val get_puk_from_hash: string -> puk Answer.t
 *)
 val get_pukh_from_alias: string -> pukh Answer.t
 
+(** [get_pukh_from_hash s] expects a public key hash as string and returns 
+    the associated public key hash.
+    @param s public key hash of implicit account
+    @return {!type:pukh} the associated public key hash
+*)
+val get_pukh_from_hash: string -> pukh Answer.t
+
+(** [string_of_pukh pkh] expects a public key hash and returns it's string representation..
+    @param pkh public key hash of implicit account
+    @return its string representation
+*)
+val string_of_pukh: pukh -> string
+
 (** [get_contract s] expects an alias, public key hash or contract hash as string
     and returns the associated contract representation.
     @param s alias, public key hash or contract hash
@@ -103,6 +116,24 @@ val set_debugmode : bool -> unit
     @param d path of the tezos-client base directory
 *)
 val set_basedir: string -> unit
+
+(** [set_fee_parameters min_fee min_ntz_byte min_ntz_gas force_low fee_cap burn_cap]
+ sets the fee parameters for transactions and calls. Unspecified parameters are reset to their default values.
+    @param min_fee exclude operations with fees lower than this threshold
+    @param min_ntz_byte exclude operations with fees per byte lower than this threshold (in nanotez)
+    @param min_ntz_gas exclude operations with fees per gas lower than this threshold (in nanotez)
+    @param force_low Don't check that the fee is lower than the estimated default value
+    @param fee_cap
+    @param burn_cap
+*)
+val set_fee_parameters: ?min_fee:Tez_t.t
+                        -> ?min_ntz_byte:int
+                        -> ?min_ntz_gas:int
+                        -> ?force_low:bool
+                        -> ?fee_cap:Tez_t.t
+                        -> ?burn_cap:Tez_t.t
+                        -> unit
+                        -> unit
 
 (** [transfer a src dst fee] injects a transfer transaction.
     @param a the amount of tez to transfer

@@ -72,12 +72,30 @@ type config = {
 
 type fee_config = {
     minimal_fees : Tez.t ref;
-    minimal_nanotez_per_byte : counter ref;
-    minimal_nanotez_per_gas_unit : counter ref;
+    minimal_nanotez_per_byte : int ref;
+    minimal_nanotez_per_gas_unit : int ref;
     force_low_fee : bool ref;
     fee_cap : Tez.t ref;
     burn_cap : Tez.t ref
+}
+
+type fee_config_default = {
+    minimal_fees : Tez_t.t;
+    minimal_nanotez_per_byte : int;
+    minimal_nanotez_per_gas_unit : int;
+    force_low_fee : bool;
+    fee_cap : Tez_t.t;
+    burn_cap : Tez_t.t
   }
+
+let fee_config_def = {
+    minimal_fees = (match Tez.of_mutez 100L with None -> assert false | Some t -> t);
+    minimal_nanotez_per_byte = 1000;
+    minimal_nanotez_per_gas_unit = 100;
+    force_low_fee = false;
+    fee_cap = (match Tez.of_string "1.0" with None -> assert false | Some t -> t);
+    burn_cap = (match Tez.of_string "0" with None -> assert false | Some t -> t);
+}
 
 let current_config = {
     port = ref 8732;
@@ -85,13 +103,15 @@ let current_config = {
     debug_mode = ref false
   }
 
-let current_fee_config = {
-    minimal_fees = ref (match Tez.of_mutez 100L with None -> assert false | Some t -> t);
-    minimal_nanotez_per_byte = ref @@ Z.of_int 1000;
-    minimal_nanotez_per_gas_unit = ref @@ Z.of_int 100;
-    force_low_fee = ref false;
-    fee_cap = ref (match Tez.of_string "1.0" with None -> assert false | Some t -> t);
-    burn_cap = ref (match Tez.of_string "0" with None -> assert false | Some t -> t);
+let current_fee_config : fee_config = {
+    minimal_fees = ref fee_config_def.minimal_fees;
+    minimal_nanotez_per_byte =
+      ref fee_config_def.minimal_nanotez_per_byte;
+    minimal_nanotez_per_gas_unit =
+      ref fee_config_def.minimal_nanotez_per_gas_unit;
+    force_low_fee = ref fee_config_def.force_low_fee;
+    fee_cap = ref fee_config_def.fee_cap;
+    burn_cap = ref fee_config_def.burn_cap
   }
 
 let make_context () =
@@ -117,8 +137,8 @@ let catch_error_f err = if !(current_config.debug_mode) then catch_trace err
 let make_fee_parameter () =
   let fp : fee_parameter = {
     minimal_fees = !(current_fee_config.minimal_fees);
-    minimal_nanotez_per_byte = !(current_fee_config.minimal_nanotez_per_byte);
-    minimal_nanotez_per_gas_unit = !(current_fee_config.minimal_nanotez_per_gas_unit);
+    minimal_nanotez_per_byte = Z.of_int !(current_fee_config.minimal_nanotez_per_byte);
+    minimal_nanotez_per_gas_unit = Z.of_int !(current_fee_config.minimal_nanotez_per_gas_unit);
     force_low_fee = !(current_fee_config.force_low_fee);
     fee_cap = !(current_fee_config.fee_cap);
     burn_cap = !(current_fee_config.burn_cap);
@@ -161,6 +181,15 @@ let get_pukh_from_alias name =
   | Ok pkh -> Answer.return pkh
   | Error err -> catch_error_f err
 
+let get_pukh_from_hash pk_hash =
+  Public_key_hash.of_source pk_hash
+  >>= function
+  | Ok pkh -> Answer.return pkh
+  | Error err -> catch_error_f err
+
+let string_of_pukh pkh =
+  asprintf "%a" Signature.Public_key_hash.pp pkh
+
 let get_contract s =
   ContractAlias.get_contract !ctxt s
   >>= function
@@ -185,6 +214,22 @@ let set_basedir path =
 let set_debugmode flag =
   (current_config.debug_mode) := flag;
   ()
+
+let set_fee_parameters
+      ?(min_fee = fee_config_def.minimal_fees)
+      ?(min_ntz_byte = fee_config_def.minimal_nanotez_per_byte)
+      ?(min_ntz_gas = fee_config_def.minimal_nanotez_per_gas_unit)
+      ?(force_low = fee_config_def.force_low_fee)
+      ?(fee_cap = fee_config_def.fee_cap)
+      ?(burn_cap = fee_config_def.burn_cap)
+      ()
+  = (current_fee_config.minimal_fees) := min_fee;
+    (current_fee_config.minimal_nanotez_per_byte) := min_ntz_byte;
+    (current_fee_config.minimal_nanotez_per_gas_unit) := min_ntz_gas;
+    (current_fee_config.force_low_fee) := force_low;
+    (current_fee_config.fee_cap) := fee_cap;
+    (current_fee_config.burn_cap) := burn_cap;
+    fee_parameter := make_fee_parameter ()
 
 let setup_remote_signer =
   Client_keys.register_signer (module Tezos_signer_backends.Unencrypted)
