@@ -6,6 +6,7 @@
 \usepackage{graphicx}
 \usepackage[colorinlistoftodos]{todonotes}
 \usepackage{mathpartir}
+\usepackage{fixme}
 
 \input{macros}
 
@@ -91,17 +92,17 @@ Queries are defined by the following grammar:
 \end{definition}
 
 When an operation is injected in a node, it enters a \emph{pending pool}
-(and is called a pending operation). 
+(and is called a \emph{pending operation}). 
  \begin{definition}[Pending operation]
 A pending operation is a tuple  $\langle  \OP, \OPH, \TIME
-\rangle $, where $\OP$ is an operation, $\OPH$ is the operation hash
+\rangle $, where $\OP$ is an operation, $\OPH$ is the operation hash,
 and $\TIME$ is the time when the operation was injected. 
 \end{definition}
 After some time, a pending operation may be included in the blockchain as an accepted operation.
 %Let \textit{P} is the set of pending operations.
  \begin{definition}[Accepted operation]
 An accepted operation  is a tuple $\langle  \OP, \OPH, \TIME \rangle
-$, where $\OP$ is an operation, $\OPH$ is the operation hash and
+$, where $\OP$ is an operation, $\OPH$ is the operation hash, and
 $\TIME$ is the time when it was included in the blockchain. 
 \end{definition}
 
@@ -110,17 +111,18 @@ $\TIME$ is the time when it was included in the blockchain.
   $[\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$ where
   $\PENDING$ is a set of pending operations,  $\ACCEPTED$ is a set
   of accepted operations, $\MANAGERS$ is a set of managers,
-  $\CONTRACTORS$ is a set of contractors, and $\TIME$ is the current time of the blockchain. 
+  $\CONTRACTORS$ is a set of contractors, and $\TIME$ is the current time. 
 \end{definition}
 
 \begin{definition}[Blockchain system]
 A blockchain system is a pair
 $ \NODE \| \BLOCKCHAIN$ where
+\fxnote[inline]{Should the model contain multiple nodes?}
 \begin{enumerate}
 \item $\NODE = [\ACCOUNTS, \OPERATIONS, \CONTRACTS]$ is the state of a node, and
 \item $\BLOCKCHAIN = [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$ is the state of a blockchain 
-  such that $\forall c \in \ACCOUNTS \implies \exists k\in \MANAGERS, k.pkh = c.pkh$
-  and $\forall s \in \CONTRACTS \implies \exists p \in \CONTRACTORS, s.puh = p.puh$.
+  such that $\forall c \in \ACCOUNTS \implies \exists k\in \MANAGERS, k.\PKH = c.\PKH$
+  and $\forall s \in \CONTRACTS \implies \exists p \in \CONTRACTORS, s.\PUH = p.\PUH$.
 \end{enumerate}
 \end{definition}
 
@@ -156,21 +158,20 @@ Each node has (nondeterministic) rules to propose an operation.
 
 \subsection{Transfers}
 
-Rule 1 [proposal]:
+% Rule 1 [proposal]:
+%
+% \begin{mathpar}
+%   \inferrule[Xfer-Propose]{
+%     \CHECKACC (\PKH, \ACCOUNTS)
+%   }{
+% \langle[\ACCOUNTS, \OPERATIONS,
+%         \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS,
+%         \TIME]\rangle \rightarrow \\
+%         \langle [\ACCOUNTS, (\TRANSFER\NTEZ\PKH{\PKH'}\MTEZ) ::
+%         \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS,
+%         \CONTRACTORS, \TIME]\rangle      }
+% \end{mathpar}
 
-\begin{equation}{}
-  \frac{
-    \text{checkAcc($pkh$, \ACCOUNTS)}
-  }{
-    \parbox{4.5in}{\text{$\langle[\ACCOUNTS, \OPERATIONS,
-        \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS,
-        \TIME]\rangle \rightarrow$} \\
-      \text{$\langle [\ACCOUNTS, (\TRANSFER\NTEZ\PKH{\PKH'}\MTEZ)$ ::
-        \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS,
-        \CONTRACTORS, \TIME]$\rangle$}}}  
-\end{equation}
-~\\
-~\\
 Rule 2 [injected]:
 
 \begin{mathpar}
@@ -225,40 +226,66 @@ Rule 5 [rejected of public key]:
 ~\\
 ~\\
 Rule 6 [included]:
-\begin{equation}{}
-\frac{}{\parbox{4.2in}{\text{[$<$ transfer $n$ from $puk$ to  $puk'$ fee $m$, oph, \TIME $>$ :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ] $\rightarrow$ } \\
- \text{[\PENDING, $<$ transfer $n$ from  $puk$ to $puk'$ fee $m$, oph, \TIME' $>$ :: \ACCEPTED, updateSucc(\MANAGERS, } \\
-\text{$puk, puk', n, m$), \CONTRACTORS, \TIME' + 1]}}} 
-\end{equation}
-~\\
+\begin{mathpar}
+  \inferrule[Block-Accept]{
+    % \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \TIME'-\TIME < 60
+  }{
+    {[\Angle{\OP,\OPH, \TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
+      \CONTRACTORS, \TIME']} \rightarrow 
+    {[\PENDING, \Angle{\OP,\OPH,\TIME'} :: \ACCEPTED, \MANAGERS,
+      \CONTRACTORS, \TIME'+1]}
+  }
+\end{mathpar}
 Rule 7 [timeout]:
-\begin{equation}{}
-\frac{\TIME' - \TIME \ge 60}{\parbox{4.2in}{\text{[$<$ transfer $n$ from $puk$ to  $puk'$ fee $m$, oph, \TIME $>$ :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ] $\rightarrow$} \\
- \hspace*{0cm} \text{[\PENDING, \ACCEPTED, updateCou(\MANAGERS, $puk$, False), \CONTRACTORS, \TIME']}}} 
-\end{equation}
+\begin{mathpar}
+  \inferrule[Block-Timeout]{
+    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \TIME'-\TIME \ge 60
+  }{
+    {[\Angle{\OP,\OPH, \TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
+      \CONTRACTORS, \TIME']} \rightarrow 
+    {[\PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS, \PUK, \FALSE),
+      \CONTRACTORS, \TIME']}
+  }
+\end{mathpar}
 
 \subsection{Smart Contracts}
 ~\\
 A. Originate
 ~\\
 ~\\
-Rule 1 [proposal]:
+% Rule 1 [proposal]:
 
-\begin{equation}{}
-  \frac{\text{checkAcc($pkh$, \ACCOUNTS) $\wedge$ checkId($id$, \CONTRACTS)}}
-  {\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS],
-        [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle
-        \rightarrow \langle$[\ACCOUNTS, 
-        (originate contract ${id}$ transferring} \\
-  \text{${n}$ from ${pkh}$} \text{running ${code}$ init ${s}$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
-\end{equation}
-~\\
-~\\
+% \begin{equation}{}
+%   \frac{\text{checkAcc($pkh$, \ACCOUNTS) $\wedge$ checkId($id$, \CONTRACTS)}}
+%   {\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS],
+%         [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle
+%         \rightarrow \langle$[\ACCOUNTS, 
+%         (originate contract ${id}$ transferring} \\
+%   \text{${n}$ from ${pkh}$} \text{running ${code}$ init ${s}$) :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$\rangle$}}} 
+% \end{equation}
+% ~\\
+% ~\\
 Rule 2 [injected]:
 
-\begin{equation}{}
-\frac{\text{checkBal(\MANAGERS, $pkh, n, m$) $\wedge$ checkCou(\MANAGERS, $pkh$) $\wedge$ \text{checkPrg($code, s$)}}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{ :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] $\rangle \rightarrow \langle$ [\ACCOUNTS, \OPERATIONS, \CONTRACTS],} \text{[(originate contract ${id}$ transferring ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: \PENDING, \ACCEPTED, updateCou(\MANAGERS, $pkh$, True), \CONTRACTORS, \TIME] $\rangle$}}} 
-\end{equation}
+\begin{mathpar}
+  \inferrule[Block-Originate]{
+    \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+    \CHECKCOU (\MANAGERS, \PUK) \\
+    \CHECKPRG (\CODE, \STRING) \\\\
+    \ORIG = \ORIGINATE\ID\NTEZ\PUK\CODE\STRING\MTEZ 
+  }{
+    \Angle{[
+      \ACCOUNTS, \ORIG :: \OPERATIONS, \CONTRACTS
+      ], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]} \to \\
+    \Angle{[\ACCOUNTS, \OPERATIONS, \CONTRACTS],
+      [\ORIG :: \PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS,\PUK,\TRUE), \CONTRACTORS, \TIME]}
+  }
+\end{mathpar}
+% \begin{equation}{}
+% \frac{\text{checkBal(\MANAGERS, $pkh, n, m$) $\wedge$ checkCou(\MANAGERS, $pkh$) $\wedge$ \text{checkPrg($code, s$)}}}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{ :: \OPERATIONS, \CONTRACTS], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] $\rangle \rightarrow \langle$ [\ACCOUNTS, \OPERATIONS, \CONTRACTS],} \text{[(originate contract ${id}$ transferring ${n}$ from ${pkh}$ running ${code}$ init ${s}$)} \text{:: \PENDING, \ACCEPTED, updateCou(\MANAGERS, $pkh$, True), \CONTRACTORS, \TIME] $\rangle$}}} 
+% \end{equation}
 ~\\
 ~\\
 Rule 3 [rejected of code]:
