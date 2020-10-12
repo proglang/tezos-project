@@ -14,6 +14,7 @@ Once you have the Tezos libraries installed, you can easily build the Tezos_Api 
 ```
 .  
 +-- dune  
++-- dune-project
 +-- your_main.ml
 +-- ...
 +-- lib
@@ -31,15 +32,17 @@ Inside your projects root dune file, include the Tezos_api and the following dep
 (executables
  (names my_exe)
  (libraries tezos_api
- 	       lwt
-	        lwt.unix
-	        unix
+ 	    lwt
+	    lwt.unix
+	    unix
             ... )
 
   (flags (:standard -open Lwt
                      ...
-  	 	         -linkall)))
+  	 	     -linkall)))
 ```
+Your dune-projects file should contain the following line:
+``` (lang dune 1.11) ```
 
 Build your project with  
 ``` dune build my_exe.exe```
