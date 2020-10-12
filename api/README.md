@@ -4,9 +4,7 @@ This OCaml API provides functions to interact with a Tezos node. It uses the Tez
 wraps them inside a more simplified and easy-to-use interface. The API heavily utilizes the tezos-client library with
 its built-in input verification and prevalidation of operations in order to provide instant feedback and thus avoiding injections
 of invalid operations.  
-The source code of the Tezos libraries can be found on [Gitlab][tezos-gitlab]
-[tezos-gitlab]: https://gitlab.com/tezos/tezos/
-
+The source code of the Tezos libraries can be found on [Gitlab](https://gitlab.com/tezos/tezos/).
 ## Using Tezos_Api
 To install the Tezos libraries with opam:  
 ```opam install tezos```
