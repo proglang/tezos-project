@@ -23,7 +23,7 @@
 \newcommand{\CONTRACTORS}{\textbf{T}}
 \newcommand{\PENDING}{\textbf{P}}
 \newcommand{\ACCEPTED}{\textbf{A}}
-\newcommand{\MANAGERS}{\textbf{K}}
+\newcommand{\MANAGERS}{\textbf{M}} % K
 %% operations
 \newcommand{\TRANSFER}[5][\SUNIT]{\text{transfer $#2$ from $#3$ to $#4$ arg $#1$ fee $#5$}}
 \newcommand{\ORIGINATE}[6]{\text{originate contract $#1$ transferring $#2$ from $#3$ running $#4$ init $#5$ fee $#6$}}
@@ -35,7 +35,7 @@
 \newcommand{\QRY}{\textbf{qry}}
 \newcommand{\GETBALANCE}[1]{\text{get balance for $#1$}}
 \newcommand{\GETSTATUS}[1]{\text{get status for $#1$}}
-\newcommand{\GETSTORAGE}[1]{\text{get contract storage $#1$}}
+\newcommand{\GETSTORAGE}[1]{\text{getStorage $#1$}} % get contract storage
 \newcommand{\GETCODE}[1]{\text{get code for $#1$}}
 \newcommand{\GETPUBLICKEY}[1]{\text{get public key for $#1$}}
 \newcommand{\GETCOUNTER}[1]{\text{get counter for $#1$}}
@@ -55,9 +55,12 @@
 \newcommand{\CHECKPUB}{\textup{checkPub}}
 \newcommand{\CHECKPRG}{\textup{checkPrg}}
 \newcommand{\UPDATECOU}{\textup{updCount}}
+\newcommand{\UPDATESUCC}{\textup{updSucc}}
 
 \newcommand{\GENERATEOPH}{\textup{genOpHash}}
+\newcommand\GENERATEHASH{\textup{genHash}}
 
 %% transition relations
+\newcommand{\BlockTrans}{\longrightarrow_B}
 \newcommand{\NodeTrans}{\longrightarrow_N}
 \newcommand{\SystemTrans}{\longrightarrow}

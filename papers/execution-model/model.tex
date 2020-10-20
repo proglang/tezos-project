@@ -22,40 +22,40 @@
 \pagestyle{plain}
 
 \section{Definitions}
-\begin{definition}[Set]
+\begin{definition}%[Set]
 Let $\mathbf{Elt}$ be the set of (concrete) elements. Let $\emptyset$ be an empty set and $\mathbf{e}$ $\in$  $\mathbf{Elt}$. A set of elements is expressed as the following syntax:
 \\
 $\mathbf{s} :: = \emptyset \mid \mathbf{e} \mid \mathbf{s :: s}$
 \end{definition}
 
-\begin{definition}[Account]
-An account is a tuple $\langle \ALS, \PAK, \PUK, \PKH \rangle $, where $\ALS$ is the alias of the account, $\PAK$ is its private key, $\PUK$ is its public key and $\PKH$ is its public key hash . 
+\begin{definition}%[Account]
+An \emph{account} is a tuple $\langle \ALS, \PAK, \PUK, \PKH \rangle $, where $\ALS$ is the alias of the account, $\PAK$ is its private key, $\PUK$ is its public key and $\PKH$ is its public key hash . 
 \end{definition}
 
-\begin{definition}[Contract]
-An contract is a tuple $\langle  \ALS, \PUH, \CODE \rangle $, where
+\begin{definition}%[Contract]
+An \emph{contract} is a tuple $\langle  \ALS, \PUH, \CODE \rangle $, where
 $\ALS$ is the alias of the contract, $\PUH$ is its public hash, and
 $\CODE$ is the code of the contract. 
 \end{definition}
 
-\begin{definition}[Manager]
-A manager manages a single account. It is represented by a
+\begin{definition}%[Manager]
+A \emph{manager} manages a single account. It is represented by a
 tuple $\langle  \PUK, \PKH, \BAL, \COU \rangle $, where  $\PUK$ is the
 public key of an account, $\PKH$ is its public key hash, $\BAL$ is its
 balance and $\COU$ is its counter whose form is a pair $(n, b)$, where $n$ is a natural number and ${b}$
 is a boolean value.  
 \end{definition}
 
-\begin{definition}[Contractor]
-  A contractor manages a smart contract. It is
+\begin{definition}%[Contractor]
+  A \emph{contractor} manages a smart contract. It is
   represented by a tuple
   $\langle \PUH, \BAL, \CODE, \STORAGE \rangle $, where $\PUH$ is the
   public key hash of the contract, $\BAL$ is its current balance, $\CODE$ is its
   code, and $\STORAGE$ is its current storage.
 \end{definition}
 
-\begin{definition}[Operation]
-  Operations are defined by the following grammar:
+\begin{definition}%[Operation]
+  \emph{Operations} are defined by the following grammar:
   \begin{align*}
     \OP &::= \TRANSFER[\STRING]\NTEZ\PKH{\PKH'}\MTEZ
     \\&\mid \ORIGINATE\ID\NTEZ\PKH\CODE\STRING\MTEZ
@@ -66,8 +66,8 @@ is a boolean value.
 %\\$\mid$ withdraw delegate from $\PKH$ fee $\mathbf{m}$ 
 \end{definition}
 
-\begin{definition}[Query]
-Queries are defined by the following grammar:
+\begin{definition}%[Query]
+A \emph{query} is defined by the following grammar:
 \begin{align*}
   \QRY & ::= \GETBALANCE {\PKH / \PUH}
   \\&\mid \GETSTATUS\OPH
@@ -85,37 +85,37 @@ Queries are defined by the following grammar:
 %\\$\mid$ get balance for $\PKH$
 
 \end{definition}
- \begin{definition}[State of a node]
-   The state of a node is a tuple
+ \begin{definition}%[State of a node]
+   The \emph{state of a node} is a tuple
    $\NODE = [\ACCOUNTS, \OPERATIONS, \CONTRACTS]$ where $\ACCOUNTS$ is a set of accounts,
    $\OPERATIONS$ a set of operations, and $\CONTRACTS$  a set of contracts. 
 \end{definition}
 
 When an operation is injected in a node, it enters a \emph{pending pool}
 (and is called a \emph{pending operation}). 
- \begin{definition}[Pending operation]
-A pending operation is a tuple  $\langle  \OP, \OPH, \TIME
+ \begin{definition}%[Pending operation]
+A \emph{pending operation} is a tuple  $\langle  \OP, \OPH, \TIME
 \rangle $, where $\OP$ is an operation, $\OPH$ is the operation hash,
 and $\TIME$ is the time when the operation was injected. 
 \end{definition}
 After some time, a pending operation may be included in the blockchain as an accepted operation.
 %Let \textit{P} is the set of pending operations.
- \begin{definition}[Accepted operation]
-An accepted operation  is a tuple $\langle  \OP, \OPH, \TIME \rangle
+ \begin{definition}%[Accepted operation]
+An \emph{accepted operation}  is a tuple $\langle  \OP, \OPH, \TIME \rangle
 $, where $\OP$ is an operation, $\OPH$ is the operation hash, and
 $\TIME$ is the time when it was included in the blockchain. 
 \end{definition}
 
-\begin{definition}[Blockchain]
-  The state of a blockchain is a tuple
+\begin{definition}%[Blockchain]
+  The \emph{state of a blockchain} is a tuple
   $[\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$ where
   $\PENDING$ is a set of pending operations,  $\ACCEPTED$ is a set
   of accepted operations, $\MANAGERS$ is a set of managers,
   $\CONTRACTORS$ is a set of contractors, and $\TIME$ is the current time. 
 \end{definition}
 
-\begin{definition}[Blockchain system]
-A blockchain system is a pair
+\begin{definition}%[Blockchain system]
+A \emph{blockchain configuration} is a pair
 $ \NODE \| \BLOCKCHAIN$ where
 \fxnote[inline]{Should the model contain multiple nodes?}
 \begin{enumerate}
@@ -126,6 +126,7 @@ $ \NODE \| \BLOCKCHAIN$ where
 \end{enumerate}
 \end{definition}
 
+\clearpage{}
 \section{Rules}
 
 \subsection{Transitions on Nodes}
@@ -135,25 +136,31 @@ Each node has (nondeterministic) rules to propose an operation.
 
 \begin{mathpar}
   \inferrule[Node-Transfer]
-  {\CHECKACC (\PUK, \ACCOUNTS)
+  {\CHECKACC (\PUK, \ACCOUNTS) \\
+    \OP = \TRANSFER[\STRING]\NTEZ\PUK{\PUK'}\MTEZ
   }{
     [\ACCOUNTS, \OPERATIONS, \CONTRACTS]
     \NodeTrans
-    [\ACCOUNTS, (\TRANSFER\NTEZ\PUK{\PUK'}\MTEZ) :: \OPERATIONS, \CONTRACTS]
+    [\ACCOUNTS, \OP:: \OPERATIONS, \CONTRACTS]
   }
 
   \inferrule[Node-Originate]
   {\CHECKACC (\PUK, \ACCOUNTS) \\
-    \CHECKID (\ID, \CONTRACTS)
+    \CHECKID (\ID, \CONTRACTS) \\
+    \OP = \ORIGINATE\ID\NTEZ\PUK\CODE\STRING\MTEZ
   }{
     [\ACCOUNTS, \OPERATIONS, \CONTRACTS]
-    \NodeTrans \\
-    [\ACCOUNTS, (\ORIGINATE\ID\NTEZ\PUK\CODE\STRING\MTEZ) :: \OPERATIONS, \CONTRACTS]
+    \NodeTrans 
+    [\ACCOUNTS, \OP :: \OPERATIONS, \CONTRACTS]
   }
 
   \inferrule[Node-System]
   {\NODE \NodeTrans \NODE'}
   { {\NODE \| \BLOCKCHAIN} \SystemTrans {\NODE'\| \BLOCKCHAIN}}
+
+  \inferrule[Block-System]
+  {\BLOCKCHAIN \BlockTrans \BLOCKCHAIN'}
+  { {\NODE \| \BLOCKCHAIN} \SystemTrans {\NODE\| \BLOCKCHAIN'}}
 \end{mathpar}
 
 \subsection{Transfers}
@@ -232,7 +239,8 @@ Rule 6 [included]:
     \TIME'-\TIME < 60
   }{
     {[\Angle{\OP,\OPH, \TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
-      \CONTRACTORS, \TIME']} \rightarrow 
+      \CONTRACTORS, \TIME']}
+    \BlockTrans 
     {[\PENDING, \Angle{\OP,\OPH,\TIME'} :: \ACCEPTED, \MANAGERS,
       \CONTRACTORS, \TIME'+1]}
   }
@@ -244,7 +252,8 @@ Rule 7 [timeout]:
     \TIME'-\TIME \ge 60
   }{
     {[\Angle{\OP,\OPH, \TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
-      \CONTRACTORS, \TIME']} \rightarrow 
+      \CONTRACTORS, \TIME']}
+    \BlockTrans
     {[\PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS, \PUK, \FALSE),
       \CONTRACTORS, \TIME']}
   }
@@ -280,7 +289,7 @@ Rule 2 [injected]:
       \ACCOUNTS, \ORIG :: \OPERATIONS, \CONTRACTS
       ], [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]} \to \\
     \Angle{[\ACCOUNTS, \OPERATIONS, \CONTRACTS],
-      [\ORIG :: \PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS,\PUK,\TRUE), \CONTRACTORS, \TIME]}
+      [\Angle{\ORIG,\TIME} :: \PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS,\PUK,\TRUE), \CONTRACTORS, \TIME]}
   }
 \end{mathpar}
 % \begin{equation}{}
@@ -310,20 +319,63 @@ Rule 5 [rejected of balance]:
 ~\\
 ~\\
 Rule 6 [included]:
-\begin{equation}{}
-\frac{}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, \OPERATIONS, \CONTRACTS], [$<$ (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running } \\
-\text{${code}$ init ${s}$), \TIME $>$ :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ]$\rangle \rightarrow \langle$[\ACCOUNTS, \OPERATIONS,($< id$, } \\
-\text{generateHash($id, code, s$, \TIME'), $code >$ :: \CONTRACTS)], [\PENDING, $<$ (originate contract ${id}$ } \\
-\text{transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$), \TIME' $>$ :: \ACCEPTED, updateSucc(\MANAGERS, } \\
-\text{$puk, n, m$), ($<$ generateHash($id, code, s$, \TIME'), $n, code$, } \\
- \text{getStorage($code, s$) $>$) :: \CONTRACTORS), \TIME' + 1]$\rangle$}}} 
-\end{equation}
+\begin{mathpar}
+  \inferrule[Block-Accept]{
+    \OP = \ORIGINATE\ID\NTEZ\PUK\CODE\STRING\MTEZ \\
+    \OPH = \GENERATEHASH (\ID,\CODE,\STRING,\TIME') \\
+    \TIME'-\TIME < 60
+  }{
+    \Angle{[\ACCOUNTS, \OPERATIONS, \CONTRACTS],
+      [\Angle{\OP,\TIME} :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME']}
+    \SystemTrans \\
+    \langle
+      [\ACCOUNTS, \OPERATIONS, \Angle{\ID, \OPH, \CODE} ::\CONTRACTS],
+      \\
+      [\PENDING, \Angle{\OP, \TIME'} :: \ACCEPTED, \UPDATESUCC
+      (\MANAGERS, \PUK, \NTEZ, \MTEZ), \Angle{\OPH, \GETSTORAGE
+      (\CODE,\STRING)} :: \CONTRACTORS, \TIME'+1]
+    \rangle
+  }
+\end{mathpar}
+
+% \begin{equation}{}
+% \frac{}{\parbox{4.2in}{\text{$\langle$[\ACCOUNTS, \OPERATIONS,
+% \CONTRACTS], [$<$ (originate contract ${id}$ transferring  ${n}$
+% from ${pkh}$ running } \\ 
+% \text{${code}$ init ${s}$), \TIME $>$ :: \PENDING, \ACCEPTED,
+% \MANAGERS, \CONTRACTORS, \TIME' ]$\rangle \rightarrow
+% \langle$[\ACCOUNTS, \OPERATIONS,($< id$, } \\ 
+% \text{generateHash($id, code, s$, \TIME'), $code >$ :: \CONTRACTS)],
+%  [\PENDING, $<$ (originate contract ${id}$ } \\
+% \text{transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$), \TIME' $>$ :: \ACCEPTED, updateSucc(\MANAGERS, } \\
+% \text{$puk, n, m$), ($<$ generateHash($id, code, s$, \TIME'), $n, code$, } \\
+%  \text{getStorage($code, s$) $>$) :: \CONTRACTORS), \TIME' + 1]$\rangle$}}} 
+% \end{equation}
 ~\\
 Rule 7 [timeout]:
-\begin{equation}{}
-\frac{\text{\TIME' - \TIME $\ge$ 60}}{\parbox{4.2in}{\text{[$<$ (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running ${code}$ init ${s}$) $>$ } \\
-\text{:: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ] $\rightarrow$[\PENDING, \ACCEPTED, updateCou(\MANAGERS, $puk$, False), \CONTRACTORS, \TIME']}}} 
-\end{equation}
+\begin{mathpar}
+  \inferrule[Block-Timeout]{
+    \OP = \ORIGINATE\ID\NTEZ\PUK\CODE\STRING\MTEZ \\
+    \TIME'-\TIME \ge 60
+}{
+    %\Angle{[\ACCOUNTS, \OPERATIONS, \CONTRACTS],
+      [\Angle{\OP,\TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
+      \CONTRACTORS, \TIME']
+    %}
+    \BlockTrans
+    % \Angle{[\ACCOUNTS, \OPERATIONS, \CONTRACTS],
+      [\PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS,\PUK,\FALSE), \CONTRACTORS, \TIME']
+    % }
+}
+\end{mathpar}
+% \begin{equation}{}
+% \frac{\text{\TIME' - \TIME $\ge$ 60}}{\parbox{4.2in}{\text{[$<$
+% (originate contract ${id}$ transferring  ${n}$ from ${pkh}$ running
+% ${code}$ init ${s}$) $>$ } \\ 
+% \text{:: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME' ]
+% $\rightarrow$[\PENDING, \ACCEPTED, updateCou(\MANAGERS, $puk$,
+% False), \CONTRACTORS, \TIME']}}}  
+% \end{equation}
 ~\\
 ~\\
 B. \textbf{Transfer}
