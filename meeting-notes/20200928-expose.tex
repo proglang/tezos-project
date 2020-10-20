@@ -6,6 +6,8 @@
 \usepackage{listings}
 \usepackage{url}
 
+\usepackage{hyperref}
+
 \usepackage{xcolor}
 \usepackage{tcolorbox}
 \tcbuselibrary{breakable}
@@ -53,9 +55,9 @@ contract Example {
 }
 \end{lstlisting}
 This assumption can be expressed with an explicit assertion in predicate logic.
-\begin{displaymath}
+\begin{gather}\label{eq:5}
   (\forall n) (2 \le n \le \sqrt p) \Rightarrow (p \mathbin{\%} n) \ne 0
-\end{displaymath}
+\end{gather}
 To test the validity of this assumption requires a loop in the contract, but the test would take
 $O(\sqrt p)$ time (assuming constant time for computing the remainder) and thus produce extra cost
 linear in $\sqrt p$ accordingly. 
@@ -148,7 +150,26 @@ Another condition that might be tested on an array is the heap condition
 \begin{itemize}
 \item Formally define a set of logical formulas that are amenable to the kind of checking
   described above. In a first approximation, the interesting assertion formulas seem to
-  be those with prenex universal quantification. 
+  be those with prenex universal quantification.
+
+  In a first iteration, we want to restrict ourselves to formulas of
+  predicate logic with prenex universal quantification only.
+  \begin{align*}
+    t &::= \text{primitive types like int, bool, string, \dots} \\
+    \Theta &::= \Phi \mid \forall (x:t) \Theta \\
+    \Phi,\Psi &::= \neg\Phi \mid \Phi\wedge\Psi \mid \Phi\vee\Psi \mid
+                M \rho N \\
+    \rho &::= < \mid > \mid \le \mid \ge \mid = \mid \ne \mid \dots \\
+    M, N &::= x \mid c \mid M \oplus N  \mid f (\overline M) \\
+    \oplus &::= +\mid -\mid * \mid / \mid \% \mid \dots \\
+    c &::= \text{constants: numbers, strings, etc} \\
+    f &::= \text{operations (existing in the blockchain VM)}
+  \end{align*}
+  Later, we might consider existential quantification and user-defined
+  functions (for example, sqrt, length of a list, access list element
+  are not predefined by the VM and have to be implemented. The list
+  operations would be really good to have, though). See
+  Section~\ref{sec:suggestions-tezos} for suggestions for a concrete syntax.
 \item Collect examples for interesting formulas.
 \item Formalize the cost incurred by checking a formula.
 \item Extend the contract language with assertions stating these logical
@@ -305,6 +326,42 @@ def exists_counterexample (p : int) -> bool:
     the counterexample should also be done probabilistically.
   \end{itemize}
 \end{itemize}
+
+\section{Suggestions (Tezos)}
+\label{sec:suggestions-tezos}
+
+The syntax for assertions should be chosen to be similar to OCaml.
+A proposal for the assertion in \eqref{eq:5} could be
+\begin{lstlisting}[language=caml]
+parameter (_, (_, p)) =
+  forall (n : int)
+    if (2 <= n && n <= p / 2)
+      p % n <> 0
+\end{lstlisting}
+Such a parameter phrase may occur multiple times. Its single argument
+is a pattern that matches the contract's argument. The type of the
+pattern variables (here just \lstinline/p/) is determined from the code of the
+contract.
+
+Multiple parameter phrases can be used to state assertion for
+contracts with multiple entry points. In Tezos/Michelson, entry points are
+modeled by having a sum type as parameter type. For example, a
+contract with two entry points can be equipped with assertions as
+follows.
+\begin{lstlisting}[language=caml]
+parameter (Left x) =
+  0 < x && x < 100
+
+parameter (Right (a, b)) =
+  exists (c : int)
+    if (0 < c && c <= a + b)
+      a*a + b*b = c*c
+\end{lstlisting}
+BTW, this is an example for a useful contract with an existential!
+
+The idea would be to have two files with the same basename, but
+different extensions. One file contains the Michelson code, the other
+the assertion.
 
 \section{Rejected Ideas}
 \label{sec:rejected-ideas}
