@@ -3,3 +3,4 @@ auto
 *.log
 *.out
 *.synctex.gz
+*.pdf
