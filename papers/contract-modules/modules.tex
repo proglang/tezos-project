@@ -7,6 +7,9 @@
 \usepackage[colorinlistoftodos]{todonotes}
 \usepackage{mathpartir}
 \usepackage{fixme}
+\usepackage{listings}
+
+\lstset{language=caml}
 
 \title{Contract Modules}
 \author{}
@@ -17,6 +20,67 @@
 \begin{document}
 \maketitle
 \pagestyle{plain}
+
+\section{Motivation}
+\label{sec:motivation}
+
+
+
+\begin{lstlisting}[language=caml]
+contract module MyContract = "kt1..."
+  entry point bid_for_auction Left (_ : int) 
+  raises "closed" as closed       (* auction closed*)
+         "bid too low" as too_low (* bid received is too low *)
+         42 as the_answer         (* failwith received argument 42 *)
+         (_ : int) as failedwith  (* failwith received an integer arg *)
+
+  entry point close_auction Right (_ : unit)
+  raises "not owner"         (* caller cannot close the auction *)
+\end{lstlisting}
+
+The contract module is compiled into an OCaml module which provides a typed API to the
+contract. Internally, the typed API builds on the untyped API developed by us.
+
+\begin{lstlisting}[language=caml]
+signature MyContract =
+sig 
+  type bid_for_auction_errors = 
+     | closed 
+     | too_low 
+     | the_answer
+     | failedwith of int
+
+  val bid_for_auction : int -> x Tezos
+
+  type close_auction_errors = 
+     | not_owner
+
+  val close_auction : unit -> x Tezos
+end
+\end{lstlisting}
+
+If the contract source is available, then an extended type checker verifies that the entry points
+exist and that all failures that may arise during contract execution from a particular entry point
+are covered by the listed cases.
+
+Q: how should we deal with built-in errors? Like Java's (unchecked?) exceptions?
+
+If only the public hash of the contract is known, then obtain the source code through the tezos
+client and proceed as above.
+
+\clearpage
+\section{Tools}
+\label{sec:tools}
+
+An extended type checker that collects information about explicit failures along execution paths
+starting from each possible entry point. We may also wish to provide an entry point so that the
+checker only gathers information for that entry point. This alternative may be interesting if there
+is an entry point taking a parameter of sum type, rather than using all injections to distinguish
+between entry points.
+
+It seems like the type checking is doable using symbolic execution. In this framework, it would also
+be possible to assume further invariants about the inputs and place them into the contract
+module. Essentially, every formula that an SMT solver can deal with should be fine.
 
 
 \end{document}
