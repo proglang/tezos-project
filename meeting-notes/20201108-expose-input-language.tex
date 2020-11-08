@@ -23,6 +23,8 @@
 
 \input{solidity-highlighting}
 
+\lstset{numbers=none}
+
 \title{Expos\'{e}\\
   Input Language for Smart Contract API}
 \author{Peter Thiemann}
@@ -127,7 +129,8 @@ type _ Mtype =
   | Tlist   : 't Mtype -> 't list Mtype
   | Tpair   : 'l Mtype * 'r Mtype -> ('l * 'r) Mtype
   | Toption : 't Mtype -> 't option Mtype
-  | Tor     : 'l Mtype * 'r Mtype -> [`Left of 'l | `Right of 'r] Mtype
+  | Tor     : 'l Mtype * 'r Mtype 
+            -> [`Left of 'l | `Right of 'r] Mtype
 \end{lstlisting}
 Instead of using polymorphic variants, one could also define a binary
 sum type like Haskell's Either type.
@@ -154,6 +157,31 @@ to decode the current state of a contract. Deserialization may fail
 and thus raise an exception.
 \begin{lstlisting}[language=Caml]
 deserialize : 't Mtype -> string -> 't
+\end{lstlisting}
+
+One can get rid of the \lstinline/Mtype/ datatype by directly
+composing serializers in tagless style. I think. But having the type
+representation might be more flexible.
+\begin{lstlisting}[language=Caml]
+s_string : string -> string
+s_int : int -> string
+s_bool : bool -> string
+s_unit : unit -> string
+s_list : ('t -> string) -> ('t list -> string)
+s_pair : ('l -> string) -> ('r -> string) -> ('l * 'r -> string)
+s_option : ('t -> string) -> ('t option -> string)
+s_or : ('l -> string) -> ('r -> string) 
+     -> ([`Left of 'l | `Right of 'r] -> string)
+\end{lstlisting}
+
+Example
+\begin{lstlisting}[language=Caml]
+mytype = Tor (Tbool, Toption (Tstring))
+myserializer = serialize mytype : 
+               [`Left of bool | `Right of string option] -> string
+
+tlserializer = s_or s_bool (s_option s_string) :
+               [`Left of bool | `Right of string option] -> string
 \end{lstlisting}
 \end{document}
 
