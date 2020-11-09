@@ -34,8 +34,17 @@
 \section{Introduction}
 \label{sec:introduction}
 
-The current Tezos API facing to OCaml (as well as the one provided by
-the Tezos client) is untyped. Here we propose a DSL to make it typed.
+The current Tezos API for invoking contracts with parameters is
+untyped. This manifests in the input of the Tezos client where
+parameters have to be supplied as strings and are then parsed before
+they are passed to the contract execution. For example:
+\begin{lstlisting}[language=sh]
+tezos-client transfer 10000 from contractOwner to v1-public-pool 
+--arg '(Left Unit)' --burn-cap 0.004
+\end{lstlisting}
+This is also true for the first cut of the OCaml API.
+
+ Here we propose a DSL to make it typed.
 First we recall some information from the Michelson white paper
 \url{https://tezos.gitlab.io/whitedoc/michelson.html#core-data-types-and-notations}. 
 
@@ -182,6 +191,21 @@ myserializer = serialize mytype :
 
 tlserializer = s_or s_bool (s_option s_string) :
                [`Left of bool | `Right of string option] -> string
+\end{lstlisting}
+
+Query the Tezos blockchain for the type of a contract and its
+entrypoints.
+\begin{lstlisting}[language=Caml]
+make_typed_contract : contract_hash -> 't Mtype -> 't Contract
+\end{lstlisting}
+The function call \lstinline/make_typed_contract hash mty/ would query
+the node (via client lib or rpc) for the type of the contract
+\lstinline/hash/ and check it against \lstinline/mty/.
+This call fails if the type \lstinline/mty/ does not match the
+stored type of the contract.
+The returned value contains the serializer from \lstinline/'t -> string/.
+\begin{lstlisting}[language=Caml]
+invoke_typed : 't Contract -> 't -> result Tezos.apimonad
 \end{lstlisting}
 \end{document}
 
