@@ -327,24 +327,159 @@ def exists_counterexample (p : int) -> bool:
   \end{itemize}
 \end{itemize}
 
-\section{Suggestions (Tezos)}
+\section{Suggestions}
+
+\subsection{General}
+\label{sec:suggestions-general}
+
+
+In the example, we checked if all elements satisfy a certain condition:
+\begin{lstlisting}[language=Caml]
+forall (n : Int)
+   if ( 2 <= n && n <= sqrt(p))
+       assert(p%n != 0)
+\end{lstlisting}
+However, if we consider  parameter p to be a sorted list and we want
+to assert that it is indeed sorted, we would need to check two values: 
+\begin{lstlisting}[language=Caml]
+forall (n : Int, m: Int)
+   if ( n > m)
+       assert(p.(n) > p.(m))
+\end{lstlisting}
+
+You can have foralls with more than one variable, but you could also nest the foralls as in
+
+\begin{lstlisting}[language=Caml]
+forall( n : int)
+ forall(m : int) ...
+\end{lstlisting}
+Externally, I think your proposed syntax is nicer, but internally it will be simpler to just have 
+\lstinline/Forall( ident, type, expr)/
+in the type for the AST.
+
+
+Somehow the smart random generator will have to know in which range to
+generate the values.  Considering the second example, the generator should generate 
+\begin{lstlisting}[language=Caml]
+m = random(0, length(list))
+n = random(m, length(list))
+\end{lstlisting}
+For this transformation, the assertion should be completely explicit.
+That is, in the example, there should be an additional condition
+
+\begin{lstlisting}[language=Caml]
+... if (n < length(p) && m < length(p)) ...
+\end{lstlisting}
+which means we should have the length of a list available as a primitive.
+
+
+Can we realize this transformation from the above syntax, or do we
+need additional syntax that expresses this transformation separately? 
+Do I even have to consider these things when creating the grammar?
+
+The process could be something like this:
+\begin{enumerate}
+\item  calculate the negation of the formula. This amounts to
+  swapping forall and exists, skipping the conditions, and negating
+  the body of the assertion. This last step should also be done by
+  applying de Morgan exhaustively down to the literals. In your
+  example you'd end up with
+
+\begin{lstlisting}[language=Caml]
+exists(n : int)
+ exists(m : int)
+    if (n< length(p) && m < length(p))
+      if (n>m)
+         check( p.(n) <= p.(m) )
+\end{lstlisting}
+\item look at the atomic constraints that bound the exists and move them upfront. Example: 
+  \begin{itemize}
+  \item  the first constraint is \lstinline/n<length(p)/ $\to$ you need to break up
+    the conjunction
+  \item independent of \lstinline/exists(m)/, hence move backward
+  \end{itemize}
+\begin{lstlisting}[language=Caml]
+exists(n : int)
+ if (n < length(p))
+   exists(m : int)
+     if (m < length(p))
+       ...
+\end{lstlisting}
+\item  if the constraint meets its generator (exists), then merge it:
+
+\begin{lstlisting}[language=Caml]
+exists(n : int, n < length(p))
+\end{lstlisting}
+\item  same for m
+
+\begin{lstlisting}[language=Caml]
+ exists(m : int, m < length(p))
+\end{lstlisting}
+( at this point, each generator / exists could come with a number of upper and lower bounds )
+\item now we need to consider this
+
+\begin{lstlisting}[language=Caml]
+exists(n : int, n < length(p))
+ exists(m : int, m < length(p))
+   if (n>m)
+     ...
+\end{lstlisting}
+this condition gives us an upper bound on m (this requires some manipulation of the formula, in general)
+so we just add it as another bound to m:
+
+\begin{lstlisting}[language=Caml]
+exists(n : int, n < length(p))
+ exists(m : int, m < length(p) && m < n)
+    ...
+\end{lstlisting}
+\item  you can find out (but this is more involved and thus optional)
+  that \lstinline/0 < n/ is required for the \lstinline/exists(m ...)/ to be nonempty and that
+  \lstinline/m < n/ implies \lstinline/m < length(p)/: 
+
+\begin{lstlisting}[language=Caml]
+exists(n : int, 0 < n,  n < length(p))
+ exists(m : int, 0 <=m, m < n)
+   check( p.(n) <= p.(m) )
+\end{lstlisting}
+At this point, you can read off the invocation for the random generator.
+If any constraints remain, they'd have to be checked at run time.
+In the best case, things work out like in the example. Otherwise, each if-constaint that turns out to be false results in a useless test run.
+\end{enumerate}
+
+For background, there is a nice paper about the underlying testing methodology:
+How to specify it! by John Hughes:
+\url{https://www.tfp2019.org/resources/tfp2019-how-to-specify-it.pdf}
+
+
+\subsection{Tezos}
 \label{sec:suggestions-tezos}
+
+
+Michelson and the Tezos infrastructure directly support entry points
+with a specific notation. Hence, the syntax should reflect and reuse
+that notation.
 
 The syntax for assertions should be chosen to be similar to OCaml.
 A proposal for the assertion in \eqref{eq:5} could be
 \begin{lstlisting}[language=caml]
-parameter (_, (_, p)) =
-  forall (n : int)
-    if (2 <= n && n <= p / 2)
-      p % n <> 0
+entrypoint %default
+  parameter (_, (_, p)) =
+    forall (n : int)
+      if (2 <= n && n <= p / 2)
+        p % n <> 0
 \end{lstlisting}
-Such a parameter phrase may occur multiple times. Its single argument
-is a pattern that matches the contract's argument. The type of the
+A parameter phrase may occur multiple times. Its single argument
+is a pattern that matches the contract's entrypoint's argument. The type of the
 pattern variables (here just \lstinline/p/) is determined from the code of the
 contract.
 
-Multiple parameter phrases can be used to state assertion for
-contracts with multiple entry points. In Tezos/Michelson, entry points are
+The entrypoint phrase may also occur multiple times. However, it is
+illegal to have patterns that overlap, i.e., which match the same
+contract invocation. Overlapping may occur due to a repeated pattern
+in clauses for the same entrypoint, but also due to a pattern for the
+\lstinline/%default/ overlapping with a pattern for another entrypoint.
+
+In Tezos/Michelson, entry points are
 modeled by having a sum type as parameter type. For example, a
 contract with two entry points can be equipped with assertions as
 follows.
@@ -358,6 +493,26 @@ parameter (Right (a, b)) =
       a*a + b*b = c*c
 \end{lstlisting}
 BTW, this is an example for a useful contract with an existential!
+
+These phrases would refer to the \lstinline/%default/ entrypoint, as
+none is explicitly specified. Suppose the parameter type for the
+contract in question was specified in Michelson as follows.
+\begin{lstlisting}
+parameter (or (int %set_scale) (pair int int %set_triangle))
+\end{lstlisting}
+An equivalent way to stating the previous assertions would be to use
+entrypoints.
+\begin{lstlisting}[language=caml]
+entrypoint %set_scale
+  parameter (x) =
+    0 < x && x < 100
+
+entrypoint %set_triangle
+  parameter (a, b) =
+    exists (c : int)
+      if (0 < c && c <= a + b)
+        a*a + b*b = c*c
+\end{lstlisting}
 
 The idea would be to have two files with the same basename, but
 different extensions. One file contains the Michelson code, the other
