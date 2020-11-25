@@ -25,24 +25,31 @@
 \label{sec:motivation}
 
 
+Suppose the parameter type of a smart contract is defined by this Michelson code:
+\begin{verbatim}
+parameter union (int %bid_for_auction) (unit %close_auction)
+...
+\end{verbatim}
+
 
 \begin{lstlisting}[language=caml]
-contract module MyContract = "kt1..."
-  entry point bid_for_auction Left (_ : int) 
+contract type MyContract = sig
+  entrypoint %bid_for_auction (_ : int) 
   raises "closed" as closed       (* auction closed*)
-         "bid too low" as too_low (* bid received is too low *)
-         42 as the_answer         (* failwith received argument 42 *)
-         (_ : int) as failedwith  (* failwith received an integer arg *)
+       | "bid too low" as too_low (* bid received is too low *)
+       | 42 as the_answer         (* failwith received argument 42 *)
+       | (_ : int) as failedwith  (* failwith received an integer arg *)
 
-  entry point close_auction Right (_ : unit)
+  entrypoint %close_auction (_ : unit)
   raises "not owner"         (* caller cannot close the auction *)
+end
 \end{lstlisting}
 
 The contract module is compiled into an OCaml module which provides a typed API to the
 contract. Internally, the typed API builds on the untyped API developed by us.
 
 \begin{lstlisting}[language=caml]
-signature MyContract =
+module type MyContract =
 sig 
   type bid_for_auction_errors = 
      | closed 
