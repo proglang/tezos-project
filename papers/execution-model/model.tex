@@ -51,12 +51,36 @@ $\mathbf{s} :: = \emptyset \mid \mathbf{e} \mid \mathbf{s :: s}$
   where \NTEZ\ and \MTEZ\ are amount of Tez, \ADDR\ is either a public key for an implicit account  or a public hash for a smart contract,  \PARAMETER\ is an argument passed to the smart contract's script, which is emtry if it is a transfer to an implicit account, \CODE\ is a script of the smart contract, \INIT\ is an initial value of the contract's storage.
 \end{definition}
 
+\begin{definition}%[Query]
+\emph{Queries} are defined by the following grammar:
+\begin{align*}
+  \QRY & ::= \GETBALANCE\ADDR
+  \\&\mid \GETSTATUS\OPH
+  \\&\mid \GETSTORAGE\PUH
+  \\&\mid \GETCODE\PUH 
+  \\&\mid \GETCOUNTER\PUK
+\end{align*}
+\end{definition}
+
+\begin{definition}%[Program]
+\emph{Programs} are defined by the following grammar:
+\begin{align*}
+	\PROGRAM & :: =  \VARIABLE\ \mid \VALUE \mid \lambda \VARIABLE \PROGRAM\ 
+	\\&\mid \PROGRAM\PROGRAM\ \mid (\PROGRAM,\PROGRAM) 	%\mid \NI \EI
+	\\&\mid \PROGRAM\ \PLUS\ \PROGRAM\ \mid \PROGRAM\ \MINUS\ \PROGRAM\ \mid \PROGRAM\ \EQUAL\ \PROGRAM\ \mid \PROGRAM\ \LESS\ \PROGRAM
+	\\&\mid \PROGRAM\ \AND\ \PROGRAM\ \mid \PROGRAM\ \OR\ \PROGRAM\ \mid \NOT\ \PROGRAM
+	\\&\mid \NIL\ \mid \CONS\ \PROGRAM \PROGRAM
+	\\&\mid \lambda \VARIABLE\QRY
+\end{align*}
+\end{definition}
+
 \begin{definition}%[State of a node]
   The \emph{state of a node} is a tuple
-  $\NODE = [\ACCOUNTS, \OPERATIONS]$, where $\ACCOUNTS$ is a set of
-  accounts and
+  $\NODE = [ \PROGRAMS, \ACCOUNTS, \OPERATIONS]$, where $\PROGRAMS$ is the set of the programs, $\ACCOUNTS$ is a set of
+  accounts, and
   $\OPERATIONS$ is a set of operations.
 \end{definition}
+
 
 \subsection{Global}
 \label{sec:global}
@@ -78,28 +102,17 @@ balance and $\COU$ is its counter whose form is a value-flag pair $(n, b)$, wher
   code, and $\STORAGE$ is its current storage.
 \end{definition}
 
-
-\begin{definition}%[Query]
-A \emph{query} is defined by the following grammar:
-\begin{align*}
-  \QRY & ::= \GETBALANCE\ADDR
-  \\&\mid \GETSTATUS\OPH
-  \\&\mid \GETSTORAGE\PUH
-  \\&\mid \GETCODE\PUH 
-  \\&\mid \GETCOUNTER\PUK
-\end{align*}
-
-\end{definition}
-
 When an operation is injected in a node, it enters a \emph{pending pool}
 (and is called a \emph{pending operation}). 
+
  \begin{definition}%[Pending operation]
 A \emph{pending operation} is a tuple  $\langle  \OP, \OPH, \TIME
 \rangle $, where $\OP$ is an operation, $\OPH$ is the operation hash,
 and $\TIME$ is the time when the operation was injected. 
 \end{definition}
+
 After some time, a pending operation may be included in the blockchain as an accepted operation.
-%Let \textit{P} is the set of pending operations.
+
  \begin{definition}%[Accepted operation]
 An \emph{accepted operation}  is a tuple $\langle  \OP, \OPH, \TIME, \TIME' \rangle
 $, where $\OP$ is an operation, $\OPH$ is the operation hash, $\TIME$ is the time when the operation was injected, and
@@ -138,14 +151,21 @@ consider it signed with the corresponding private key $\PAK$.
 
 \begin{mathpar}
   \inferrule[Node-Op]
-  { % \CHECKACC (\OP.\PUK, \ACCOUNTS)
+  {
     \Angle{\PAK,\OP.\PUK} \in \ACCOUNTS
-    % \\
-    % \OP = \TRANSFER[\STRING]\NTEZ\PUK{\PUK'}\MTEZ
   }{
-    [\ACCOUNTS, \OPERATIONS]
+    [\PROGRAMS, \ACCOUNTS, \OPERATIONS]
     \NodeTrans
-    [\ACCOUNTS, \OP:: \OPERATIONS]
+    [\PROGRAMS, \ACCOUNTS, \OP:: \OPERATIONS]
+  }
+  
+  \inferrule[Node-Oph]
+  {
+   \\
+  }{
+    [\epsilon[\OP] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]
+    \NodeTrans
+    [\epsilon[\OPH] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]
   }
 
   \inferrule[Node-System]
@@ -388,7 +408,7 @@ Rule 6 [included]:
       [\Angle{\OP, \OPH,\TIME} :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME']
     \SystemTrans
       [\PENDING, \Angle{\OP, \OPH,\TIME,\TIME'} ::  \ACCEPTED, \UPDATESUCC
-      (\MANAGERS, \PUK, \NTEZ, \MTEZ), \\ \Angle{\GENERATEHASH(\CODE, \INIT, \TIME, \TIME'), \NTEZ, \CODE, \UPDATESTORAGE(\STRING, '', '')} :: \CONTRACTORS, \TIME'+1]
+      (\MANAGERS, \PUK, \NTEZ, \MTEZ), \\ \Angle{\GENERATEHASH(\CODE, \INIT, \TIME, \TIME'), \NTEZ, \CODE, \STRING} :: \CONTRACTORS, \TIME'+1]
   }
 \end{mathpar}
 ~\\
@@ -517,70 +537,70 @@ Rule 7 [included]:
 Query 1 [balance of an account]:
 \begin{mathpar}
   \inferrule{
-    \QRY = \GETBALANCE\PUK \\
-    \BLOCKSYSTEM = 
+    \BLOCKCHAIN = 
       [\PENDING, \ACCEPTED,  \Angle{\PUK, \BAL, \COU} :: \MANAGERS, \CONTRACTORS, \TIME]
-  }{\BAL}
+  }{[\epsilon[\GETBALANCE\PUK] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\BAL] ::\PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\
 Query 2 [balance of smart contract]:
 \begin{mathpar}
   \inferrule{
-    \QRY = \GETBALANCE\PUH \\
     \BLOCKSYSTEM = 
       [\PENDING, \ACCEPTED,  \MANAGERS, \Angle{\PUH, \BAL, \CODE, \STORAGE} :: \CONTRACTORS, \TIME]
-  }{\BAL}
+  }{[\epsilon[\GETBALANCE\PUH] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\BAL] ::\PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\
 Query 3 [storage]:
 \begin{mathpar}
   \inferrule{
-    \QRY = \GETSTORAGE\PUH \\
     \BLOCKSYSTEM = 
       [\PENDING, \ACCEPTED,  \MANAGERS, \Angle{\PUH, \BAL, \CODE, \STORAGE} :: \CONTRACTORS, \TIME]
-  }{\STORAGE}
+  }{[\epsilon[\GETSTORAGE\PUH] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\STORAGE] ::\PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\
 Query 4 [code]:
 \begin{mathpar}
   \inferrule{
-    \QRY = \GETSTORAGE\PUH \\
     \BLOCKSYSTEM = 
       [\PENDING, \ACCEPTED,  \MANAGERS, \Angle{\PUH, \BAL, \CODE, \STORAGE} :: \CONTRACTORS, \TIME]
-  }{\CODE}
+  }{[\epsilon[\GETCODE\PUH] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\CODE] ::\PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\
 Query 5 [counter]:
 \begin{mathpar}
   \inferrule{
-    \QRY = \GETCOUNTER\PUK \\
     \BLOCKSYSTEM = 
       [\PENDING, \ACCEPTED,  \Angle{\PUK, \BAL, \COU} :: \MANAGERS, \CONTRACTORS, \TIME]
-  }{\COU}
+  }{[\epsilon[\GETCOUNTER\PUK] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\COU] ::\PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\
 Query 6 [status-pending]:
 \begin{mathpar}
   \inferrule{
-    \QRY = \GETSTATUS\OPH \\
     \BLOCKSYSTEM = 
       [\Angle{\OP, \OPH, \TIME} :: \PENDING, \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]
-  }{\STATUSPENDING}
+  }{[\epsilon[\GETSTATUS\OPH] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\STATUSPENDING] ::\PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\
 Query 7 [status-including]:
 \begin{mathpar}
   \inferrule{
-    \QRY = \GETSTATUS\OPH \\
     \BLOCKSYSTEM = 
       [\PENDING, \Angle{\OP, \OPH, \TIME, \TIME'} :: \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]
-  }{\STATUSINCLUDING}
+  }{[\epsilon[\GETSTATUS\OPH] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\STATUSINCLUDING] ::\PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\
@@ -603,9 +623,9 @@ Query 7 [status-including]:
         \item[]  $\langle  \PUK, \BAL, (\NTEZ, \BOOLEAN') \rangle $ $\Rightarrow$ $\langle  \PUK, \BAL, (\NTEZ, \BOOLEAN) \rangle $ 
     \end{itemize}
     
-    \item Function  \UPDATECONSTR (\CONTRACTORS, \PUH, \NTEZ, \STRING) updates the contractor that associates with the public hash \PUH\, where
+    \item Function  \UPDATECONSTR (\CONTRACTORS, \PUH, \NTEZ, \PARAMETER) updates the contractor that associates with the public hash \PUH\, where
     \begin{itemize}
-        \item[] $\langle  \PUH, \BAL, \CODE, \STORAGE, \rangle $ $\Rightarrow$ $\langle  \PUH, \BAL + \NTEZ, \CODE, \\ \UPDATESTORAGE(\STORAGE,\CODE,\STRING) \rangle $
+        \item[] $\langle  \PUH, \BAL, \CODE, \STORAGE, \rangle $ $\Rightarrow$ $\langle  \PUH, \BAL + \NTEZ, \CODE, \\ \UPDATESTORAGE(\STORAGE,\CODE,\PARAMETER) \rangle $
     \end{itemize}
     
     \item Function \CHECKPRG (\CODE, {\INIT /\PARAMETER}) checks whether the code \CODE\ and the initil stogare's valude (or the input parameter \PARAMETER) are well type.
