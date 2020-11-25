@@ -63,20 +63,28 @@ $\mathbf{s} :: = \emptyset \mid \mathbf{e} \mid \mathbf{s :: s}$
 \end{definition}
 
 \begin{definition}%[Program]
-\emph{Programs} are defined by the following grammar:
+\emph{Expressions} are defined by the following grammar:
 \begin{align*}
-	\PROGRAM & :: =  \VARIABLE\ \mid \VALUE \mid \lambda \VARIABLE \PROGRAM\ 
-	\\&\mid \PROGRAM\PROGRAM\ \mid (\PROGRAM,\PROGRAM) 	%\mid \NI \EI
-	\\&\mid \PROGRAM\ \PLUS\ \PROGRAM\ \mid \PROGRAM\ \MINUS\ \PROGRAM\ \mid \PROGRAM\ \EQUAL\ \PROGRAM\ \mid \PROGRAM\ \LESS\ \PROGRAM
-	\\&\mid \PROGRAM\ \AND\ \PROGRAM\ \mid \PROGRAM\ \OR\ \PROGRAM\ \mid \NOT\ \PROGRAM
-	\\&\mid \NIL\ \mid \CONS\ \PROGRAM \PROGRAM
-	\\&\mid \lambda \VARIABLE\QRY
+  \CONSTANT & ::= \ADDR \mid \OPH \mid \PUH \mid\PUK \mid \CODE \mid
+              \NTEZ \mid \SUNIT \mid \FALSE \mid \TRUE \\
+	\EXPR & :: =  \CONSTANT \mid \VARIABLE \mid \lambda \VARIABLE. \EXPR\ 
+	\mid \EXPR\EXPR \mid (\EXPR,\EXPR) \mid \FST\ \EXPR \mid \SND\ \EXPR 	%\mid \NI \EI
+	\\&\mid \EXPR\ \PLUS\ \EXPR\ \mid \EXPR\ \MINUS\ \EXPR\ \mid \EXPR\ \EQUAL\ \EXPR\ \mid \EXPR\ \LESS\ \EXPR
+	\\&\mid \EXPR\ \AND\ \EXPR\ \mid \EXPR\ \OR\ \EXPR\ \mid \NOT\ \EXPR
+  \\&\mid \NIL\ \mid \CONS\ \EXPR\ \EXPR \mid \LEFT\ \EXPR \mid\RIGHT\
+  \EXPR \mid \SOME\ \EXPR \mid \NONE
+  \\& \mid \RAISE\ \EXPR \mid \TRY\ \EXPR\ \EXCEPT\ \EXPR
+  \\& \mid \MATCH\ \EXPR\ \WITH\ \PATTERN\to\EXPR \dots
+  \\& \mid \TRANSFER[\EXPR]\EXPR\EXPR\EXPR\EXPR
+  \\& \mid \ORIGINATE\EXPR\EXPR\EXPR\EXPR\EXPR
+  \\&\mid \QOP\  \EXPR\\
+  \QOP & ::= balance \mid status \mid storage \mid code \mid counter
 \end{align*}
 \end{definition}
 
 \begin{definition}%[State of a node]
   The \emph{state of a node} is a tuple
-  $\NODE = [ \PROGRAMS, \ACCOUNTS, \OPERATIONS]$, where $\PROGRAMS$ is the set of the programs, $\ACCOUNTS$ is a set of
+  $\NODE = [ \EXPRS, \ACCOUNTS, \OPERATIONS]$, where $\EXPRS$ is the set of the programs, $\ACCOUNTS$ is a set of
   accounts, and
   $\OPERATIONS$ is a set of operations.
 \end{definition}
@@ -141,6 +149,38 @@ $ \NODE \| \BLOCKCHAIN$ where
 \clearpage{}
 \section{Rules}
 
+\begin{mathpar}
+  \inferrule[Node-Opp]
+    {
+    \Angle{\PAK,\OP.\PUK} \in \ACCOUNTS
+  }{
+    [\EC\OP :: \EXPRS, \ACCOUNTS, \OPERATIONS] \NodeTrans
+    [\EXPRS, \ACCOUNTS, (\EC{},\OP):: \OPERATIONS]
+  }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule{
+    \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+    \CHECKCOU (\MANAGERS, \PUK) \\
+    \CHECKPUB (\MANAGERS, \PUK') \\
+    \CHECKGAS (\PUK, \PUK', \NTEZ, \MTEZ) \\
+    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \OPH = \GENERATEOPH (\PUK, \PUK', \NTEZ, \MTEZ, \TIME)
+  }{
+   { [\EXPRS, \ACCOUNTS, (\EC{},\OP) :: \OPERATIONS] \| [\PENDING,
+     \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans \\
+   { [\EC{?\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
+     [ \Angle{\OP,\OPH, \TIME}
+     ::\PENDING,
+     \ACCEPTED,
+     \UPDATECOU(\MANAGERS, \PUK, \TRUE),
+     \CONTRACTORS,
+     \TIME]
+   }
+  }
+\end{mathpar}
+
 \subsection{Transitions on Nodes}
 \label{sec:transitions-nodes}
 
@@ -154,18 +194,18 @@ consider it signed with the corresponding private key $\PAK$.
   {
     \Angle{\PAK,\OP.\PUK} \in \ACCOUNTS
   }{
-    [\PROGRAMS, \ACCOUNTS, \OPERATIONS]
+    [\EXPRS, \ACCOUNTS, \OPERATIONS]
     \NodeTrans
-    [\PROGRAMS, \ACCOUNTS, \OP:: \OPERATIONS]
+    [\EXPRS, \ACCOUNTS, \OP:: \OPERATIONS]
   }
   
   \inferrule[Node-Oph]
   {
    \\
   }{
-    [\epsilon[\OP] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]
+    [\EC\OP :: \EXPRS, \ACCOUNTS, \OPERATIONS]
     \NodeTrans
-    [\epsilon[\OPH] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]
+    [\EC\OPH :: \EXPRS, \ACCOUNTS, \OPERATIONS]
   }
 
   \inferrule[Node-System]
@@ -539,8 +579,8 @@ Query 1 [balance of an account]:
   \inferrule{
     \BLOCKCHAIN = 
       [\PENDING, \ACCEPTED,  \Angle{\PUK, \BAL, \COU} :: \MANAGERS, \CONTRACTORS, \TIME]
-  }{[\epsilon[\GETBALANCE\PUK] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
-    \NodeTrans [\epsilon[\BAL] ::\PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
+  }{[\epsilon[\GETBALANCE\PUK] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\BAL] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\
@@ -549,8 +589,8 @@ Query 2 [balance of smart contract]:
   \inferrule{
     \BLOCKSYSTEM = 
       [\PENDING, \ACCEPTED,  \MANAGERS, \Angle{\PUH, \BAL, \CODE, \STORAGE} :: \CONTRACTORS, \TIME]
-  }{[\epsilon[\GETBALANCE\PUH] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
-    \NodeTrans [\epsilon[\BAL] ::\PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
+  }{[\epsilon[\GETBALANCE\PUH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\BAL] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\
@@ -559,8 +599,8 @@ Query 3 [storage]:
   \inferrule{
     \BLOCKSYSTEM = 
       [\PENDING, \ACCEPTED,  \MANAGERS, \Angle{\PUH, \BAL, \CODE, \STORAGE} :: \CONTRACTORS, \TIME]
-  }{[\epsilon[\GETSTORAGE\PUH] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
-    \NodeTrans [\epsilon[\STORAGE] ::\PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
+  }{[\epsilon[\GETSTORAGE\PUH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\STORAGE] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\
@@ -569,8 +609,8 @@ Query 4 [code]:
   \inferrule{
     \BLOCKSYSTEM = 
       [\PENDING, \ACCEPTED,  \MANAGERS, \Angle{\PUH, \BAL, \CODE, \STORAGE} :: \CONTRACTORS, \TIME]
-  }{[\epsilon[\GETCODE\PUH] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
-    \NodeTrans [\epsilon[\CODE] ::\PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
+  }{[\epsilon[\GETCODE\PUH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\CODE] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\
@@ -579,8 +619,8 @@ Query 5 [counter]:
   \inferrule{
     \BLOCKSYSTEM = 
       [\PENDING, \ACCEPTED,  \Angle{\PUK, \BAL, \COU} :: \MANAGERS, \CONTRACTORS, \TIME]
-  }{[\epsilon[\GETCOUNTER\PUK] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
-    \NodeTrans [\epsilon[\COU] ::\PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
+  }{[\epsilon[\GETCOUNTER\PUK] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\COU] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\
@@ -589,8 +629,8 @@ Query 6 [status-pending]:
   \inferrule{
     \BLOCKSYSTEM = 
       [\Angle{\OP, \OPH, \TIME} :: \PENDING, \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]
-  }{[\epsilon[\GETSTATUS\OPH] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
-    \NodeTrans [\epsilon[\STATUSPENDING] ::\PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
+  }{[\epsilon[\GETSTATUS\OPH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\STATUSPENDING] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\
@@ -599,8 +639,8 @@ Query 7 [status-including]:
   \inferrule{
     \BLOCKSYSTEM = 
       [\PENDING, \Angle{\OP, \OPH, \TIME, \TIME'} :: \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]
-  }{[\epsilon[\GETSTATUS\OPH] :: \PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
-    \NodeTrans [\epsilon[\STATUSINCLUDING] ::\PROGRAMS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
+  }{[\epsilon[\GETSTATUS\OPH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\STATUSINCLUDING] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\

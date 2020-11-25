@@ -52,12 +52,14 @@
 \newcommand{\ACCOUNTS}{\textbf{C}}
 \newcommand{\OPERATIONS}{\textbf{O}}
 \newcommand{\CONTRACTS}{\textbf{S}}
-\newcommand{\PROGRAMS}{\textbf{E}}
-\newcommand{\PROGRAM}{\textbf{e}}
+\newcommand{\EXPRS}{\textbf{E}}
+\newcommand{\EXPR}{\textbf{e}}
 \newcommand{\VARIABLE}{\textbf{x}}
-\newcommand{\VALUE}{\textbf{v}}
+\newcommand{\CONSTANT}{\textbf{c}}
 \newcommand{\CONS}{\textbf{cons}}
 \newcommand{\NIL}{\textbf{nil}}
+\newcommand\LEFT{\textbf{left}}
+\newcommand\RIGHT{\textbf{right}}
 \newcommand{\AND}{\textbf{and}}
 \newcommand{\OR}{\textbf{or}}
 \newcommand{\NOT}{\textbf{not}}
@@ -67,8 +69,20 @@
 \newcommand{\LESS}{\textbf{$<$}}
 \newcommand{\NI}{\textbf{$n_i$}}
 \newcommand{\EI}{\textbf{$e_i$}}
+\newcommand\FST{{\bf fst}}
+\newcommand\SND{{\bf snd}}
 \newcommand{\RETURN}{\textbf{r}}
+\newcommand\RAISE{\textbf{raise}}
+\newcommand\TRY{\textbf{try}}
+\newcommand\EXCEPT{\textbf{except}}
+\newcommand\MATCH{\textbf{match}}
+\newcommand\WITH{\textbf{with}}
+\newcommand\PATTERN{\textbf{pat}}
+\newcommand\SOME{\textbf{some}}
+\newcommand\NONE{\textbf{none}}
 
+
+\newcommand\QOP{\textbf{qop}}
 
 
 \newcommand{\NODE}{\textbf{N}}
@@ -95,3 +109,6 @@
 \newcommand{\BlockTrans}{\longrightarrow_B}
 \newcommand{\NodeTrans}{\longrightarrow_N}
 \newcommand{\SystemTrans}{\longrightarrow}
+
+%% evaluation contexts
+\newcommand\EC[1]{\epsilon[#1]}
