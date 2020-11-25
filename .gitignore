@@ -4,3 +4,5 @@ auto
 *.out
 *.synctex.gz
 *.pdf
+*.rel
+
