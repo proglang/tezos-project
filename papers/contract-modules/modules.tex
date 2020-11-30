@@ -31,10 +31,10 @@
   keywordstyle=\bfseries, 
   % predefined types
   classoffset=1,
-  morekeywords={nat,int,unit,string,union,pair,option,address},
+  morekeywords={nat,int,unit,string,or,pair,option,address},
   keywordstyle=\color{blue},
   classoffset=2,
-  morekeywords={CAR,CDR,CONS,DUP,EQ,FAILWITH,IF,IF_LEFT,LE,LEFT,NIL,POP,PUSH,RIGHT,SENDER,SUB},
+  morekeywords={CAR,CDR,CONS,DUP,EQ,FAILWITH,IF,IF_LEFT,LE,LEFT,NIL,DROP,PUSH,RIGHT,SENDER,SUB},
   keywordstyle=\color{magenta},
   backgroundcolor=\color{pink!20}
 }
@@ -55,8 +55,8 @@
 
 Consider this Michelson code fragment:
 \begin{lstlisting}[language=michelson,caption={Michelson code example},label={lst:code-example}]
-parameter (union (int %bid_for_auction)
-                 (unit %close_auction));
+parameter (or (int %bid_for_auction)
+              (unit %close_auction));
 storage address;
 code { DUP; CAR; 
        IF_LEFT {
@@ -73,7 +73,7 @@ code { DUP; CAR;
        }
        {
        # %close_auction
-         POP; CDR; SENDER; EQ;
+         DROP; CDR; SENDER; EQ;
          IF {} { PUSH string "not owner"; FAILWITH; }
          # ...
        }
