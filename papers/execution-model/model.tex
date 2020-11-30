@@ -150,11 +150,22 @@ $ \NODE \| \BLOCKCHAIN$ where
 \section{Rules}
 
 \begin{mathpar}
-  \inferrule[Node-Opp]
+  \inferrule[Node-Eval]
+  {
+    \EXPR \ExprTrans \EXPR'
+  }{
+    [\EC\EXPR :: \EXPRS, \ACCOUNTS, \OPERATIONS] \NodeTrans{}
+    [\EC{\EXPR'} :: \EXPRS, \ACCOUNTS, \OPERATIONS]
+  }
+\end{mathpar}
+
+
+\begin{mathpar}
+  \inferrule[Node-Op']
     {
     \Angle{\PAK,\OP.\PUK} \in \ACCOUNTS
   }{
-    [\EC\OP :: \EXPRS, \ACCOUNTS, \OPERATIONS] \NodeTrans
+    [\EC\OP :: \EXPRS, \ACCOUNTS, \OPERATIONS] \NodeTrans{}
     [\EXPRS, \ACCOUNTS, (\EC{},\OP):: \OPERATIONS]
   }
 \end{mathpar}
@@ -181,6 +192,37 @@ $ \NODE \| \BLOCKCHAIN$ where
   }
 \end{mathpar}
 
+
+\begin{mathpar}
+  \inferrule[Block-Accept'']{
+    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \TIME'-\TIME < 60
+  }{
+    { [\EC{?\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
+      [\Angle{\OP,\OPH, \TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
+      \CONTRACTORS, \TIME']}
+    \SystemTrans  \\
+    { [\EC{\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
+      [\PENDING, \Angle{\OP,\OPH, \TIME,\TIME'} :: \ACCEPTED,
+      \UPDATESUCC(\MANAGERS, \PUK, \PUK', \NTEZ, \MTEZ),
+      \CONTRACTORS, \TIME'+1]}
+  }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule[Block-Timeout'']{
+    \OP = \TRANSFER[\STRING]\NTEZ\PUK\ADDR\MTEZ \\
+    \TIME'-\TIME \ge 60
+  }{ [\EC{?\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
+    {[\Angle{\OP,\OPH, \TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
+      \CONTRACTORS, \TIME']}
+    \SystemTrans \\
+    { [\EC{\RAISE timeout}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS, \PUK, \FALSE),
+      \CONTRACTORS, \TIME']}
+  }
+\end{mathpar}
+
 \subsection{Transitions on Nodes}
 \label{sec:transitions-nodes}
 
@@ -195,7 +237,7 @@ consider it signed with the corresponding private key $\PAK$.
     \Angle{\PAK,\OP.\PUK} \in \ACCOUNTS
   }{
     [\EXPRS, \ACCOUNTS, \OPERATIONS]
-    \NodeTrans
+    \NodeTrans{}
     [\EXPRS, \ACCOUNTS, \OP:: \OPERATIONS]
   }
   
@@ -204,7 +246,7 @@ consider it signed with the corresponding private key $\PAK$.
    \\
   }{
     [\EC\OP :: \EXPRS, \ACCOUNTS, \OPERATIONS]
-    \NodeTrans
+    \NodeTrans{}
     [\EC\OPH :: \EXPRS, \ACCOUNTS, \OPERATIONS]
   }
 
