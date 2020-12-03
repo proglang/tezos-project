@@ -1,0 +1,21 @@
+(* Example contract:
+ * parameter (or (pair (list int) int %A)
+ *               (or (pair string (list int) %B) (option bool %C))) 
+ *)
+
+(* %A: assert if input list is sorted *)
+entrypoint (left (pair (p : list int) _ )) =
+    forall (n: int)
+        forall (m : int)
+            if (n < (length p) && m < (length p)) then
+	        if (n > m) then
+        	    assert (nth n p) > (nth m p)
+
+(* %B: simple assertion without any quantifiers *)
+entrypoint (right (left (pair (m : list int) _ ))) =
+    if (length m) > 10 then
+        assert (nth 9 m) = 7
+
+(* %C: assertion without an "assert" expression *)
+entrypoint %C (some (i : option bool))  =
+    assert i
