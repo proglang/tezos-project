@@ -3,3 +3,10 @@ _build/
 .merlin
 out/
 .dune-keep
+auto
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.pdf
+*.rel

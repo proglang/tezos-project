@@ -1,0 +1,211 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{mathpartir}
+\usepackage{listings}
+\usepackage{url}
+
+\usepackage{hyperref}
+
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable}
+
+\newenvironment{changethis}{%
+  \begin{tcolorbox}[breakable,notitle,boxrule=0pt,colback=blue!20,colframe=blue!20]}{%
+  \end{tcolorbox}}
+
+\newenvironment{ethereum}{%
+  \begin{tcolorbox}[breakable,notitle,boxrule=0pt,colback=red!20,colframe=red!20]}{%
+  \end{tcolorbox}}
+
+
+\input{solidity-highlighting}
+
+\lstset{numbers=none}
+
+\title{Expos\'{e}\\
+  Input Language for Smart Contract API}
+\author{Peter Thiemann}
+\begin{document}
+\maketitle{}
+
+\section{Introduction}
+\label{sec:introduction}
+
+The current Tezos API for invoking contracts with parameters is
+untyped. This manifests in the input of the Tezos client where
+parameters have to be supplied as strings and are then parsed before
+they are passed to the contract execution. For example:
+\begin{lstlisting}[language=sh]
+tezos-client transfer 10000 from contractOwner to v1-public-pool 
+--arg '(Left Unit)' --burn-cap 0.004
+\end{lstlisting}
+This is also true for the first cut of the OCaml API.
+
+ Here we propose a DSL to make it typed.
+First we recall some information from the Michelson white paper
+\url{https://tezos.gitlab.io/whitedoc/michelson.html#core-data-types-and-notations}. 
+
+\subsection{Core data types and notations}
+
+\begin{itemize}
+\item \texttt{string}, \texttt{nat}, \texttt{int} and \texttt{bytes}: The core primitive constant types.
+\item 
+  \texttt{bool}: The type for booleans whose values are \texttt{True} and \texttt{False}.
+\item 
+  \texttt{unit}: The type whose only value is \texttt{Unit}, to use as a placeholder
+  when some result or parameter is not necessary. For instance, when
+  the only goal of a contract is to update its storage.
+\item 
+  \texttt{list (t)}: A single, immutable, homogeneous linked list, whose
+  elements are of type (t), and that we write \texttt{\{\}} for the empty list or
+  \texttt{\{ first ; ... \}}. 
+\item 
+  \texttt{pair (l) (r)}: A pair of values a and b of types (l) and (r), that we
+  write \texttt{(Pair a b)}.
+\item 
+  \texttt{option (t)}: Optional value of type (t) that we write \texttt{None} or \texttt{(Some
+  v)}.
+\item 
+  \texttt{or (l) (r)}: A union of two types: a value holding either a value a
+  of type (l) or a value b of type (r), that we write \texttt{(Left a)} or
+  \texttt{(Right b)}.
+\item 
+  \texttt{set (t)}: Immutable sets of values of type (t) that we write as lists
+  \texttt{\{ item ; ... \}}, of course with their elements unique, and sorted.
+\item 
+  \texttt{map (k) (t)}: Immutable maps from keys of type (k) of values of type
+  (t) that we write \texttt{\{ Elt key value ; ... \}}, with keys sorted.
+\item 
+  \texttt{big\_map (k) (t)}: Lazily deserialized maps from keys of type (k) of
+  values of type (t) that we write \texttt{\{ Elt key value ; ... \}}, with keys
+  sorted. These maps should be used if one intends to store large
+  amounts of data in a map. They have higher gas costs than standard
+  maps as data is lazily deserialized. A \texttt{big\_map} cannot appear inside
+  another \texttt{big\_map}.
+\end{itemize}
+
+\subsection{Relation to OCaml datatypes}
+\label{sec:relat-ocaml-datatyp}
+
+\begin{center}
+  \begin{tabular}{|l|l|}
+    Michelson & OCaml \\\hline
+    \texttt{string}& \texttt{string}  \\
+    \texttt{nat} & ? (\texttt{int}) \\
+    \texttt{int} & \texttt{int} \\ 
+    \texttt{bytes}& ? \\
+    \texttt{bool}&\texttt{bool} \\
+    \texttt{unit}&\texttt{unit} \\
+    \texttt{list t}&\texttt{t list} \\
+    \texttt{pair l r}&\texttt{l * r} \\
+    \texttt{option t}     &\texttt{t option} \\
+    \texttt{or l r}&\texttt{[`Left of l | `Right of r]} \\
+    \texttt{set t}&? \texttt{Set.Make (T).t} \\
+    \texttt{map k t}&? \texttt{`t Map.Make(K).t} \\
+    \texttt{big\_map k t}&? \texttt{`t Map.Make(K).t} \\
+    \hline
+  \end{tabular}
+\end{center}
+
+\section{Tasks}
+\label{sec:tasks}
+
+We can represent Michelson parameter values with the following OCaml type using GADTs.
+\begin{lstlisting}[language=Caml]
+type _ Mvalue =
+  | Mstring : string -> string Mvalue
+  | Mint  : int -> int Mvalue
+  | Mbool : bool -> bool Mvalue
+  | Munit : unit -> unit Mvalue
+  | Mnil  : 't list Mvalue
+  | Mcons : 't Mvalue * 't list Mvalue -> 't list Mvalue
+  | Mpair : 'l Mvalue * 'r Mvalue -> ('l * 'r) Mvalue
+  | Mnone : 't option Mvalue
+  | Msome : 't Mvalue -> 't option Mvalue
+  | Mleft : 'l Mvalue -> [`Left of 'l | `Right 'r] Mvalue
+  | Mright : 'r Mvalue -> [`Left of 'l | `Right 'r] Mvalue
+\end{lstlisting}
+
+\begin{lstlisting}[language=Caml]
+type _ Mtype = 
+  | Tstring : string Mtype
+  | Tint    : int Mtype
+  | Tbool   : bool Mtype
+  | Tunit   : unit Mtype
+  | Tlist   : 't Mtype -> 't list Mtype
+  | Tpair   : 'l Mtype * 'r Mtype -> ('l * 'r) Mtype
+  | Toption : 't Mtype -> 't option Mtype
+  | Tor     : 'l Mtype * 'r Mtype 
+            -> [`Left of 'l | `Right of 'r] Mtype
+\end{lstlisting}
+Instead of using polymorphic variants, one could also define a binary
+sum type like Haskell's Either type.
+\begin{lstlisting}[language=Caml]
+type ('a, 'b) either = Left of 'a | Right of 'b
+\end{lstlisting}
+
+To read input values, we'd need a function like the following.
+\begin{lstlisting}[language=Caml]
+mread : 't Mtype -> 't -> 't Mvalue
+\end{lstlisting}
+
+Or given a contract for index type \lstinline/t/, we'd have an
+invocation function
+\begin{lstlisting}[language=Caml]
+invoke : 't Mtype Tezos.contract -> 't -> result Tezos.apimonad
+\end{lstlisting}
+with an internal serialization function
+\begin{lstlisting}[language=Caml]
+serialize : 't Mtype -> 't -> string
+\end{lstlisting}
+Not sure if deserialization is also needed, but it might be necessary
+to decode the current state of a contract. Deserialization may fail
+and thus raise an exception.
+\begin{lstlisting}[language=Caml]
+deserialize : 't Mtype -> string -> 't
+\end{lstlisting}
+
+One can get rid of the \lstinline/Mtype/ datatype by directly
+composing serializers in tagless style. I think. But having the type
+representation might be more flexible.
+\begin{lstlisting}[language=Caml]
+s_string : string -> string
+s_int : int -> string
+s_bool : bool -> string
+s_unit : unit -> string
+s_list : ('t -> string) -> ('t list -> string)
+s_pair : ('l -> string) -> ('r -> string) -> ('l * 'r -> string)
+s_option : ('t -> string) -> ('t option -> string)
+s_or : ('l -> string) -> ('r -> string) 
+     -> ([`Left of 'l | `Right of 'r] -> string)
+\end{lstlisting}
+
+Example
+\begin{lstlisting}[language=Caml]
+mytype = Tor (Tbool, Toption (Tstring))
+myserializer = serialize mytype : 
+               [`Left of bool | `Right of string option] -> string
+
+tlserializer = s_or s_bool (s_option s_string) :
+               [`Left of bool | `Right of string option] -> string
+\end{lstlisting}
+
+Query the Tezos blockchain for the type of a contract and its
+entrypoints.
+\begin{lstlisting}[language=Caml]
+make_typed_contract : contract_hash -> 't Mtype -> 't Contract
+\end{lstlisting}
+The function call \lstinline/make_typed_contract hash mty/ would query
+the node (via client lib or rpc) for the type of the contract
+\lstinline/hash/ and check it against \lstinline/mty/.
+This call fails if the type \lstinline/mty/ does not match the
+stored type of the contract.
+The returned value contains the serializer from \lstinline/'t -> string/.
+\begin{lstlisting}[language=Caml]
+invoke_typed : 't Contract -> 't -> result Tezos.apimonad
+\end{lstlisting}
+\end{document}
+

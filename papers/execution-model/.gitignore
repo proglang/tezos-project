@@ -1,0 +1,7 @@
+*.aux
+*.log
+*.rel
+my-last-*
+*.synctex.gz
+auto
+model.pdf

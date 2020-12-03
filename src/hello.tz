@@ -1,0 +1,5 @@
+#hello.tz
+parameter string;
+storage string;
+code {CAR; NIL operation; PAIR;};
+

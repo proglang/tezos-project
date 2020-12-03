@@ -1,0 +1,302 @@
+\documentclass[a4paper]{llncs}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{mathpartir}
+\usepackage{fixme}
+\usepackage{listings}
+
+\lstset{
+  language=caml,
+  morekeywords={contract,entrypoint,module,hash,paid,raises,sig,val},
+  % predefined types
+  classoffset=1,
+  morekeywords={nat,int,unit,string,pukh,status,tz},
+  keywordstyle=\color{blue},
+  classoffset=2,
+  morekeywords={Left,Right},
+  keywordstyle=\color{magenta},
+  backgroundcolor=\color{brown!20},
+  captionpos=b,
+  literate={->}{{$\to$}}1
+}
+
+\lstdefinelanguage{michelson}{
+  % basicstyle=\ttfamily{},
+  classoffset=0,
+  morekeywords={parameter,storage,code},
+  keywordstyle=\bfseries, 
+  % predefined types
+  classoffset=1,
+  morekeywords={nat,int,unit,string,or,pair,option,address},
+  keywordstyle=\color{blue},
+  classoffset=2,
+  morekeywords={CAR,CDR,CONS,DUP,EQ,FAILWITH,IF,IF_LEFT,LE,LEFT,NIL,DROP,PUSH,RIGHT,SENDER,SUB},
+  keywordstyle=\color{magenta},
+  backgroundcolor=\color{pink!20}
+}
+
+\title{Whitepaper: Contract Modules}
+\author{Peter Thiemann}
+\institute{}
+
+\date{\today}
+
+\begin{document}
+\maketitle
+\pagestyle{plain}
+
+\section{Motivation}
+\label{sec:motivation}
+
+
+Consider this Michelson code fragment:
+\begin{lstlisting}[language=michelson,caption={Michelson code example},label={lst:code-example}]
+parameter (or (int %bid_for_auction)
+              (unit %close_auction));
+storage address;
+code { DUP; CAR; 
+       IF_LEFT {
+       # %bid_for_auction
+        DUP; PUSH int 10000; SUB; LE;
+        IF { FAILWITH; } {} # fails with argument value
+        # ...
+        { PUSH string "closed"; FAILWITH; }
+        # ...
+        { PUSH string "bid too low"; FAILWITH; }
+        # ...
+        { PUSH int 42; FAILWITH; }
+        # ...
+       }
+       {
+       # %close_auction
+         DROP; CDR; SENDER; EQ;
+         IF {} { PUSH string "not owner"; FAILWITH; }
+         # ...
+       }
+     }
+\end{lstlisting}
+
+Here is a contract type that describes / specifies the above Michelson code.
+\begin{lstlisting}[caption={Contract module example},label={lst:contract-module-example}]
+contract type MyContract = sig
+  paid entrypoint %bid_for_auction (value : int) 
+  raises "closed"                 (** auction closed*)
+       | "bid too low" as too_low (** bid received is too low *)
+       | 42 as the_answer         (** failwith received argument 42 *)
+       | (_ : int) as failedwith  (** failwith received an integer arg *)
+
+  entrypoint %close_auction (_ : unit)
+  raises "not owner"         (** caller cannot close the auction *)
+end
+\end{lstlisting}
+
+The body of the \lstinline/sig ... end/ can be stored in a
+\texttt{.tzm} file where the basename matches the one of the
+\texttt{.tz} file. The output is a \texttt{.mli} file which contains a
+valid OCaml signature. In the next step, we are also generating the
+corresponding \texttt{.ml} file implementing the signature.
+
+Each \lstinline/entrypoint/ is mapped to a function. The final pattern
+variable may be a wildcard \lstinline/_/ or an OCaml identifier, which
+is used in generating the implementation. For \lstinline/_/ a standard
+name will be generated.
+
+A \lstinline/paid/ entrypoint requires the caller to specify an amount of tokens to
+accompany the contract invocation. Accordingly, the generated function has an extra
+argument. Otherwise, the entrypoint is unpaid. 
+
+The \lstinline/raises/ clauses specify values that the contract might
+pass to the \texttt{FAILWITH} instruction. The \lstinline/as/ clause
+maps the matched value to an OCaml identifier, which is used to
+generate the corresponding case in the error type. There is a standard
+translation (to be specified) that maps a value without an
+\lstinline/as/ clause to an identifier.
+
+Alternatively and equivalently, the contracts can be specified using
+patterns on the default entrypoint.
+
+\begin{lstlisting}[caption={Alternative syntax for entrypoints},label={lst:alternative-syntax}]
+  paid entrypoint bid_for_auction (Left (_ : int))
+...
+  entrypoint close_auction (Right (_ : unit))
+\end{lstlisting}
+
+The contract module is compiled to an OCaml module which provides a typed API to the
+contract. It includes the documentation comments from the contract
+module. Internally, the typed API builds on the untyped API developed
+by us. 
+
+\begin{lstlisting}[caption={Generated signature},label={lst:generated-signature}]
+module type MyContract =
+sig
+  type bid_for_auction_errors = 
+     | closed       (** auction closed*)
+     | too_low      (** bid received is too low *)
+     | the_answer   (** failwith received argument 42 *)
+     | failedwith of int (** failwith received an integer arg *)
+
+  val bid_for_auction
+    : Tezos.pukh -> ?fee:Tezos.tz -> Tezos.tz
+    -> int -> (Tezos.status, bid_for_auction_errors) Tezos.monad
+
+  type close_auction_errors = 
+     | not_owner    (** caller cannot close the auction *)
+
+  val close_auction
+    : Tezos.pukh -> ?fee:Tezos.tz -> ?amount:Tezos.tz
+    -> unit -> (Tezos.status, close_auction_errors) Tezos.monad
+end
+\end{lstlisting}
+
+\begin{itemize}
+\item The first argument is the public key hash of the caller. 
+\item The \lstinline/paid/ entrypoint requires an \lstinline/amount/
+  argument, which is optional (with default 0) for an unpaid
+  entrypoint.
+\item The \lstinline/fee/ parameter is optional in both
+  cases. It is precomputed and supplied as the default value in the
+  implementation.
+
+  Q (extension): Would it make sense to specify something about fees in the
+  contract module? For example, we might specify a fee schedule which
+  raises the fee until the call is accepted.
+\item The type \lstinline/Tezos.monad/ is defined by the underlying
+  API. The untyped API uses a type \lstinline/Answer.t/. The exact
+  relationship is TBD.
+\item Error reporting assumes that the monad returns a sum type. But
+  things could be handled differently (for the
+  \lstinline/close_auction/entrypoint): by an error continuation of
+  type \lstinline/close_auction_errors -> Answer.t/ or by
+  raising an exception that encapsulates the error type:
+\begin{lstlisting}
+exception Close_Auction_Exn of close_auction_errors
+\end{lstlisting}
+\end{itemize}
+
+If the contract source is available, then an extended type checker verifies that the entry points
+exist and that all failures that may arise during contract execution from a particular entry point
+are covered by the listed cases.
+
+If the contract source is unavailable, then we can obtain it from the
+contract's public hash using an API call. In that case, we would
+specify the hash in the contract.
+\begin{lstlisting}
+sig
+  hash "KT1ThEdxfUcWUwqsdergy..."
+...
+\end{lstlisting}
+
+We propose to treat the remaining errors (i.e., built-in errors
+and failures that are not specifed) like Java's unchecked
+exceptions. That is, the API function throws an exception.
+
+
+\begin{lstlisting}[caption={Generated implementation},label={lst:generated-implementation}]
+(* constant template *)
+open Tezos_api
+open Tezos_serialization (* Tint, Tunit, serialize, ... *)
+
+let failwith_regex = 
+  "A FAILWITH instruction was reached.*"
+let int_regex = 
+  "[+-]?[0-9]+"
+
+(* variable part *)
+let contract_addr = 
+  get_contract "KT1ThEdxfUcWUwqsdergy..." >>=? fun contract -> ???
+
+type bid_for_auction_errors = 
+   | closed       (** auction closed*)
+   | too_low      (** bid received is too low *)
+   | the_answer   (** failwith received argument 42 *)
+   | failedwith of int (** failwith received an integer arg *)
+
+let big_for_auction_errors_map =
+  let open Base in
+  Base.Map.of_alist_exn (module String)
+    [
+      (failwith_regex ^ "closed", closed);
+      (failwith_regex ^ "bid too low", too_low);
+      (failwith_regex ^ "42", the_answer);
+      (failwith_regex ^ int_regex, failedwith (0)); (* badness 10000 *)
+    ]
+  (* inadequate in several ways;
+   * should just generate code instead of using a map*)
+  
+
+let bid_for_auction destination ?(fee=100.0) amount value =
+  ...
+  begin
+    SyncAPIV0.call_contract
+      amount
+      destination
+      contract_addr
+      ~(serialize Tint value)
+      fee
+    >>=? fun oph ->
+    wait_for_inclusion oph (* busy waiting *)
+    >>=? fun _ ->
+    return 0
+  end
+  >>= function
+  | Ok _ -> ...
+  | Error (Rejection Michelson_runtime_error s) -> ...
+
+type close_auction_errors = 
+   | not_owner    (** caller cannot close the auction *)
+
+let close_auction destination ?(fee=50.0) ?(amount=0.0) _ =
+  ...
+  SyncAPIV0.call_contract
+    amount
+    destination
+    contract_addr
+    ~(serialize Tunit)
+    fee
+\end{lstlisting}
+
+
+\clearpage
+\section{Tools}
+\label{sec:tools}
+
+An extended type checker collects information about explicit failures along execution paths
+starting from each possible entry point. This checker will be able to
+verify the contract module specification in
+\ref{lst:contract-module-example} against the Michelson code in
+\ref{lst:code-example}. We may also wish to provide an entry point so
+that the checker only gathers information for that entry point. This alternative may be interesting if there
+is an entry point taking a parameter of sum type, rather than using all injections to distinguish
+between entry points.
+
+The checker should warn about unhandled failures (both checked and unchecked).
+
+The recommended technology for the type checker is symbolic
+execution. In this framework, it would also 
+be possible to specify further invariants about the inputs and place them into the contract
+module. Essentially, every formula that an SMT solver can deal with
+should be fine, although a first version of the symbolic executor
+could work without using SMT.
+
+The checker should also make sure that unpaid entrypoints do not
+depend on a non-zero amount being passed to the contract
+invocation. For example, the \texttt{AMOUNT} instruction of Michelson
+should not be used in the code.  
+
+The checker should precalculate the fee. It essentially obtains
+this value from the Tezos library.
+
+Failures might arise in contracts that are transitively invoked. In
+this case, the checker would obtain the callees' code and process
+it. The first step, not too difficult, in this direction would be to
+approximate the contents of the list of operations that is produced by
+the contract. 
+
+A starting point for the implementation could be the module \lstinline/Tezos_micheline/, which has a
+Michelson parser. 
+
+\end{document}

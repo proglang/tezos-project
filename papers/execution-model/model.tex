@@ -1,0 +1,723 @@
+\documentclass[a4paper]{llncs}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{mathpartir}
+\usepackage{fixme}
+
+\input{macros}
+
+\title{Blockchain System}
+
+\author{}
+\institute{}
+
+\date{\today}
+
+\begin{document}
+\maketitle
+\pagestyle{plain}
+
+\section{Definitions}
+\begin{definition}%[Set]
+Let $\mathbf{Elt}$ be the set of (concrete) elements. Let $\emptyset$ be an empty set and $\mathbf{e}$ $\in$  $\mathbf{Elt}$. A set of elements is expressed as the following syntax:
+\\
+$\mathbf{s} :: = \emptyset \mid \mathbf{e} \mid \mathbf{s :: s}$
+\end{definition}
+
+\subsection{Local Node}
+\label{sec:local-node}
+
+
+\begin{definition}%[Account]
+  An implicit \emph{account} is a tuple $\langle
+  %\ALS,
+  \PAK, \PUK
+  %, \PKH
+  \rangle $, where
+  $\PAK$ is its private key and $\PUK$ is its public key.
+\end{definition}
+
+
+\begin{definition}%[Operation]
+  \emph{Operations} are defined by the following grammar:
+  \begin{align*}
+    \OP &::= \TRANSFER[\PARAMETER]\NTEZ\PUK\ADDR\MTEZ
+    \\&\mid \ORIGINATE\NTEZ\PUK\CODE\INIT\MTEZ
+  \end{align*}
+  where \NTEZ\ and \MTEZ\ are amount of Tez, \ADDR\ is either a public key for an implicit account  or a public hash for a smart contract,  \PARAMETER\ is an argument passed to the smart contract's script, which is emtry if it is a transfer to an implicit account, \CODE\ is a script of the smart contract, \INIT\ is an initial value of the contract's storage.
+\end{definition}
+
+\begin{definition}%[Query]
+\emph{Queries} are defined by the following grammar:
+\begin{align*}
+  \QRY & ::= \GETBALANCE\ADDR
+  \\&\mid \GETSTATUS\OPH
+  \\&\mid \GETSTORAGE\PUH
+  \\&\mid \GETCODE\PUH 
+  \\&\mid \GETCOUNTER\PUK
+\end{align*}
+\end{definition}
+
+\begin{definition}%[Program]
+\emph{Expressions} are defined by the following grammar:
+\begin{align*}
+  \CONSTANT & ::= \ADDR \mid \OPH \mid \PUH \mid\PUK \mid \CODE \mid
+              \NTEZ \mid \SUNIT \mid \FALSE \mid \TRUE \\
+	\EXPR & :: =  \CONSTANT \mid \VARIABLE \mid \lambda \VARIABLE. \EXPR\ 
+	\mid \EXPR\EXPR \mid (\EXPR,\EXPR) \mid \FST\ \EXPR \mid \SND\ \EXPR 	%\mid \NI \EI
+	\\&\mid \EXPR\ \PLUS\ \EXPR\ \mid \EXPR\ \MINUS\ \EXPR\ \mid \EXPR\ \EQUAL\ \EXPR\ \mid \EXPR\ \LESS\ \EXPR
+	\\&\mid \EXPR\ \AND\ \EXPR\ \mid \EXPR\ \OR\ \EXPR\ \mid \NOT\ \EXPR
+  \\&\mid \NIL\ \mid \CONS\ \EXPR\ \EXPR \mid \LEFT\ \EXPR \mid\RIGHT\
+  \EXPR \mid \SOME\ \EXPR \mid \NONE
+  \\& \mid \RAISE\ \EXPR \mid \TRY\ \EXPR\ \EXCEPT\ \EXPR
+  \\& \mid \MATCH\ \EXPR\ \WITH\ \PATTERN\to\EXPR \dots
+  \\& \mid \TRANSFER[\EXPR]\EXPR\EXPR\EXPR\EXPR
+  \\& \mid \ORIGINATE\EXPR\EXPR\EXPR\EXPR\EXPR
+  \\&\mid \QOP\  \EXPR\\
+  \QOP & ::= balance \mid status \mid storage \mid code \mid counter
+\end{align*}
+\end{definition}
+
+\begin{definition}%[State of a node]
+  The \emph{state of a node} is a tuple
+  $\NODE = [ \EXPRS, \ACCOUNTS, \OPERATIONS]$, where $\EXPRS$ is the set of the programs, $\ACCOUNTS$ is a set of
+  accounts, and
+  $\OPERATIONS$ is a set of operations.
+\end{definition}
+
+
+\subsection{Global}
+\label{sec:global}
+
+
+
+\begin{definition}%[Manager]
+A \emph{manager} manages a single implicit account. It is represented by a
+tuple $\langle  \PUK, \BAL, \COU \rangle $, where  $\PUK$ is the
+public key of an account, $\BAL$ is its
+balance and $\COU$ is its counter whose form is a value-flag pair $(n, b)$, where $n$, which is called the value of the counter,  is a natural number and ${b}$, which is called the flag of the counter, is a boolean value.  
+\end{definition}
+
+\begin{definition}%[Contractor]
+  A \emph{contractor} manages a smart contract. It is
+  represented by a tuple
+  $\langle \PUH, \BAL, \CODE, \STORAGE \rangle $, where $\PUH$ is the
+  public hash of the contract, $\BAL$ is its current balance, $\CODE$ is its
+  code, and $\STORAGE$ is its current storage.
+\end{definition}
+
+When an operation is injected in a node, it enters a \emph{pending pool}
+(and is called a \emph{pending operation}). 
+
+ \begin{definition}%[Pending operation]
+A \emph{pending operation} is a tuple  $\langle  \OP, \OPH, \TIME
+\rangle $, where $\OP$ is an operation, $\OPH$ is the operation hash,
+and $\TIME$ is the time when the operation was injected. 
+\end{definition}
+
+After some time, a pending operation may be included in the blockchain as an accepted operation.
+
+ \begin{definition}%[Accepted operation]
+An \emph{accepted operation}  is a tuple $\langle  \OP, \OPH, \TIME, \TIME' \rangle
+$, where $\OP$ is an operation, $\OPH$ is the operation hash, $\TIME$ is the time when the operation was injected, and
+$\TIME'$ is the time when it was included in the blockchain. 
+\end{definition}
+
+\begin{definition}%[Blockchain]
+  The \emph{state of a blockchain} is a tuple
+  $[\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$ where
+  $\PENDING$ is a set of pending operations,  $\ACCEPTED$ is a set
+  of accepted operations, $\MANAGERS$ is a set of managers,
+  $\CONTRACTORS$ is a set of contractors, and $\TIME$ is the current time. 
+\end{definition}
+
+\begin{definition}%[Blockchain system]
+A \emph{blockchain configuration} is a pair
+$ \NODE \| \BLOCKCHAIN$ where
+\fxnote[inline]{Should the model contain multiple nodes?}
+\begin{enumerate}
+\item $\NODE = [\ACCOUNTS, \OPERATIONS]$ is the state of a node, and
+\item $\BLOCKCHAIN = [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$ is the state of a blockchain 
+  such that $\forall c \in \ACCOUNTS \implies \exists k\in \MANAGERS, k.\PUK = c.\PUK$.
+\end{enumerate}
+\end{definition}
+
+\clearpage{}
+\section{Rules}
+
+\begin{mathpar}
+  \inferrule[Node-Eval]
+  {
+    \EXPR \ExprTrans \EXPR'
+  }{
+    [\EC\EXPR :: \EXPRS, \ACCOUNTS, \OPERATIONS] \NodeTrans{}
+    [\EC{\EXPR'} :: \EXPRS, \ACCOUNTS, \OPERATIONS]
+  }
+\end{mathpar}
+
+
+\begin{mathpar}
+  \inferrule[Node-Op']
+    {
+    \Angle{\PAK,\OP.\PUK} \in \ACCOUNTS
+  }{
+    [\EC\OP :: \EXPRS, \ACCOUNTS, \OPERATIONS] \NodeTrans{}
+    [\EXPRS, \ACCOUNTS, (\EC{},\OP):: \OPERATIONS]
+  }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule{
+    \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+    \CHECKCOU (\MANAGERS, \PUK) \\
+    \CHECKPUB (\MANAGERS, \PUK') \\
+    \CHECKGAS (\PUK, \PUK', \NTEZ, \MTEZ) \\
+    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \OPH = \GENERATEOPH (\PUK, \PUK', \NTEZ, \MTEZ, \TIME)
+  }{
+   { [\EXPRS, \ACCOUNTS, (\EC{},\OP) :: \OPERATIONS] \| [\PENDING,
+     \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans \\
+   { [\EC{?\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
+     [ \Angle{\OP,\OPH, \TIME}
+     ::\PENDING,
+     \ACCEPTED,
+     \UPDATECOU(\MANAGERS, \PUK, \TRUE),
+     \CONTRACTORS,
+     \TIME]
+   }
+  }
+\end{mathpar}
+
+
+\begin{mathpar}
+  \inferrule[Block-Accept'']{
+    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \TIME'-\TIME < 60
+  }{
+    { [\EC{?\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
+      [\Angle{\OP,\OPH, \TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
+      \CONTRACTORS, \TIME']}
+    \SystemTrans  \\
+    { [\EC{\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
+      [\PENDING, \Angle{\OP,\OPH, \TIME,\TIME'} :: \ACCEPTED,
+      \UPDATESUCC(\MANAGERS, \PUK, \PUK', \NTEZ, \MTEZ),
+      \CONTRACTORS, \TIME'+1]}
+  }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule[Block-Timeout'']{
+    \OP = \TRANSFER[\STRING]\NTEZ\PUK\ADDR\MTEZ \\
+    \TIME'-\TIME \ge 60
+  }{ [\EC{?\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
+    {[\Angle{\OP,\OPH, \TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
+      \CONTRACTORS, \TIME']}
+    \SystemTrans \\
+    { [\EC{\RAISE timeout}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS, \PUK, \FALSE),
+      \CONTRACTORS, \TIME']}
+  }
+\end{mathpar}
+
+\subsection{Transitions on Nodes}
+\label{sec:transitions-nodes}
+
+Each node has (nondeterministic) rules to propose an operation.
+When an operation $\OP$ appears, we check that the account is local by
+looking up its public key $\OP.\PUK$ in the local accounts $\ACCOUNTS$ and
+consider it signed with the corresponding private key $\PAK$.
+
+\begin{mathpar}
+  \inferrule[Node-Op]
+  {
+    \Angle{\PAK,\OP.\PUK} \in \ACCOUNTS
+  }{
+    [\EXPRS, \ACCOUNTS, \OPERATIONS]
+    \NodeTrans{}
+    [\EXPRS, \ACCOUNTS, \OP:: \OPERATIONS]
+  }
+  
+  \inferrule[Node-Oph]
+  {
+   \\
+  }{
+    [\EC\OP :: \EXPRS, \ACCOUNTS, \OPERATIONS]
+    \NodeTrans{}
+    [\EC\OPH :: \EXPRS, \ACCOUNTS, \OPERATIONS]
+  }
+
+  \inferrule[Node-System]
+  {\NODE \NodeTrans \NODE'}
+  { {\NODE :: \overline\NODE \| \BLOCKCHAIN}
+    \SystemTrans
+    {\NODE' :: \overline\NODE \| \BLOCKCHAIN}}
+
+  \inferrule[Block-System]
+  {\BLOCKCHAIN \BlockTrans \BLOCKCHAIN'}
+  { {\overline\NODE \| \BLOCKCHAIN}
+    \SystemTrans
+    {\overline\NODE\| \BLOCKCHAIN'}}
+\end{mathpar}
+
+\subsection{Transfers}
+
+
+Rule 1 [injected]:
+
+\begin{mathpar}
+  \inferrule{
+    \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+    \CHECKCOU (\MANAGERS, \PUK) \\
+    \CHECKPUB (\MANAGERS, \PUK') \\
+    \CHECKGAS (\PUK, \PUK', \NTEZ, \MTEZ) \\
+    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \OPH = \GENERATEOPH (\PUK, \PUK', \NTEZ, \MTEZ, \TIME)
+  }{
+   { [\ACCOUNTS, \OP :: \OPERATIONS] \| [\PENDING,
+     \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans \\
+   { [\ACCOUNTS, \OPERATIONS] \|
+     [ \Angle{\OP,\OPH, \TIME}
+     ::\PENDING,
+     \ACCEPTED,
+     \UPDATECOU(\MANAGERS, \PUK, \TRUE),
+     \CONTRACTORS,
+     \TIME]
+   }
+  }
+\end{mathpar}
+~\\
+~\\
+Rule 2 [rejected of counter]:
+\begin{mathpar}
+  \inferrule{
+    %\NEG\ \CHECKCOU (\MANAGERS, \PUK)\\
+    %\OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \NEG\ \CHECKCOU (\MANAGERS, \PUK) \\
+    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+  }{
+   { [\ACCOUNTS, \OP :: \OPERATIONS] \| [\PENDING,
+     \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans
+   { [\ACCOUNTS, \OPERATIONS] \|
+     [ \PENDING,
+     \ACCEPTED,
+     \MANAGERS,
+     \CONTRACTORS,
+     \TIME]
+   }
+  }
+\end{mathpar}
+~\\
+~\\
+Rule 3 [rejected of balance]:
+\begin{mathpar}
+  \inferrule{
+    \NEG\ \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+  }{
+   { [\ACCOUNTS, \OP :: \OPERATIONS] \| [\PENDING,
+     \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans
+   { [\ACCOUNTS, \OPERATIONS] \|
+     [ \PENDING,
+     \ACCEPTED,
+     \MANAGERS,
+     \CONTRACTORS,
+     \TIME]
+   }
+  }
+\end{mathpar}
+~\\
+~\\
+Rule 4 [rejected of public key]:
+\begin{mathpar}
+  \inferrule{
+    \NEG\ \CHECKPUB (\MANAGERS, \PUK') \\
+    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+  }{
+   { [\ACCOUNTS, \OP :: \OPERATIONS] \| [\PENDING,
+     \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans
+   { [\ACCOUNTS, \OPERATIONS] \|
+     [ \PENDING,
+     \ACCEPTED,
+     \MANAGERS,
+     \CONTRACTORS,
+     \TIME]
+   }
+  }
+\end{mathpar}
+~\\
+~\\
+Rule 5 [rejected of fee]:
+\begin{mathpar}
+  \inferrule{
+    \NEG\ \CHECKGAS (\PUK, \PUK', \NTEZ, \MTEZ) \\
+    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+  }{
+   { [\ACCOUNTS, \OP :: \OPERATIONS] \| [\PENDING,
+     \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans
+   { [\ACCOUNTS, \OPERATIONS] \|
+     [ \PENDING,
+     \ACCEPTED,
+     \MANAGERS,
+     \CONTRACTORS,
+     \TIME]
+   }
+  }
+\end{mathpar}
+~\\
+~\\
+Rule 6 [included]:
+\begin{mathpar}
+  \inferrule[Block-Accept]{
+    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \TIME'-\TIME < 60
+  }{
+    {[\Angle{\OP,\OPH, \TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
+      \CONTRACTORS, \TIME']}
+    \BlockTrans  \\
+    {[\PENDING, \Angle{\OP,\OPH, \TIME,\TIME'} :: \ACCEPTED,
+      \UPDATESUCC(\MANAGERS, \PUK, \PUK', \NTEZ, \MTEZ),
+      \CONTRACTORS, \TIME'+1]}
+  }
+\end{mathpar}
+Rule 7 [timeout]: (applies to both, implicit transfers and contract invocations)
+\begin{mathpar}
+  \inferrule[Block-Timeout]{
+    \OP = \TRANSFER[\STRING]\NTEZ\PUK\ADDR\MTEZ \\
+    \TIME'-\TIME \ge 60
+  }{
+    {[\Angle{\OP,\OPH, \TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
+      \CONTRACTORS, \TIME']}
+    \BlockTrans
+    {[\PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS, \PUK, \FALSE),
+      \CONTRACTORS, \TIME']}
+  }
+\end{mathpar}
+
+\subsection{Smart Contracts}
+A. Originate
+~\\
+~\\
+Rule 1 [injected]:
+
+\begin{mathpar}
+  \inferrule[Block-Originate]{
+    \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+    \CHECKCOU (\MANAGERS, \PUK) \\
+    \CHECKGAS (\CODE, \INIT, \NTEZ, \MTEZ)  \\
+    \CHECKPRG (\CODE, \STRING) \\\\
+    \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ \\
+    \OPH = \GENERATEOPH(\PUK, \CODE, \NTEZ, \MTEZ, \STRING,\TIME) 
+  }{
+    [
+      \ACCOUNTS, \OP :: \OPERATIONS
+      ] \| [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] \to \\
+    [\ACCOUNTS, \OPERATIONS] \|
+      [\Angle{\OP, \OPH,\TIME} :: \PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS,\PUK,\TRUE), \CONTRACTORS, \TIME]
+  }
+\end{mathpar}
+~\\
+~\\
+Rule 2 [rejected of code]:
+\begin{mathpar}
+  \inferrule{
+    \NEG\ \CHECKPRG (\CODE, \STRING) \\
+    \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ
+  }{
+    [
+      \ACCOUNTS, \OP :: \OPERATIONS
+      ] \| [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] \to 
+    [\ACCOUNTS, \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]
+  }
+\end{mathpar}
+~\\
+~\\
+Rule 3 [rejected of counter]:
+\begin{mathpar}
+  \inferrule{
+    \NEG\ \CHECKCOU (\MANAGERS, \PUK) \\
+    \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ
+  }{
+    [
+      \ACCOUNTS, \OP :: \OPERATIONS
+      ] \| [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] \to
+    [\ACCOUNTS, \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]
+  }
+\end{mathpar}
+~\\
+~\\
+Rule 4 [rejected of balance]:
+\begin{mathpar}
+  \inferrule{
+    \NEG\ \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+    \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ
+  }{
+    [
+      \ACCOUNTS, \OP :: \OPERATIONS
+      ] \| [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] \to 
+    [\ACCOUNTS, \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]
+  }
+\end{mathpar}
+~\\
+~\\
+Rule 5 [rejected of fee]:
+\begin{mathpar}
+  \inferrule{
+    \NEG\ \CHECKGAS (\CODE, \INIT, \NTEZ, \MTEZ) \\
+    \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ
+  }{
+    [
+      \ACCOUNTS, \OP :: \OPERATIONS
+      ] \| [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] \to 
+    [\ACCOUNTS, \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]
+  }
+\end{mathpar}
+~\\
+~\\
+Rule 6 [included]:
+\begin{mathpar}
+  \inferrule[Block-Accept]{
+    \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ \\
+    \TIME'-\TIME < 60
+  }{
+      [\Angle{\OP, \OPH,\TIME} :: \PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME']
+    \SystemTrans
+      [\PENDING, \Angle{\OP, \OPH,\TIME,\TIME'} ::  \ACCEPTED, \UPDATESUCC
+      (\MANAGERS, \PUK, \NTEZ, \MTEZ), \\ \Angle{\GENERATEHASH(\CODE, \INIT, \TIME, \TIME'), \NTEZ, \CODE, \STRING} :: \CONTRACTORS, \TIME'+1]
+  }
+\end{mathpar}
+~\\
+~\\
+Rule 7 [timeout]:
+\begin{mathpar}
+  \inferrule[Block-Timeout]{
+    \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ \\
+    \TIME'-\TIME \ge 60
+}{
+    %\Angle{[\ACCOUNTS, \OPERATIONS, \CONTRACTS],
+      [\Angle{\OP, \OPH,\TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
+      \CONTRACTORS, \TIME']
+    %}
+    \BlockTrans
+    % \Angle{[\ACCOUNTS, \OPERATIONS, \CONTRACTS],
+      [\PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS,\PUK,\FALSE), \CONTRACTORS, \TIME']
+    % }
+}
+\end{mathpar}
+~\\
+~\\
+B. \textbf{Transfer}
+~\\
+~\\
+Rule 1 [injected]:
+\begin{mathpar}
+  \inferrule[Block-Call]{
+    \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+    \CHECKCOU (\MANAGERS, \PUK) \\
+    \CHECKPUH (\CONTRACTORS, \PUH) \\
+    \CHECKARG (\CONTRACTORS, \PUH, \PARAMETER) \\
+    \CHECKGAS (\CONTRACTORS, \PUH, \PARAMETER, \MTEZ) \\
+    \OP =  \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ \\
+    \OPH = \GENERATEOPH (\PUK,\PUH, \PARAMETER,\NTEZ, \MTEZ, \TIME)
+  }{[\ACCOUNTS, \OP :: \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]      
+    \SystemTrans \\
+    [\ACCOUNTS, \OPERATIONS] \|
+      [\Angle{\OP, \OPH, \TIME} :: \PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS, \PUK, \TRUE), \CONTRACTORS, \TIME]}
+\end{mathpar}
+~\\
+~\\
+Rule 2 [rejected of counter]:
+\begin{mathpar}
+  \inferrule{
+    \NEG\ \CHECKCOU (\MANAGERS, \PUK) \\
+    \OP = \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ \\
+  }{[\ACCOUNTS, \OP :: \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]      
+    \SystemTrans
+    [\ACCOUNTS, \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]}
+\end{mathpar}
+~\\
+~\\
+Rule 3 [rejected of balance]:
+\begin{mathpar}
+  \inferrule{
+    \NEG\ \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+    \OP = \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ \\
+  }{[\ACCOUNTS, \OP :: \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]      
+    \SystemTrans
+    [\ACCOUNTS, \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]}
+\end{mathpar}
+~\\
+~\\
+Rule 4 [rejected of public hash]:
+\begin{mathpar}
+  \inferrule{
+    \NEG\ \CHECKPUH (\CONTRACTORS, \PUH)\\
+    \OP = \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ \\
+  }{[\ACCOUNTS, \OP :: \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]      
+    \SystemTrans
+    [\ACCOUNTS, \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]}
+\end{mathpar}
+~\\
+~\\
+Rule 5 [rejected of argument]:
+\begin{mathpar}
+  \inferrule{
+    \NEG\ \CHECKARG (\CONTRACTORS, \PUH, \PARAMETER)\\
+    \OP = \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ \\
+  }{[\ACCOUNTS, \OP :: \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]      
+    \SystemTrans
+    [\ACCOUNTS, \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]}
+\end{mathpar}
+~\\
+~\\
+Rule 6 [rejected of fee]:
+\begin{mathpar}
+  \inferrule{
+    \NEG\ \CHECKGAS (\CONTRACTORS, \PUH, \PARAMETER, \MTEZ)\\
+    \OP = \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ \\
+  }{[\ACCOUNTS, \OP :: \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]      
+    \SystemTrans
+    [\ACCOUNTS, \OPERATIONS] \|
+      [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]}
+\end{mathpar}
+~\\
+~\\
+Rule 7 [included]:
+\begin{mathpar}
+  \inferrule{
+    \OP = \TRANSFER[\PARAMETER]\NTEZ\PUK\PUH\MTEZ \\
+    \TIME'-\TIME < 60
+  }{
+    [\Angle{\OP, \OPH, \TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
+    \CONTRACTORS, \TIME']
+    \BlockTrans \\
+    [\PENDING,
+    \Angle{\OP,\OPH, \TIME, \TIME'} :: \ACCEPTED,
+    \UPDATESUCC (\MANAGERS, \PUK, '', \NTEZ, \MTEZ),
+    \UPDATECONSTR (\CONTRACTORS, \PUH, \NTEZ, \PARAMETER),
+    \TIME'+1]
+  }
+\end{mathpar}
+\section{Queries}
+Query 1 [balance of an account]:
+\begin{mathpar}
+  \inferrule{
+    \BLOCKCHAIN = 
+      [\PENDING, \ACCEPTED,  \Angle{\PUK, \BAL, \COU} :: \MANAGERS, \CONTRACTORS, \TIME]
+  }{[\epsilon[\GETBALANCE\PUK] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\BAL] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
+\end{mathpar}
+~\\
+~\\
+Query 2 [balance of smart contract]:
+\begin{mathpar}
+  \inferrule{
+    \BLOCKSYSTEM = 
+      [\PENDING, \ACCEPTED,  \MANAGERS, \Angle{\PUH, \BAL, \CODE, \STORAGE} :: \CONTRACTORS, \TIME]
+  }{[\epsilon[\GETBALANCE\PUH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\BAL] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
+\end{mathpar}
+~\\
+~\\
+Query 3 [storage]:
+\begin{mathpar}
+  \inferrule{
+    \BLOCKSYSTEM = 
+      [\PENDING, \ACCEPTED,  \MANAGERS, \Angle{\PUH, \BAL, \CODE, \STORAGE} :: \CONTRACTORS, \TIME]
+  }{[\epsilon[\GETSTORAGE\PUH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\STORAGE] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
+\end{mathpar}
+~\\
+~\\
+Query 4 [code]:
+\begin{mathpar}
+  \inferrule{
+    \BLOCKSYSTEM = 
+      [\PENDING, \ACCEPTED,  \MANAGERS, \Angle{\PUH, \BAL, \CODE, \STORAGE} :: \CONTRACTORS, \TIME]
+  }{[\epsilon[\GETCODE\PUH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\CODE] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
+\end{mathpar}
+~\\
+~\\
+Query 5 [counter]:
+\begin{mathpar}
+  \inferrule{
+    \BLOCKSYSTEM = 
+      [\PENDING, \ACCEPTED,  \Angle{\PUK, \BAL, \COU} :: \MANAGERS, \CONTRACTORS, \TIME]
+  }{[\epsilon[\GETCOUNTER\PUK] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\COU] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
+\end{mathpar}
+~\\
+~\\
+Query 6 [status-pending]:
+\begin{mathpar}
+  \inferrule{
+    \BLOCKSYSTEM = 
+      [\Angle{\OP, \OPH, \TIME} :: \PENDING, \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]
+  }{[\epsilon[\GETSTATUS\OPH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\STATUSPENDING] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
+\end{mathpar}
+~\\
+~\\
+Query 7 [status-including]:
+\begin{mathpar}
+  \inferrule{
+    \BLOCKSYSTEM = 
+      [\PENDING, \Angle{\OP, \OPH, \TIME, \TIME'} :: \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]
+  }{[\epsilon[\GETSTATUS\OPH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans [\epsilon[\STATUSINCLUDING] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
+\end{mathpar}
+~\\
+~\\
+
+\section{Functions}
+\begin{enumerate}
+    \item Function \CHECKPUB (\PUK, \MANAGERS)\ checks whether a public key \PUK\ exists in \MANAGERS.
+    \item Function \CHECKPUH (\PUH, \CONTRACTORS)\ checks whether a public hash \PUH\ exists in \CONTRACTORS.
+    \item Function \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) checks whether the balance of the account that associates with the public key \PUK\ is greater or equal to \NTEZ\ plus \MTEZ.
+    \item Function \CHECKCOU (\MANAGERS, \PUK)\ checks whether the current counter of an account that associates with the public key \PUK\ is unlocked (its flag is False).
+
+    \item Function \UPDATESUCC(\MANAGERS, \PUK, \PUK', \NTEZ, \MTEZ) updates the balance and the counter of the account that associates with the public key \PUK\ and the balance of the account that associates with the public key \PUK', where
+    \begin{itemize}
+        \item[]  $\langle  \PUK, \BAL, (\NTEZ, \TRUE) \rangle $ $\Rightarrow$ $\langle  \PUK, \BAL - \NTEZ - \MTEZ, (\NTEZ + 1, \FALSE) \rangle $      
+        \item[] $\langle  \PUK', \BAL', \COU' \rangle$ $\Rightarrow$ $\langle  \PUK', \BAL' + \NTEZ, \COU' \rangle $         
+    \end{itemize}
+    
+    \item Function \UPDATECOU(\MANAGERS, \PUK, \BOOLEAN) updates the counter flag (True $=$ locked, False $=$ unlocked) of the account that associates with the public key \PUK, where
+    \begin{itemize}
+        \item[]  $\langle  \PUK, \BAL, (\NTEZ, \BOOLEAN') \rangle $ $\Rightarrow$ $\langle  \PUK, \BAL, (\NTEZ, \BOOLEAN) \rangle $ 
+    \end{itemize}
+    
+    \item Function  \UPDATECONSTR (\CONTRACTORS, \PUH, \NTEZ, \PARAMETER) updates the contractor that associates with the public hash \PUH\, where
+    \begin{itemize}
+        \item[] $\langle  \PUH, \BAL, \CODE, \STORAGE, \rangle $ $\Rightarrow$ $\langle  \PUH, \BAL + \NTEZ, \CODE, \\ \UPDATESTORAGE(\STORAGE,\CODE,\PARAMETER) \rangle $
+    \end{itemize}
+    
+    \item Function \CHECKPRG (\CODE, {\INIT /\PARAMETER}) checks whether the code \CODE\ and the initil stogare's valude (or the input parameter \PARAMETER) are well type.
+   % \item Function \CHECKGAS(\CODE, \INIT, \MTEZ) checks whether the gas that is consumed to run the code \CODE\ for the initial value \INIT\ is less or equal to \MTEZ.
+    \item Function \CHECKGAS (...) checks whether the fee that is consumed to emit the opertion is less or equal to the fee \MTEZ. 
+    %run the code \CODE\ that associates with the public hash \PUH\ for the paremeter \PARAMETER\ is less or equal to \MTEZ.
+    \item Function \GENERATEOPH (\PUK, {\ADDR /\CODE}, \NTEZ, \MTEZ, {\INIT /\PARAMETER}, \TIME) generates an operation hash.
+
+    \item Function \GENERATEHASH (\CODE, \INIT, \TIME, \TIME')  generates the public hash of a smart contract.
+     
+    \item Function \UPDATESTORAGE(\STORAGE, \CODE,  \PARAMETER) returns the new storage by running the code \CODE\ on the  storage  \STORAGE\ with  the input parameter \PARAMETER.
+\end{enumerate}
+\end{document}
