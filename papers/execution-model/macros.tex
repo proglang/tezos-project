@@ -106,8 +106,9 @@
 \newcommand\GENERATEHASH{\textup{genHash}}
 
 %% transition relations
-\newcommand{\BlockTrans}{\longrightarrow_B}
-\newcommand{\NodeTrans}{\longrightarrow_N}
+\newcommand{\ExprTrans}[1][{}]{\stackrel{#1}\longrightarrow_E}
+\newcommand{\BlockTrans}[1][{}]{\stackrel{#1}\longrightarrow_B}
+\newcommand{\NodeTrans}[1][{}]{\stackrel{#1}\longrightarrow_N}
 \newcommand{\SystemTrans}{\longrightarrow}
 
 %% evaluation contexts
