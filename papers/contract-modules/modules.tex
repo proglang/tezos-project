@@ -83,7 +83,7 @@ code { DUP; CAR;
 Here is a \textbf{contract module} that describes / specifies the above Michelson code.
 \begin{lstlisting}[caption={Contract module example},label={lst:contract-module-example}]
 contract type MyContract = sig
-  paid entrypoint %bid_for_auction (value : int) 
+  paid entrypoint %bid_for_auction (v : int) 
   raises "closed"                 (** auction closed*)
        | "bid too low" as too_low (** bid received is too low *)
        | 42 as the_answer         (** failwith received argument 42 *)
@@ -144,14 +144,16 @@ sig
 
   val bid_for_auction
     : Tezos.pukh -> ?fee:Tezos.tz -> amount:Tezos.tz
-    -> int -> (Tezos.status, bid_for_auction_errors) Tezos.monad
+    -> int
+    -> (Tezos.status, bid_for_auction_errors) Tezos.monad
 
   type close_auction_errors = 
      | not_owner    (** caller cannot close the auction *)
 
   val close_auction
     : Tezos.pukh -> ?fee:Tezos.tz -> ?amount:Tezos.tz
-    -> unit -> (Tezos.status, close_auction_errors) Tezos.monad
+    -> unit
+    -> (Tezos.status, close_auction_errors) Tezos.monad
 end
 \end{lstlisting}
 
@@ -257,13 +259,13 @@ let bid_for_auction destination ?(fee=100.0) amount v =
 type close_auction_errors = 
    | not_owner    (** caller cannot close the auction *)
 
-let close_auction destination ?(fee=50.0) ?(amount=0.0) _ =
+let close_auction destination ?(fee=50.0) ?(amount=0.0) v =
   ...
   SyncAPIV0.call_contract
     amount
     destination
     contract_addr
-    ~(serialize Tunit ())
+    ~(serialize Tunit v)
     fee
 \end{lstlisting}
 This code example is incomplete and likely incorrect. It contains
