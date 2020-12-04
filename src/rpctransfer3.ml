@@ -157,17 +157,20 @@ let createoperationhash signature binary =
 
 let transfer (amount, fromaddr, toaddr, username) = 
 	let counter= getcounter(fromaddr) in
-	let constants=getstorageandgaslimit() in
+	let constants= getstorageandgaslimit() in
 	let constantstoragelimit =constants >>|p2 in  
 	let constgaslimimit=constants >>|p1 in
-	let unsignedrunopjson= createrunopjsonhelper (amount, fromaddr, toaddr, constgaslimimit, constantstoragelimit, counter, getblock()) in
-	let binary1= unsignedrunopjson>>=  operationtobinary  in 
+	let unsignedrunopjson=
+          createrunopjsonhelper (amount, fromaddr, toaddr, constgaslimimit, constantstoragelimit, counter, getblock()) in
+	let binary1= unsignedrunopjson>>= operationtobinary  in 
 	let signature =  binary1 >>= (fun x-> getsig x username) in 
 	let signedrunopjson =  signrunopjson unsignedrunopjson signature in 
 	let runopjson = concatdefjsonlist [signedrunopjson >>|(fun x->(`Assoc [("operation", x)]));createsingljsoneassocfromdef ("chain_id",getchain_id())] in 
-	let response = runopjson >>= (fun x -> posttojson "chains/main/blocks/head/helpers/scripts/run_operation" x) in
+	let response =
+          runopjson >>= posttojson "chains/main/blocks/head/helpers/scripts/run_operation" in
 	let extractedgas = response >>|extractgas in 
-	let unsignedpreapplyjson = createrunopjsonhelper (amount, fromaddr, toaddr, extractedgas, return "0", counter, getblock()) in
+	let unsignedpreapplyjson =
+          createrunopjsonhelper (amount, fromaddr, toaddr, extractedgas, return "0", counter, getblock()) in
 	let binary2= unsignedpreapplyjson>>=  operationtobinary  in 
 	let signature2 =  binary2 >>= (fun x-> getsig x username) in 
 	let signedpreapplyjson = (concatdefjsonlist [(signrunopjson unsignedpreapplyjson signature2) ; createsingljsoneassocfromdef ("protocol",getprotocol())]) >>| (fun x-> `List [x]) in
