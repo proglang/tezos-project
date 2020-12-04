@@ -263,7 +263,7 @@ let close_auction destination ?(fee=50.0) ?(amount=0.0) _ =
     amount
     destination
     contract_addr
-    ~(serialize Tunit)
+    ~(serialize Tunit ())
     fee
 \end{lstlisting}
 This code example is incomplete and likely incorrect. It contains
