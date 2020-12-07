@@ -67,7 +67,8 @@ $\mathbf{s} :: = \emptyset \mid \mathbf{e} \mid \mathbf{s :: s}$
 \begin{align*}
   \CONSTANT & ::= \ADDR \mid \OPH \mid \PUH \mid\PUK \mid \CODE \mid
               \NTEZ \mid \SUNIT \mid \FALSE \mid \TRUE \\
-	\EXPR & :: =  \CONSTANT \mid \VARIABLE \mid \lambda \VARIABLE. \EXPR\ 
+  \STATUS & ::= \STATUSPENDING \mid \STATUSINCLUDING (\dots) \mid \STATUSTIMEOUT \\
+	\EXPR & :: =  \CONSTANT \mid \STATUS \mid \VARIABLE \mid \lambda \VARIABLE. \EXPR\ 
 	\mid \EXPR\EXPR \mid (\EXPR,\EXPR) \mid \FST\ \EXPR \mid \SND\ \EXPR 	%\mid \NI \EI
 	\\&\mid \EXPR\ \PLUS\ \EXPR\ \mid \EXPR\ \MINUS\ \EXPR\ \mid \EXPR\ \EQUAL\ \EXPR\ \mid \EXPR\ \LESS\ \EXPR
 	\\&\mid \EXPR\ \AND\ \EXPR\ \mid \EXPR\ \OR\ \EXPR\ \mid \NOT\ \EXPR
@@ -81,6 +82,23 @@ $\mathbf{s} :: = \emptyset \mid \mathbf{e} \mid \mathbf{s :: s}$
   \QOP & ::= balance \mid status \mid storage \mid code \mid counter
 \end{align*}
 \end{definition}
+
+Example code
+\begin{align*}
+  \OPH &=  \TRANSFER[\EXPR]\EXPR\EXPR\EXPR\EXPR \\
+       & \MATCH\ {status\ \OPH}\ \WITH \\
+       & \mid \STATUSPENDING \to \textrm{not yet included, continue waiting} \\
+       & \mid \STATUSINCLUDING (n) \to \textrm{included with $n$
+         blocks confirmation}\\
+       & \mid \STATUSTIMEOUT \to \textrm{lost, try again}
+\end{align*}
+Grammar of types
+\begin{align*}
+  \TYPE & ::= \ADDR \mid \OPH \mid \PUH \mid \PUK \mid \CODE\ \TYPE \mid
+          \TINT \mid \TUNIT \mid \TBOOL \mid \TSTRING \mid \TSTATUS \\
+  & \mid \TYPE\to\TYPE \mid \TPAIR\ \TYPE\ \TYPE \mid \TLIST\ \TYPE
+    \mid \TSUM\ \TYPE\ \TYPE \mid \TOPTION\ \TYPE \mid \TEXCEPTION
+\end{align*}
 
 \begin{definition}%[State of a node]
   The \emph{state of a node} is a tuple
@@ -171,7 +189,7 @@ $ \NODE \| \BLOCKCHAIN$ where
 \end{mathpar}
 
 \begin{mathpar}
-  \inferrule{
+  \inferrule[Node-Inject']{
     \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
     \CHECKCOU (\MANAGERS, \PUK) \\
     \CHECKPUB (\MANAGERS, \PUK') \\
@@ -181,7 +199,7 @@ $ \NODE \| \BLOCKCHAIN$ where
   }{
    { [\EXPRS, \ACCOUNTS, (\EC{},\OP) :: \OPERATIONS] \| [\PENDING,
      \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans \\
-   { [\EC{?\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
+   { [\EC{\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
      [ \Angle{\OP,\OPH, \TIME}
      ::\PENDING,
      \ACCEPTED,
@@ -198,11 +216,11 @@ $ \NODE \| \BLOCKCHAIN$ where
     \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
     \TIME'-\TIME < 60
   }{
-    { [\EC{?\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
+    { % [\EC{?\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
       [\Angle{\OP,\OPH, \TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
       \CONTRACTORS, \TIME']}
-    \SystemTrans  \\
-    { [\EC{\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
+    \BlockTrans  \\
+    { % [\EC{\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
       [\PENDING, \Angle{\OP,\OPH, \TIME,\TIME'} :: \ACCEPTED,
       \UPDATESUCC(\MANAGERS, \PUK, \PUK', \NTEZ, \MTEZ),
       \CONTRACTORS, \TIME'+1]}
@@ -213,15 +231,30 @@ $ \NODE \| \BLOCKCHAIN$ where
   \inferrule[Block-Timeout'']{
     \OP = \TRANSFER[\STRING]\NTEZ\PUK\ADDR\MTEZ \\
     \TIME'-\TIME \ge 60
-  }{ [\EC{?\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
+  }{ % [\EC{?\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
     {[\Angle{\OP,\OPH, \TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
       \CONTRACTORS, \TIME']}
-    \SystemTrans \\
-    { [\EC{\RAISE timeout}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
+    \BlockTrans 
+    { % [\EC{\RAISE timeout}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
       [\PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS, \PUK, \FALSE),
       \CONTRACTORS, \TIME']}
   }
 \end{mathpar}
+
+\begin{itemize}
+\item library call \texttt{call\_contract} with \texttt{confirmations:None} corresponds to
+  \begin{enumerate}
+  \item{} first \TirName{Node-Op'}, \TirName{Node-Inject'}
+  \item{} first \TirName{Node-Op'}, \TirName{Node-Inject'}
+  \item{} first \TirName{Node-Op'}, \TirName{Node-Reject(balance,count,pubkey,fee)}
+  \end{enumerate}
+\item afterwards must check the status to find whether the
+  transfer is still pending or \TirName{Block-Accept''} or
+  \TirName{Block-Timeout''} has happened.
+\item no further transfer is possible before the status is resolved to
+  accept or timeout.
+\end{itemize}
+
 
 \subsection{Transitions on Nodes}
 \label{sec:transitions-nodes}

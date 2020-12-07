@@ -26,9 +26,10 @@
 \newcommand{\PENDING}{\textbf{P}}
 \newcommand{\ACCEPTED}{\textbf{A}}
 \newcommand{\MANAGERS}{\textbf{M}} 
-\newcommand{\BLOCKSYSTEM}{\textbf{B}} 
+\newcommand{\BLOCKSYSTEM}{\textbf{B}}
 \newcommand{\STATUSPENDING}{\textbf{pending}} 
-\newcommand{\STATUSINCLUDING}{\textbf{including}} 
+\newcommand{\STATUSINCLUDING}{\textbf{including}}
+\newcommand{\STATUSTIMEOUT}{\textbf{timeout}}
 
 %% operations
 \newcommand{\TRANSFER}[5][\SUNIT]{\text{transfer $#2$ from $#3$ to $#4$ arg $#1$ fee $#5$}}
@@ -81,6 +82,17 @@
 \newcommand\SOME{\textbf{some}}
 \newcommand\NONE{\textbf{none}}
 
+\newcommand\TYPE{\textbf{ty}}
+\newcommand\TINT{\textbf{int}}
+\newcommand\TUNIT{\textbf{unit}}
+\newcommand\TBOOL{\textbf{bool}}
+\newcommand\TSTRING{\textbf{string}}
+\newcommand\TSTATUS{\textbf{status}}
+\newcommand\TPAIR{\textbf{pair}}
+\newcommand\TLIST{\textbf{list}}
+\newcommand\TSUM{\textbf{or}}
+\newcommand\TOPTION{\textbf{option}}
+\newcommand\TEXCEPTION{\textbf{exception}}
 
 \newcommand\QOP{\textbf{qop}}
 
@@ -113,3 +125,6 @@
 
 %% evaluation contexts
 \newcommand\EC[1]{\epsilon[#1]}
+
+%% metavariables
+\newcommand\STATUS{\textbf{st}}
