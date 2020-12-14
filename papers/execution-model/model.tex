@@ -67,8 +67,11 @@ $\mathbf{s} :: = \emptyset \mid \mathbf{e} \mid \mathbf{s :: s}$
 \begin{align*}
   \CONSTANT & ::= \ADDR \mid \OPH \mid \PUH \mid\PUK \mid \CODE \mid
               \NTEZ \mid \SUNIT \mid \FALSE \mid \TRUE \\
-  \STATUS & ::= \STATUSPENDING \mid \STATUSINCLUDING (\dots) \mid \STATUSTIMEOUT \\
-	\EXPR & :: =  \CONSTANT \mid \STATUS \mid \VARIABLE \mid \lambda \VARIABLE. \EXPR\ 
+  \STATUS & ::= \STATUSPENDING \mid \STATUSINCLUDING (\dots) \mid
+            \STATUSTIMEOUT \\
+  \ERROR &::= \ERRPRG \mid \ERRBAL \mid \ERRCOUNT \mid \ERRFEE \mid
+           \ERRPUK \mid \ERRPUH \mid \ERRARG\\
+	\EXPR & :: =  \CONSTANT \mid \STATUS \mid \ERROR \mid \VARIABLE \mid \lambda \VARIABLE. \EXPR\ 
 	\mid \EXPR\EXPR \mid (\EXPR,\EXPR) \mid \FST\ \EXPR \mid \SND\ \EXPR 	%\mid \NI \EI
 	\\&\mid \EXPR\ \PLUS\ \EXPR\ \mid \EXPR\ \MINUS\ \EXPR\ \mid \EXPR\ \EQUAL\ \EXPR\ \mid \EXPR\ \LESS\ \EXPR
 	\\&\mid \EXPR\ \AND\ \EXPR\ \mid \EXPR\ \OR\ \EXPR\ \mid \NOT\ \EXPR
@@ -153,14 +156,31 @@ $\TIME'$ is the time when it was included in the blockchain.
   $\CONTRACTORS$ is a set of contractors, and $\TIME$ is the current time. 
 \end{definition}
 
+A \emph{pending operation} is a tuple
+$\langle  \OP, \OPH, \TIME, \STATUSPENDING\rangle $,
+where $\OP$ is an operation, $\OPH$ is the operation hash,
+and $\TIME$ is the time when the operation was injected.
+Once it is accepted, it changes to an \emph{accepted operation}:
+$\langle  \OP, \OPH, \TIME, \STATUSINCLUDED\ \TIME'\rangle $, where
+$\TIME'$ is the  when it was included in the blockchain. 
+
+
+
 \begin{definition}%[Blockchain system]
 A \emph{blockchain configuration} is a pair
 $ \NODE \| \BLOCKCHAIN$ where
 \fxnote[inline]{Should the model contain multiple nodes?}
 \begin{enumerate}
 \item $\NODE = [\ACCOUNTS, \OPERATIONS]$ is the state of a node, and
-\item $\BLOCKCHAIN = [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$ is the state of a blockchain 
-  such that $\forall c \in \ACCOUNTS \implies \exists k\in \MANAGERS, k.\PUK = c.\PUK$.
+\item $\BLOCKCHAIN = [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS,
+  \TIME]$ is the state of a blockchain  
+  such that
+  \begin{itemize}
+  \item
+    $\forall c \in \ACCOUNTS \implies \exists k\in \MANAGERS, k.\PUK =
+    c.\PUK$;
+  \item 
+  \end{itemize}
 \end{enumerate}
 \end{definition}
 
@@ -244,7 +264,6 @@ $ \NODE \| \BLOCKCHAIN$ where
 \begin{itemize}
 \item library call \texttt{call\_contract} with \texttt{confirmations:None} corresponds to
   \begin{enumerate}
-  \item{} first \TirName{Node-Op'}, \TirName{Node-Inject'}
   \item{} first \TirName{Node-Op'}, \TirName{Node-Inject'}
   \item{} first \TirName{Node-Op'}, \TirName{Node-Reject(balance,count,pubkey,fee)}
   \end{enumerate}
@@ -707,7 +726,7 @@ Query 6 [fail of a query for an account]:
   \inferrule{
     \NEG\ \CHECKPUB (\MANAGERS, \PUK) \
   }{[\epsilon[\GETBALANCE\PUK/\GETCOUNTER\PUK] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| [\PENDING, \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]
-    \NodeTrans\\ [\epsilon[\FAIL] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| [\PENDING, \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]}
+    \NodeTrans\\ [\epsilon[\RAISE\ \ERRPUK] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| [\PENDING, \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]}
 \end{mathpar}
 ~\\
 ~\\
@@ -716,7 +735,7 @@ Query 7 [fail of a query for an account]:
   \inferrule{
     \NEG\ \CHECKPUB (\CONTRACTORS, \PUH) 
   }{[\epsilon[\GETBALANCE\PUH/\GETSTORAGE\PUH/\GETCODE\PUH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| [\PENDING, \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]
-    \NodeTrans\\ [\epsilon[\FAIL] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| [\PENDING, \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]}
+    \NodeTrans\\ [\epsilon[\RAISE\ \ERRPUH] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| [\PENDING, \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]}
 \end{mathpar}
 ~\\
 ~\\
@@ -744,7 +763,7 @@ Query 9 [status-including]:
 Query 10 [status-timeout]:
 \begin{mathpar}
   \inferrule{ 
-    \NEG\ \CHECKEXIST (\ADDR, \PENDING, \ACCEPTED)
+    \NEG\ \CHECKEXIST (\OPH, \PENDING, \ACCEPTED)
   }{[\epsilon[\GETSTATUS\OPH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]
     \NodeTrans\ [\epsilon[\STATUSTIMEOUT] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]}
 \end{mathpar}
