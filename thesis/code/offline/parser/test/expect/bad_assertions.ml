@@ -1,49 +1,49 @@
 open Core
-open Print_parsed_ast
+open Parsing.Lex_and_parse
 
 let%expect_test "missing assert" =
-  print_past
+  parse_and_print
    "(entrypoint (b: bool) b)" ;
   [%expect
     {|:1:24: syntax error |}]
 
 let%expect_test "non-expression in if condition" =
-  print_past
+  parse_and_print
    "(entrypoint (b: bool)
       (if (assert true) (assert true)))" ;
   [%expect
     {|:2:18: syntax error |}] 
 
 let%expect_test "expression in if body" =
-  print_past
+  parse_and_print
    "(entrypoint (b: bool)
       (if true true))" ;
   [%expect
       {|:2:20: syntax error |}]
 
 let%expect_test "non-expression in if condition" =
-  print_past
+  parse_and_print
    "(entrypoint (b: bool)
       (if (assert true) (assert true)))" ;
   [%expect
     {|:2:18: syntax error |}] 
 
 let%expect_test "missing if condition" =
-  print_past
+  parse_and_print
    "(entrypoint (b: bool)
       (if (assert true)))" ;
   [%expect
     {|:2:18: syntax error |}] 
 
 let%expect_test "missing if body" =
-  print_past
+  parse_and_print
     "(entrypoint (b: bool)
      (if b ))" ;
   [%expect
       {|:2:13: syntax error |}] 
 
  let%expect_test "missing forall predicate" =
-  print_past
+  parse_and_print
    "(entrypoint _
       (forall
          (assert true)))" ;
@@ -51,14 +51,14 @@ let%expect_test "missing if body" =
    {|:3:17: syntax error |}]
 
   let%expect_test "missing forall body" =
-  print_past
+  parse_and_print
    "(entrypoint _
       (forall (a: int)))" ;
   [%expect
    {|:2:24: syntax error |}]
 
      let%expect_test "missing exists predicate" =
-  print_past
+  parse_and_print
    "(entrypoint _
       (exists
          (assert true)))" ;
@@ -66,21 +66,21 @@ let%expect_test "missing if body" =
    {|:3:17: syntax error |}]
 
   let%expect_test "missing exists body" =
-  print_past
+  parse_and_print
    "(entrypoint _
       (exists (a: int)))" ;
   [%expect
    {|:2:24: syntax error |}]
 
   let%expect_test "quantifier  wrong predicate declaration" =
-  print_past
+  parse_and_print
    "(entrypoint (b: bool)
       (forall (assert true) (assert true)))" ;
   [%expect
     {|:2:22: syntax error |}] 
 
 let%expect_test "expression in quantifier body" =
-  print_past
+  parse_and_print
    "(entrypoint (b: bool)
       (exists (a: int) true))" ;
   [%expect

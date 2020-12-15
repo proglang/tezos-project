@@ -1,10 +1,10 @@
 (* dune runtest *)
 
 open Core
-open Print_parsed_ast
+open Parsing.Lex_and_parse
    
 let%expect_test "with name" =
-  print_past
+  parse_and_print
    " 
   (entrypoint %someName _
   (forall (b:bool)
@@ -22,7 +22,7 @@ let%expect_test "with name" =
         └──Expr: Id:b|}]
 
 let%expect_test "without name" =
-  print_past
+  parse_and_print
    " 
   (entrypoint _
   (forall (b:bool)
@@ -40,7 +40,7 @@ let%expect_test "without name" =
         └──Expr: Id:b|}]
 
 let%expect_test "simple param type" =
-  print_past
+  parse_and_print
    " 
   (entrypoint none
   (forall (b:bool)
@@ -58,7 +58,7 @@ let%expect_test "simple param type" =
         └──Expr: Id:b|}]
 
 let%expect_test "comp param type" =
-  print_past
+  parse_and_print
    " 
   (entrypoint (left (pair _ (a: (list int))))
   (forall (b:bool)
@@ -80,7 +80,7 @@ let%expect_test "comp param type" =
         └──Expr: Id:b|}]
 
 let%expect_test "typed comp pattern" =
-  print_past
+  parse_and_print
    " 
   (entrypoint (a: (pair int bool) )
   (forall (b:bool)

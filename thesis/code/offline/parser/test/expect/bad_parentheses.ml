@@ -1,29 +1,29 @@
 open Core
-open Print_parsed_ast
+open Parsing.Lex_and_parse
 
 let%expect_test "missing module ()" =
-  print_past
+  parse_and_print
    "entrypoint _ 
      (assert true)" ;
   [%expect
     {|:1:11: syntax error |}]
 
 let%expect_test "missing pattern ()" =
-  print_past
+  parse_and_print
    "(entrypoint a:bool
       (assert a))" ;
   [%expect
       {|:1:14: syntax error |}]
 
 let%expect_test "missing composite type ()" =
-  print_past
+  parse_and_print
    "(entrypoint (a: list bool)
       (assert true))" ;
   [%expect
       {|:1:21: syntax error |}]
 
 let%expect_test "wildcard" =
-  print_past
+  parse_and_print
    "(entrypoint ( _ )
       (forall (b:bool)
         (assert b)))" ;
@@ -31,37 +31,37 @@ let%expect_test "wildcard" =
       {|:1:16: syntax error |}]
 
 let%expect_test "missing primitive ()" =
-  print_past
+  parse_and_print
    "(entrypoint _ (assert not false))" ;
   [%expect
       {|:1:26: syntax error |}]
 
 let%expect_test "missing assertion ()" =
-  print_past
+  parse_and_print
    "(entrypoint _ assert true))" ;
   [%expect
       {|:1:21: syntax error |}]
 
 let%expect_test "missing predicate decl ()" =
-  print_past
+  parse_and_print
    "(entrypoint _ (forall i: int (assert true)))" ;
   [%expect
       {|:1:24: syntax error |}]
 
 let%expect_test "unclosed paren style 1" =
-  print_past
+  parse_and_print
    "(entrypoint _ (assert true)" ;
   [%expect
       {|:1:28: syntax error |}]
 
 let%expect_test "unclosed paren style 2" =
-  print_past
+  parse_and_print
    "[entrypoint _ (assert true)" ;
   [%expect
       {|:1:28: syntax error |}]
 
 let%expect_test "mismatched paren" =
-  print_past
+  parse_and_print
    "(entrypoint _ (assert true)]" ;
   [%expect
       {|:1:29: syntax error |}]
