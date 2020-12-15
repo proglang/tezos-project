@@ -1,17 +1,17 @@
 (* dune runtest *)
 
 open Core
-open Print_parsed_ast
+open Parsing.Lex_and_parse
 
 let%expect_test "missing name indicator" =
-  print_past
+  parse_and_print
    "(entrypoint name a
         (assert true))" ;
   [%expect
       {|:1:17: syntax error |}]
 
 let%expect_test "missing type notation" =
-  print_past
+  parse_and_print
    "(entrypoint a
       (forall (b:bool)
         (assert b)))" ;
@@ -19,7 +19,7 @@ let%expect_test "missing type notation" =
     {|:1:14: syntax error |}]
 
 let%expect_test "incomplete pattern" =
-  print_past
+  parse_and_print
    "(entrypoint (pair (a:int))
       (forall (b:bool)
         (assert b)))" ;
@@ -27,7 +27,7 @@ let%expect_test "incomplete pattern" =
     {|:1:27: syntax error |}]
 
 let%expect_test "illegal pattern" =
-  print_past
+  parse_and_print
    "(entrypoint (a: list _)
       (forall (b:bool)
         (assert b)))" ;
@@ -35,7 +35,7 @@ let%expect_test "illegal pattern" =
     {|:1:21: syntax error |}]
 
 let%expect_test "illegal identifier" =
-  print_past
+  parse_and_print
    "(entrypoint ( _a : int)
       (forall (b:bool)
         (assert b)))" ;
@@ -43,7 +43,7 @@ let%expect_test "illegal identifier" =
     {|:1:16: syntax error |}]
 
 let%expect_test "missing entrypoint syntax" =
-  print_past
+  parse_and_print
    "( a: int
       (forall (b:bool)
         (assert b)))" ;
@@ -51,7 +51,7 @@ let%expect_test "missing entrypoint syntax" =
     {|:1:4: syntax error |}]
 
 let%expect_test "missing pattern" =
-  print_past
+  parse_and_print
    "(entrypoint
       (forall (b:bool)
         (assert b)))" ;

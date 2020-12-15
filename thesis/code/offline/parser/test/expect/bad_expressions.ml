@@ -1,22 +1,22 @@
 open Core
-open Print_parsed_ast
+open Parsing.Lex_and_parse
 
 let%expect_test "missing operator bin op" =
-  print_past
+  parse_and_print
    "(entrypoint _ 
       (assert (add 1)))" ;
   [%expect
     {|:2:22: syntax error |}]
 
 let%expect_test "missing operator un op" =
-  print_past
+  parse_and_print
    "(entrypoint _ 
       (assert (size)))" ;
   [%expect
       {|:2:21: syntax error |}]
 
 let%expect_test "assertion in then body" =
-  print_past
+  parse_and_print
    "(entrypoint _
       (assert 
         (if true (assert true) true)))" ;
@@ -24,7 +24,7 @@ let%expect_test "assertion in then body" =
       {|:3:25: syntax error |}]
 
 let%expect_test "assertion in else body" =
-  print_past
+  parse_and_print
    "(entrypoint _
       (assert 
         (if true true (assert true))))" ;
@@ -32,7 +32,7 @@ let%expect_test "assertion in else body" =
       {|:3:30: syntax error |}]
 
 let%expect_test "missing IfThenElse body" =
-  print_past
+  parse_and_print
    "(entrypoint _
       (assert 
         (if true true))" ;

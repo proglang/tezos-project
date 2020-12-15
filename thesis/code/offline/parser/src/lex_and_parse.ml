@@ -1,4 +1,3 @@
-open Parsing
 open Core
 open Lexing
 
@@ -16,16 +15,27 @@ let parse_with_error lexbuf =
     fprintf stderr "%a: syntax error\n" print_position lexbuf;
     None
 
-let rec parse_and_print lexbuf =
+let rec rec_parse_and_print lexbuf =
   match parse_with_error lexbuf with
   | Some x ->
     Pp_ast.pp_ast Fmt.stdout x;
-    parse_and_print lexbuf
+    rec_parse_and_print lexbuf
   | None -> ()
 
-let print_past input_str =
+let parse_and_print input_str =
   let lexbuf = Lexing.from_string input_str in
-  parse_and_print lexbuf
+  rec_parse_and_print lexbuf
 
-(*let () =
-  print_past "(entrypoint none) (forall (b:bool)(assert b)))"*)
+let parse_contract input_str =
+  let lexbuf = Lexing.from_string input_str in
+  let rec rec_parse_contract lxbf = 
+  match parse_with_error lxbf with
+  | Some x ->
+    (x :: (rec_parse_contract lxbf))
+  | None -> []
+  in
+  rec_parse_contract lexbuf
+
+let print_past a =
+  Pp_ast.pp_ast Fmt.stdout a;
+  ()
