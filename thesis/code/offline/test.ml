@@ -9,11 +9,14 @@ let example_contract = {|
         (if (gt n m)
           (assert (gt (nth l1 n) (nth l2 m))))))))|}
 
-let () =
-  match parse_contract example_contract with
-  | parsed :: _ ->
-     Parsing.Pp_ast.pp_ast Fmt.stdout parsed;
-     let transformed = transform parsed in
-     pp_ast Fmt.stdout transformed; ()
+let transform_and_print a =
+  Parsing.Pp_ast.pp_ast Fmt.stdout a;
+  let transformed = transform a in
+  pp_ast Fmt.stdout transformed
+
+let rec transform_and_print_all = function
+  | a :: rest -> transform_and_print a; transform_and_print_all rest
   | [] -> ()
-  
+
+let () = parse_contract example_contract
+         |> transform_and_print_all
