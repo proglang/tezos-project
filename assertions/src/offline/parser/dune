@@ -1,0 +1,8 @@
+(library
+ (name parsing)
+ (libraries core fmt))
+
+(ocamllex lexer)
+
+(menhir
+ (modules parser))
