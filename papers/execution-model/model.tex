@@ -162,7 +162,48 @@ where $\OP$ is an operation, $\OPH$ is the operation hash,
 and $\TIME$ is the time when the operation was injected.
 Once it is accepted, it changes to an \emph{accepted operation}:
 $\langle  \OP, \OPH, \TIME, \STATUSINCLUDED\ \TIME'\rangle $, where
-$\TIME'$ is the  when it was included in the blockchain. 
+$\TIME'> \TIME$ is the  when the operation was included in the blockchain. 
+
+Properties of blockchain state transitions
+
+\begin{align*}
+  P &= \OPH \partialto \OP\times \TIME \times (\STATUSPENDING +
+      \STATUSINCLUDED\ \TIME + \STATUSTIMEOUT)
+\end{align*}
+If $[\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \BlockTrans{}
+[\PENDING', \MANAGERS', \CONTRACTORS', \TIME']$, then
+\begin{itemize}
+\item $\TIME \le \TIME'$
+\item $\DOM (\PENDING) \subseteq \DOM(\PENDING')$
+\item for all $\OPH \in \DOM(P)$, if  $\PENDING (\OPH) = \Angle{\OP, \TIME, \STATUS}$, then 
+  \begin{itemize}
+  \item if $\STATUS = \STATUSTIMEOUT$, then $\PENDING'
+    (\OPH) = \PENDING (\OPH)$
+  \item if $\STATUS = \STATUSINCLUDED\ \TIME'$,
+    then $\PENDING'(\OPH) = \PENDING (\OPH)$
+  \item if $\STATUS  = \STATUSPENDING$, then either
+    \begin{itemize}
+    \item % $\BLOCKCHAIN'.\TIME - \TIME \le 60 $ and
+      $\PENDING' (\OPH) = \PENDING (\OPH)$
+    \item $\PENDING' (\OPH) =       \Angle{\OP, \TIME, \STATUSINCLUDED\ \BLOCKCHAIN.\TIME}$, 
+    \item $\BLOCKCHAIN'.\TIME - \TIME > 60$ and $\PENDING' (\OPH) =
+      \Angle{\OP, \TIME, \STATUSTIMEOUT}$, 
+    \end{itemize}
+  \item $ \DOM (\MANAGERS) \subseteq \DOM (\MANAGERS')$
+    (Q: can accounts disappear? Do we want to model that?)
+  \item for all $\PUK \in \DOM (\MANAGERS)$ if $\MANAGERS (\PUK) =
+    \Angle{\BAL, \COU}$ where $\COU = (n, b)$
+    \begin{itemize}
+    \item if $b= \FALSE$, then $n' = n$
+    \item if $b= \TRUE$ and $b'=\TRUE$, then $n' =n$
+    \item if $b=\TRUE$ and $b'=\FALSE$, then $n' \in \{ n,  n+1\}$
+    \end{itemize}
+
+  \item $ \DOM (\CONTRACTORS) \subseteq \DOM (\CONTRACTORS')$
+
+  \end{itemize}
+
+\end{itemize}
 
 
 
@@ -179,7 +220,8 @@ $ \NODE \| \BLOCKCHAIN$ where
   \item
     $\forall c \in \ACCOUNTS \implies \exists k\in \MANAGERS, k.\PUK =
     c.\PUK$;
-  \item 
+  \item if $\PENDING (\OPH) = \Angle{\OP,\TIME, \STATUSINCLUDED\ \TIME'}$,
+    then $\TIME' > \TIME$
   \end{itemize}
 \end{enumerate}
 \end{definition}
