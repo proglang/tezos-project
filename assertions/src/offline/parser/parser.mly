@@ -14,7 +14,7 @@
 %token ASSERT NTH SIZE
 %token NOT ABS NEG
 %token ADD SUB MUL DIV MOD
-%token OR AND EQ NEQ LT GT LE GE
+%token OR AND XOR LSL LSR EQ NEQ LT GT LE GE
 %token COLON PERCENT WILDCARD
 %token EOF              
 
@@ -120,6 +120,9 @@ binop:
   | MOD {`Mod}
   | OR  {`Or}
   | AND {`And}
+  | XOR {`Xor}
+  | LSL {`Lsl}
+  | LSR {`Lsr}
   | EQ  {`Eq}
   | NEQ {`Neq}
   | LT  {`Lt}

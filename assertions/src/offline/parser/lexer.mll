@@ -83,6 +83,9 @@ rule read =
   | "div"         { DIV }
   | "mod"         { MOD }
   | "and"         { AND }
+  | "xor"         { XOR }
+  | "lsl"         { LSL }
+  | "lsr"         { LSR }
   | "eq"          { EQ }
   | "neq"         { NEQ }
   | "lt"          { LT }

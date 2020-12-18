@@ -55,6 +55,9 @@ type binop = [
   | `Mod
   | `Or
   | `And
+  | `Xor
+  | `Lsl
+  | `Lsr
   | `Eq
   | `Neq
   | `Lt
