@@ -33,7 +33,7 @@ $\mathbf{s} :: = \emptyset \mid \mathbf{e} \mid \mathbf{s :: s}$
 
 
 \begin{definition}%[Account]
-  An implicit \emph{account} is a tuple $\langle
+  An implicit \emph{account} is represented by a key pair $\langle
   %\ALS,
   \PAK, \PUK
   %, \PKH
@@ -84,9 +84,24 @@ $\mathbf{s} :: = \emptyset \mid \mathbf{e} \mid \mathbf{s :: s}$
   \\&\mid \QOP\  \EXPR\\
   \QOP & ::= balance \mid status \mid storage \mid code \mid counter
 \end{align*}
+We let $\EXPRS$ range over sets of expressions.
+
+We let $\ECS$ range over evaluation contexts. They are defined as
+follows.
+\begin{align*}
+  \EC{} & :: = \SC[\overline\VAL\ \EC{}\ \overline\EXPR] \mid \RAISE\ \EC{} \mid \TRY\ \EC{}\ \EXCEPT\ \EXPR
+  \mid \MATCH\ \EC{}\ \WITH\ \PATTERN\to\EXPR \dots
+\end{align*}
+Here $\SC$ ranges over the remaining syntactic constructors, which are
+treated uniformly: evaluation proceeds from left to right.
+\begin{align*}
+  \VAL & ::= \CONSTANT \mid \STATUS \mid \ERROR \mid \lambda x.\EXPR \mid(\VAL, \VAL) \mid
+         \NIL \mid \CONS\ \VAL\ \VAL \mid \LEFT\ \VAL \mid \RIGHT\
+         \VAL \mid \SOME\ \VAL\mid \NONE
+\end{align*}
 \end{definition}
 
-Example code
+Example pseudo code
 \begin{align*}
   \OPH &=  \TRANSFER[\EXPR]\EXPR\EXPR\EXPR\EXPR \\
        & \MATCH\ {status\ \OPH}\ \WITH \\
@@ -97,7 +112,7 @@ Example code
 \end{align*}
 Grammar of types
 \begin{align*}
-  \TYPE & ::= \ADDR \mid \OPH \mid \PUH \mid \PUK \mid \CODE\ \TYPE \mid
+  \TYPE & ::= \TADDR \mid \TOPH \mid \TPUH \mid \TPUK \mid \TCODE\ \TYPE \mid
           \TINT \mid \TUNIT \mid \TBOOL \mid \TSTRING \mid \TSTATUS \\
   & \mid \TYPE\to\TYPE \mid \TPAIR\ \TYPE\ \TYPE \mid \TLIST\ \TYPE
     \mid \TSUM\ \TYPE\ \TYPE \mid \TOPTION\ \TYPE \mid \TEXCEPTION
@@ -105,9 +120,11 @@ Grammar of types
 
 \begin{definition}%[State of a node]
   The \emph{state of a node} is a tuple
-  $\NODE = [ \EXPRS, \ACCOUNTS, \OPERATIONS]$, where $\EXPRS$ is the set of the programs, $\ACCOUNTS$ is a set of
-  accounts, and
-  $\OPERATIONS$ is a set of operations.
+  $\NODE = [ \EXPRS, \ACCOUNTS, \OPERATIONS]$, where $\EXPRS$ is a
+  set of programs, $\ACCOUNTS \subseteq \TPAK \times \TPUK$  is a set of
+  implicit accounts, and
+  $\OPERATIONS \subseteq \ECS \times \TOP $ is a set of pairs of
+  expression contexts and operations.
 \end{definition}
 
 
@@ -117,91 +134,102 @@ Grammar of types
 
 
 \begin{definition}%[Manager]
-A \emph{manager} manages a single implicit account. It is represented by a
-tuple $\langle  \PUK, \BAL, \COU \rangle $, where  $\PUK$ is the
+A \emph{manager} manages a single implicit account. Managers are
+represented by a partial mapping $\MANAGERS : \TPUK \partialto \TBAL
+\times \TCOU$. If $\MANAGERS (\PUK) = \Angle{\BAL, \COU}$ is defined, then  $\PUK$ is the
 public key of an account, $\BAL$ is its
-balance and $\COU$ is its counter whose form is a value-flag pair $(n, b)$, where $n$, which is called the value of the counter,  is a natural number and ${b}$, which is called the flag of the counter, is a boolean value.  
+balance and $\COU$ is its counter whose form is a value-flag pair
+$(n,b) \in \Nat\times\TBOOL$, where $n$ is the value of the counter
+and ${b}$ is its flag.   
 \end{definition}
 
 \begin{definition}%[Contractor]
-  A \emph{contractor} manages a smart contract. It is
-  represented by a tuple
-  $\langle \PUH, \BAL, \CODE, \STORAGE \rangle $, where $\PUH$ is the
-  public hash of the contract, $\BAL$ is its current balance, $\CODE$ is its
+  A \emph{contractor} manages a smart contract. Contractors are
+  represented by a partial mapping $\CONTRACTORS : \TPUH \partialto
+  \TBAL \times \TCODE \times \TSTORAGE$. If $\CONTRACTORS (\PUH) = \langle
+  \BAL, \CODE, \STORAGE \rangle $ is defined, then $\PUH$ is the
+  public hash of a contract, $\BAL$ is its current balance, $\CODE$ is its
   code, and $\STORAGE$ is its current storage.
 \end{definition}
 
-When an operation is injected in a node, it enters a \emph{pending pool}
-(and is called a \emph{pending operation}). 
+When an operation is injected in a node, it enters a \emph{pending
+  pool}. Later on, such a pending operation is either dismissed or
+promoted to an accepted operation.
 
  \begin{definition}%[Pending operation]
-A \emph{pending operation} is a tuple  $\langle  \OP, \OPH, \TIME
-\rangle $, where $\OP$ is an operation, $\OPH$ is the operation hash,
-and $\TIME$ is the time when the operation was injected. 
+An \emph{operation} is represented by a tuple  $\langle  \OP, \TIME, \STATUS
+\rangle $, where $\OP$ is an operation, $\TIME$ is the time when the
+operation was injected, and $\STATUS$ is either $\STATUSPENDING$,
+$\STATUSINCLUDING\ \TIME'$, or $\STATUSTIMEOUT$.  
+\end{definition}
+\begin{definition}
+  The pool of operations is defined as a partial mapping from
+  operation hashes $\OPH$:
+  \begin{align*}
+    \PENDING &= \TOPH \partialto \TOP\times \TTIME \times \TSTATUS \\
+    \TSTATUS&= (\STATUSPENDING + \STATUSINCLUDED\ \TTIME + \STATUSTIMEOUT)
+  \end{align*}
 \end{definition}
 
-After some time, a pending operation may be included in the blockchain as an accepted operation.
 
- \begin{definition}%[Accepted operation]
-An \emph{accepted operation}  is a tuple $\langle  \OP, \OPH, \TIME, \TIME' \rangle
-$, where $\OP$ is an operation, $\OPH$ is the operation hash, $\TIME$ is the time when the operation was injected, and
-$\TIME'$ is the time when it was included in the blockchain. 
-\end{definition}
-
-\begin{definition}%[Blockchain]
-  The \emph{state of a blockchain} is a tuple
-  $[\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]$ where
-  $\PENDING$ is a set of pending operations,  $\ACCEPTED$ is a set
-  of accepted operations, $\MANAGERS$ is a set of managers,
-  $\CONTRACTORS$ is a set of contractors, and $\TIME$ is the current time. 
-\end{definition}
-
-A \emph{pending operation} is a tuple
-$\langle  \OP, \OPH, \TIME, \STATUSPENDING\rangle $,
+A \emph{pending operation} is represented by
+$\langle  \OP, \TIME, \STATUSPENDING\rangle $,
 where $\OP$ is an operation, $\OPH$ is the operation hash,
 and $\TIME$ is the time when the operation was injected.
 Once it is accepted, it changes to an \emph{accepted operation}:
-$\langle  \OP, \OPH, \TIME, \STATUSINCLUDED\ \TIME'\rangle $, where
-$\TIME'> \TIME$ is the  when the operation was included in the blockchain. 
+$\langle  \OP, \TIME, \STATUSINCLUDED\ \TIME'\rangle $, where
+$\TIME'> \TIME$ is the  when the operation was included in the
+blockchain.  The operation can also be dropped at any time, which is
+represented by
+$\langle  \OP, \TIME, \STATUSTIMEOUT\rangle $. There are several
+causes for dropping, primarily timeout or overflow of the pending
+pool which is limited in size in the implementation.
+
+
+% After some time, a pending operation may be included in the blockchain as an accepted operation.
+
+ % \begin{definition}%[Accepted operation]
+% An \emph{accepted operation}  is a tuple $\langle  \OP, \OPH, \TIME, \TIME' \rangle
+% $, where $\OP$ is an operation, $\OPH$ is the operation hash, $\TIME$ is the time when the operation was injected, and
+% $\TIME'$ is the time when it was included in the blockchain. 
+% \end{definition}
+
+\begin{definition}%[Blockchain]
+  The \emph{state of a blockchain} is a tuple
+  $\BLOCKCHAIN = [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]$ where
+  $\PENDING$ is a pool of operations, $\MANAGERS$ is a map of managers,
+  $\CONTRACTORS$ is a map of contractors, and $\TIME$ is the current time. 
+\end{definition}
 
 Properties of blockchain state transitions
 
-\begin{align*}
-  P &= \OPH \partialto \OP\times \TIME \times (\STATUSPENDING +
-      \STATUSINCLUDED\ \TIME + \STATUSTIMEOUT)
-\end{align*}
 If $[\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \BlockTrans{}
 [\PENDING', \MANAGERS', \CONTRACTORS', \TIME']$, then
 \begin{itemize}
 \item $\TIME \le \TIME'$
 \item $\DOM (\PENDING) \subseteq \DOM(\PENDING')$
-\item for all $\OPH \in \DOM(P)$, if  $\PENDING (\OPH) = \Angle{\OP, \TIME, \STATUS}$, then 
+\item for all $\OPH \in \DOM(P)$, if  $\PENDING (\OPH) = \Angle{\OP,
+    \TIME, \STATUS}$, then either
   \begin{itemize}
-  \item if $\STATUS = \STATUSTIMEOUT$, then $\PENDING'
-    (\OPH) = \PENDING (\OPH)$
-  \item if $\STATUS = \STATUSINCLUDED\ \TIME'$,
-    then $\PENDING'(\OPH) = \PENDING (\OPH)$
-  \item if $\STATUS  = \STATUSPENDING$, then either
-    \begin{itemize}
-    \item % $\BLOCKCHAIN'.\TIME - \TIME \le 60 $ and
-      $\PENDING' (\OPH) = \PENDING (\OPH)$
-    \item $\PENDING' (\OPH) =       \Angle{\OP, \TIME, \STATUSINCLUDED\ \BLOCKCHAIN.\TIME}$, 
-    \item $\BLOCKCHAIN'.\TIME - \TIME > 60$ and $\PENDING' (\OPH) =
-      \Angle{\OP, \TIME, \STATUSTIMEOUT}$, 
-    \end{itemize}
-  \item $ \DOM (\MANAGERS) \subseteq \DOM (\MANAGERS')$
-    (Q: can accounts disappear? Do we want to model that?)
-  \item for all $\PUK \in \DOM (\MANAGERS)$ if $\MANAGERS (\PUK) =
-    \Angle{\BAL, \COU}$ where $\COU = (n, b)$
-    \begin{itemize}
-    \item if $b= \FALSE$, then $n' = n$
-    \item if $b= \TRUE$ and $b'=\TRUE$, then $n' =n$
-    \item if $b=\TRUE$ and $b'=\FALSE$, then $n' \in \{ n,  n+1\}$
-    \end{itemize}
-
-  \item $ \DOM (\CONTRACTORS) \subseteq \DOM (\CONTRACTORS')$
-
+  \item     $\PENDING'    (\OPH) = \PENDING (\OPH)$; or
+  \item $\STATUS  = \STATUSPENDING$ and $\PENDING' (\OPH) =
+    \Angle{\OP, \TIME, \STATUSTIMEOUT}$; or
+  \item  $\STATUS  = \STATUSPENDING$, $\BLOCKCHAIN'.\TIME - \TIME
+    \le 60 $, and
+    $\PENDING' (\OPH) =       \Angle{\OP, \TIME, \STATUSINCLUDED\
+      \BLOCKCHAIN.\TIME}$.
   \end{itemize}
+    
+ \item $ \DOM (\MANAGERS) \subseteq \DOM (\MANAGERS')$
+ \item for all $\PUK \in \DOM (\MANAGERS)$ if $\MANAGERS (\PUK) =
+   \Angle{\BAL, \COU}$ where $\COU = (n, b)$
+   \begin{itemize}
+   \item if $b= \FALSE$, then $n' = n$
+   \item if $b= \TRUE$ and $b'=\TRUE$, then $n' =n$
+   \item if $b=\TRUE$ and $b'=\FALSE$, then $n' \in \{ n,  n+1\}$
+   \end{itemize}
+
+ \item $ \DOM (\CONTRACTORS) \subseteq \DOM (\CONTRACTORS')$
 
 \end{itemize}
 
@@ -212,8 +240,8 @@ A \emph{blockchain configuration} is a pair
 $ \NODE \| \BLOCKCHAIN$ where
 \fxnote[inline]{Should the model contain multiple nodes?}
 \begin{enumerate}
-\item $\NODE = [\ACCOUNTS, \OPERATIONS]$ is the state of a node, and
-\item $\BLOCKCHAIN = [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS,
+\item $\NODE = [\EXPRS, \ACCOUNTS, \OPERATIONS]$ is the state of a node, and
+\item $\BLOCKCHAIN = [\PENDING, \MANAGERS, \CONTRACTORS,
   \TIME]$ is the state of a blockchain  
   such that
   \begin{itemize}
