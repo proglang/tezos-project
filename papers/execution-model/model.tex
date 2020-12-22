@@ -48,7 +48,12 @@ $\mathbf{s} :: = \emptyset \mid \mathbf{e} \mid \mathbf{s :: s}$
     \OP &::= \TRANSFER[\PARAMETER]\NTEZ\PUK\ADDR\MTEZ
     \\&\mid \ORIGINATE\NTEZ\PUK\CODE\INIT\MTEZ
   \end{align*}
-  where \NTEZ\ and \MTEZ\ are amount of Tez, \ADDR\ is either a public key for an implicit account  or a public hash for a smart contract,  \PARAMETER\ is an argument passed to the smart contract's script, which is emtry if it is a transfer to an implicit account, \CODE\ is a script of the smart contract, \INIT\ is an initial value of the contract's storage.
+  where \NTEZ\ and \MTEZ\ are tokens, \ADDR\ is either a public
+  key for an implicit account  or a public hash for a smart contract,
+  \PARAMETER\ is an argument passed to the smart contract's script,
+  which is empty if it is a transfer to an implicit account, \CODE\ is
+  a script of the smart contract, \INIT\ is an initial value of the
+  contract's storage. 
 \end{definition}
 
 \begin{definition}%[Query]
@@ -169,6 +174,10 @@ $\STATUSINCLUDING\ \TIME'$, or $\STATUSTIMEOUT$.
     \PENDING &= \TOPH \partialto \TOP\times \TTIME \times \TSTATUS \\
     \TSTATUS&= (\STATUSPENDING + \STATUSINCLUDED\ \TTIME + \STATUSTIMEOUT)
   \end{align*}
+  
+  A pool $\PENDING$ is \emph{well-formed} if, for all $\OPH$, if $\PENDING (\OPH) =
+  \Angle{\OP,\TIME, \STATUSINCLUDED\ \TIME'}$, 
+  then $\TIME' > \TIME$.
 \end{definition}
 
 
@@ -198,7 +207,8 @@ pool which is limited in size in the implementation.
   The \emph{state of a blockchain} is a tuple
   $\BLOCKCHAIN = [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]$ where
   $\PENDING$ is a pool of operations, $\MANAGERS$ is a map of managers,
-  $\CONTRACTORS$ is a map of contractors, and $\TIME$ is the current time. 
+  $\CONTRACTORS$ is a map of contractors, and $\TIME$ is the current
+  time. 
 \end{definition}
 
 Properties of blockchain state transitions
@@ -248,15 +258,81 @@ $ \NODE \| \BLOCKCHAIN$ where
   \item
     $\forall c \in \ACCOUNTS \implies \exists k\in \MANAGERS, k.\PUK =
     c.\PUK$;
-  \item if $\PENDING (\OPH) = \Angle{\OP,\TIME, \STATUSINCLUDED\ \TIME'}$,
-    then $\TIME' > \TIME$
   \end{itemize}
 \end{enumerate}
 \end{definition}
 
-\clearpage{}
-\section{Rules}
+\section{Transitions}
+\label{sec:transitions}
 
+We distinguish several kinds of transitions depending on their scope:
+\begin{enumerate}
+\item $\ExprTrans$ single-step evaluation of expressions in the node state,
+\item $\NodeTrans$ internal transitions of a node,
+\item $\BlockTrans$ transitions of the blockchain state,
+\item $\SystemTrans$ blockchain system transitions.
+\end{enumerate}
+
+Evaluation of expressions is standard call-by-value lambda calculus defined
+using evaluation contexts $\EC{}$.
+\begin{mathpar}
+  \inferrule{}{
+    \EC{(\lambda x.\EXPR)\VAL} \ExprTrans \EC{\EXPR[\VAL/x]}
+  }
+
+  \inferrule{}{
+    \EC{\FST (\VAL_1, \VAL_2)} \ExprTrans \EC{\VAL_1}
+  }
+
+  \inferrule{}{
+    \EC{\SND (\VAL_1, \VAL_2)} \ExprTrans \EC{\VAL_2}
+  }
+
+  \inferrule{
+    \TRY \notin \EC[F]{}
+  }{
+    \EC{\TRY\ {\EC[F]{\RAISE\ \VAL}}\ \EXCEPT\ \EXPR} \ExprTrans
+    \EC{\EXPR\ \VAL}
+  }
+
+  \inferrule{}{
+    \EC{\MATCH\ \NIL\ \WITH\ \NIL\to\EXPR \mid \dots}
+    \ExprTrans
+    \EC{\EXPR}
+  }
+
+  \inferrule{}{
+    \EC{\MATCH\ (\CONS\ \VAL_1\ \VAL_2)\ \WITH\ (\CONS\ x_1\ x_2)\to\EXPR \mid \dots}
+    \ExprTrans
+    \EC{\EXPR[\VAL_1,\VAL_2/x_1, x_2]}
+  }
+
+  \inferrule{}{
+    \EC{\MATCH\ \NONE\ \WITH\ \NONE\to\EXPR \mid \dots}
+    \ExprTrans
+    \EC{\EXPR}
+  }
+
+  \inferrule{}{
+    \EC{\MATCH\ (\SOME\ \VAL)\ \WITH\ (\SOME\ x)\to\EXPR \mid \dots}
+    \ExprTrans
+    \EC{\EXPR[\VAL/x]}
+  }
+
+  \inferrule{}{
+    \EC{\MATCH\ (\LEFT\ \VAL)\ \WITH\ (\LEFT\ x)\to\EXPR \mid \dots}
+    \ExprTrans
+    \EC{\EXPR[\VAL/x]}
+  }
+
+  \inferrule{}{
+    \EC{\MATCH\ (\RIGHT\ \VAL)\ \WITH\ (\RIGHT\ x)\to\EXPR \mid \dots}
+    \ExprTrans
+    \EC{\EXPR[\VAL/x]}
+  }
+\end{mathpar}
+
+The internal transitions of a node are just evaluation of expressions.
 \begin{mathpar}
   \inferrule[Node-Eval]
   {
@@ -266,17 +342,38 @@ $ \NODE \| \BLOCKCHAIN$ where
     [\EC{\EXPR'} :: \EXPRS, \ACCOUNTS, \OPERATIONS]
   }
 \end{mathpar}
-
+% \begin{mathpar}
+%   \inferrule[Node-Op]
+%     {
+%     \Angle{\PAK,\OP.\PUK} \in \ACCOUNTS
+%   }{
+%     [\EC\OP :: \EXPRS, \ACCOUNTS, \OPERATIONS] \NodeTrans{}
+%     [\EXPRS, \ACCOUNTS, (\EC{},\OP):: \OPERATIONS]
+%   }
+% \end{mathpar}
 
 \begin{mathpar}
-  \inferrule[Node-Op]
-    {
-    \Angle{\PAK,\OP.\PUK} \in \ACCOUNTS
+  \inferrule[Node-Inject-NEW]{
+    \Angle{\PAK,\OP.\PUK} \in \ACCOUNTS \\
+    \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+    \CHECKCOU (\MANAGERS, \PUK) \\
+    \CHECKPUB (\MANAGERS, \PUK') \\
+    \CHECKGAS (\PUK, \PUK', \NTEZ, \MTEZ) \\
+    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \OPH = \GENERATEOPH (\PUK, \PUK', \NTEZ, \MTEZ, \TIME)
   }{
-    [\EC\OP :: \EXPRS, \ACCOUNTS, \OPERATIONS] \NodeTrans{}
-    [\EXPRS, \ACCOUNTS, (\EC{},\OP):: \OPERATIONS]
+    { [\EC\OP :: \EXPRS, \ACCOUNTS] \|
+      [\PENDING, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans \\
+   { [\EC{\OPH}  :: \EXPRS, \ACCOUNTS] \|
+     [ \OPH \mapsto \Angle{\OP, \TIME, \STATUSPENDING}
+     ::\PENDING,
+     \UPDATECOU(\MANAGERS, \PUK, \TRUE),
+     \CONTRACTORS,
+     \TIME]
+   }
   }
 \end{mathpar}
+
 
 \begin{mathpar}
   \inferrule[Node-Inject]{
@@ -421,19 +518,17 @@ Rule 1 [injected]:
 Rule 1 [rejected of counter]:
 \begin{mathpar}
   \inferrule{
-    %\NEG\ \CHECKCOU (\MANAGERS, \PUK)\\
-    %\OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
-    \NEG\ \CHECKCOU (\MANAGERS, \PUK) \\
-    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \NEG\ \CHECKCOU (\BLOCKCHAIN.\MANAGERS, \OP.\PUK) \\
+    % \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
   }{
-   { [\EXPRS, \ACCOUNTS, (\EC{},\OP) :: \OPERATIONS] \| [\PENDING,
-     \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans
-   { [\EXPRS, \ACCOUNTS, \OPERATIONS] \|
-     [ \PENDING,
-     \ACCEPTED,
-     \MANAGERS,
-     \CONTRACTORS,
-     \TIME]
+    { [\EC\OP  :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+      % [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]
+    }
+    \SystemTrans
+    { [\EC{\RAISE\ \ERRCOUNT} :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+      % [ \PENDING, \MANAGERS, \CONTRACTORS, \TIME]
    }
   }
 \end{mathpar}
@@ -442,17 +537,16 @@ Rule 1 [rejected of counter]:
 Rule 2 [rejected of balance]:
 \begin{mathpar}
   \inferrule{
-    \NEG\ \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
-    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \NEG\ \CHECKBAL (\BLOCKCHAIN.\MANAGERS, \OP.\PUK, \OP.\NTEZ, \OP.\MTEZ) \\
+    % \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
   }{
-   { [\EXPRS, \ACCOUNTS, (\EC{},\OP) :: \OPERATIONS] \| [\PENDING,
-     \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans
-   { [\EXPRS, \ACCOUNTS, \OPERATIONS] \|
-     [ \PENDING,
-     \ACCEPTED,
-     \MANAGERS,
-     \CONTRACTORS,
-     \TIME]
+    { [\EC\OP :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+      % [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]
+    } \SystemTrans
+    { [\EC{\RAISE\ \ERRBAL} :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+      % [ \PENDING, \MANAGERS, \CONTRACTORS, \TIME]
    }
   }
 \end{mathpar}
@@ -461,36 +555,34 @@ Rule 2 [rejected of balance]:
 Rule 3 [rejected of public key]:
 \begin{mathpar}
   \inferrule{
-    \NEG\ \CHECKPUB (\MANAGERS, \PUK') \\
-    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \NEG\ \CHECKPUB (\BLOCKCHAIN.\MANAGERS, \OP.\ADDR) \\
+    % \OP = \TRANSFER\NTEZ\PUK{\ADDR}\MTEZ \\
   }{
-   { [\EXPRS, \ACCOUNTS, (\EC{},\OP) :: \OPERATIONS] \| [\PENDING,
-     \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans
-   { [\EXPRS, \ACCOUNTS, \OPERATIONS] \|
-     [ \PENDING,
-     \ACCEPTED,
-     \MANAGERS,
-     \CONTRACTORS,
-     \TIME]
+    { [\EC\OP :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+      % [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]
+    } \SystemTrans
+   { [\EC{\RAISE\ \ERRPUK} :: \EXPRS, \ACCOUNTS] \|
+     \BLOCKCHAIN
+     % [ \PENDING, \MANAGERS, \CONTRACTORS, \TIME]
    }
   }
 \end{mathpar}
 ~\\
 ~\\
-Rule 4 [rejected of fee]:
+Rule 4 [rejected of fee]:\todo{Q: is this a local test? move to node transitions?}
 \begin{mathpar}
   \inferrule{
-    \NEG\ \CHECKGAS (\PUK, \PUK', \NTEZ, \MTEZ) \\
-    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \NEG\ \CHECKGAS (\PUK, \ADDR, \NTEZ, \MTEZ) \\
+    \OP = \TRANSFER\NTEZ\PUK{\ADDR}\MTEZ \\
   }{
-   { [\EXPRS, \ACCOUNTS, (\EC{},\OP) :: \OPERATIONS] \| [\PENDING,
-     \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans
-   { [\EXPRS, \ACCOUNTS, \OPERATIONS] \|
-     [ \PENDING,
-     \ACCEPTED,
-     \MANAGERS,
-     \CONTRACTORS,
-     \TIME]
+    { [\EC\OP :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+      % [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]
+    } \SystemTrans
+    { [\EC{\RAISE\ \ERRFEE} :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+      % [ \PENDING, \MANAGERS, \CONTRACTORS, \TIME]
    }
   }
 \end{mathpar}
