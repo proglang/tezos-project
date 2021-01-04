@@ -165,7 +165,7 @@ promoted to an accepted operation.
 An \emph{operation} is represented by a tuple  $\langle  \OP, \TIME, \STATUS
 \rangle $, where $\OP$ is an operation, $\TIME$ is the time when the
 operation was injected, and $\STATUS$ is either $\STATUSPENDING$,
-$\STATUSINCLUDING\ \TIME'$, or $\STATUSTIMEOUT$.  
+$\STATUSINCLUDED\ \TIME'$, or $\STATUSTIMEOUT$.  
 \end{definition}
 \begin{definition}
   The pool of operations is defined as a partial mapping from
@@ -177,7 +177,7 @@ $\STATUSINCLUDING\ \TIME'$, or $\STATUSTIMEOUT$.
   
   A pool $\PENDING$ is \emph{well-formed} if, for all $\OPH$, if $\PENDING (\OPH) =
   \Angle{\OP,\TIME, \STATUSINCLUDED\ \TIME'}$, 
-  then $\TIME' > \TIME$.
+  then $\TIME' \ge \TIME$.
 \end{definition}
 
 
@@ -187,7 +187,7 @@ where $\OP$ is an operation, $\OPH$ is the operation hash,
 and $\TIME$ is the time when the operation was injected.
 Once it is accepted, it changes to an \emph{accepted operation}:
 $\langle  \OP, \TIME, \STATUSINCLUDED\ \TIME'\rangle $, where
-$\TIME'> \TIME$ is  when the operation was included in the
+$\TIME' \ge \TIME$ is  when the operation was included in the
 blockchain.  The operation can also be dropped at any time, which is
 represented by
 $\langle  \OP, \TIME, \STATUSTIMEOUT\rangle $. There are several
@@ -210,37 +210,43 @@ pool which is limited in size in the implementation.
   $\CONTRACTORS$ is a map of contractors, and $\TIME$ is the current
   time. 
 \end{definition}
-
-Properties of blockchain state transitions
+\clearpage{}
+\subsection{Properties of blockchain state transitions}
 
 If $[\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \BlockTrans{}
 [\PENDING', \MANAGERS', \CONTRACTORS', \TIME']$, then
 \begin{itemize}
 \item $\TIME \le \TIME'$
 \item $\DOM (\PENDING) \subseteq \DOM(\PENDING')$
-\item for all $\OPH \in \DOM(P)$, if  $\PENDING (\OPH) = \Angle{\OP,
-    \TIME, \STATUS}$, then either
+\item for all $\OPH \in \DOM(P)$, if 
+  $\PENDING (\OPH) = \Angle{\OP,  \hat\TIME, \STATUS}$, then either
   \begin{itemize}
   \item     $\PENDING'    (\OPH) = \PENDING (\OPH)$; or
   \item $\STATUS  = \STATUSPENDING$ and $\PENDING' (\OPH) =
-    \Angle{\OP, \TIME, \STATUSTIMEOUT}$; or
-  \item  $\STATUS  = \STATUSPENDING$, $\BLOCKCHAIN'.\TIME - \TIME
+    \Angle{\OP, \hat\TIME, \STATUSTIMEOUT}$; or
+  \item  $\STATUS  = \STATUSPENDING$, $\TIME - \hat\TIME
     \le 60 $, and
-    $\PENDING' (\OPH) =       \Angle{\OP, \TIME, \STATUSINCLUDED\
-      \BLOCKCHAIN.\TIME}$.
+    $\PENDING' (\OPH) =       \Angle{\OP, \hat\TIME, \STATUSINCLUDED\
+      \TIME}$.
   \end{itemize}
     
  \item $ \DOM (\MANAGERS) \subseteq \DOM (\MANAGERS')$
- \item for all $\PUK \in \DOM (\MANAGERS)$ if $\MANAGERS (\PUK) =
-   \Angle{\BAL, \COU}$ where $\COU = (n, b)$
+ \item for all $\PUK \in \DOM (\MANAGERS)$\\
+   if $\MANAGERS (\PUK) =
+   \Angle{\BAL, \COU}$, 
+   then $\MANAGERS' (\PUK) =
+   \Angle{\BAL', \COU'}$ and
    \begin{itemize}
-   \item if $b= \FALSE$, then $n' = n$
-   \item if $b= \TRUE$ and $b'=\TRUE$, then $n' =n$
-   \item if $b=\TRUE$ and $b'=\FALSE$, then $n' \in \{ n,  n+1\}$
+   \item if $\COU.b=\TRUE$ and $\COU'.b=\FALSE$, then $\COU.n' \in \{
+     \COU.n,  \COU.n+1\}$,
+   \item otherwise $\COU.n = \COU'.n$
+   \item If $\COU.n = \COU'.n$, then $\BAL = \BAL'$.
+   % \item if $\COU.b= \FALSE$, then $n' = n$
+   % \item if $\COU.b= \TRUE$ and $b'=\TRUE$, then $n' =n$
    \end{itemize}
 
  \item $ \DOM (\CONTRACTORS) \subseteq \DOM (\CONTRACTORS')$
-
+   \todo{say something about contract state}
 \end{itemize}
 
 
