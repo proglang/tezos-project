@@ -33,11 +33,28 @@
 \newcommand{\STATUSTIMEOUT}{\textbf{timeout}}
 \newcommand{\STATUSINCLUDED}{\textbf{included}}
 
+%% types
+%\newcommand{\ALS}{\textbf{als}}
+\newcommand{\TPAK}{\textbf{Pak}}
+\newcommand{\TPUK}{\textbf{Puk}}
+\newcommand{\TADDR}{\textbf{Addr}}
+%\newcommand{\PKH}{\textbf{pkh}}
+\newcommand{\TPUH}{\textbf{Puh}}
+\newcommand{\TCODE}{\textbf{Code}}
+\newcommand{\TBAL}{\textbf{Bal}}
+\newcommand{\TCOU}{\textbf{Cou}}
+%\newcommand{\FAIL}{\textbf{fail}}
+\newcommand{\TSTORAGE}{\textbf{Storage}}
+\newcommand{\TOP}{\textbf{Op}}
+%\newcommand{\ORIG}{\textbf{orig}}
+\newcommand{\TOPH}{\textbf{Oph}}
+\newcommand{\TTIME}{\textbf{T}}
+
 %% operations
 \newcommand{\TRANSFER}[5][\SUNIT]{\text{transfer $#2$ from $#3$ to $#4$ arg $#1$ fee $#5$}}
 \newcommand{\ORIGINATE}[5]{\text{originate contract transferring $#1$ from $#2$ running $#3$ init $#4$ fee $#5$}}
 \newcommand{\NTEZ}{\textbf{n}}
-\newcommand{\MTEZ}{\textbf{m}}
+\newcommand{\MTEZ}{\textbf{fee}}%{\textbf{m}}
 \newcommand{\ID}{\textbf{id}}
 \newcommand\STRING{\textbf{s}}
 \newcommand\BOOLEAN{\textbf{b}}
@@ -55,6 +72,8 @@
 \newcommand{\ACCOUNTS}{\textbf{C}}
 \newcommand{\OPERATIONS}{\textbf{O}}
 \newcommand{\CONTRACTS}{\textbf{S}}
+\newcommand\ECS{\textbf{EC}}
+\newcommand\EC[2][E]{\underline{\textbf{#1}}[#2]}
 \newcommand{\EXPRS}{\textbf{E}}
 \newcommand{\EXPR}{\textbf{e}}
 \newcommand{\VARIABLE}{\textbf{x}}
@@ -83,18 +102,20 @@
 \newcommand\PATTERN{\textbf{pat}}
 \newcommand\SOME{\textbf{some}}
 \newcommand\NONE{\textbf{none}}
+\newcommand\VAL{\textbf{v}}
+\newcommand\SC{\textbf{sc}}
 
 \newcommand\TYPE{\textbf{ty}}
-\newcommand\TINT{\textbf{int}}
-\newcommand\TUNIT{\textbf{unit}}
-\newcommand\TBOOL{\textbf{bool}}
-\newcommand\TSTRING{\textbf{string}}
-\newcommand\TSTATUS{\textbf{status}}
-\newcommand\TPAIR{\textbf{pair}}
-\newcommand\TLIST{\textbf{list}}
-\newcommand\TSUM{\textbf{or}}
-\newcommand\TOPTION{\textbf{option}}
-\newcommand\TEXCEPTION{\textbf{exception}}
+\newcommand\TINT{\textbf{Int}}
+\newcommand\TUNIT{\textbf{Unit}}
+\newcommand\TBOOL{\textbf{Bool}}
+\newcommand\TSTRING{\textbf{String}}
+\newcommand\TSTATUS{\textbf{Status}}
+\newcommand\TPAIR{\textbf{Pair}}
+\newcommand\TLIST{\textbf{List}}
+\newcommand\TSUM{\textbf{Or}}
+\newcommand\TOPTION{\textbf{Option}}
+\newcommand\TEXCEPTION{\textbf{Exception}}
 
 \newcommand\QOP{\textbf{qop}}
 
@@ -127,7 +148,7 @@
 \newcommand{\SystemTrans}{\longrightarrow}
 
 %% evaluation contexts
-\newcommand\EC[1]{\epsilon[#1]}
+%\newcommand\EC[1]{\epsilon[#1]}
 
 %% metavariables
 \newcommand\STATUS{\textbf{st}}
@@ -140,6 +161,9 @@
 \newcommand\ERRPUH{\textbf{excPuh}}
 \newcommand\ERRARG{\textbf{excArg}}
 
+\newcommand\partialto\hookrightarrow
+\newcommand\DOM{\textit{dom}}
+\newcommand\Nat{\textbf{N}}
 
 %%% Local Variables:
 %%% mode: latex
