@@ -125,11 +125,14 @@ Grammar of types
 
 \begin{definition}%[State of a node]
   The \emph{state of a node} is a tuple
-  $\NODE = [ \EXPRS, \ACCOUNTS, \OPERATIONS]$, where $\EXPRS$ is a
-  set of programs, $\ACCOUNTS \subseteq \TPAK \times \TPUK$  is a set of
-  implicit accounts, and
-  $\OPERATIONS \subseteq \ECS \times \TOP $ is a set of pairs of
-  expression contexts and operations.
+  $\NODE = [ \EXPRS, \ACCOUNTS
+  % , \OPERATIONS
+  ]$, where $\EXPRS$ is a
+  set of programs and $\ACCOUNTS \subseteq \TPAK \times \TPUK$  is a set of
+  implicit accounts.
+  % , and
+  % $\OPERATIONS \subseteq \ECS \times \TOP $ is a set of pairs of
+  % expression contexts and operations.
 \end{definition}
 
 
@@ -168,16 +171,15 @@ operation was injected, and $\STATUS$ is either $\STATUSPENDING$,
 $\STATUSINCLUDED\ \TIME'$, or $\STATUSTIMEOUT$.  
 \end{definition}
 \begin{definition}
-  The pool of operations is defined as a partial mapping from
+  The pool of operations, $\PENDING$, is defined as a partial mapping from
   operation hashes $\OPH$:
   \begin{align*}
     \PENDING &= \TOPH \partialto \TOP\times \TTIME \times \TSTATUS \\
-    \TSTATUS&= (\STATUSPENDING + \STATUSINCLUDED\ \TTIME + \STATUSTIMEOUT)
+    \TSTATUS&= \STATUSPENDING + \STATUSINCLUDED\ \TTIME + \STATUSTIMEOUT
   \end{align*}
   
-  A pool $\PENDING$ is \emph{well-formed} if, for all $\OPH$, if $\PENDING (\OPH) =
-  \Angle{\OP,\TIME, \STATUSINCLUDED\ \TIME'}$, 
-  then $\TIME' \ge \TIME$.
+  A pool $\PENDING$ is \emph{well-formed} if, for all $\OPH$, $\PENDING (\OPH) =
+  \Angle{\OP,\TIME, \STATUSINCLUDED\ \TIME'}$ implies $\TIME' \ge \TIME$.
 \end{definition}
 
 
