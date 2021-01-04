@@ -187,7 +187,7 @@ where $\OP$ is an operation, $\OPH$ is the operation hash,
 and $\TIME$ is the time when the operation was injected.
 Once it is accepted, it changes to an \emph{accepted operation}:
 $\langle  \OP, \TIME, \STATUSINCLUDED\ \TIME'\rangle $, where
-$\TIME'> \TIME$ is the  when the operation was included in the
+$\TIME'> \TIME$ is  when the operation was included in the
 blockchain.  The operation can also be dropped at any time, which is
 represented by
 $\langle  \OP, \TIME, \STATUSTIMEOUT\rangle $. There are several
@@ -555,7 +555,7 @@ Rule 2 [rejected of balance]:
 Rule 3 [rejected of public key]:
 \begin{mathpar}
   \inferrule{
-    \NEG\ \CHECKPUB (\BLOCKCHAIN.\MANAGERS, \OP.\ADDR) \\
+    \NEG\ \CHECKPUB (\BLOCKCHAIN.\MANAGERS, \OP.\PUK) \\
     % \OP = \TRANSFER\NTEZ\PUK{\ADDR}\MTEZ \\
   }{
     { [\EC\OP :: \EXPRS, \ACCOUNTS] \|
@@ -573,8 +573,8 @@ Rule 3 [rejected of public key]:
 Rule 4 [rejected of fee]:\todo{Q: is this a local test? move to node transitions?}
 \begin{mathpar}
   \inferrule{
-    \NEG\ \CHECKGAS (\PUK, \ADDR, \NTEZ, \MTEZ) \\
-    \OP = \TRANSFER\NTEZ\PUK{\ADDR}\MTEZ \\
+    \NEG\ \CHECKGAS (\OP.\PUK, \OP.\PUK', \NTEZ, \MTEZ) \\
+    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
   }{
     { [\EC\OP :: \EXPRS, \ACCOUNTS] \|
       \BLOCKCHAIN
@@ -623,14 +623,14 @@ Rule 1 [injected]:
 
 \begin{mathpar}
   \inferrule[Block-Originate]{
-    \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+   \Angle{\PAK,\OP.\PUK} \in \ACCOUNTS \\ \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
     \CHECKCOU (\MANAGERS, \PUK) \\
     \CHECKGAS (\CODE, \INIT, \NTEZ, \MTEZ)  \\
     \CHECKPRG (\CODE, \STRING) \\\\
     \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ \\
     \OPH = \GENERATEOPH(\PUK, \CODE, \NTEZ, \MTEZ, \STRING,\TIME) 
   }{
-    [\EXPRS, \ACCOUNTS, (\EC{},\OP) :: \OPERATIONS
+    [\EC\OP  :: \EXPRS, \ACCOUNTS,
       ] \| [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME] \to \\
     [\EC{\OPH}  :: \EXPRS, \ACCOUNTS, \OPERATIONS] \|
       [\Angle{\OP, \OPH,\TIME} :: \PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS,\PUK,\TRUE), \CONTRACTORS, \TIME]
@@ -886,18 +886,18 @@ Query 5 [counter]:
 Query 6 [fail of a query for an account]:
 \begin{mathpar}
   \inferrule{
-    \NEG\ \CHECKPUB (\MANAGERS, \PUK) \
-  }{[\epsilon[\GETBALANCE\PUK/\GETCOUNTER\PUK] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| [\PENDING, \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]
-    \NodeTrans\\ [\epsilon[\RAISE\ \ERRPUK] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| [\PENDING, \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]}
+    \NEG\ \CHECKPUB (\BLOCKCHAIN.\MANAGERS, \PUK) \
+  }{[\epsilon[\GETBALANCE\PUK/\GETCOUNTER\PUK] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans\\ [\epsilon[\RAISE\ \ERRPUK] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\
 Query 7 [fail of a query for an account]:
 \begin{mathpar}
   \inferrule{
-    \NEG\ \CHECKPUB (\CONTRACTORS, \PUH) 
-  }{[\epsilon[\GETBALANCE\PUH/\GETSTORAGE\PUH/\GETCODE\PUH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| [\PENDING, \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]
-    \NodeTrans\\ [\epsilon[\RAISE\ \ERRPUH] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| [\PENDING, \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME]}
+    \NEG\ \CHECKPUB (\BLOCKCHAIN.\CONTRACTORS, \PUH) 
+  }{[\epsilon[\GETBALANCE\PUH/\GETSTORAGE\PUH/\GETCODE\PUH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans\\ [\epsilon[\RAISE\ \ERRPUH] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 ~\\
 ~\\
@@ -916,7 +916,7 @@ Query 9 [status-including]:
   \inferrule{
     \BLOCKSYSTEM = 
       [\PENDING, \Angle{\OP, \OPH, \TIME', \TIME''} :: \ACCEPTED,  \MANAGERS, \CONTRACTORS, \TIME] \\
-    $n$ = \TIME\ - \TIME''
+    $n$ \ = \TIME\ - \TIME''
   }{[\epsilon[\GETSTATUS\OPH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
     \NodeTrans\ [\epsilon[\STATUSINCLUDING($n$)] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
@@ -925,9 +925,9 @@ Query 9 [status-including]:
 Query 10 [status-timeout]:
 \begin{mathpar}
   \inferrule{ 
-    \NEG\ \CHECKEXIST (\OPH, \PENDING, \ACCEPTED)
-  }{[\epsilon[\GETSTATUS\OPH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]
-    \NodeTrans\ [\epsilon[\STATUSTIMEOUT] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| [\PENDING, \ACCEPTED, \MANAGERS, \CONTRACTORS, \TIME]}
+    \NEG\ \CHECKEXIST (\OPH, \BLOCKCHAIN.\PENDING, \BLOCKCHAIN.\ACCEPTED)
+  }{[\epsilon[\GETSTATUS\OPH] :: \EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN
+    \NodeTrans\ [\epsilon[\STATUSTIMEOUT] ::\EXPRS, \ACCOUNTS, \OPERATIONS]  \| \BLOCKCHAIN}
 \end{mathpar}
 \section{Functions}
 \begin{enumerate}
@@ -935,7 +935,7 @@ Query 10 [status-timeout]:
     \item Function \CHECKPUH (\PUH, \CONTRACTORS)\ checks whether a public hash \PUH\ exists in \CONTRACTORS.
     \item Function \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) checks whether the balance of the account that associates with the public key \PUK\ is greater or equal to \NTEZ\ plus \MTEZ.
     \item Function \CHECKCOU (\MANAGERS, \PUK)\ checks whether the current counter of an account that associates with the public key \PUK\ is unlocked (its flag is False).
-    \item Function \CHECKEXIST (\ADDR, \PENDING, \ACCEPTED)\ checks whether an address  \ADDR\ exists in either \PENDING\ or \ACCEPTED.
+    \item Function \CHECKEXIST (\OPH, \PENDING, \ACCEPTED)\ checks whether an operation  \OPH\ exists in either \PENDING\ or \ACCEPTED.
     \item Function \UPDATESUCC(\MANAGERS, \PUK, \PUK', \NTEZ, \MTEZ) updates the balance and the counter of the account that associates with the public key \PUK\ and the balance of the account that associates with the public key \PUK', where
     \begin{itemize}
         \item[]  $\langle  \PUK, \BAL, (\NTEZ, \TRUE) \rangle $ $\Rightarrow$ $\langle  \PUK, \BAL - \NTEZ - \MTEZ, (\NTEZ + 1, \FALSE) \rangle $      
