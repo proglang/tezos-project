@@ -212,6 +212,22 @@ pool which is limited in size in the implementation.
   $\CONTRACTORS$ is a map of contractors, and $\TIME$ is the current
   time. 
 \end{definition}
+\begin{definition}%[Blockchain system]
+A \emph{blockchain configuration} is a pair
+$ \NODE \| \BLOCKCHAIN$ where
+\fxnote[inline]{Should the model contain multiple nodes?}
+\begin{enumerate}
+\item $\NODE = [\EXPRS, \ACCOUNTS]$ is the state of a node, and
+\item $\BLOCKCHAIN = [\PENDING, \MANAGERS, \CONTRACTORS,
+  \TIME]$ is the state of a blockchain  
+  such that
+  \begin{itemize}
+  \item
+    $\forall a \in \ACCOUNTS \implies a.\PUK \in \DOM( \MANAGERS)$;
+  \end{itemize}
+\end{enumerate}
+\end{definition}
+
 \clearpage{}
 \subsection{Properties of blockchain state transitions}
 
@@ -249,26 +265,58 @@ If $[\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \BlockTrans{}
 
  \item $ \DOM (\CONTRACTORS) \subseteq \DOM (\CONTRACTORS')$
    \todo{say something about contract state}
+   \begin{itemize}
+   \item for all $\PUH \in \DOM (\CONTRACTORS)$,
+     $\CONTRACTORS (\PUH).\CODE = \CONTRACTORS' (\PUH).\CODE$
+   \end{itemize}
 \end{itemize}
 
+\subsection{Typing related properties}
 
+To describe contracts we associate each public hash to a pair of
+types, the parameter type and the storage type.
+\begin{align*}
+  \Delta & ::= \EmptyEnv \mid \PUH: \TPAIR\ \TYPE\ \TYPE, \Delta
+\end{align*}
 
-\begin{definition}%[Blockchain system]
-A \emph{blockchain configuration} is a pair
-$ \NODE \| \BLOCKCHAIN$ where
-\fxnote[inline]{Should the model contain multiple nodes?}
-\begin{enumerate}
-\item $\NODE = [\EXPRS, \ACCOUNTS, \OPERATIONS]$ is the state of a node, and
-\item $\BLOCKCHAIN = [\PENDING, \MANAGERS, \CONTRACTORS,
-  \TIME]$ is the state of a blockchain  
-  such that
+Define $ \Delta \vdash \CONTRACTORS$ by
+\begin{itemize}
+\item $\DOM (\Delta) = \DOM (\CONTRACTORS)$
+\item $\CONTRACTORS (\PUH).\CODE : \Delta (\PUH) \to FIXEDOUTPUTTYPE$
+\item $\CONTRACTORS (\PUH).\STORAGE : \TYPE_s$ where $\Delta (\PUH) =
+  \TPAIR\ \TYPE_p\ \TYPE_s$. 
+\end{itemize}
+
+Preservation
+
+If $[\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \BlockTrans{}
+[\PENDING', \MANAGERS', \CONTRACTORS', \TIME']$
+and $\Delta \vdash \CONTRACTORS$, \\
+then
+there is some $\Delta' \supseteq \Delta$ such that $\Delta' \vdash
+\CONTRACTORS'$. 
+
+Consider a blockchain state  $[\PENDING, \MANAGERS, \CONTRACTORS,
+\TIME]$ where $\Delta \vdash \CONTRACTORS$.
+
+For all $\OPH\in\DOM (\PENDING)$,
+if  $\PENDING (\OPH) =  \Angle{\OP, \hat\TIME, \STATUS}$
+\begin{itemize}
+\item if $\OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ$, then
+  $\PUK, \PUK' \in \DOM (\MANAGERS)$
+  \todo{anything else to say here?}
+\item if $\OP = \TRANSFER[\STRING]\NTEZ\PUK\PUH\MTEZ$, then
   \begin{itemize}
-  \item
-    $\forall c \in \ACCOUNTS \implies \exists k\in \MANAGERS, k.\PUK =
-    c.\PUK$;
+  \item $\PUH\in\DOM (\CONTRACTORS)$
+  \item $\STRING : \TYPE_p$
+  \item $\Delta (\PUH)  =\TPAIR\ \TYPE_p\ \TYPE_s$. 
   \end{itemize}
-\end{enumerate}
-\end{definition}
+\item if $\OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ$ and $\STATUS =
+  \STATUSINCLUDED\ \TIME'$, then
+  \todo{what is the right thing to say here? Where do we obtain the
+    $\PUH$? How is it related to the $\OPH$?}
+
+\end{itemize}
 
 \section{Transitions}
 \label{sec:transitions}
