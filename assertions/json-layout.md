@@ -6,8 +6,7 @@ The JSON data format is defined in the following.
 explanations
 ------------
 For \<type>, \<quantifier>, etc. see the syntax definition.
-The \<value> dependents on \<type>, it can also be a composite type.
-`%multiple` defines, that there can be multiple instances, separated by comma (`,`), of the above listed definition.
+`%multiple` defines, that there can be multiple instances, separated by comma (`,`), of the previously listed definition.
 
 example
 -------
@@ -170,7 +169,7 @@ example
 
 \<declaration>
 ---------
-e.g. `p : (list int)`
+e.g. `p : (list int)`  
 as `{"name": "p", "type":"list", "content" : [{"name":none, "type":"int", "content":[]}, ...]`
 
 ```
