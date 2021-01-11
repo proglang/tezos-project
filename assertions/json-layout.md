@@ -1,11 +1,10 @@
 Definition of JSON for AST
 ==========================
-For multi platform usage the AST of parsing the assertion statement is exported to the JSON data format an can then be used for further purposes.
-The JSON data format is defined in the following.
+For using the AST, gained by parsing the assertion statement, in different languages it is useful to export it to the JSON data format. The JSON data format is defined in the following.
 
 explanations
 ------------
-For \<type>, \<quantifier>, etc. see the syntax definition.
+For \<type>, \<quantifier>, etc. see the [syntax definition](https://github.com/proglang/tezos-project/tree/master/assertions/grammar).  
 `%multiple` defines, that there can be multiple instances, separated by comma (`,`), of the previously listed definition.
 
 example
