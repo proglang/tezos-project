@@ -5,7 +5,7 @@ For using the AST, gained by parsing the assertion statement, in different langu
 explanations
 ------------
 For \<type>, \<quantifier>, etc. see the [syntax definition](https://github.com/proglang/tezos-project/tree/master/assertions/grammar).  
-`%multiple` defines, that there can be multiple instances, separated by comma (`,`), of the previously listed definition.
+`%multiple` defines, that there can be multiple instances of the previously listed definition. The instances are then separated by comma.
 
 example
 -------
