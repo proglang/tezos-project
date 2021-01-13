@@ -1,5 +1,5 @@
+open Tezos_ast
 open Core
-open Assertion
 
 let indent_space = "  "
 
@@ -148,17 +148,28 @@ let rec pp_pattern ppf ~indent pat =
      pp_pattern ppf ~indent:new_indent p2
   | `Nil -> print_pattern "Nil"
 
+let pp_bounds ppf ~indent bounds =
+  let rec rec_pp_bound ppf ~indent = function
+    | b :: bs -> pp_expr ppf ~indent b; rec_pp_bound ppf ~indent bs
+    | [] -> ()
+  in
+  let new_indent = indent_space ^ indent in
+  Fmt.pf ppf "%sBounds: @." indent ;
+  rec_pp_bound ppf ~indent:new_indent bounds
+  
  let rec pp_assertion ppf ~indent assertion =
    let print_assertion = Fmt.pf ppf "%sAssertion: %s@." indent in
    let new_indent = indent_space ^ indent in
    match assertion with
-   | `Forall (id, body) ->
+   | `Forall (id, body, bounds) ->
       print_assertion "Forall" ;
       pp_pattern ppf ~indent:new_indent (`Ident id) ;
+      pp_bounds ppf ~indent:new_indent bounds ;
       pp_assertion ppf ~indent:new_indent body
-   | `Exists (id, body) ->
+   | `Exists (id, body, bounds) ->
       print_assertion "Exists" ;
       pp_pattern ppf ~indent:new_indent (`Ident id) ;
+      pp_bounds ppf ~indent:new_indent bounds ;
       pp_assertion ppf ~indent:new_indent body
    | `If (expr, body) ->
       print_assertion "If" ;
@@ -175,7 +186,7 @@ let pp_entrypoint ppf ~indent (ep, pat) =
   | Some s -> print_ep_name s; pp_pattern ppf ~indent:new_indent pat
   | None -> print_ep_name "default"; pp_pattern ppf ~indent:new_indent pat
 
-let pp_ast ppf ({entrypoint = ep; body = assertion}: assertion_ast) =
+let pp_ast ppf ({entrypoint = ep; body = assertion}: tezos_ast) =
   let indent = "└──" in
   Fmt.pf ppf "AST@." ;
   pp_entrypoint ppf ~indent ep;

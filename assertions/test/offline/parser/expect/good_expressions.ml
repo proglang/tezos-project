@@ -109,7 +109,7 @@ let%expect_test "boolean operators" =
   parse_and_print
     "(entrypoint (a: bool)
        (assert
-         (and (or false (not a)) true)))";
+         (and (or false (not a)) (xor true false))))";
   [%expect
     {|
     AST
@@ -122,7 +122,26 @@ let%expect_test "boolean operators" =
           └──Expr: Bool:false
           └──Expr: Un Op: Not
             └──Expr: Id:a
-        └──Expr: Bool:true|}]
+        └──Expr: Bin Op: Xor
+          └──Expr: Bool:true
+          └──Expr: Bool:false|}]
+
+let%expect_test "shift operators" =
+  parse_and_print
+  "(entrypoint (i: int)
+   (assert (lsl (lsr i 1) 1)))";
+  [%expect
+  {|
+   AST
+   └──Entrypoint: %default
+     └──Pattern: Id:i
+       └──Type: Int_t
+   └──Assertion: Assert
+     └──Expr: Bin Op: Lsl
+       └──Expr: Bin Op: Lsr
+         └──Expr: Id:i
+         └──Expr: Int:1
+       └──Expr: Int:1|}]
 
 let%expect_test "relation operators" =
   parse_and_print

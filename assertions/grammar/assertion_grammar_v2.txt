@@ -85,6 +85,9 @@
   | mod
   | or
   | and
+  | xor
+  | lsl
+  | lsr
   | eq
   | neq
   | lt

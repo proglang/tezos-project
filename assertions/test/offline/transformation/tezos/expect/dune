@@ -1,0 +1,9 @@
+(library
+ (name test_transformation)
+ (libraries core parsing tezos_assert)
+ (inline_tests)
+ (preprocess
+  (pps ppx_jane))
+ (lint
+  (pps ppx_jane ppx_js_style -check-doc-comments -annotated-ignores -styler
+    -pretty -dated-deprecation)))
