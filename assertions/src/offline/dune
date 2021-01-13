@@ -1,4 +1,4 @@
 (executable
- (name test)
+ (name main)
  (libraries parsing
             tezos_assert))
