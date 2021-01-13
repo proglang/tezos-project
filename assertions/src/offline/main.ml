@@ -1,4 +1,5 @@
 open Parsing.Lex_and_parse
+open Transform_and_compile
 
 (* Checks if given list is sorted *)
 let example_contract = {| 
@@ -11,5 +12,4 @@ let example_contract = {|
 
 (* The example contract is first parsed and then transformed by the backend *)
 let () = parse_contract example_contract
-         |> Transformation.transform
-         |> Transformation.print_transformation
+         |> transform_and_compile

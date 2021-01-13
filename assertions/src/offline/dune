@@ -1,4 +1,11 @@
 (executable
- (name main)
- (libraries parsing
-            tezos_assert))
+  (name main)
+  (modules main)
+  (libraries parsing
+             tezos_backend))
+
+(library
+ (name transform_and_compile)
+ (modules transform_and_compile)
+ (libraries parsing)
+ (virtual_modules transform_and_compile))
