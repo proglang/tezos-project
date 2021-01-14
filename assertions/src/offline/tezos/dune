@@ -1,4 +1,4 @@
 (library
  (name tezos_backend)
- (libraries transformation)
+ (libraries transformation compiler)
  (implements transform_and_compile))
