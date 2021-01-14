@@ -1,8 +1,20 @@
 (library
  (name parsing)
- (libraries core fmt))
+ (libraries core fmt yojson biniou atdgen))
 
 (ocamllex lexer)
 
 (menhir
  (modules parser))
+
+(rule
+ (targets assertion_j.ml
+          assertion_j.mli)
+ (deps    assertion.atd)
+ (action  (run atdgen -j -rec -j-std %{deps})))
+
+(rule
+ (targets assertion_t.ml
+          assertion_t.mli)
+ (deps    assertion.atd)
+ (action  (run atdgen -t -rec %{deps})))

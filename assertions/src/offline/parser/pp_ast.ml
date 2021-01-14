@@ -1,5 +1,5 @@
 open Core
-open Assertion
+open Assertion_t
 
 let indent_space = "  "
 

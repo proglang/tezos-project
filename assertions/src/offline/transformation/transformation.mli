@@ -1,4 +1,4 @@
-open Parsing.Assertion
+open Parsing.Assertion_t
 
 type ast
 

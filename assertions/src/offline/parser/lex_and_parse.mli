@@ -1,4 +1,4 @@
-open Assertion
+open Assertion_t
 
 val print_past: assertion_ast -> unit
 val parse_contract: string -> assertion_ast list

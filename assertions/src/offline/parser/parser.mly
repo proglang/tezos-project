@@ -18,7 +18,7 @@
 %token COLON PERCENT WILDCARD
 %token EOF              
 
-%start <Assertion.assertion_ast option> main
+%start <Assertion_t.assertion_ast option> main
 
 %%
 
@@ -29,7 +29,7 @@ main:
 
 modul:
   | e = entrypoint; p = pattern; a = in_parens(assertion)
-    {{entrypoint = (e, p); body = a} : Assertion.assertion_ast}
+    {{entrypoint = (e, p); body = a} : Assertion_t.assertion_ast}
 
 entrypoint:
   | ENTRYPOINT; n = option(PERCENT; id = IDENT {id}) {n}

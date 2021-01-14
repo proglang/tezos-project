@@ -81,7 +81,7 @@ let rec negate_assertion = function
 (* Breaks (nested) conjunctions in if-conditions into separate ifs*)
 let break_conjunctions formula =
   let rec rec_break = function
-    | `If ((e : Parsing.Assertion.expression), body) as i ->
+    | `If ((e : Parsing.Assertion_t.expression), body) as i ->
        begin
          match e with
          | `Binop (`And, e1, e2) ->
@@ -90,7 +90,7 @@ let break_conjunctions formula =
        end
     | `Forall (predicate, a) -> `Forall (predicate, (rec_break a))
     | `Exists (predicate, a) -> `Exists (predicate, (rec_break a))
-    | `Assert (_ : Parsing.Assertion.expression) as a -> a
+    | `Assert (_ : Parsing.Assertion_t.expression) as a -> a
   in
   rec_break formula
 
@@ -101,7 +101,7 @@ module VariableDepth = Map.Make(String)
  * returns (variables = {<Id>:<depth>}, conditions = [<expression>])
 *)
 let build_generator_index a =
-  let rec traverse vars conds depth (x : Parsing.Assertion.assertion) =
+  let rec traverse vars conds depth (x : Parsing.Assertion_t.assertion) =
     match x with
     | `Forall ((v, _), a)
       | `Exists ((v, _), a) ->
@@ -209,18 +209,14 @@ let merge_generator_bounds t_ast =
   let (vars, conds) = build_generator_index t_ast in
   rec_merge_bounds vars conds t_ast
 
-let transform_single ({entrypoint = ep; body = a} : Parsing.Assertion.assertion_ast) =
+let transform_single ({entrypoint = ep; body = a} : Parsing.Assertion_t.assertion_ast) =
   negate_assertion a
   |> break_conjunctions
   |> merge_generator_bounds
   |> (fun b -> ({entrypoint = ep; body = b}: ast))
 
-let rec transform (asts : Parsing.Assertion.assertion_ast list) =
-  match asts with
-  | a :: rest -> cons (transform_single a) (transform rest)
-  | [] -> []
+let transform (asts : Parsing.Assertion_t.assertion_ast list) =
+  List.map transform_single asts
 
-let rec print_transformation (asts : ast list) =
-  match asts with
-  | a :: rest -> pp_ast Fmt.stdout a; (print_transformation rest)
-  | [] -> ()
+let print_transformation =
+  List.iter (pp_ast Fmt.stdout)
