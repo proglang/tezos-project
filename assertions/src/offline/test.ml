@@ -27,13 +27,13 @@ let transform_and_print ast =
  *)
 let () =
   parse_contract example_contract 
-  |> transform_and_print 
+  |> transform_and_print
+  |> print_newline
 
 let () =
   parse_contract example_contract
   |> List.map Assertion_j.string_of_assertion_ast
   |> List.iter print_string
-
-let () = print_string "hello world"
+  |> print_newline
 
 
