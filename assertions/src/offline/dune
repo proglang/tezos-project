@@ -1,4 +1,12 @@
 (executable
  (name test)
+ (modules test)
+ 	(preprocess (pps ppx_let))
  (libraries parsing
             tezos_assert))
+
+(executable
+	(name assert_to_json)
+	(modules assert_to_json)
+	(preprocess (pps ppx_let))
+	(libraries parsing))
