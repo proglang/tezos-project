@@ -118,7 +118,7 @@ let%expect_test "isolated condition" =
         └──Expr: Id:a
         └──Expr: Int:10
       └──Assertion: Assert
-        └──Expr: Bool:false|}]
+        └──Expr: Bool:true|}]
 
 let%expect_test "skip or/xor" =
   parse_contract

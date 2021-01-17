@@ -1,6 +1,6 @@
 (library
  (name test_transformation)
- (libraries core parsing tezos_assert)
+ (libraries core parsing tezos_backend)
  (inline_tests)
  (preprocess
   (pps ppx_jane))

@@ -78,6 +78,16 @@ let rec negate_assertion = function
      let a_transformed = negate_assertion a in
      `Forall (predicate, a_transformed)
 
+(* Calls the negation function for the bodies of quantifiers *)
+let rec negate = function
+  (* Standalone asserts are kept as is *)
+  | `Assert _ as a -> a
+  (* Skip conditions *)
+  | `If (cond, a) -> `If (cond, negate a)
+  (* Quantifiers and their bodies must be negated *)
+  | `Forall _ as fa -> negate_assertion fa
+  | `Exists _ as ex -> negate_assertion ex
+
 (* Breaks (nested) conjunctions in if-conditions into separate ifs*)
 let break_conjunctions formula =
   let rec rec_break = function
@@ -210,7 +220,7 @@ let merge_generator_bounds t_ast =
   rec_merge_bounds vars conds t_ast
 
 let transform_single ({entrypoint = ep; body = a} : Parsing.Assertion.assertion_ast) =
-  negate_assertion a
+  negate a
   |> break_conjunctions
   |> merge_generator_bounds
   |> (fun b -> ({entrypoint = ep; body = b}: ast))

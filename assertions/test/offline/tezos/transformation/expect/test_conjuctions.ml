@@ -25,7 +25,7 @@ let%expect_test "break conjunctions" =
         └──Assertion: If
           └──Expr: Id:c
           └──Assertion: Assert
-            └──Expr: Bool:false
+            └──Expr: Bool:true
     AST
     └──Entrypoint: %default
       └──Pattern: Wildcard
@@ -36,4 +36,4 @@ let%expect_test "break conjunctions" =
         └──Assertion: If
           └──Expr: Id:c
           └──Assertion: Assert
-            └──Expr: Bool:false|}]
+            └──Expr: Bool:true|}]
