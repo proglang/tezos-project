@@ -1,0 +1,16 @@
+(entrypoint (pair (a: int) (b: int))
+  (if (lt a b)
+    (forall (n: int)
+      (if (eq 0 (mod b a))
+        (* then *)
+        (if (and (le 2 n)
+                 (le n (div a 2)))
+          (assert
+	    (not (and (eq (mod a n) 0)
+	              (eq (mod b n) 0)))))
+        (* else *)      
+        (if (and (le 2 n)
+                 (le n a))
+          (assert
+	    (not (and (eq (mod a n) 0)
+	              (eq (mod b n) 0)))))))))

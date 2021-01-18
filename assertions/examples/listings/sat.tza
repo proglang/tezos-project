@@ -1,0 +1,12 @@
+(entrypoint (pair (f: (list int))
+	          (a: (list bool)))
+
+  (forall(i: int)
+    (if (and (ge i 0) (lt i (size f)))
+      (exists(j: int)
+        (if (and (ge i 0) (lt i (size (nth f i)))))))
+	  (assert
+	    (if (eq (and j 1) 1)
+	      (nth a (lsr j 1))
+	      (not ((nth a (lsr j 1))))))))
+     

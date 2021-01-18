@@ -1,0 +1,5 @@
+(entrypoint (p : int)
+  (forall (n : int) 
+    (if (le (2 n))
+      (if (le (n (sqrt p)))
+        (assert (ne (mod p n) 0))))))

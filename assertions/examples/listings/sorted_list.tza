@@ -1,0 +1,6 @@
+(entrypoint %find (pair (l: (list int)) _)
+  (forall (n : int) 
+    (forall (m: int)
+      (if (and (lt n (size l)) (lt m (size l)))
+        (if (gt n m)
+          (assert (gt (nth l n) (nth l m))))))))

@@ -1,0 +1,6 @@
+(entrypoint (pair (i : int) (fs : (list int)))
+  (forall (n : int)
+    (exists (m : int)
+      (if (and (ge n 0) (lt n (size fs)))
+        (if (and (ge m 0) (lt m (size fs)))
+          (assert (eq i (mul (nth fs n) (nth fs m)))))))))
