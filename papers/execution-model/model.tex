@@ -72,9 +72,10 @@ $\mathbf{s} :: = \emptyset \mid \mathbf{e} \mid \mathbf{s :: s}$
 \begin{definition}%[Program]
 \emph{Expressions} are defined by the following grammar:
 \begin{align*}
-  \CONSTANT & ::= \ADDR \mid \OPH \mid \PUH \mid\PUK \mid \CODE \mid
+  \CONSTANT & ::= \INT %\mid \ADDR
+              \mid \OPH \mid \PUH \mid\PUK \mid \CODE \mid
               \NTEZ \mid \SUNIT \mid \FALSE \mid \TRUE \\
-  \STATUS & ::= \STATUSPENDING \mid \STATUSINCLUDING (\dots) \mid
+  \STATUS & ::= \STATUSPENDING \mid \STATUSINCLUDING (\INT) \mid
             \STATUSTIMEOUT \\
   \ERROR &::= \ERRPRG \mid \ERRBAL \mid \ERRCOUNT \mid \ERRFEE \mid
            \ERRPUK \mid \ERRPUH \mid \ERRARG \mid \ERRINIT\\
@@ -156,10 +157,13 @@ and ${b}$ is its flag.
 \begin{definition}%[Contractor]
   A \emph{contractor} manages a smart contract. Contractors are
   represented by a partial mapping $\CONTRACTORS : \TPUH \partialto
-  \TBAL \times \TCODE \times \TSTORAGE$. If $\CONTRACTORS (\PUH) = \langle
-  \BAL, \CODE, \STORAGE \rangle $ is defined, then $\PUH$ is the
-  public hash of a contract, $\BAL$ is its current balance, $\CODE$ is its
-  code, and $\STORAGE$ is its current storage.
+  \TCODE \times \TIME  \times \TBAL \times  \TSTORAGE$. If $\CONTRACTORS (\PUH) = \langle
+  \CODE, \TIME, \BAL, \STORAGE \rangle $ is defined, then $\PUH$ is the
+  public hash of a contract,
+  $\CODE$ is its  code,
+  $\TIME$ is the time when it was accepted,
+  $\BAL$ is its current balance,
+  and $\STORAGE$ is its current storage.
 \end{definition}
 
 When an operation is injected in a node, it enters a \emph{pending
@@ -180,8 +184,10 @@ promoted to an accepted operation.
   if $\PENDING(\OPH) = \langle  \OP, \TIME, \STATUS
 \rangle $ is defined, then $\OPH$ is the public hash of the operation, $\OP$ is the operation, $\TIME$ is the time when the
 operation was injected, and $\STATUS$ is either $\STATUSPENDING$,
-$\STATUSINCLUDED\ \TIME'$, or $\STATUSTIMEOUT$. A pool $\PENDING$ is \emph{well-formed} if, for all $\OPH$, $\PENDING (\OPH) =
-  \Angle{\OP,\TIME, \STATUSINCLUDED\ \TIME'}$ implies $\TIME' \ge \TIME$.
+$\STATUSINCLUDED\ \TIME'$, or $\STATUSTIMEOUT$.
+A pool $\PENDING$ is \emph{well-formed} if, for all $\OPH$, $\PENDING (\OPH) =
+  \Angle{\OP,\TIME, \STATUSINCLUDED\ \TIME'}$ implies $\TIME' \ge
+  \TIME$ and $\OPH = \GENERATEOPH (\OP, \TIME)$.
 \end{definition}
 
 
@@ -228,6 +234,16 @@ $ \NODE \| \BLOCKCHAIN$ where
     $\forall a \in \ACCOUNTS \implies a.\PUK \in \DOM( \MANAGERS)$;
   \end{itemize}
 \end{enumerate}
+\end{definition}
+\begin{definition}
+  Preserved by a step on a well-formed configuration $ [\EXPRS, \ACCOUNTS] \|
+  [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]$:
+  \todo[inline]{Is this preserved?}
+  \begin{itemize}
+  \item for all $\OPH$ in $\EXPRS$, $\OPH \in \DOM (\PENDING)$,
+  \item for all $\PUK$ in $\EXPRS$, $\PUK \in \DOM (\MANAGERS)$,
+  \item for all $\PUH$ in $\EXPRS$, $\PUH \in \DOM (\CONTRACTORS)$.
+  \end{itemize}
 \end{definition}
 
 \clearpage{}
@@ -325,11 +341,12 @@ if  $\PENDING (\OPH) =  \Angle{\OP, \hat\TIME, \STATUS}$
   \item $\CODE : \TPAIR\ \TYPE_p\ \TYPE_s$
   \item $\STRING : \TYPE_s$
   \item if $\STATUS =
-  \STATUSINCLUDED\ \TIME'$, then $\PUH =\GENERATEHASH (\CODE, \INIT, \hat\TIME) \in \DOM (\CONTRACTORS)$ and $\Delta (\PUH)  =\TPAIR\ \TYPE_p\ \TYPE_s$ (or $\CONTRACTORS(\PUH).\CODE = \CODE$).
+  \STATUSINCLUDED\ \TIME'$, then $\PUH =\GENERATEHASH (\CODE, \hat\TIME) \in \DOM (\CONTRACTORS)$ and $\Delta (\PUH)  =\TPAIR\ \TYPE_p\ \TYPE_s$ (or $\CONTRACTORS(\PUH).\CODE = \CODE$).
 
   \end{itemize}
   
- \item if $st = \STATUSPENDING$ and $\MANAGERS(\PUK) = \Angle{\BAL, \COU}$, then $\BAL >= \NTEZ +  \MTEZ$
+ \item if $st = \STATUSPENDING$ and $\MANAGERS(\PUK) = \Angle{\BAL,
+     \COU}$, then $\BAL \ge \NTEZ +  \MTEZ$ 
 \end{itemize}
 
 \section{Transitions}
@@ -420,7 +437,8 @@ The internal transitions of a node are just evaluation of expressions.
     \CHECKCOU (\MANAGERS, \PUK) \\
     \CHECKPUB (\MANAGERS, \PUK') \\
     \CHECKGAS (\PUK, \PUK', \NTEZ, \MTEZ) \\
-    \OPH = \GENERATEOPH (\PUK, \PUK','', \NTEZ, \MTEZ, \TIME) \\
+    %\OPH = \GENERATEOPH (\PUK, \PUK','', \NTEZ, \MTEZ, \TIME) \\
+    \OPH = \GENERATEOPH (\OP, \TIME) \\
     \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ    
   }{
     { [\EC\OP :: \EXPRS, \ACCOUNTS] \|
@@ -452,9 +470,10 @@ The internal transitions of a node are just evaluation of expressions.
   }
 \end{mathpar}
 
+The timeout transition applies to all operations.
 \begin{mathpar}
   \inferrule[Block-Timeout]{
-    \OP = \TRANSFER[\STRING]\NTEZ\PUK\ADDR\MTEZ \\
+    % \OP = \TRANSFER[\STRING]\NTEZ\PUK\ADDR\MTEZ \\
     \TIME-\hat\TIME > 60
   }{ 
     {[\OPH \mapsto \Angle{\OP, \hat \TIME, \STATUSPENDING}
@@ -463,23 +482,23 @@ The internal transitions of a node are just evaluation of expressions.
     \BlockTrans \\
     { 
       [\OPH \mapsto \Angle{\OP, \hat \TIME, \STATUSTIMEOUT}
-     :: \PENDING, \UPDATECOU(\MANAGERS, \PUK, \FALSE),
+     :: \PENDING, \UPDATECOU(\MANAGERS, \OP.\PUK, \FALSE),
       \CONTRACTORS, \TIME]}
   }
 \end{mathpar}
 
-\begin{itemize}
-\item library call \texttt{call\_contract} with \texttt{confirmations:None} corresponds to
-  \begin{enumerate}
-  \item{} first \TirName{Node-Op'}, \TirName{Node-Inject'}
-  \item{} first \TirName{Node-Op'}, \TirName{Node-Reject(balance,count,pubkey,fee)}
-  \end{enumerate}
-\item afterwards must check the status to find whether the
-  transfer is still pending or \TirName{Block-Accept''} or
-  \TirName{Block-Timeout''} has happened.
-\item no further transfer is possible before the status is resolved to
-  accept or timeout.
-\end{itemize}
+% \begin{itemize}
+% \item library call \texttt{call\_contract} with \texttt{confirmations:None} corresponds to
+%   \begin{enumerate}
+%   \item{} first \TirName{Node-Op'}, \TirName{Node-Inject'}
+%   \item{} first \TirName{Node-Op'}, \TirName{Node-Reject(balance,count,pubkey,fee)}
+%   \end{enumerate}
+% \item afterwards must check the status to find whether the
+%   transfer is still pending or \TirName{Block-Accept''} or
+%   \TirName{Block-Timeout''} has happened.
+% \item no further transfer is possible before the status is resolved to
+%   accept or timeout.
+% \end{itemize}
 
 
 \subsection{Transitions on Nodes}
@@ -562,6 +581,7 @@ consider it signed with the corresponding private key $\PAK$.
     }
   }
 \end{mathpar}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \iffalse 
 Rule 6 [included]:
 \begin{mathpar}
@@ -586,11 +606,12 @@ Rule 7 [timeout]: (applies to both, implicit transfers and contract invocations)
     {[\Angle{\OP,\OPH, \TIME} :: \PENDING, \ACCEPTED, \MANAGERS,
       \CONTRACTORS, \TIME']}
     \BlockTrans
-    {[\PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS, \PUK, \FALSE),
+    {[\PENDING, \ACCEPTED, \UPDATECOU(\MANAGERS, \OP.\PUK, \FALSE),
       \CONTRACTORS, \TIME']}
   }
 \end{mathpar}
 \fi
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Smart Contracts}
 A. Originate
 
@@ -601,7 +622,8 @@ A. Originate
     \CHECKPRG (\CODE) \\
     \CHECKGAS (\CODE, \INIT, \NTEZ, \MTEZ)  \\
     \CHECKINIT (\CODE, \STRING) \\
-    \OPH = \GENERATEOPH(\PUK, \CODE, \STRING, \NTEZ, \MTEZ, \TIME) \\
+    %\OPH = \GENERATEOPH(\PUK, \CODE, \STRING, \NTEZ, \MTEZ, \TIME) \\
+    \OPH = \GENERATEOPH(\OP, \TIME) \\
     \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ    
   }{
     [\EC\OP  :: \EXPRS, \ACCOUNTS,
@@ -674,31 +696,31 @@ Rule 3 [rejected of counter]:
 \begin{mathpar}
   \inferrule[Block-Accept]{
     \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ \\
-    \PUH = \GENERATEHASH(\CODE, \INIT, \TIME) \\
+    \PUH = \GENERATEHASH(\CODE, \TIME) \\
     \TIME-\hat\TIME  \le 60
   }{
       [\EC{\OPH}  :: \EXPRS, \ACCOUNTS] \| [\OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSPENDING} :: \PENDING, \MANAGERS, \CONTRACTORS, \TIME]
     \SystemTrans \\
      [\EC{ \PUH}  :: \EXPRS, \ACCOUNTS] \|  [\OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSINCLUDING\ \TIME} :: \PENDING, \UPDATESUCC
-      (\MANAGERS, \PUK, \NTEZ, \MTEZ),\\ \PUH \mapsto  \Angle{\NTEZ, \CODE, \STRING} :: \CONTRACTORS, \TIME+1]
+      (\MANAGERS, \PUK, \NTEZ, \MTEZ),\\ \PUH \mapsto  \Angle{\CODE, \TIME, \NTEZ, \STRING} :: \CONTRACTORS, \TIME+1]
   }
 \end{mathpar}
 
-\begin{mathpar}
-  \inferrule[Block-Timeout]{
-    \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ \\
-    \TIME-\hat\TIME > 60
-}{
-      [ \OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSPENDING}
-     ::\PENDING, \MANAGERS,
-      \CONTRACTORS, \TIME]  
-      \BlockTrans \\    
-      [ \OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSTIMEOUT}
-     :: \PENDING, \UPDATECOU(\MANAGERS, \PUK, \FALSE),
-      \CONTRACTORS, \TIME] 
-  }
+% \begin{mathpar}
+%   \inferrule[Block-Timeout]{
+%     %\OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ \\
+%     \TIME-\hat\TIME > 60
+% }{
+%       [ \OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSPENDING}
+%      ::\PENDING, \MANAGERS,
+%       \CONTRACTORS, \TIME]  
+%       \BlockTrans \\    
+%       [ \OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSTIMEOUT}
+%      :: \PENDING, \UPDATECOU(\MANAGERS, \OP.\PUK, \FALSE),
+%       \CONTRACTORS, \TIME] 
+%   }
 
-\end{mathpar}
+% \end{mathpar}
 ~\\
 ~\\
 B. \textbf{Transfer}
@@ -710,7 +732,8 @@ B. \textbf{Transfer}
     \CHECKPUH (\CONTRACTORS, \PUH) \\
     \CHECKARG (\CONTRACTORS, \PUH, \PARAMETER) \\
     \CHECKGAS (\CONTRACTORS, \PUH, \PARAMETER, \MTEZ) \\
-    \OPH = \GENERATEOPH (\PUK,\PUH, \PARAMETER,\NTEZ, \MTEZ, \TIME) \\
+%    \OPH = \GENERATEOPH (\PUK,\PUH, \PARAMETER,\NTEZ, \MTEZ, \TIME) \\
+    \OPH = \GENERATEOPH (\OP, \TIME) \\
     \OP =  \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ \\    
   }{ [\EC\OP  :: \EXPRS, \ACCOUNTS,
       ] \| [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]     
@@ -806,7 +829,7 @@ Rule 3 [rejected of balance]:
 \begin{mathpar}
 \inferrule[balance of smart contract]{
     \BLOCKSYSTEM = 
-      [\PENDING,  \MANAGERS, \PUH \mapsto \Angle{\BAL, \CODE, \STORAGE} :: \CONTRACTORS, \TIME]
+      [\PENDING,  \MANAGERS, \PUH \mapsto \Angle{\CODE, \TIME, \BAL, \STORAGE} :: \CONTRACTORS, \TIME]
   }{[\EC{\GETBALANCE\PUH} :: \EXPRS, \ACCOUNTS]  \| \BLOCKCHAIN
     \NodeTrans\ [\EC{\BAL} ::\EXPRS, \ACCOUNTS]  \| \BLOCKCHAIN}
 \end{mathpar}
@@ -814,7 +837,7 @@ Rule 3 [rejected of balance]:
 \begin{mathpar}
   \inferrule[storage]{
     \BLOCKSYSTEM = 
-      [\PENDING, \MANAGERS, \PUH \mapsto \Angle{\BAL, \CODE, \STORAGE} :: \CONTRACTORS, \TIME]
+      [\PENDING, \MANAGERS, \PUH \mapsto \Angle{\CODE, \TIME, \BAL, \STORAGE} :: \CONTRACTORS, \TIME]
   }{[\EC{\GETSTORAGE\PUH} :: \EXPRS, \ACCOUNTS]  \| \BLOCKCHAIN
     \NodeTrans\ [\EC{\STORAGE} ::\EXPRS, \ACCOUNTS]  \| \BLOCKCHAIN}
 \end{mathpar}
@@ -822,7 +845,7 @@ Rule 3 [rejected of balance]:
 \begin{mathpar}
   \inferrule[code]{
     \BLOCKSYSTEM = 
-      [\PENDING,  \MANAGERS, \PUH \mapsto \Angle{\BAL, \CODE, \STORAGE} :: \CONTRACTORS, \TIME]
+      [\PENDING,  \MANAGERS, \PUH \mapsto \Angle{\CODE, \TIME, \BAL, \STORAGE} :: \CONTRACTORS, \TIME]
   }{[\EC{\GETCODE\PUH} :: \EXPRS, \ACCOUNTS]  \| \BLOCKCHAIN
     \NodeTrans\ [\EC{\CODE} ::\EXPRS, \ACCOUNTS]  \| \BLOCKCHAIN}
 \end{mathpar}
@@ -830,7 +853,7 @@ Rule 3 [rejected of balance]:
 \begin{mathpar}
   \inferrule[type]{
     \BLOCKSYSTEM = 
-      [\PENDING,  \MANAGERS, \PUH \mapsto \Angle{\BAL, \CODE, \STORAGE} :: \CONTRACTORS, \TIME]
+      [\PENDING,  \MANAGERS, \PUH \mapsto \Angle{\CODE, \TIME, \BAL, \STORAGE} :: \CONTRACTORS, \TIME]
   }{[\EC{\GETTYPE\PUH} :: \EXPRS, \ACCOUNTS]  \| \BLOCKCHAIN
     \NodeTrans\ [\EC{\Delta (\PUH)} ::\EXPRS, \ACCOUNTS]  \| \BLOCKCHAIN}
 \end{mathpar}
@@ -908,7 +931,7 @@ Rule 3 [rejected of balance]:
     
     \item Function  $\UPDATECONSTR (\CONTRACTORS, \PUH, \NTEZ, \PARAMETER)$ updates the contractor that associates with the public hash $\PUH$, where
     \begin{itemize}
-        \item[] $\PUH  \mapsto \langle   \BAL, \CODE, \STORAGE, \rangle $ $\Rightarrow$ $\PUH  \mapsto \langle  \BAL + \NTEZ, \CODE, \\ \UPDATESTORAGE(\STORAGE,\CODE,\PARAMETER) \rangle $
+        \item[] $\PUH  \mapsto \langle   \CODE, \TIME, \BAL, \STORAGE, \rangle $ $\Rightarrow$ $\PUH  \mapsto \langle  \BAL + \NTEZ, \CODE, \\ \UPDATESTORAGE(\STORAGE,\CODE,\PARAMETER) \rangle $
     \end{itemize}
     
      \item Function $\UPDATESTORAGE(\STORAGE, \CODE,  \PARAMETER)$ returns the new storage by running the code $\CODE$ on the  current storage  $\STORAGE$ with  the input parameter $\PARAMETER$.
@@ -934,7 +957,7 @@ Rule 3 [rejected of balance]:
     %run the code \CODE\ that associates with the public hash \PUH\ for the paremeter \PARAMETER\ is less or equal to \MTEZ.
     \item Function \GENERATEOPH (\PUK, {\ADDR /\CODE},{\INIT /\PARAMETER}, \NTEZ, \MTEZ,  \TIME) generates an operation hash.
 
-    \item Function \GENERATEHASH (\CODE, \INIT, \TIME)  generates the public hash of a smart contract.
+    \item Function \GENERATEHASH (\CODE, \TIME)  generates the public hash of a smart contract.
      
    
 \end{enumerate}
