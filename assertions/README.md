@@ -9,12 +9,13 @@ assertions
 |   dune-project
 └───src
 │   └───offline
-│   |   └─── parser/frontend
-│   |   └─── transformation/backend    <-- target specific AST, transformation & compiler
-|   |        └───tezos
-|   |        └───ethereum
+│   |   └─── parser
+|   |   └─── tezos                     <-- target specific AST, transformation & compiler
+│   |        └─── transformation
+|   |        └─── compiler
+|   |   └───ethereum
 |   └───tezos                          <-- protocol specific code; "online"
-|   └───ethereum                       <-- protocol specific code "online"
+|   └───ethereum                       <-- protocol specific code; "online"
 └───test                               <-- all tests
 |   └───offline
 │       └─── ...
@@ -26,16 +27,18 @@ assertions
 |   └───...
 ...
 ```
-## Usage Parser & Transformation (WIP)
-The little test program ```assertion/src/offline/test.ml``` demonstrates how the assertion contract parser and a backend transformer for a specific target is used.
-The interface of the backend (for now called ```transformation.mli```) is defined as a virtual library, for which several implementations can be provided.  
+## Usage Parser & Backend (Transformation & Compiler) (WIP)
+The little test program ```assertion/src/offline/main.ml``` demonstrates how the assertion contract parser and a backend transformer for a specific target is used.
+The interface of the backend (for now called ```transform_and_compile.mli```) is defined as a virtual library, for which several implementations can be provided.  
 The dune file specifies, which implementation should be linked into the executable:
 
 <pre>
 (executable
- (name test)
+ (name main)
+ (modules main)
  (libraries parsing
-            <b>tezos_assert</b>))
+            <b>tezos_backend</b>))
+...
 </pre>
 In this example, the Tezos backend is linked.
 
