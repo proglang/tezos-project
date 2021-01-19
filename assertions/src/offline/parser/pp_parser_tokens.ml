@@ -64,6 +64,7 @@ let pprint_tokens ppf = function
   | GT               -> Fmt.pf ppf "GT@."
   | LE               -> Fmt.pf ppf "LE@."
   | GE               -> Fmt.pf ppf "GE@."
+  | SLICE            -> Fmt.pf ppf "SLICE@."
   | COLON            -> Fmt.pf ppf "COLON@."
   | PERCENT          -> Fmt.pf ppf "PERCENT@."
   | WILDCARD         -> Fmt.pf ppf "WILDCARD@."

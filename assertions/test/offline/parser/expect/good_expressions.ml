@@ -178,14 +178,16 @@ let%expect_test "relation operators" =
 
 let%expect_test "list/string operators" =
   parse_and_print
-    "(entrypoint (a: (list int))
+    "(entrypoint %A (a: (list int))
          (forall (i:int) 
            (if (le i (size a))
-             (assert (eq (nth a i) i)))))";
+             (assert (eq (nth a i) i)))))
+     (entrypoint %B (s: string)
+       (assert (eq (slice 0 (size s) s) s)))";
   [%expect
     {|
     AST
-    └──Entrypoint: %default
+    └──Entrypoint: %A
       └──Pattern: Id:a
         └──Type: List_t<Type: Int_t>
     └──Assertion: Forall
@@ -202,4 +204,15 @@ let%expect_test "list/string operators" =
               └──Expr: Id:a
               └──Expr: Id:i
             └──Expr: Id:i
-|}]
+    AST
+    └──Entrypoint: %B
+      └──Pattern: Id:s
+        └──Type: String_t
+    └──Assertion: Assert
+      └──Expr: Bin Op: Eq
+        └──Expr: Op: Slice
+          └──Expr: Int:0
+          └──Expr: Un Op: Size
+            └──Expr: Id:s
+          └──Expr: Id:s
+        └──Expr: Id:s|}]

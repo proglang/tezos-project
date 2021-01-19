@@ -73,6 +73,11 @@ let rec pp_expr ppf ~indent expr =
      print_expr (Fmt.str "Bin Op: %s" (str_of_binop op)) ;
      pp_expr ppf ~indent:new_indent expr1 ;
      pp_expr ppf ~indent:new_indent expr2
+  | `Slice (e1, e2, e3) ->
+     print_expr (Fmt.str "Op: Slice");
+     pp_expr ppf ~indent:new_indent e1 ;
+     pp_expr ppf ~indent:new_indent e2 ;
+     pp_expr ppf ~indent:new_indent e3
 
 let pp_type_expr_top ppf ~indent t =
   let rec pp_type_expr ppf ~indent t =

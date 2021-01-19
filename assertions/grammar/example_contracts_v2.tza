@@ -1,10 +1,11 @@
 (* Example contract:
  * parameter (or (pair (list int) int %A)
- *               (or (pair string (list int) %B) (option bool %C))) 
+ *               (or (pair (list int) string %B)
+ *                   (or (option bool %C) string %D)))
  *)
 
 (* %A: assert if input list is sorted *)
-(entrypoint (left (pair (p : (list int)) _ ))
+(entrypoint %A (pair (p : (list int)) _ )
     (forall (n : int)
         (forall (m : (list int))
             (if (and (lt n (size p)) (lt m (size p)))
@@ -12,10 +13,39 @@
         	    (assert (gt (nth n p) (nth m p))))))))
 
 (* %B: simple assertion without any quantifiers *)
-(entrypoint (right (left (pair (p : (list int) _ ))))
-    (if (gt (size p) 10)
-        (assert (eq (nth 9 p) 7))))
+(entrypoint %B (pair (l : (list int) _ ))
+    (if (gt (size l) 10)
+        (assert (eq (nth 9 l) 7))))
 
 (* %C: assertion without an "assert" expression *)
 (entrypoint %C (some [i : bool])
     [assert i])
+
+(* %D: assertion with the slice expression *)
+(entrypoint %D (s : string)
+    (if (gt (size s) 0)
+        (assert (eq (slice 0 (size s) s) s))))
+
+============ OR ================================================
+
+(* %A: assert if input list is sorted *)
+(entrypoint (left (pair (p : (list int)) _ ))
+    (forall (n : int)
+        (forall (m : (list int))
+            (if (and (lt n (size p)) (lt m (size p)))
+	        (if (lt n m)
+		    (assert (gt (nth n p) (nth m p))))))))
+
+(* %B: simple assertion without any quantifiers *)
+(entrypoint (right (left (pair (l : (list int) _ ))))
+    (if (gt (size l) 10)
+        (assert (eq (nth 9 l) 7))))
+
+(* %C: assertion without an "assert" expression *)
+(entrypoint (right [right (left (some [i : bool]))])
+    [assert i])
+
+(* %D: assertion with the slice expression *)
+(entrypoint (right [right (right (s : string))])
+    (if (gt (size s) 0)
+        (assert (eq (slice 0 (size s) s) s))))

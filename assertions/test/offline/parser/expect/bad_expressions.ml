@@ -10,10 +10,17 @@ let%expect_test "missing operator bin op" =
 
 let%expect_test "missing operator un op" =
   parse_and_print
-   "(entrypoint _ 
+   "(entrypoint _
       (assert (size)))" ;
   [%expect
       {|:2:21: syntax error |}]
+
+let%expect_test "missing operator in op" =
+  parse_and_print
+   "(entrypoint _
+      (assert (slice 0 1)))" ;
+  [%expect
+      {|:2:26: syntax error |}]
 
 let%expect_test "assertion in then body" =
   parse_and_print

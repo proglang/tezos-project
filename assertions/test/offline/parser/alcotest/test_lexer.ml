@@ -45,7 +45,7 @@ let lex_token_test_cases =
       ("neg", NEG); ("not", NOT); ("nth", NTH); ("add", ADD); ("sub", SUB);
       ("mul", MUL); ("div", DIV); ("mod", MOD); ("or", OR); ("and", AND);
       ("xor", XOR); ("lsl", LSL); ("lsr", LSR); ("eq", EQ); ("neq", NEQ);
-      ("lt", LT); ("gt", GT); ("le", LE); ("ge", GE)]
+      ("lt", LT); ("gt", GT); ("le", LE); ("ge", GE); ("slice", SLICE)]
 
 let test_lex_int =
   QCheck.Test.make ~count:100 ~name:"Lex integers"

@@ -361,7 +361,32 @@ let%expect_test "negation relation operators w/o quantifiers" =
       └──Expr: Bin Op: Le
         └──Expr: Id:a
         └──Expr: Int:10|}]
-  
+
+let%expect_test "byte/string op w/ quantifiers" =
+  parse_contract
+    {|(entrypoint %slice_ (s: string)
+        (forall (i : int)
+          (assert (eq (slice 0 1 s) "h"))))|}
+  |> Transformation.transform
+  |> Transformation.print_transformation ;
+  [%expect
+    {|
+    AST
+    └──Entrypoint: %slice_
+      └──Pattern: Id:s
+        └──Type: String_t
+    └──Assertion: Exists
+      └──Pattern: Id:i
+        └──Type: Int_t
+      └──Bounds:
+      └──Assertion: Assert
+        └──Expr: Bin Op: Neq
+          └──Expr: Op: Slice
+            └──Expr: Int:0
+            └──Expr: Int:1
+            └──Expr: Id:s
+          └──Expr: Str:"h"|}]
+
 let%expect_test "skip ifs" =
   parse_contract
     {|(entrypoint _

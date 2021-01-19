@@ -92,6 +92,7 @@ rule read =
   | "gt"          { GT }
   | "le"          { LE }
   | "ge"          { GE }
+  | "slice"       { SLICE }
   | id            { IDENT (Lexing.lexeme lexbuf)}
   | _             { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
   | eof           { EOF }

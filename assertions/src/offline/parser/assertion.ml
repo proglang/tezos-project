@@ -74,6 +74,7 @@ type expression = [
   | `IfThenElse of expression * expression * expression
   | `Unop of unop * expression
   | `Binop of binop * expression * expression
+  | `Slice of expression * expression * expression
   ]
 
 type assertion = [

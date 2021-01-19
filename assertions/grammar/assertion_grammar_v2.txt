@@ -70,6 +70,7 @@
 <primitive> ::=
   | <unop> <expression>
   | <binop> <expression> <expression>
+  | slice <expression> <expression> <expression>
   | <expression>
 <unop> ::=
   | size

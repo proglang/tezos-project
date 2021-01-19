@@ -52,6 +52,7 @@
   | nth <expression> <expression>
   | <expression> <binop> <expression>
   | <unop> <atom>
+  | slice <expression> <expression> <expression>
   | if <expression> then <expression> else <expression>
 <constant> ::=
   | <bool literal>

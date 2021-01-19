@@ -31,6 +31,7 @@ let rec negate_expr = function
     | `Binop (`Mod, _, _)
     | `Binop (`Lsl, _, _)
     | `Binop (`Lsr, _, _) as binop -> binop
+  | `Slice _ as slice -> slice
   (* ! || = && *)
   | `Binop (`Or, e1, e2) ->
      (* arguments are boolean expression -> negate them as well *)
@@ -142,6 +143,7 @@ let get_variables_of_expr expr =
     | `IfThenElse _ -> acc
     | `Unop (_, e) -> traverse acc e
     | `Binop (_, e1, e2) -> traverse (traverse acc e1) e2
+    | `Slice (e1, e2, e3) -> traverse (traverse (traverse acc e1) e2) e3
   in
   traverse [] expr
 

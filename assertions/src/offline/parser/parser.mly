@@ -15,6 +15,7 @@
 %token NOT ABS NEG
 %token ADD SUB MUL DIV MOD
 %token OR AND XOR LSL LSR EQ NEQ LT GT LE GE
+%token SLICE
 %token COLON PERCENT WILDCARD
 %token EOF              
 
@@ -104,6 +105,7 @@ expr_paren:
     {`IfThenElse (e_cond, e_then, e_else)}
   | op = unop; e = expression                     {`Unop (op, e)}
   | op = binop; e1 = expression; e2 = expression  {`Binop (op, e1, e2)}
+  | SLICE; e1 = expression; e2 = expression; e3 = expression; {`Slice (e1, e2, e3)}
 
 unop:
   | SIZE {`Size}
