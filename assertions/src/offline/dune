@@ -1,8 +1,15 @@
 (executable
   (name main)
   (modules main)
+  (preprocess (pps ppx_let))
   (libraries parsing
              tezos_backend))
+
+(executable
+	(name assert_to_json)
+	(modules assert_to_json)
+	(preprocess (pps ppx_let))
+	(libraries parsing))
 
 (library
  (name transform_and_compile)

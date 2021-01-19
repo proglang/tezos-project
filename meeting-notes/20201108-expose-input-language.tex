@@ -91,12 +91,12 @@ First we recall some information from the Michelson white paper
 \label{sec:relat-ocaml-datatyp}
 
 \begin{center}
-  \begin{tabular}{|l|l|}
-    Michelson & OCaml \\\hline
+  \begin{tabular}{|l|l|l}
+    Michelson type & OCaml type & Comment \\\hline
     \texttt{string}& \texttt{string}  \\
-    \texttt{nat} & ? (\texttt{int}) \\
-    \texttt{int} & \texttt{int} \\ 
-    \texttt{bytes}& ? \\
+    \texttt{nat} & ? (\texttt{Z.t}) & \texttt{Zarith} \\
+    \texttt{int} & \texttt{Z.t} & \texttt{Zarith}\\ 
+    \texttt{bytes}& \texttt{bytes} \\
     \texttt{bool}&\texttt{bool} \\
     \texttt{unit}&\texttt{unit} \\
     \texttt{list t}&\texttt{t list} \\
@@ -104,8 +104,9 @@ First we recall some information from the Michelson white paper
     \texttt{option t}     &\texttt{t option} \\
     \texttt{or l r}&\texttt{[`Left of l | `Right of r]} \\
     \texttt{set t}&? \texttt{Set.Make (T).t} \\
-    \texttt{map k t}&? \texttt{`t Map.Make(K).t} \\
-    \texttt{big\_map k t}&? \texttt{`t Map.Make(K).t} \\
+    \texttt{map k t}&? \texttt{T Map.Make(K).t} \\
+    \texttt{big\_map k t}&? \texttt{T Map.Make(K).t} \\
+    \texttt{mutez} & \texttt{int64} \\
     \hline
   \end{tabular}
 \end{center}
@@ -113,7 +114,7 @@ First we recall some information from the Michelson white paper
 \section{Tasks}
 \label{sec:tasks}
 
-We can represent Michelson parameter values with the following OCaml type using GADTs.
+We can represent Michelson parameter values with the following OCaml GADT.
 \begin{lstlisting}[language=Caml]
 type _ Mvalue =
   | Mstring : string -> string Mvalue
@@ -141,7 +142,7 @@ type _ Mtype =
   | Tor     : 'l Mtype * 'r Mtype 
             -> [`Left of 'l | `Right of 'r] Mtype
 \end{lstlisting}
-Instead of using polymorphic variants, one could also define a binary
+Instead of using polymorphic variants for expressing alternatives, one could also define a binary
 sum type like Haskell's Either type.
 \begin{lstlisting}[language=Caml]
 type ('a, 'b) either = Left of 'a | Right of 'b
@@ -161,8 +162,8 @@ with an internal serialization function
 \begin{lstlisting}[language=Caml]
 serialize : 't Mtype -> 't -> string
 \end{lstlisting}
-Not sure if deserialization is also needed, but it might be necessary
-to decode the current state of a contract. Deserialization may fail
+Deserialization is also needed to inspect values in the store of a
+contract. Deserialization may fail 
 and thus raise an exception.
 \begin{lstlisting}[language=Caml]
 deserialize : 't Mtype -> string -> 't
@@ -203,7 +204,9 @@ the node (via client lib or rpc) for the type of the contract
 \lstinline/hash/ and check it against \lstinline/mty/.
 This call fails if the type \lstinline/mty/ does not match the
 stored type of the contract.
-The returned value contains the serializer from \lstinline/'t -> string/.
+The returned value contains the serializer from \lstinline/'t -> string/. The most
+straightforward implementation would be to invoke the untyped sync API
+with the serialized parameter.
 \begin{lstlisting}[language=Caml]
 invoke_typed : 't Contract -> 't -> result Tezos.apimonad
 \end{lstlisting}

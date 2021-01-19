@@ -80,10 +80,10 @@ code { DUP; CAR;
      }
 \end{lstlisting}
 
-Here is a contract type that describes / specifies the above Michelson code.
+Here is a \textbf{contract module} that describes / specifies the above Michelson code.
 \begin{lstlisting}[caption={Contract module example},label={lst:contract-module-example}]
 contract type MyContract = sig
-  paid entrypoint %bid_for_auction (value : int) 
+  paid entrypoint %bid_for_auction (v : int) 
   raises "closed"                 (** auction closed*)
        | "bid too low" as too_low (** bid received is too low *)
        | 42 as the_answer         (** failwith received argument 42 *)
@@ -94,14 +94,17 @@ contract type MyContract = sig
 end
 \end{lstlisting}
 
-The body of the \lstinline/sig ... end/ can be stored in a
+To specify the contract module, we store
+the body of the \lstinline/sig ... end/ in a
 \texttt{.tzm} file where the basename matches the one of the
-\texttt{.tz} file. The output is a \texttt{.mli} file which contains a
-valid OCaml signature. In the next step, we are also generating the
-corresponding \texttt{.ml} file implementing the signature.
+\texttt{.tz} file which implements the contract.
 
-Each \lstinline/entrypoint/ is mapped to a function. The final pattern
-variable may be a wildcard \lstinline/_/ or an OCaml identifier, which
+A contract module gets compiled to an \texttt{.mli} file which contains a
+valid OCaml signature and the corresponding \texttt{.ml} file
+implementing the signature. 
+
+Each \lstinline/entrypoint/ is mapped to a function. The variables
+used in the pattern may be a wildcard \lstinline/_/ or an OCaml identifier, which
 is used in generating the implementation. For \lstinline/_/ a standard
 name will be generated.
 
@@ -140,15 +143,17 @@ sig
      | failedwith of int (** failwith received an integer arg *)
 
   val bid_for_auction
-    : Tezos.pukh -> ?fee:Tezos.tz -> Tezos.tz
-    -> int -> (Tezos.status, bid_for_auction_errors) Tezos.monad
+    : Tezos.pukh -> ?fee:Tezos.tz -> amount:Tezos.tz
+    -> int
+    -> (Tezos.status, bid_for_auction_errors) Tezos.monad
 
   type close_auction_errors = 
      | not_owner    (** caller cannot close the auction *)
 
   val close_auction
     : Tezos.pukh -> ?fee:Tezos.tz -> ?amount:Tezos.tz
-    -> unit -> (Tezos.status, close_auction_errors) Tezos.monad
+    -> unit
+    -> (Tezos.status, close_auction_errors) Tezos.monad
 end
 \end{lstlisting}
 
@@ -207,7 +212,8 @@ let int_regex =
 
 (* variable part *)
 let contract_addr = 
-  get_contract "KT1ThEdxfUcWUwqsdergy..." >>=? fun contract -> ???
+  get_contract "KT1ThEdxfUcWUwqsdergy..." >>=? 
+  fun ca -> ???
 
 type bid_for_auction_errors = 
    | closed       (** auction closed*)
@@ -222,20 +228,21 @@ let big_for_auction_errors_map =
       (failwith_regex ^ "closed", closed);
       (failwith_regex ^ "bid too low", too_low);
       (failwith_regex ^ "42", the_answer);
-      (failwith_regex ^ int_regex, failedwith (0)); (* badness 10000 *)
+      (failwith_regex ^ int_regex, failedwith (0)); 
+      (* badness 10000: actual implementation must obtain the int value *)
     ]
   (* inadequate in several ways;
    * should just generate code instead of using a map*)
   
 
-let bid_for_auction destination ?(fee=100.0) amount value =
+let bid_for_auction destination ?(fee=100.0) amount v =
   ...
   begin
     SyncAPIV0.call_contract
       amount
       destination
       contract_addr
-      ~(serialize Tint value)
+      ~(serialize Tint v)
       fee
     >>=? fun oph ->
     wait_for_inclusion oph (* busy waiting *)
@@ -244,34 +251,41 @@ let bid_for_auction destination ?(fee=100.0) amount value =
   end
   >>= function
   | Ok _ -> ...
-  | Error (Rejection Michelson_runtime_error s) -> ...
+  | Error (Rejection Michelson_runtime_error s) -> 
+    (*match s against expected errors from ...errors_map *)
+    (*throw exception if no match *)
+    ...
 
 type close_auction_errors = 
    | not_owner    (** caller cannot close the auction *)
 
-let close_auction destination ?(fee=50.0) ?(amount=0.0) _ =
+let close_auction destination ?(fee=50.0) ?(amount=0.0) v =
   ...
   SyncAPIV0.call_contract
     amount
     destination
     contract_addr
-    ~(serialize Tunit)
+    ~(serialize Tunit v)
     fee
 \end{lstlisting}
-
+This code example is incomplete and likely incorrect. It contains
+fragments from an example implemented on top of the synchronous API.
+The call to \lstinline/serialize/ refers to a proposal to improve on
+the typing properties of the synchronous API.
 
 \clearpage
 \section{Tools}
 \label{sec:tools}
 
-An extended type checker collects information about explicit failures along execution paths
-starting from each possible entry point. This checker will be able to
-verify the contract module specification in
-\ref{lst:contract-module-example} against the Michelson code in
-\ref{lst:code-example}. We may also wish to provide an entry point so
-that the checker only gathers information for that entry point. This alternative may be interesting if there
-is an entry point taking a parameter of sum type, rather than using all injections to distinguish
-between entry points.
+An extended type checker collects information about explicit failures
+along execution paths starting from each possible entry point. This
+checker will be able to verify the contract module specification in
+Listing~\ref{lst:contract-module-example} against the Michelson code
+in Listing~\ref{lst:code-example}. We may also wish to provide an
+entry point so that the checker only gathers information for that
+entry point. This alternative may be interesting if there is an entry
+point taking a parameter of sum type, rather than using all injections
+to distinguish between entry points.
 
 The checker should warn about unhandled failures (both checked and unchecked).
 
@@ -297,6 +311,69 @@ approximate the contents of the list of operations that is produced by
 the contract. 
 
 A starting point for the implementation could be the module \lstinline/Tezos_micheline/, which has a
-Michelson parser. 
+Michelson parser.
+
+\subsection{The Checker}
+\label{sec:checker}
+
+\subsubsection{Input}
+\begin{itemize}
+\item A contract in the form of a \texttt{.tz} file containing a
+  Michelson program.
+\item An entrypoint in the program
+\end{itemize}
+
+The checker performs symbolic execution of the Michelson stack
+machine.
+
+
+A symbolic value is either a concrete value
+constructor (like a number, a pair, left, right, nil, cons, etc) where
+the components are symbolic values, or it is a Michelson type which
+may be associated with a constraint, e.g., for an integer $x$ there 
+may be the constraint that $0<x<10$. Subcomponents of the type are
+again types with constraints. In a first iteration, constraints may be
+restricted to a disjunction of equations, e.g., $x=1 \vee x=2$.
+
+\subsubsection{Type checking}
+\label{sec:type-checking}
+
+ The stack is initialized with a symbolic value corresponding to a pair
+of the storage type and the parameter type. The latter is concretized
+according to the path to the specified entrypoint. That is, to
+investigate the entrypoint \lstinline/bid_for_auction/ in
+Listing~\ref{lst:code-example}, symbolic execution would start with a
+one-element stack that contains
+\begin{lstlisting}[language=michelson]
+(PAIR (LEFT x1:int) x2:address)
+\end{lstlisting}
+without any constraints on \texttt{x1} or \texttt{x2}.
+
+The checker executes instructions as far as possible using the
+concrete part and updates the stack according to the typing rules and
+semantics of the instruction. It tries to keep the
+stack contents as concrete as possible by exploiting all known information
+(e.g., constraints). If control flow cannot be decided, the checker
+explores all alternatives, potentially adding constraints that reify the
+checked condition, and joins the results. Execution paths with
+unsatisfiable constraints are pruned.
+
+\subsubsection{Exception tracking}
+\label{sec:exception-tracking}
+
+If the checker encounters an instruction that can make the contract
+fail, it saves this potential failure along with the (control flow) constraints
+leading to it. For a \texttt{FAILWITH} instruction, it saves
+this failure along with the constraints and with the symbolic value on
+top of the stack.
+
+\subsubsection{Token tracking}
+\label{sec:token-tracking}
+
+Instructions that generate tokens (e.g., \texttt{AMOUNT},
+\texttt{BALANCE}) create symbolic values marked with 
+the instruction. Further processing of these symbolic values leads to
+constraints on tokens and to their usage. These are also saved to
+infer if an amount argument is needed.
 
 \end{document}
