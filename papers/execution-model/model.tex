@@ -120,11 +120,107 @@ Example pseudo code
 \end{align*}
 Grammar of types
 \begin{align*}
-  \TYPE & ::= \TADDR \mid \TOPH \mid \TPUH \mid \TPUK \mid \TCODE\ \TYPE \mid
+  \TYPE & ::= \TADDR \mid \TOPH \mid \TPUH \mid \TPUK \mid \TCODE\
+          \TYPE \mid \TTEZ \mid
           \TINT \mid \TUNIT \mid \TBOOL \mid \TSTRING \mid \TSTATUS \\
   & \mid \TYPE\to\TYPE \mid \TPAIR\ \TYPE\ \TYPE \mid \TLIST\ \TYPE
     \mid \TSUM\ \TYPE\ \TYPE \mid \TOPTION\ \TYPE \mid \TEXCEPTION
 \end{align*}
+
+Typing rules
+\begin{mathpar}
+  \inferrule{}{\JTypeExpr\TEnv\INT\TINT}
+
+  \inferrule{}{\JTypeExpr\TEnv\OPH\TOPH}
+
+  \inferrule{}{\JTypeExpr\TEnv\PUH\TPUH}
+
+  \inferrule{}{\JTypeExpr\TEnv\PUK\TPUK}
+
+  \inferrule{\TYPE= ???}{\JTypeExpr\TEnv\CODE{\TCODE\ \TYPE}}
+
+  \inferrule{}{\JTypeExpr\TEnv\NTEZ\TTEZ}
+
+  \inferrule{}{\JTypeExpr\TEnv\SUNIT\TUNIT}
+
+  \inferrule{}{\JTypeExpr\TEnv\FALSE\TBOOL}
+
+  \inferrule{}{\JTypeExpr\TEnv\TRUE\TBOOL}
+
+  \inferrule{}{\JTypeExpr\TEnv\STATUSPENDING\TSTATUS}
+
+  \inferrule{}{\JTypeExpr\TEnv\STATUSTIMEOUT\TSTATUS}
+
+  \inferrule{}{\JTypeExpr\TEnv{\STATUSINCLUDING (\INT)}\TSTATUS}
+
+  \inferrule{}{\JTypeExpr\TEnv\ERROR\TEXCEPTION}
+
+  \inferrule{}{\JTypeExpr\TEnv\VARIABLE{\TEnv (\VARIABLE)}}
+
+  \inferrule{
+    \JTypeExpr{\TEnv, \VARIABLE:\TYPE'}\EXPR{\TYPE}
+  }{
+    \JTypeExpr\TEnv{\lambda\VARIABLE.\EXPR}{\TYPE'\to\TYPE}}
+
+  \inferrule{
+    \JTypeExpr\TEnv\EXPR{\TYPE'\to\TYPE} \\
+    \JTypeExpr\TEnv{\EXPR'}{\TYPE'}
+  }{
+    \JTypeExpr\TEnv{\EXPR\ \EXPR'}\TYPE
+  }
+
+  \inferrule{
+    \JTypeExpr\TEnv\EXPR\TYPE \\
+    \JTypeExpr\TEnv{\EXPR'}{\TYPE'}
+  }{
+    \JTypeExpr\TEnv{(\EXPR, \EXPR')}{\TPAIR\ \TYPE\ \TYPE'}
+  }
+
+  \inferrule{
+    \JTypeExpr\TEnv{\EXPR}{\TPAIR\ \TYPE\ \TYPE'}
+  }{
+    \JTypeExpr\TEnv{\FST\ \EXPR}\TYPE
+  }
+
+  \inferrule{
+    \JTypeExpr\TEnv{\EXPR}{\TPAIR\ \TYPE\ \TYPE'}
+  }{
+    \JTypeExpr\TEnv{\SND\ \EXPR}{\TYPE'}
+  }
+  \\\\
+  \inferrule{
+    \JTypeExpr\TEnv\EXPR\TEXCEPTION
+  }{
+    \JTypeExpr\TEnv{\RAISE\ \EXPR}\TYPE
+  }
+
+  \inferrule{
+    \JTypeExpr\TEnv\EXPR\TYPE \\
+    \JTypeExpr\TEnv{\EXPR'}{\TEXCEPTION\to\TYPE}
+  }{
+    \JTypeExpr\TEnv{\TRY\ \EXPR\ \EXCEPT\ \EXPR'}\TYPE
+  }
+  \\\\
+  \inferrule{
+    \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
+    \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
+    \JTypeExpr\TEnv{\EXPR_3}\TADDR \\
+    \JTypeExpr\TEnv{\EXPR_4}\TSTRING \\
+    \JTypeExpr\TEnv{\EXPR_5}\TTEZ
+  }{
+    \JTypeExpr\TEnv{\TRANSFER[\EXPR_4]{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}\TOPH
+  }
+
+  \inferrule{
+    \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
+    \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
+    \JTypeExpr\TEnv{\EXPR_3}{\TCODE\ \TYPE} \\
+    \JTypeExpr\TEnv{\EXPR_4}\TYPE \\ % really \TSTRING \\
+    \JTypeExpr\TEnv{\EXPR_5}\TTEZ
+  }{
+    \JTypeExpr\TEnv{\ORIGINATE{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_4}{\EXPR_5}}\TPUH
+  }
+\end{mathpar}
 
 \begin{definition}%[State of a node]
   The \emph{state of a node} is a tuple
