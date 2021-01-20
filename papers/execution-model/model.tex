@@ -290,6 +290,10 @@ If $[\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \BlockTrans{}
    \item for all $\PUH \in \DOM (\CONTRACTORS)$,
      $\CONTRACTORS (\PUH).\CODE = \CONTRACTORS' (\PUH).\CODE$
    \end{itemize}
+ \item invariant for contractors:
+   for all $\PUH \in \DOM (\CONTRACTORS)$,
+   $\CONTRACTORS (\PUH) = \Angle{ \CODE, \TIME, \BAL, \STORAGE}$
+   implies that $\PUH = \GENERATEHASH (\CODE, \TIME)$.
 \end{itemize}
 
 \subsection{Typing related properties}
