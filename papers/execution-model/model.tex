@@ -120,24 +120,26 @@ Example pseudo code
 \end{align*}
 Grammar of types
 \begin{align*}
-  \TYPE & ::= \TADDR \mid \TOPH \mid \TPUH \mid \TPUK \mid \TCODE\
-          \TYPE \mid \TTEZ \mid
+  \TYPE & ::= \TADDR \mid \TOPH \mid \TPUH\ \TYPE\ \TYPE \mid \TPUK \mid \TCODE\
+          \TYPE\ \TYPE \mid \TTEZ \mid
           \TINT \mid \TUNIT \mid \TBOOL \mid \TSTRING \mid \TSTATUS \\
   & \mid \TYPE\to\TYPE \mid \TPAIR\ \TYPE\ \TYPE \mid \TLIST\ \TYPE
     \mid \TSUM\ \TYPE\ \TYPE \mid \TOPTION\ \TYPE \mid \TEXCEPTION
 \end{align*}
 
-Typing rules
+Typing rules, relying on an external typing judgment
+$\JTypeCode\CODE\TYPE$ for the contract language and
+$\JTypeValue\STRING\TYPE$ for serialized values as stored on the blockchain.
 \begin{mathpar}
   \inferrule{}{\JTypeExpr\TEnv\INT\TINT}
 
   \inferrule{}{\JTypeExpr\TEnv\OPH\TOPH}
 
-  \inferrule{}{\JTypeExpr\TEnv\PUH\TPUH}
+  \inferrule{}{\JTypeExpr\TEnv\PUH{\TPUH\ ?\ ?}}
 
   \inferrule{}{\JTypeExpr\TEnv\PUK\TPUK}
 
-  \inferrule{\TYPE= ???}{\JTypeExpr\TEnv\CODE{\TCODE\ \TYPE}}
+  \inferrule{\JTypeCode \CODE{ \TPAIR\ \TYPE_p\ \TYPE_s}}{\JTypeExpr\TEnv\CODE{\TCODE\ \TYPE_p\ \TYPE_s}}
 
   \inferrule{}{\JTypeExpr\TEnv\NTEZ\TTEZ}
 
@@ -201,24 +203,47 @@ Typing rules
     \JTypeExpr\TEnv{\TRY\ \EXPR\ \EXCEPT\ \EXPR'}\TYPE
   }
   \\\\
+  % too generic
+  % \inferrule{
+  %   \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
+  %   \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
+  %   \JTypeExpr\TEnv{\EXPR_3}\TADDR \\
+  %   \JTypeExpr\TEnv{\EXPR_4}\TSTRING \\
+  %   \JTypeExpr\TEnv{\EXPR_5}\TTEZ
+  % }{
+  %   \JTypeExpr\TEnv{\TRANSFER[\EXPR_4]{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}\TOPH
+  % }
+  %   
   \inferrule{
     \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
     \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
-    \JTypeExpr\TEnv{\EXPR_3}\TADDR \\
-    \JTypeExpr\TEnv{\EXPR_4}\TSTRING \\
+    \JTypeExpr\TEnv{\EXPR_3}\TPUK \\
+    % \JTypeExpr\TEnv{\EXPR_4}\TSTRING \\
     \JTypeExpr\TEnv{\EXPR_5}\TTEZ
   }{
-    \JTypeExpr\TEnv{\TRANSFER[\EXPR_4]{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}\TOPH
+    \JTypeExpr\TEnv{\TRANSFER{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}\TOPH
   }
 
   \inferrule{
     \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
     \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
-    \JTypeExpr\TEnv{\EXPR_3}{\TCODE\ \TYPE} \\
-    \JTypeExpr\TEnv{\EXPR_4}\TYPE \\ % really \TSTRING \\
+    \JTypeExpr\TEnv{\EXPR_3}\TPUH\ \TYPE_p\ \TYPE_s \\
+    \JTypeExpr\TEnv{\EXPR_4}{\TYPE_p} \\
     \JTypeExpr\TEnv{\EXPR_5}\TTEZ
   }{
-    \JTypeExpr\TEnv{\ORIGINATE{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_4}{\EXPR_5}}\TPUH
+    \JTypeExpr\TEnv{\TRANSFER[\EXPR_4]{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}\TOPH
+  }
+
+
+  \inferrule{
+    \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
+    \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
+    \JTypeExpr\TEnv{\EXPR_3}{\TCODE\ (\TPAIR\ \TYPE_p\ \TYPE_s)} \\
+    \JTypeExpr\TEnv{\EXPR_4}\TYPE_s \\ % really \TSTRING \\
+    \JTypeExpr\TEnv{\EXPR_5}\TTEZ
+  }{
+    \JTypeExpr\TEnv{\ORIGINATE{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_4}{\EXPR_5}}{
+      \TPUH\ \TYPE_p\ \TYPE_s} 
   }
 \end{mathpar}
 
@@ -403,9 +428,9 @@ types, the parameter type and the storage type.
 Define $ \Delta \vdash \CONTRACTORS$ by
 \begin{itemize}
 \item $\DOM (\Delta) = \DOM (\CONTRACTORS)$
-\item $\CONTRACTORS (\PUH).\CODE : \Delta (\PUH) \to FIXEDOUTPUTTYPE$
-\item $\CONTRACTORS (\PUH).\STORAGE : \TYPE_s$ where $\Delta (\PUH) =
-  \TPAIR\ \TYPE_p\ \TYPE_s$. 
+\item $\JTypeCode{\CONTRACTORS (\PUH).\CODE} {\Delta (\PUH)}$
+\item $\JTypeValue{\CONTRACTORS (\PUH).\STORAGE}{ \TYPE_s}$ where
+  $\Delta (\PUH) = \TPAIR\ \TYPE_p\ \TYPE_s$. 
 \end{itemize}
 
 Preservation
