@@ -14,18 +14,28 @@
 
 \title{A Typed Programmatic Interface to Contracts on the Blockchain}
 
-\author{}
-\institute{}
+\author{Doan Thi Thu Ha \and
+Peter Thiemann\orcidID{0000-0002-9000-1239}}
+\institute{University of Freiburg, Germany\\
+\email{\{doanha,thiemann\}@informatik.uni-freiburg.de}
+}
 
 \date{\today}
 
 \begin{document}
 \maketitle
 \pagestyle{plain}
-\begin{abstract} {\color{blue} Smart contract applications can reach their full potential if software programs can sufficiently interact with smart contracts on the blockchain.}
-  Integrating blockchain contracts in software systems requires a
-  programmatic interface. We propose a typed interface for this purpose and establish some properties of the combined system. {\color{blue} In detail, we provide an execution model that allows type-safe interaction between programs and the blockchain. Some designed properties are proven by the model.} A
-  prototype of the interface is implemented in OCaml for the Tezos blockchain.  {\color{blue} The OCaml API allows user-programs to interact with an auction smart contract on the blockchain in a type-safe manner.}
+\begin{abstract}
+  Smart contract applications on the blocking can only reach their full potential if
+  they can be integrated with traditional software systems. Invoking
+  contracts and observing the state of the blockchain requires a
+  programmatic interface. We propose a typed API for this
+  purpose and establish some properties of the combined
+  system. Specifically, we provide an execution model that
+  enables us to prove type-safe interaction between programs and the 
+  blockchain. We establish further properties of the model that
+  translate into requirements on the API. A prototype of the interface
+  is implemented in OCaml for the Tezos blockchain.
 \end{abstract}
 
 \section{Motivation}
