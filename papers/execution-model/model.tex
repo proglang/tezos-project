@@ -22,12 +22,10 @@
 \begin{document}
 \maketitle
 \pagestyle{plain}
-\begin{abstract}
+\begin{abstract} {\color{blue} Smart contract applications can reach their full potential if software programs can sufficiently interact with smart contracts on the blockchain.}
   Integrating blockchain contracts in software systems requires a
-  programmatic interface. We propose a typed interface for this
-  purpose and establish some properties of the combined system. A
-  prototype of the interface is implemented in OCaml for the Tezos
-  blockchain. 
+  programmatic interface. We propose a typed interface for this purpose and establish some properties of the combined system. {\color{blue} In detail, we provide an execution model that allows type-safe interaction between programs and the blockchain. Some designed properties are proven by the model.} A
+  prototype of the interface is implemented in OCaml for the Tezos blockchain.  {\color{blue} The OCaml API allows user-programs to interact with an auction smart contract on the blockchain in a type-safe manner.}
 \end{abstract}
 
 \section{Motivation}
@@ -86,9 +84,10 @@ call-contract(address, Unit);
 The bidding strategy could be implemented by first calling a contract with a minimum amount, watching the state of the contract, say every 5 minutes. If the bidder is not the current highest bidder and bidding is allowed, the bid has not reached the limit. He emits a contract call with a higher bid.
 
 \begin{lstlisting}[numbers=none]
-while get-state(address).flag = true and bid < limit do
+while get-state(address).flag = true and 
+get-state(address).highestBid > bid and bid < limit do
     bid = bid + a;
-    call_contract(address, bid);
+    call_contract(address, bid); 
     Time.speep(5);
 done;
 \end{lstlisting}
