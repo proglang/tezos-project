@@ -14,7 +14,7 @@
 
 \title{A Typed Programmatic Interface to Contracts on the Blockchain}
 
-\author{Doan Thi Thu Ha \and
+\author{Thi Thu Ha Doan\and
 Peter Thiemann\orcidID{0000-0002-9000-1239}}
 \institute{University of Freiburg, Germany\\
 \email{\{doanha,thiemann\}@informatik.uni-freiburg.de}
@@ -83,13 +83,14 @@ There are two purposes for calling an auction contract: (1) a bid by a bidder, o
 
 
 
-Although closing contract and bidding strategy tasks are not able to be implemented in a smart contract, they could be in programs that interact with the blockchain. We call the function that deploy a contract \texttt{originate-contract}, and  it results the contract's address on the blockchain.  The function that invokes a contract is \texttt{call-contract}. The \texttt{get-state} function queries data on the blockchain and returns the storage of a contract. The owner could first deploy the contract, waitg 48 hours, and then call the contract with the entrypoint \texttt{Unit} to close the contract.
+Although contract closing  and bidding strategy tasks are not able to be implemented in a smart contract, they could be in programs that interact with smart contracts on the blockchain. We call the function that deploys a contract \texttt{originate-contract}, and  it returns the contract's address on the blockchain.  The function that invokes a contract is \texttt{call-contract}. \texttt{get-state} function queries data on the blockchain and returns the storage of a contract. The owner could first deploy the contract, wait 48 hours, and then call the contract with the entrypoint \texttt{Unit} to close the contract.
 
 \begin{lstlisting}[numbers=none]
 address = orinigate-contract(script);
 Time.sleep(to-second(48));
 call-contract(address, Unit);
 \end{lstlisting}
+where \texttt{script} is the contract's script and \texttt{to-second} function converts hour to second.
 
 The bidding strategy could be implemented by first calling a contract with a minimum amount, watching the state of the contract, say every 5 minutes. If the bidder is not the current highest bidder and bidding is allowed, the bid has not reached the limit. He emits a contract call with a higher bid.
 
