@@ -191,7 +191,7 @@ $\mathbf{s} :: = \emptyset \mid \mathbf{e} \mid \mathbf{s :: s}$
   \\& \mid \MATCH\ \EXPR\ \WITH\ \PATTERN\to\EXPR \dots
   \\& \mid \TRANSFER[\EXPR]\EXPR\EXPR\EXPR\EXPR
   \\& \mid \ORIGINATE\EXPR\EXPR\EXPR\EXPR\EXPR
-  \\&\mid \QOP\  \EXPR\\
+  \\&\mid \QOP\  \EXPR \mid \CONTRACT\ \TYPE\ \EXPR\\
   \QOP & ::= balance \mid status \mid storage \mid code \mid counter \mid type
 \end{align*}
 We let $\EXPRS$ range over sets of expressions.
@@ -222,7 +222,9 @@ Example pseudo code
 \end{align*}
 Grammar of types
 \begin{align*}
-  \TYPE, \TYPEU & ::= \TADDR \mid \TOPH \mid \TPUH\ \TYPE\ \TYPEU \mid
+  \TYPE, \TYPEU & ::= \TADDR \mid \TOPH \mid
+                  \TCONTRACT\ \TYPE \mid
+                  % \TPUH\ \TYPE \mid
                   \TPUK \mid
                   \TCODE\ \TYPE\ \TYPEU \mid \TTEZ \mid
           \TINT \mid \TUNIT \mid \TBOOL \mid \TSTRING \mid \TSTATUS \\
@@ -238,11 +240,15 @@ $\JTypeValue\STRING\TYPE$ for serialized values as stored on the blockchain.
 
   \inferrule{}{\JTypeExpr\TEnv\OPH\TOPH}
 
-  \inferrule{}{\JTypeExpr\TEnv\PUH{\TPUH\ ?\ ?}}
+  \inferrule{}{\JTypeExpr\TEnv\PUH{\TADDR}}
 
   \inferrule{}{\JTypeExpr\TEnv\PUK\TPUK}
 
-  \inferrule{\JTypeCode \CODE{ \TPAIR\ \TYPE_p\ \TYPE_s}}{\JTypeExpr\TEnv\CODE{\TCODE\ \TYPE_p\ \TYPE_s}}
+  \inferrule{\JTypeCode \CODE{ \TPAIR\ \TYPE_p\
+      \TYPE_s}}{\JTypeExpr\TEnv\CODE{\TCODE\ \TYPE_p\ \TYPE_s}}
+
+  \inferrule{\JTypeExpr\TEnv\EXPR\TADDR}{\JTypeExpr\TEnv{\CONTRACT\ \TYPE\ \EXPR}{\TOPTION
+      (\TCONTRACT\ \TYPE)}}
 
   \inferrule{}{\JTypeExpr\TEnv\NTEZ\TTEZ}
 
@@ -320,7 +326,8 @@ $\JTypeValue\STRING\TYPE$ for serialized values as stored on the blockchain.
   \inferrule{
     \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
     \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
-    \JTypeExpr\TEnv{\EXPR_3}\TPUK \\
+    % \JTypeExpr\TEnv{\EXPR_3}\TPUK \\
+    \JTypeExpr\TEnv{\EXPR_3}{\TCONTRACT\ \TUNIT} \\
     % \JTypeExpr\TEnv{\EXPR_4}\TSTRING \\
     \JTypeExpr\TEnv{\EXPR_5}\TTEZ
   }{
@@ -330,8 +337,8 @@ $\JTypeValue\STRING\TYPE$ for serialized values as stored on the blockchain.
   \inferrule{
     \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
     \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
-    \JTypeExpr\TEnv{\EXPR_3}\TPUH\ \TYPE_p\ \TYPE_s \\
-    \JTypeExpr\TEnv{\EXPR_4}{\TYPE_p} \\
+    \JTypeExpr\TEnv{\EXPR_3}\TCONTRACT\ \TYPE \\
+    \JTypeExpr\TEnv{\EXPR_4}{\TYPE} \\
     \JTypeExpr\TEnv{\EXPR_5}\TTEZ
   }{
     \JTypeExpr\TEnv{\TRANSFER[\EXPR_4]{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}\TOPH
@@ -341,12 +348,11 @@ $\JTypeValue\STRING\TYPE$ for serialized values as stored on the blockchain.
   \inferrule{
     \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
     \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
-    \JTypeExpr\TEnv{\EXPR_3}{\TCODE\ (\TPAIR\ \TYPE_p\ \TYPE_s)} \\
+    \JTypeExpr\TEnv{\EXPR_3}{\TCODE\ \TYPE_p\ \TYPE_s} \\
     \JTypeExpr\TEnv{\EXPR_4}\TYPE_s \\ % really \TSTRING \\
     \JTypeExpr\TEnv{\EXPR_5}\TTEZ
   }{
-    \JTypeExpr\TEnv{\ORIGINATE{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_4}{\EXPR_5}}{
-      \TPUH\ \TYPE_p\ \TYPE_s} 
+    \JTypeExpr\TEnv{\ORIGINATE{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_4}{\EXPR_5}}\TOPH 
   }
 \end{mathpar}
 
@@ -927,10 +933,22 @@ Rule 3 [rejected of counter]:
     \PUH = \GENERATEHASH(\CODE, \TIME) \\
     \TIME-\hat\TIME  \le 60
   }{
-      [\EC{\OPH}  :: \EXPRS, \ACCOUNTS] \| [\OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSPENDING} :: \PENDING, \MANAGERS, \CONTRACTORS, \TIME]
-    \SystemTrans \\
-     [\EC{ \PUH}  :: \EXPRS, \ACCOUNTS] \|  [\OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSINCLUDING\ \TIME} :: \PENDING, \UPDATESUCC
+    [\OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSPENDING} :: \PENDING, \MANAGERS, \CONTRACTORS, \TIME]
+    \BlockTrans \\
+     [\OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSINCLUDING\ \TIME} :: \PENDING, \UPDATESUCC
       (\MANAGERS, \PUK, \NTEZ, \MTEZ),\\ \PUH \mapsto  \Angle{\CODE, \TIME, \NTEZ, \STRING} :: \CONTRACTORS, \TIME+1]
+  }
+\end{mathpar}
+\begin{mathpar}
+  \inferrule[Block-Accept-Query]{
+    \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ \\
+    \PENDING (\OPH) =  \Angle{\OP,
+       \hat\TIME, \STATUSINCLUDING\ \tilde\TIME} \\
+    \CONTRACTORS (\PUH) =  \Angle{\CODE, \tilde\TIME, \NTEZ', \STRING'}
+  }{
+      [\EC{\QRY\ \GETCONTRACT\ \OPH}  :: \EXPRS, \ACCOUNTS] \| [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]
+    \SystemTrans 
+     [\EC{ \PUH}  :: \EXPRS, \ACCOUNTS] \|  [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]
   }
 \end{mathpar}
 
