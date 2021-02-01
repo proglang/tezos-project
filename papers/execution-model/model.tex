@@ -58,7 +58,13 @@ certain limit is reached. Of course, the bidder only increases if
 someone else placed a higher bid. So the bidder also wants to write a
 program to implement this strategy.
 
-{\color{blue} Let us consider how this auction contract could be written in Michelson, the language of smart contracts in Tezos. The state of a smart contract is presented by the data in its storage on the blockchain. The input data provided with a contract invocation is specified as a parameter.
+Both tasks cannot be implemented as smart contracts because they react
+to external triggers. Closing requires
+to schedule the activation of a contract at a certain time and bidding
+requires to watch the state of the contract (current highest bid) and
+react if another bidder places a higher bid.
+
+Let us consider how this auction contract could be written in Michelson, the language of smart contracts in Tezos. The state of a smart contract is presented in its storage on the blockchain. The input data provided with a contract invocation is specified as a parameter.
 
 \begin{lstlisting}[numbers=none]
 parameter (or (unit %close)
@@ -70,20 +76,14 @@ storage (pair
                and bidder's address
         );
 \end{lstlisting}
+where \texttt{unit} is the type whose only value is \texttt{Unit}, \texttt{mutez} is a specific type for tokens in Tezos, and \texttt{pair} is a pair of values a and b of types (l) and (r) written as (\texttt{Pair a b}).
 
-where \texttt{unit} is the type whose only value is \texttt{Unit}, \texttt{mutez} is a specific type for manipulating tokens in Tezos, and \texttt{pair} is a pair of values a and b of types (l) and (r) written as (\texttt{Pair a b}).
-
-There are two purposes for calling an auction contract: (1) a bid by a bidder, or (2) a contract closing by the contract owner. Michelson supports multiple entrypoints, distinguished by \texttt{or}. The contract's storage on the blockchain contains two pairs, the first pair containing the flag indicating whether bidding is allowed or the contract is closed and the address of the contract owner, and the second pair containing the current highest bid and the address of the bidder. Michelson is stack-based. It takes a pair of the parameter and the current storage as inputs and returns the updated storage and a list of internal operations. When a bidder invokes the contract to bid, its bid and address are updated in the storage if its bid is higher than the current highest bid, otherwise they are discharged. The closing of the contract is called by the contract owner when it reaches 48 hours }
+There are two purposes for calling an auction contract: (1) a bid by a bidder, or (2) a contract closing by the contract owner. Michelson supports multiple entrypoints, distinguished by \texttt{or}. The contract's storage contains two pairs, the first pair containing the flag indicating whether bidding is allowed or the contract is closed and the address of the contract owner, and the second pair containing the current highest bid and the address of the bidder. Michelson is stack-based. It takes a pair of the parameter and the current storage as inputs and returns the updated storage and a list of internal operations. When a bidder invokes the contract to bid, its bid and address are updated in the storage if the bid is higher than the current highest bid, otherwise they are discharged. The closing of the contract is called by the contract owner when it reaches 48 hours.
 
 
-Both tasks cannot be implemented as smart contracts because they react
-to external triggers. Closing requires
-to schedule the activation of a contract at a certain time and bidding
-requires to watch the state of the contract (current highest bid) and
-react if another bidder places a higher bid.
 
-{\color{blue} In contrast, these tasks are able to implement as programs that interact with the blockchain.  We call the function that deploy a contract \texttt{originate-contract}, and the function that invokes a contract \texttt{call-contract}. The \texttt{get-state} function queries data on the blockchain and returns the storage of a contract.
-The \texttt{originate-contract} function results the contract's address on the blockchain. The program for a contract owner could be implemented by first deploying the contract, waiting 48 hours, and then calling the contract with the entrypoint \texttt{Unit} to close the contract.
+
+Although closing contract and bidding strategy tasks are not able to be implemented in a smart contract, they could be in programs that interact with the blockchain. We call the function that deploy a contract \texttt{originate-contract}, and  it results the contract's address on the blockchain.  The function that invokes a contract is \texttt{call-contract}. The \texttt{get-state} function queries data on the blockchain and returns the storage of a contract. The owner could first deploy the contract, waitg 48 hours, and then call the contract with the entrypoint \texttt{Unit} to close the contract.
 
 \begin{lstlisting}[numbers=none]
 address = orinigate-contract(script);
@@ -102,7 +102,6 @@ get-state(address).highestBid > bid and bid < limit do
 done;
 \end{lstlisting}
 
-}
 
 On another level, running a contract requires to propose a fee to the
 blockchain, which may or may not be accepted. In any case, starting a
