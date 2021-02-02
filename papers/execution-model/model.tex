@@ -166,8 +166,9 @@ $\mathbf{s} :: = \emptyset \mid \mathbf{e} \mid \mathbf{s :: s}$
   \\&\mid \GETBALANCE\ADDR
   \\&\mid \GETSTATUS\OPH
   \\&\mid \GETSTORAGE\PUH
-  \\&\mid \GETCODE\PUH 
-  \\&\mid \GETTYPE\PUH
+  % \\&\mid \GETCODE\PUH 
+  % \\&\mid \GETTYPE\PUH
+  \\&\mid \GETCONTRACT\OPH
 \end{align*}
 \end{definition}
 
@@ -191,7 +192,8 @@ $\mathbf{s} :: = \emptyset \mid \mathbf{e} \mid \mathbf{s :: s}$
   \\& \mid \MATCH\ \EXPR\ \WITH\ \PATTERN\to\EXPR \dots
   \\& \mid \TRANSFER[\EXPR]\EXPR\EXPR\EXPR\EXPR
   \\& \mid \ORIGINATE\EXPR\EXPR\EXPR\EXPR\EXPR
-  \\&\mid \QOP\  \EXPR \mid \CONTRACT\ \TYPE\ \EXPR\\
+  \\&\mid \QOP\  \EXPR \mid \CONTRACT\ \TYPE\ \EXPR \mid \TOSTRING\
+  \EXPR \mid \FROMSTRING\ \TYPE\ \EXPR\\
   \QOP & ::= balance \mid status \mid storage \mid code \mid counter \mid type
 \end{align*}
 We let $\EXPRS$ range over sets of expressions.
@@ -353,6 +355,68 @@ $\JTypeValue\STRING\TYPE$ for serialized values as stored on the blockchain.
     \JTypeExpr\TEnv{\EXPR_5}\TTEZ
   }{
     \JTypeExpr\TEnv{\ORIGINATE{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_4}{\EXPR_5}}\TOPH 
+  }
+\end{mathpar}
+
+Types for queries
+\begin{mathpar}
+  \inferrule{
+    \JTypeExpr\TEnv\EXPR\TPUK
+  }{
+    \JTypeExpr\TEnv {\QRY\ \GETCOUNTER\EXPR}\TINT
+  }
+
+  \inferrule{
+    \JTypeExpr\TEnv\EXPR\TADDR
+  }{
+    \JTypeExpr\TEnv {\QRY\ \GETBALANCE\EXPR}\TTEZ
+  }
+
+  \inferrule{
+    \JTypeExpr\TEnv\EXPR\TOPH
+  }{
+    \JTypeExpr\TEnv {\QRY\ \GETSTATUS\EXPR}\TSTATUS
+  }
+
+  \inferrule{
+    \JTypeExpr\TEnv\EXPR{\CONTRACT\ \TYPE}
+  }{
+    \JTypeExpr\TEnv {\QRY\ \GETSTORAGE\EXPR}\TSTRING
+  }
+
+  % \inferrule{
+  %   \JTypeExpr\TEnv\EXPR{\CONTRACT\ \TYPE}
+  % }{
+  %   \JTypeExpr\TEnv {\QRY\ \GETCODE\EXPR}?
+  % }
+  %   
+  % \inferrule{
+  %   \JTypeExpr\TEnv\EXPR{\CONTRACT\ \TYPE}
+  % }{
+  %   \JTypeExpr\TEnv {\QRY\ \GETTYPE\EXPR}?
+  % }
+  %   
+  \inferrule{
+    \JTypeExpr\TEnv\EXPR{\TOPH}
+  }{
+    \JTypeExpr\TEnv {\QRY\ \GETCONTRACT\EXPR}\TPUH
+  }
+\end{mathpar}
+
+Conversion to and from serialized storage; deserialization may fail
+with an exception
+\begin{mathpar}
+  \inferrule{
+    \JTypeExpr\TEnv\EXPR\TYPE \\
+    \SERIALIZABLE (\TYPE)
+  }{
+    \JTypeExpr\TEnv{\TOSTRING\ \EXPR}\TSTRING
+  }
+
+  \inferrule{
+    \JTypeExpr\TEnv{\EXPR}\TSTRING
+  }{
+    \JTypeExpr\TEnv{\FROMSTRING\ \TYPE\ \EXPR}\TYPE
   }
 \end{mathpar}
 
@@ -733,6 +797,56 @@ The timeout transition applies to all operations.
 % \item no further transfer is possible before the status is resolved to
 %   accept or timeout.
 % \end{itemize}
+
+\subsection{Special reductions}
+\label{sec:special-reductions}
+
+
+
+\begin{mathpar}
+  \inferrule[Contract?]{
+    \JTypeCode\CODE{\TPAIR\ \TYPE\ \TYPEU} \\
+    \BLOCKCHAIN.\CONTRACTORS (\PUH) =  \Angle{\CODE, \tilde\TIME, \NTEZ', \STRING'}
+    %
+    }{
+    { [\EC{\CONTRACT\ \TYPE\ \PUH}  :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+    }
+    \SystemTrans
+    { [\EC{\SOME\ \PUH} :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+   }
+  }
+
+  \inferrule[Contract-Implicit?]{
+    \PUK \in \DOM(\BLOCKCHAIN.\MANAGERS)
+    %
+    }{
+    { [\EC{\CONTRACT\ \TUNIT\ \PUK}  :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+    }
+    \SystemTrans
+    { [\EC{\SOME\ \PUK} :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+   }
+  }
+
+  \inferrule[Contract-No?]{
+    \ADDR \in \DOM (\BLOCKCHAIN.\MANAGERS) \Rightarrow \TYPE\ne\TUNIT \\
+    \BLOCKCHAIN.\CONTRACTORS (\ADDR) = \Angle{\CODE, \tilde\TIME,
+      \NTEZ', \STRING'} \Rightarrow {}
+        \JTypeCode\CODE{\TPAIR\ \TYPE'\ \TYPEU} \wedge \TYPE \ne \TYPE' \\
+    }{
+    { [\EC{\CONTRACT\ \TYPE\ \ADDR}  :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+    }
+    \SystemTrans
+    { [\EC{\NONE} :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+   }
+  }
+\end{mathpar}
+
 
 
 \subsection{Transitions on Nodes}
