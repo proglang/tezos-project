@@ -18,6 +18,7 @@ let%expect_test "with name" =
     └──Assertion: Forall
       └──Pattern: Id:b
         └──Type: Bool_t
+      └──Bounds:
       └──Assertion: Assert
         └──Expr: Id:b|}]
 
@@ -36,6 +37,7 @@ let%expect_test "without name" =
     └──Assertion: Forall
       └──Pattern: Id:b
         └──Type: Bool_t
+      └──Bounds:
       └──Assertion: Assert
         └──Expr: Id:b|}]
 
@@ -54,6 +56,7 @@ let%expect_test "simple param type" =
     └──Assertion: Forall
       └──Pattern: Id:b
         └──Type: Bool_t
+      └──Bounds:
       └──Assertion: Assert
         └──Expr: Id:b|}]
 
@@ -76,6 +79,7 @@ let%expect_test "comp param type" =
     └──Assertion: Forall
       └──Pattern: Id:b
         └──Type: Bool_t
+      └──Bounds:
       └──Assertion: Assert
         └──Expr: Id:b|}]
 
@@ -95,6 +99,7 @@ let%expect_test "typed comp pattern" =
     └──Assertion: Forall
       └──Pattern: Id:b
         └──Type: Bool_t
+      └──Bounds:
       └──Assertion: Assert 
         └──Expr: Id:b|}]
 

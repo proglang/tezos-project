@@ -1,7 +1,7 @@
 open List
+open Parsing.Assertion
 
-type ast = Tezos_ast.tezos_ast
-let pp_ast = Pp_tezos_ast.pp_ast
+let pp_ast = Parsing.Pp_ast.pp_ast
 
 (* Negates an expression *)
 let rec negate_expr = function
@@ -71,13 +71,13 @@ let rec negate_assertion = function
      let a_transformed = negate_assertion a in
      `If (cond, a_transformed)
   (* Forall -> Exists *)
-  | `Forall (predicate, a) ->
+  | `Forall (predicate, a, bs) ->
      let a_transformed = negate_assertion a in
-     `Exists (predicate, a_transformed)
+     `Exists (predicate, a_transformed, bs)
   (* Exists -> Forall *)
-  | `Exists (predicate, a) ->
+  | `Exists (predicate, a, bs) ->
      let a_transformed = negate_assertion a in
-     `Forall (predicate, a_transformed)
+     `Forall (predicate, a_transformed, bs)
 
 (* Calls the negation function for the bodies of quantifiers *)
 let rec negate = function
@@ -90,20 +90,20 @@ let rec negate = function
   | `Exists _ as ex -> negate_assertion ex
 
 (* Breaks (nested) conjunctions in if-conditions into separate ifs*)
-let break_conjunctions formula =
+let break_conjunctions ast =
   let rec rec_break = function
-    | `If ((e : Parsing.Assertion.expression), body) as i ->
+    | `If ((e : expression), (body : assertion)) as i ->
        begin
          match e with
          | `Binop (`And, e1, e2) ->
             rec_break (`If (e1, rec_break (`If (e2, body))))
          | _ -> i
        end
-    | `Forall (predicate, a) -> `Forall (predicate, (rec_break a))
-    | `Exists (predicate, a) -> `Exists (predicate, (rec_break a))
-    | `Assert (_ : Parsing.Assertion.expression) as a -> a
+    | `Forall (predicate, a, bs) -> `Forall (predicate, (rec_break a), bs)
+    | `Exists (predicate, a, bs) -> `Exists (predicate, (rec_break a), bs)
+    | `Assert (_ : expression) as a -> a
   in
-  rec_break formula
+  rec_break ast
 
 module VariableDepth = Map.Make(String)
 
@@ -112,10 +112,10 @@ module VariableDepth = Map.Make(String)
  * returns (variables = {<Id>:<depth>}, conditions = [<expression>])
 *)
 let build_generator_index a =
-  let rec traverse vars conds depth (x : Parsing.Assertion.assertion) =
+  let rec traverse vars conds depth (x : assertion) =
     match x with
-    | `Forall ((v, _), a)
-      | `Exists ((v, _), a) ->
+    | `Forall ((v, _), a, _)
+      | `Exists ((v, _), a, _) ->
        (* Add the quantification variable and its depth to the map *)
        traverse (VariableDepth.add v depth vars) conds (depth + 1) a
     | `Assert _ -> (vars, conds)
@@ -190,9 +190,9 @@ let get_bounds vars conds var =
  * When encountering a mergable if-condition, removes it
  *)
 let rec rec_merge_bounds vars conds = function
-  | `Forall ((v, t), a) ->
+  | `Forall ((v, t), a, _) ->
      `Forall ((v, t), rec_merge_bounds vars conds a, get_bounds vars conds v)
-  | `Exists ((v, t), a) ->
+  | `Exists ((v, t), a, _) ->
      `Exists ((v, t), rec_merge_bounds vars conds a, get_bounds vars conds v)
   | `If (c, a) ->
      begin
@@ -221,18 +221,18 @@ let merge_generator_bounds t_ast =
   let (vars, conds) = build_generator_index t_ast in
   rec_merge_bounds vars conds t_ast
 
-let transform_single ({entrypoint = ep; body = a} : Parsing.Assertion.assertion_ast) =
+let transform_single ({entrypoint = ep; body = a} : assertion_ast) =
   negate a
   |> break_conjunctions
   |> merge_generator_bounds
-  |> (fun b -> ({entrypoint = ep; body = b}: ast))
+  |> (fun b -> ({entrypoint = ep; body = b}: assertion_ast))
 
-let rec transform (asts : Parsing.Assertion.assertion_ast list) =
+let rec transform (asts : assertion_ast list) =
   match asts with
   | a :: rest -> cons (transform_single a) (transform rest)
   | [] -> []
 
-let rec print_transformation (asts : ast list) =
+let rec print_transformation (asts : assertion_ast list) =
   match asts with
   | a :: rest -> pp_ast Fmt.stdout a; (print_transformation rest)
   | [] -> ()

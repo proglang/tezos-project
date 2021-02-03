@@ -83,9 +83,9 @@ type_id_paren:
 
 assertion:
   | FORALL; v = in_parens(var_declaration); a = in_parens(assertion)
-    {`Forall (v, a)}
+    {`Forall (v, a, [])}
   | EXISTS; v = in_parens(var_declaration); a = in_parens(assertion)
-    {`Exists (v, a)}
+    {`Exists (v, a, [])}
   | IF; e = expression; a = in_parens(assertion)
     {`If (e, a)}
   | ASSERT; e = expression

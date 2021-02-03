@@ -77,9 +77,11 @@ type expression = [
   | `Slice of expression * expression * expression
   ]
 
+type bound = expression
+
 type assertion = [
-  | `Forall of var_decl * assertion
-  | `Exists of var_decl * assertion
+  | `Forall of var_decl * assertion * bound list
+  | `Exists of var_decl * assertion * bound list
   | `If of expression * assertion
   | `Assert of expression
   ]

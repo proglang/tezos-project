@@ -41,6 +41,7 @@ let%expect_test "simple assert" =
     └──Assertion: Forall
       └──Pattern: Id:a
         └──Type: Int_t
+      └──Bounds:
       └──Assertion: Assert
         └──Expr: Bool:true|}]
 
@@ -57,6 +58,7 @@ let%expect_test "simple assert" =
     └──Assertion: Exists
       └──Pattern: Id:a
         └──Type: Int_t
+      └──Bounds:
       └──Assertion: Assert
         └──Expr: Bool:true|}]
 

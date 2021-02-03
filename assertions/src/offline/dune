@@ -3,6 +3,7 @@
   (modules main)
   (preprocess (pps ppx_let))
   (libraries parsing
+             transformation
              tezos_backend))
 
 (executable
@@ -12,7 +13,7 @@
 	(libraries parsing))
 
 (library
- (name transform_and_compile)
- (modules transform_and_compile)
+ (name check_and_compile)
+ (modules check_and_compile)
  (libraries parsing)
- (virtual_modules transform_and_compile))
+ (virtual_modules check_and_compile))

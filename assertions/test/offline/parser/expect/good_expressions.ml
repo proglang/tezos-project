@@ -193,6 +193,7 @@ let%expect_test "list/string operators" =
     └──Assertion: Forall
       └──Pattern: Id:i
         └──Type: Int_t
+      └──Bounds:
       └──Assertion: If
         └──Expr: Bin Op: Le
           └──Expr: Id:i

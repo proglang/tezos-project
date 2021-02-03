@@ -153,17 +153,28 @@ let rec pp_pattern ppf ~indent pat =
      pp_pattern ppf ~indent:new_indent p2
   | `Nil -> print_pattern "Nil"
 
+let pp_bounds ppf ~indent bounds =
+  let rec rec_pp_bound ppf ~indent = function
+    | b :: bs -> pp_expr ppf ~indent b; rec_pp_bound ppf ~indent bs
+    | [] -> ()
+  in
+  let new_indent = indent_space ^ indent in
+  Fmt.pf ppf "%sBounds: @." indent ;
+  rec_pp_bound ppf ~indent:new_indent bounds
+
  let rec pp_assertion ppf ~indent assertion =
    let print_assertion = Fmt.pf ppf "%sAssertion: %s@." indent in
    let new_indent = indent_space ^ indent in
    match assertion with
-   | `Forall (id, body) ->
+   | `Forall (id, body, bounds) ->
       print_assertion "Forall" ;
       pp_pattern ppf ~indent:new_indent (`Ident id) ;
+      pp_bounds ppf ~indent:new_indent bounds ;
       pp_assertion ppf ~indent:new_indent body
-   | `Exists (id, body) ->
+   | `Exists (id, body, bounds) ->
       print_assertion "Exists" ;
       pp_pattern ppf ~indent:new_indent (`Ident id) ;
+      pp_bounds ppf ~indent:new_indent bounds ;
       pp_assertion ppf ~indent:new_indent body
    | `If (expr, body) ->
       print_assertion "If" ;
