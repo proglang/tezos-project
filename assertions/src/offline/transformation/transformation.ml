@@ -221,18 +221,18 @@ let merge_generator_bounds t_ast =
   let (vars, conds) = build_generator_index t_ast in
   rec_merge_bounds vars conds t_ast
 
-let transform_single ({entrypoint = ep; body = a} : assertion_ast) =
+let maybe_pprint_transformation v (a : assertion_ast) =
+  if v then (pp_ast Fmt.stdout a; a)
+  else a
+
+let transform_single v ({entrypoint = ep; body = a} : assertion_ast) =
   negate a
   |> break_conjunctions
   |> merge_generator_bounds
   |> (fun b -> ({entrypoint = ep; body = b}: assertion_ast))
+  |> maybe_pprint_transformation v
 
-let rec transform (asts : assertion_ast list) =
+let rec transform ~verbose (asts : assertion_ast list) =
   match asts with
-  | a :: rest -> cons (transform_single a) (transform rest)
+  | a :: rest -> cons (transform_single verbose a) (transform ~verbose rest)
   | [] -> []
-
-let rec print_transformation (asts : assertion_ast list) =
-  match asts with
-  | a :: rest -> pp_ast Fmt.stdout a; (print_transformation rest)
-  | [] -> ()
