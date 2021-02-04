@@ -1,4 +1,4 @@
-open Tezos_ast
+open Ast
 open Core
 
 let indent_space = "  "
@@ -191,7 +191,7 @@ let pp_entrypoint ppf ~indent (ep, pat) =
   | Some s -> print_ep_name s; pp_pattern ppf ~indent:new_indent pat
   | None -> print_ep_name "default"; pp_pattern ppf ~indent:new_indent pat
 
-let pp_ast ppf ({entrypoint = ep; body = assertion}: tezos_ast) =
+let pp_ast ppf ({entrypoint = ep; body = assertion}: ast) =
   let indent = "└──" in
   Fmt.pf ppf "Tezos_AST@." ;
   pp_entrypoint ppf ~indent ep;

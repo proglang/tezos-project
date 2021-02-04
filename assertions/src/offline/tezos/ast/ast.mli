@@ -10,6 +10,6 @@ type bound = Parsing.Assertion.expression
 
 type assertion = Parsing.Assertion.assertion
 
-type tezos_ast = {entrypoint : string option * pattern; body : assertion}
+type ast = {entrypoint : string option * pattern; body : assertion}
 
-val cast : Parsing.Assertion.assertion_ast list -> tezos_ast list
+val cast : Parsing.Assertion.assertion_ast list -> ast list

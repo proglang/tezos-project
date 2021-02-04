@@ -1,3 +1,6 @@
 (library
  (name tezos_backend)
+ (libraries type_checker
+            transformation
+            tezos_ast)
  (implements check_and_compile))

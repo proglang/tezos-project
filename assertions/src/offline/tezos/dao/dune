@@ -1,0 +1,12 @@
+(library
+ (name dao_file)
+ (libraries core
+	    tezos-client-007-PsDELPH1
+	    tezos-micheline
+
+            (select void_for_linking-007-PsDELPH1 from
+              (tezos-client-007-PsDELPH1-commands.registration -> void_for_linking)
+              (-> void_for_linking))
+)
+  (flags (:standard -open Tezos_micheline
+                    -linkall)))

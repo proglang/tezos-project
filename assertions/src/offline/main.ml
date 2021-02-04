@@ -1,5 +1,6 @@
 open Parsing.Lex_and_parse
 open Check_and_compile
+open Dao_type
 
 let tza_path = ref "./test.tza"
 let tz_dao = ref (DAO_File "./test.tz")
@@ -24,16 +25,18 @@ let spec_list = [
 let read_tza path = let open Core in
                     In_channel.read_all path
 
-let main () =
+let main =
+  Arg.parse
+           spec_list
+           (fun x -> raise (Arg.Bad ("Bad argument: " ^ x)))
+           usage;
   let verbose = !verbose_arg in
   read_tza !tza_path
   |> parse_contract ~verbose
   |> Transformation.transform ~verbose
-  |> check_and_compile ~verbose
+  |> check_and_compile !tz_dao ~verbose
+  >>= fun () -> Lwt.return 1
 
 (* The example contract is first parsed and then transformed by the backend *)
-let () = Arg.parse
-           spec_list
-           (fun x -> raise (Arg.Bad ("Bad argument: " ^ x)))
-           usage;
-         main ()
+let () =
+  Stdlib.exit @@ Lwt_main.run main

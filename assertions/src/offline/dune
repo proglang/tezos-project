@@ -1,10 +1,15 @@
+
 (executable
   (name main)
   (modules main)
   (preprocess (pps ppx_let))
-  (libraries parsing
+  (libraries lwt
+             parsing
              transformation
-             tezos_backend))
+             dao_type
+             tezos_backend)
+  (flags (:standard -open Lwt
+                    -linkall)))
 
 (executable
 	(name assert_to_json)
@@ -15,5 +20,9 @@
 (library
  (name check_and_compile)
  (modules check_and_compile)
- (libraries parsing)
- (virtual_modules check_and_compile))
+ (libraries parsing
+            dao_type
+	    lwt)
+ (virtual_modules check_and_compile)
+ (flags (:standard -open Lwt
+                   -linkall)))

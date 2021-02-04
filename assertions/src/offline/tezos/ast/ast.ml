@@ -10,7 +10,7 @@ type bound = Parsing.Assertion.expression
 
 type assertion = Parsing.Assertion.assertion
 
-type tezos_ast = {entrypoint : string option * pattern; body : assertion}
+type ast = {entrypoint : string option * pattern; body : assertion}
 
 let cast asts =
-  List.map (fun ({entrypoint = ep; body = a} : Parsing.Assertion.assertion_ast) -> ({entrypoint = ep; body = a} : tezos_ast)) asts
+  List.map (fun ({entrypoint = ep; body = a} : Parsing.Assertion.assertion_ast) -> ({entrypoint = ep; body = a} : ast)) asts
