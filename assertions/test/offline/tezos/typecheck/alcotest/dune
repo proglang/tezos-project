@@ -1,0 +1,15 @@
+(test
+ (name test_typecheck_types)
+ (libraries core
+	    alcotest-lwt
+	    lwt
+	    lwt.unix
+            parsing
+	    transformation
+	    tezos_backend
+	    dao_type)
+ (preprocess
+  (pps ppx_jane))
+ (lint
+  (pps ppx_jane ppx_js_style -check-doc-comments -annotated-ignores -styler
+    -pretty -dated-deprecation)))
