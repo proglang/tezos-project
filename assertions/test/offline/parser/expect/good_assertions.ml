@@ -1,8 +1,8 @@
 open Core
-open Parsing.Lex_and_parse
+open Parser_wrapper
    
 let%expect_test "simple assert" =
-  parse_and_print
+  parse
    "(entrypoint _
       (assert true))" ;
   [%expect
@@ -14,7 +14,7 @@ let%expect_test "simple assert" =
       └──Expr: Bool:true|}]
 
  let%expect_test "if" =
-  parse_and_print
+  parse
    "(entrypoint _
       (if true
          (assert true)))" ;
@@ -29,7 +29,7 @@ let%expect_test "simple assert" =
         └──Expr: Bool:true|}]
 
   let%expect_test "forall" =
-  parse_and_print
+  parse
    "(entrypoint _
       (forall (a: int)
          (assert true)))" ;
@@ -46,7 +46,7 @@ let%expect_test "simple assert" =
         └──Expr: Bool:true|}]
 
   let%expect_test "exists" =
-  parse_and_print
+  parse
    "(entrypoint _
       (exists (a: int)
          (assert true)))" ;
@@ -63,7 +63,7 @@ let%expect_test "simple assert" =
         └──Expr: Bool:true|}]
 
 let%expect_test "IfThenElse in assert" =
-  parse_and_print
+  parse
    "(entrypoint (b:bool)
       (assert 
         (if b true false)))" ;

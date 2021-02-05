@@ -234,5 +234,7 @@ let transform_single v ({entrypoint = ep; body = a} : assertion_ast) =
 
 let rec transform ~verbose (asts : assertion_ast list) =
   match asts with
-  | a :: rest -> cons (transform_single verbose a) (transform ~verbose rest)
+  | a :: rest ->
+     let a_t = transform_single verbose a in
+     a_t :: (transform ~verbose rest)
   | [] -> []

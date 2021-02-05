@@ -1,14 +1,14 @@
 open Core
 open Parsing.Lex_and_parse
+open Transformer_wrapper
 
 let%expect_test "negation quantifiers" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint _
         (forall (n : int)
           (exists (m: int)
             (assert true))))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -26,15 +26,14 @@ let%expect_test "negation quantifiers" =
           └──Expr: Bool:false|}]
 
 let%expect_test "negation bools w/ quantifiers" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint %e1 _
         (forall (i:int)
           (assert true)))
       (entrypoint %e2 _
         (forall (i:int)
           (assert false)))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -57,13 +56,12 @@ let%expect_test "negation bools w/ quantifiers" =
         └──Expr: Bool:true|}]
 
 let%expect_test "negation bools w/o quantifiers" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint %e1 _
         (assert true))
       (entrypoint %e2 _
           (assert false))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -78,12 +76,11 @@ let%expect_test "negation bools w/o quantifiers" =
       └──Expr: Bool:false|}]
 
 let%expect_test "negation logic operators w/ quantifiers" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint (pair (a: bool) (b: bool))
         (forall (i:int)
           (assert (and (or (not a) b) b))))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -107,11 +104,10 @@ let%expect_test "negation logic operators w/ quantifiers" =
             └──Expr: Id:b|}]
   
 let%expect_test "negation logic operators w/o quantifiers" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint (pair (a: bool) (b: bool))
         (assert (and (or (not a) b) b)))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -130,12 +126,11 @@ let%expect_test "negation logic operators w/o quantifiers" =
         └──Expr: Id:b|}]
 
 let%expect_test "negation xor w/ quantifiers" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint (pair (a: bool) (b: bool))
         (forall (i:int)
           (assert (xor (and a b) (not b)))))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -166,11 +161,10 @@ let%expect_test "negation xor w/ quantifiers" =
             └──Expr: Id:b|}]
 
 let%expect_test "negation xor w/o quantifiers" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint (pair (a: bool) (b: bool))
         (assert (xor (and a b) (not b))))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -189,7 +183,7 @@ let%expect_test "negation xor w/o quantifiers" =
           └──Expr: Id:b|}]
 
 let%expect_test "negation relation operators w/ quantifiers" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint %eq_ (a: int)
         (forall (i:int)
           (assert (eq a 10))))
@@ -213,8 +207,7 @@ let%expect_test "negation relation operators w/ quantifiers" =
       (entrypoint %le_ (a: int)
         (forall (i:int)
           (assert (le a 10))))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -291,7 +284,7 @@ let%expect_test "negation relation operators w/ quantifiers" =
           └──Expr: Int:10|}]
 
 let%expect_test "negation relation operators w/o quantifiers" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint %eq_ (a: int)
         (assert (eq a 10)))
 
@@ -309,8 +302,7 @@ let%expect_test "negation relation operators w/o quantifiers" =
 
       (entrypoint %le_ (a: int)
         (assert (le a 10)))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -363,12 +355,11 @@ let%expect_test "negation relation operators w/o quantifiers" =
         └──Expr: Int:10|}]
 
 let%expect_test "byte/string op w/ quantifiers" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint %slice_ (s: string)
         (forall (i : int)
           (assert (eq (slice 0 1 s) "h"))))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -388,12 +379,11 @@ let%expect_test "byte/string op w/ quantifiers" =
           └──Expr: Str:"h"|}]
 
 let%expect_test "skip ifs" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint _
         (if true
           (assert true)))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST

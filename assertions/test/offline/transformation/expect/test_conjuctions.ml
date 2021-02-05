@@ -1,8 +1,9 @@
 open Core
 open Parsing.Lex_and_parse
+open Transformer_wrapper
 
 let%expect_test "break conjunctions" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint _
         (if (and a (and b c))
           (assert true)))
@@ -11,8 +12,7 @@ let%expect_test "break conjunctions" =
           (assert true)))
 
 |}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST

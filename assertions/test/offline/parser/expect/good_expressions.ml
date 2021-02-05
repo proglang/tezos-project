@@ -1,8 +1,8 @@
 open Core
-open Parsing.Lex_and_parse
+open Parser_wrapper
 
 let%expect_test "bool literal - true" =
-  parse_and_print
+  parse
     "(entrypoint _ 
        (assert true))";
   [%expect
@@ -14,7 +14,7 @@ let%expect_test "bool literal - true" =
       └──Expr: Bool:true|}]
 
 let%expect_test "bool literal - false" =
-  parse_and_print
+  parse
     "(entrypoint _ 
        (assert false))";
   [%expect
@@ -26,7 +26,7 @@ let%expect_test "bool literal - false" =
       └──Expr: Bool:false|}]
 
 let%expect_test "int literal" =
-  parse_and_print
+  parse
     "(entrypoint _ 
        (assert 1234))";
   [%expect
@@ -38,7 +38,7 @@ let%expect_test "int literal" =
       └──Expr: Int:1234|}]
 
  let%expect_test "string literal" =
-  parse_and_print
+  parse
     "(entrypoint _ 
        (assert \"hello world\"))";
   [%expect
@@ -50,7 +50,7 @@ let%expect_test "int literal" =
       └──Expr: Str:"hello world"|}]
 
 let%expect_test "identifier" =
-  parse_and_print
+  parse
     "(entrypoint (a: bool) 
        (assert a))";
   [%expect
@@ -63,7 +63,7 @@ let%expect_test "identifier" =
       └──Expr: Id:a|}]
 
 let%expect_test "if-then-else" =
-  parse_and_print
+  parse
     "(entrypoint (a: bool)
        (assert
          (if a true false)))";
@@ -80,7 +80,7 @@ let%expect_test "if-then-else" =
         └──Expr: Bool:false|}]
 
 let%expect_test "arithmetic operators" =
-  parse_and_print
+  parse
     "(entrypoint (a: int)
        (assert
          (neg (mod 42 (div 20 (mul 10 (sub 10 (add (abs a) 1))))))))";
@@ -106,7 +106,7 @@ let%expect_test "arithmetic operators" =
                   └──Expr: Int:1|}]
 
 let%expect_test "boolean operators" =
-  parse_and_print
+  parse
     "(entrypoint (a: bool)
        (assert
          (and (or false (not a)) (xor true false))))";
@@ -127,7 +127,7 @@ let%expect_test "boolean operators" =
           └──Expr: Bool:false|}]
 
 let%expect_test "shift operators" =
-  parse_and_print
+  parse
   "(entrypoint (i: int)
    (assert (lsl (lsr i 1) 1)))";
   [%expect
@@ -144,7 +144,7 @@ let%expect_test "shift operators" =
        └──Expr: Int:1|}]
 
 let%expect_test "relation operators" =
-  parse_and_print
+  parse
     "(entrypoint (a: int)
        (assert
          (eq (or (le a 1) (neq a 0)) (and (ge 1 1) (and (lt a 10) (gt a 0))))))";
@@ -177,7 +177,7 @@ let%expect_test "relation operators" =
 |}]
 
 let%expect_test "list/string operators" =
-  parse_and_print
+  parse
     "(entrypoint %A (a: (list int))
          (forall (i:int) 
            (if (le i (size a))

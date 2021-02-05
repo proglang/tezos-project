@@ -1,14 +1,14 @@
 open Core
 open Parsing.Lex_and_parse
+open Transformer_wrapper
 
 let%expect_test "condition with single variable" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint _
         (forall (a: int)
           (if (gt a 10)
             (assert true))))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -25,14 +25,13 @@ let%expect_test "condition with single variable" =
         └──Expr: Bool:false|}]
 
 let%expect_test "condition with two variables" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint _
         (forall (a: int)
           (forall (b: int)
             (if (gt a b)
               (assert true)))))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -53,13 +52,12 @@ let%expect_test "condition with two variables" =
           └──Expr: Bool:false|}]
 
 let%expect_test "condition without generated variable" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint (a: int)
         (forall (b: int)
           (if (gt a 10)
             (assert true))))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -78,13 +76,12 @@ let%expect_test "condition without generated variable" =
           └──Expr: Bool:false|}]
 
 let%expect_test "condition before generator" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint _
         (if (gt a 10)
           (forall (a: int)
             (assert true))))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -101,12 +98,11 @@ let%expect_test "condition before generator" =
         └──Expr: Bool:false|}]
 
 let%expect_test "isolated condition" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint (a: int)
         (if (gt a 10)
           (assert true)))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -121,7 +117,7 @@ let%expect_test "isolated condition" =
         └──Expr: Bool:true|}]
 
 let%expect_test "skip or/xor" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint (a: bool)
         (forall (b: int)
           (if (or (gt b 10) a)
@@ -130,8 +126,7 @@ let%expect_test "skip or/xor" =
         (forall (b: int)
           (if (xor (gt b 10) a)
             (assert true))))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST
@@ -168,7 +163,7 @@ let%expect_test "skip or/xor" =
           └──Expr: Bool:false|}]
 
 let%expect_test "skip <>/=" =
-  parse_contract
+  parse_contract ~verbose:false
     {|(entrypoint (a: int)
         (forall (b: int)
           (if (eq a b)
@@ -177,8 +172,7 @@ let%expect_test "skip <>/=" =
         (forall (b: int)
           (if (neq a b)
             (assert true))))|}
-  |> Transformation.transform
-  |> Transformation.print_transformation ;
+  |> transform;
   [%expect
     {|
     AST

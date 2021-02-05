@@ -1,8 +1,8 @@
 open Core
-open Parsing.Lex_and_parse
+open Parser_wrapper
 
 let%expect_test "different styles" =
-  parse_and_print
+  parse
     "(entrypoint [a: int]
        (assert
          [eq (or [le a 1] (neq a 0)) [and (ge 1 1) [and (lt a 10) [gt a 0]]]]))";
@@ -35,7 +35,7 @@ let%expect_test "different styles" =
 |}]
 
 let%expect_test "different styles inverted" =
-  parse_and_print
+  parse
     "[entrypoint (a: int)
        [assert
          (eq [or (le a 1) [neq a 0]] (and [ge 1 1] (and [lt a 10] (gt a 0))))]]";
