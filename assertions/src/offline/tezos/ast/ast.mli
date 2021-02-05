@@ -11,5 +11,3 @@ type bound = Parsing.Assertion.expression
 type assertion = Parsing.Assertion.assertion
 
 type ast = {entrypoint : string option * pattern; body : assertion}
-
-val cast : Parsing.Assertion.assertion_ast list -> ast list
