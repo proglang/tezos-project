@@ -1,5 +1,10 @@
 open Lwt.Infix
 
+let error_mismatch_default =
+  {|+++ Error trace +++
+    Entrypoint type mismatch: default
+    +++++++++++|}
+
 let lwt_check_raises (exp_s : string option) f =
   Lwt.catch
     (fun () -> f () >|= fun () -> `Ok)

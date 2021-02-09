@@ -7,10 +7,10 @@ open Random
 
 let types = [
      "int"; "bool"; "string"; "mutez"; "bytes"; "nat"; "address"; "chain_id";
-     "key"; "key_hash"; "operation"; "timestamp"; "unit"; "(list int)";
+     "key"; "key_hash"; "timestamp"; "unit"; "(list int)";
      "(set nat)"; "(option bool)"; "(or mutez string)"; "(pair address bytes)";
-     "(lambda (option chain_id) unit)"; "(map operation timestamp)";
-     "(contract unit)"; "(big_map key key_hash)"
+     "(lambda (option chain_id) unit)"; "(map address timestamp)";
+     "(contract unit)"; "(big_map key_hash key)"
     ]
 
 let test_type_match type_s =
@@ -32,7 +32,7 @@ let test_pattern_match type_s pattern_s =
 let test_type_mismatch type1_s type2_s =
   let code = Printf.sprintf ("(entrypoint (x: %s) (assert true))") type1_s in
   generate_contract type2_s;
-  lwt_check_raises (Some "Entrypoint type mismatch: default") @@
+  lwt_check_raises (Some error_mismatch_default) @@
   typecheck
     code
     file_path
