@@ -2,32 +2,16 @@ open Core
 open Typecheck_wrapper
 open Contract_generator
 open Lwt.Infix
+open Test_helpers
+open Random
 
-(*
-let test_match_int _ () =
-  generate_contract "int";
-  lwt_check_raises (Some "Entrypoint type mismatch: default") @@
-  typecheck
-    {|(entrypoint (x: int)
-        (assert true))|}
-    file_path
-*)
-
-let lwt_check_raises (exp_s : string option) f =
-  Lwt.catch
-    (fun () -> f () >|= fun () -> `Ok)
-    (function e -> Lwt.return @@ `Error e)
-  >|= function
-  | `Ok -> Alcotest.fail "No exception was thrown"
-  | `Error (Failure s) ->
-     begin
-       match exp_s with
-       | Some exs ->
-          if String.equal s exs then Alcotest.(check pass) "Correct exception" () ()
-          else Alcotest.fail ("Caught unexpected exception: \n" ^ s)
-       | None -> Alcotest.(check pass) "Correct exception" () ()
-     end
-  | `Error _ -> Alcotest.fail "Incorrect exception was thrown"
+let types = [
+     "int"; "bool"; "string"; "mutez"; "bytes"; "nat"; "address"; "chain_id";
+     "key"; "key_hash"; "operation"; "timestamp"; "unit"; "(list int)";
+     "(set nat)"; "(option bool)"; "(or mutez string)"; "(pair address bytes)";
+     "(lambda (option chain_id) unit)"; "(map operation timestamp)";
+     "(contract unit)"; "(big_map key key_hash)"
+    ]
 
 let test_type_match type_s =
   let code = Printf.sprintf ("(entrypoint (x: %s) (assert true))") type_s in
@@ -44,6 +28,14 @@ let test_pattern_match type_s pattern_s =
     code
     file_path ()
   >|= (fun () -> Alcotest.(check pass) pattern_s () ())
+
+let test_type_mismatch type1_s type2_s =
+  let code = Printf.sprintf ("(entrypoint (x: %s) (assert true))") type1_s in
+  generate_contract type2_s;
+  lwt_check_raises (Some "Entrypoint type mismatch: default") @@
+  typecheck
+    code
+    file_path
 
 let pattern_match_test_cases =
   let open Alcotest_lwt in
@@ -75,19 +67,34 @@ let type_match_test_cases =
   List.map
     ~f:(fun type_s ->
       test_case ("Type match: " ^ type_s) `Quick (fun _ () -> test_type_match type_s))
-    [
-     "int"; "bool"; "string"; "mutez"; "bytes"; "nat"; "address"; "chain_id";
-     "key"; "key_hash"; "operation"; "timestamp"; "unit"; "(list int)";
-     "(set nat)"; "(option bool)"; "(or mutez string)"; "(pair address bytes)";
-     "(lambda (option chain_id) unit)"; "(map operation timestamp)";
-     "(contract unit)"; "(big_map key key_hash)"
-    ]
+    types
+
+let rec generate l n =
+  if n = 0 then l else
+    begin
+      let size = Nativeint.of_int @@ List.length types in
+      let i1 = Nativeint.to_int_exn @@ nativeint size in
+      let i2 = Nativeint.to_int_exn @@ nativeint size in
+      let t1 = List.nth_exn types i1 in
+      let t2 = List.nth_exn types i2 in
+      if String.equal t1 t2 then generate l n else generate ((t1, t2) :: l) (n-1)
+    end
+
+let type_mismatch_test_cases =
+  let l = generate [] 50 in
+  let open Alcotest_lwt in
+  List.map
+    ~f:(fun (type1_s, type2_s)->
+      test_case ("Type mismatch: " ^ type1_s) `Quick (fun _ () -> test_type_mismatch type1_s type2_s))
+    l
 
 let () =
   let open Alcotest_lwt in
+  self_init ();
   Lwt_main.run
   @@ run "Typechecker"
        [
          ("Type matches", type_match_test_cases);
-         ("Pattern matches", pattern_match_test_cases)
+         ("Pattern matches", pattern_match_test_cases);
+         ("Type mismatches", type_mismatch_test_cases)
        ]
