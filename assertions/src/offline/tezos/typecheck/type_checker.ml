@@ -52,8 +52,8 @@ let get_entrypoints (progr : Michelson_v1_parser.parsed) =
     progr.expanded
 
 let get_error_str errs =
-  let f = (fun s err -> s ^ (asprintf "%a" pp err) ^ "\n+++++++++++ \n") in
-  List.fold_left f "+++ Error trace +++ \n" errs
+  let f = (fun s err -> s ^ (asprintf "%a" pp err) ^ "\n") in
+  List.fold_left f "" errs
 
 (*  Renaming after adding completion -> eq, not cmp*)
 let rec compare_type (ty1: (int, prim) Micheline.node) (ty2: Ast.ty) =
