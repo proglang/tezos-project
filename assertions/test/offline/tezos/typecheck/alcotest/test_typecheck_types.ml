@@ -42,7 +42,13 @@ let type_match_test_cases =
   List.map
     ~f:(fun type_s ->
       test_case ("Type match: " ^ type_s) `Quick (fun _ () -> test_match type_s))
-    ["int"; "bool"; "string"; "mutez"]
+    [
+     "int"; "bool"; "string"; "mutez"; "bytes"; "nat"; "address"; "chain_id";
+     "key"; "key_hash"; "operation"; "timestamp"; "unit"; "(list int)";
+     "(set nat)"; "(option bool)"; "(or mutez string)"; "(pair address bytes)";
+     "(lambda (option chain_id) unit)"; "(map operation timestamp)";
+     "(contract unit)"; "(big_map key key_hash)"
+    ]
 
 let () =
   let open Alcotest_lwt in
