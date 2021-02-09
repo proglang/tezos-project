@@ -29,30 +29,21 @@ let lwt_check_raises (exp_s : string option) f =
      end
   | `Error _ -> Alcotest.fail "Incorrect exception was thrown"
 
-let lwt_check_success tc f =
-  Lwt.catch
-    (fun () -> f () >|= fun () -> `Ok)
-    (function e -> Lwt.return @@ `Error e)
-  >|= function
-  | `Ok -> Alcotest.(check pass) tc () ()
-  | `Error (Failure s) -> Alcotest.fail ("Caught exception: \n" ^ s)
-  | `Error _ -> Alcotest.fail "Caught unknown exception"
-
 let test_type_match type_s =
   let code = Printf.sprintf ("(entrypoint (x: %s) (assert true))") type_s in
   generate_contract type_s;
-  lwt_check_success type_s @@
   typecheck
     code
-    file_path
+    file_path ()
+  >|= (fun () -> Alcotest.(check pass) type_s () ())
 
 let test_pattern_match type_s pattern_s =
   let code = Printf.sprintf ("(entrypoint %s (assert true))") pattern_s in
   generate_contract type_s;
-  lwt_check_success pattern_s @@
   typecheck
     code
-    file_path
+    file_path ()
+  >|= (fun () -> Alcotest.(check pass) pattern_s () ())
 
 let pattern_match_test_cases =
   let open Alcotest_lwt in
@@ -89,7 +80,7 @@ let type_match_test_cases =
      "key"; "key_hash"; "operation"; "timestamp"; "unit"; "(list int)";
      "(set nat)"; "(option bool)"; "(or mutez string)"; "(pair address bytes)";
      "(lambda (option chain_id) unit)"; "(map operation timestamp)";
-     "(contract unit)"; "(big_map key_hash key)"
+     "(contract unit)"; "(big_map key key_hash)"
     ]
 
 let () =
