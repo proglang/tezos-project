@@ -52,7 +52,7 @@ let get_entrypoints (progr : Michelson_v1_parser.parsed) =
     progr.expanded
 
 let get_error_str errs =
-  let f = (fun s err -> s ^ (asprintf "%a" pp err) ^ "\n") in
+  let f = (fun s err -> s ^ (asprintf "%a" pp err)) in
   List.fold_left f "" errs
 
 (*  Renaming after adding completion -> eq, not cmp*)

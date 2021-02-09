@@ -84,8 +84,9 @@ let type_mismatch_test_cases =
   let l = generate [] 50 in
   let open Alcotest_lwt in
   List.map
-    ~f:(fun (type1_s, type2_s)->
-      test_case ("Type mismatch: " ^ type1_s) `Quick (fun _ () -> test_type_mismatch type1_s type2_s))
+    ~f:(fun (type1_s, type2_s) ->
+      let tag = Printf.sprintf "Type mismatch: %s - %s" type1_s type2_s in
+      test_case tag `Quick (fun _ () -> test_type_mismatch type1_s type2_s))
     l
 
 let () =
