@@ -150,9 +150,9 @@ let compare_type_pattern ep_pattern expr =
          | _, `Wildcard, _  ->
             (* TODO: complete type *)
             return_true
-         | _  -> failwith "Types don't match"
+         | _  -> return_false
        end
-    | _ -> failwith "Unexpected AST type"
+    | _ -> failwith "Unexpected Tezos internal AST type"
   in
   let root = Micheline.root expr in
   cmp_type_pattern_rec ep_pattern root
