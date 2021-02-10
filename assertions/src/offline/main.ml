@@ -31,11 +31,15 @@ let main =
            (fun x -> raise (Arg.Bad ("Bad argument: " ^ x)))
            usage;
   let verbose = !verbose_arg in
-  read_tza !tza_path
-  |> parse_contract ~verbose
-  |> Transformation.transform ~verbose
-  |> check_and_compile !tz_dao ~verbose
-  >>= fun () -> Lwt.return 1
+  try
+    read_tza !tza_path
+    |> parse_contract ~verbose
+    |> Transformation.transform ~verbose
+    |> check_and_compile !tz_dao ~verbose
+    >>= fun () -> Lwt.return 1
+  with
+  | Failure s -> Printf.eprintf "%s" s; Lwt.return 0
+  | _ -> Printf.eprintf "Caught exception"; Lwt.return 0
 
 (* The example contract is first parsed and then transformed by the backend *)
 let () =
