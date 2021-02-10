@@ -55,7 +55,7 @@ let pattern_match_test_cases =
       ("(list int)", "(cons (x : int) (xs : (list int)))");
       ("(list int)", "(cons (x : int) nil)");
       ("(list int)", "(cons (x : int) _ )");
-      ("(list int)", "(cons _ (xs : list int))");
+      ("(list int)", "(cons _ (xs : (list int)))");
       ("(option bool)", "none"); ("(option bool)", "_");
       ("(option bool)", "(some _)");
       ("(option bool)", "(some (x : bool))");
@@ -102,7 +102,7 @@ let generate_pattern n =
   let list_patterns = ["nil"; "(cons _ _)";
                        "(cons (x : int) (xs : (list int)))";
                        "(cons (x : int) nil)" ; "(cons (x : int) _ )";
-                       "(cons _ (xs : list int))"]
+                       "(cons _ (xs : (list int)))"]
   in
   let option_patterns = [ "none"; "(some _)"; "(some (x : bool))"]
   in
