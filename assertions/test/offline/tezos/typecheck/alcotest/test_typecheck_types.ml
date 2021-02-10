@@ -37,6 +37,14 @@ let test_type_mismatch type1_s type2_s =
     code
     file_path
 
+let test_pattern_mismatch pat_s type_s =
+  let code = Printf.sprintf ("(entrypoint %s (assert true))") pat_s in
+  generate_contract type_s;
+  lwt_check_raises (Some error_mismatch_default) @@
+  typecheck
+    code
+    file_path
+
 let pattern_match_test_cases =
   let open Alcotest_lwt in
   List.map
@@ -130,7 +138,7 @@ let pattern_mismatch_test_cases n =
   List.map
     ~f:(fun (pat_s, type_s) ->
       let tag = Printf.sprintf "Patterns mismatch: %s - %s" pat_s type_s in
-      test_case tag `Quick (fun _ () -> test_type_mismatch pat_s type_s))
+      test_case tag `Quick (fun _ () -> test_pattern_mismatch pat_s type_s))
     l
 
 let () =
