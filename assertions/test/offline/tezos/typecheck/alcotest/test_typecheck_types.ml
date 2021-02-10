@@ -69,7 +69,7 @@ let type_match_test_cases =
       test_case ("Type match: " ^ type_s) `Quick (fun _ () -> test_type_match type_s))
     types
 
-let rec generate l n =
+let rec generate_type l n =
   if n = 0 then l else
     begin
       let size = Nativeint.of_int @@ List.length types in
@@ -77,16 +77,60 @@ let rec generate l n =
       let i2 = Nativeint.to_int_exn @@ nativeint size in
       let t1 = List.nth_exn types i1 in
       let t2 = List.nth_exn types i2 in
-      if String.equal t1 t2 then generate l n else generate ((t1, t2) :: l) (n-1)
+      if String.equal t1 t2 then generate_type l n else generate_type ((t1, t2) :: l) (n-1)
     end
 
-let type_mismatch_test_cases =
-  let l = generate [] 50 in
+(* Generate random tests (quickCheck like) *)
+let type_mismatch_test_cases n =
+  let l = generate_type [] n in
   let open Alcotest_lwt in
   List.map
     ~f:(fun (type1_s, type2_s) ->
       let tag = Printf.sprintf "Type mismatch: %s - %s" type1_s type2_s in
       test_case tag `Quick (fun _ () -> test_type_mismatch type1_s type2_s))
+    l
+
+let generate_pattern n =
+  let list_patterns = ["nil"; "(cons _ _)";
+                       "(cons (x : int) (xs : (list int)))";
+                       "(cons (x : int) nil)" ; "(cons (x : int) _ )";
+                       "(cons _ (xs : list int))"]
+  in
+  let option_patterns = [ "none"; "(some _)"; "(some (x : bool))"]
+  in
+  let or_patterns = ["(left _)"; "(left (x : mutez))"; "(right _)";
+                     "(right (x : string))"]
+  in
+  let pair_patterns = ["(pair _ _)"; "(pair (x : address) _)";
+                       "(pair _ (x : bytes))";
+                       "(pair (x : address) (y : bytes))"]
+  in
+  let rec f s elem =
+    let size = Nativeint.of_int @@ List.length types in
+    let i = Nativeint.to_int_exn @@ nativeint size in
+    let t = List.nth_exn types i in
+    if String.equal t s then f s elem else (elem, t)
+  in
+  let rec rec_generate acc n =
+    if n = 0 then acc else
+      begin
+        let list_tcs = List.map ~f:(f "(list int)") list_patterns in
+        let option_tcs = List.map ~f:(f "(option bool)") option_patterns in
+        let or_tcs = List.map ~f:(f "(or mutez string)") or_patterns in
+        let pair_tcs = List.map ~f:(f "(pair address bytes)") pair_patterns in
+        rec_generate ((list_tcs @ option_tcs @ or_tcs @ pair_tcs) @ acc) (n-1)
+      end
+  in
+  rec_generate [] n
+
+(* Generate random tests (quickCheck like) *)
+let pattern_mismatch_test_cases n =
+  let l = generate_pattern n in
+  let open Alcotest_lwt in
+  List.map
+    ~f:(fun (pat_s, type_s) ->
+      let tag = Printf.sprintf "Patterns mismatch: %s - %s" pat_s type_s in
+      test_case tag `Quick (fun _ () -> test_type_mismatch pat_s type_s))
     l
 
 let () =
@@ -97,5 +141,6 @@ let () =
        [
          ("Type matches", type_match_test_cases);
          ("Pattern matches", pattern_match_test_cases);
-         ("Type mismatches", type_mismatch_test_cases)
+         ("Type mismatches", type_mismatch_test_cases 30);
+         ("Pattern mismatches", pattern_mismatch_test_cases 10);
        ]
