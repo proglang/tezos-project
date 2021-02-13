@@ -55,7 +55,7 @@ let test_tz_wo_tags_tza_w_tags_mismatch _ () =
       (entrypoint %B (b: nat) (assert true))|}
   in
   let script = generate_contract "(or int bool)" in
-  lwt_check_raises (Some error_mismatch_default) @@
+  lwt_check_raises (Some (error_mismatch_ep "B")) @@
     typecheck
       code
       script
@@ -67,7 +67,7 @@ let test_tz_wo_tags_tza_w_tags_dup _ () =
       (entrypoint %B (b: int) (assert true))|}
   in
   let script = generate_contract "(or int bool)" in
-  lwt_check_raises (Some error_mismatch_default) @@
+  lwt_check_raises (Some (error_mismatch_ep "B")) @@
     typecheck
       code
       script
@@ -125,7 +125,7 @@ let test_tz_w_tags_tza_w_tags_mismatch _ () =
       (entrypoint %B (b: nat) (assert true))|}
   in
   let script = generate_contract "(or (int %A) (bool %B))" in
-  lwt_check_raises (Some error_mismatch_default) @@
+  lwt_check_raises (Some (error_mismatch_ep "B")) @@
     typecheck
       code
       script
@@ -137,7 +137,7 @@ let test_tz_w_tags_tza_w_tags_dup _ () =
       (entrypoint %A (b: int) (assert true))|}
   in
   let script = generate_contract "(or (int %A) (bool %B))" in
-  lwt_check_raises (Some error_mismatch_default) @@
+  lwt_check_raises (Some (error_mismatch_ep "B")) @@
     typecheck
       code
       script

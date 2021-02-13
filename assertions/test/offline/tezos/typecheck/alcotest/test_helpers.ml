@@ -4,6 +4,7 @@ let generate_contract parameter =
   Printf.sprintf "parameter %s; storage unit; code {UNIT ; NIL operation ; PAIR }\n" parameter
 
 let error_mismatch_default = {|Entrypoint type mismatch: default|}
+let error_mismatch_ep ep = Printf.sprintf "Entrypoint type mismatch: %s" ep
 
 let lwt_check_raises (exp_s : string option) f =
   Lwt.catch
