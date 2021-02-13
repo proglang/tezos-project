@@ -144,7 +144,7 @@ let rec type_check_single entrypoints (ep_name, ep_pattern) matches =
   let rec get_unambiguous_ep ep_name = function
     | [] -> failwith "Ambiguous entry point: %s" ep_name
     | ((tag, _) as ep) :: eps ->
-       if tag = ep_name then return (Some ep)
+       if tag = ep_name then return_some ep
        else get_unambiguous_ep ep_name eps
   in
   match entrypoints with
@@ -157,6 +157,7 @@ let rec type_check_single entrypoints (ep_name, ep_pattern) matches =
      begin
        match matches with
        | [] -> return_none
+       | m :: [] -> return_some m
        | ms ->
           begin
             match ep_name with
