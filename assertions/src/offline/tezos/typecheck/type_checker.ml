@@ -150,14 +150,16 @@ let rec type_check_single entrypoints ep_pattern =
 
 let add_missing_tags
       ({source = src; expanded = exp; unexpanded = unexp; expansion_table = exp_tbl; unexpansion_table = unexp_tbl} : Michelson_v1_parser.parsed) =
-  let n = ref 0 in
+  let n = ref 1 in
   let rec add_tags (exprs : (int, prim) Micheline.node list) : (int, prim) Micheline.node list =
     match exprs with
-    | (Prim (l, T_or, nodes, [])) :: rest ->
+    | (Prim (l, T_or, nodes, annot)) :: rest ->
+       let new_nodes = add_tags nodes in
+       (Prim (l, T_or, new_nodes, annot)) :: (add_tags rest)
+    | (Prim (l, prim, nodes, [])) :: rest ->
        let tag = "%" ^ string_of_int !n in
        n := !n + 1;
-       let new_nodes = add_tags nodes in
-       (Prim (l, T_or, new_nodes, [tag])) :: (add_tags rest)
+       (Prim (l, prim, nodes, [tag])) :: (add_tags rest)
     | (_ as node) :: rest -> node :: (add_tags rest)
     | [] -> []
   in
@@ -169,6 +171,9 @@ let add_missing_tags
     | Prim (l, prim, nodes, annot) ->
        let new_nodes = List.map (fun node -> find_parameters node) nodes in
        Prim (l, prim, new_nodes, annot)
+    | Seq (l, nodes) ->
+       let new_nodes = List.map (fun node -> find_parameters node) nodes in
+       Seq (l, new_nodes)
     | _ as node -> node
   in
   let root = Micheline.root exp in
