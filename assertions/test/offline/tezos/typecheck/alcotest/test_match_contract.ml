@@ -24,7 +24,6 @@ let test_tz_w_tags_tza_wo_tags_mismatch _ () =
     typecheck
       code
       script
-  >|= (fun () -> Alcotest.(check pass) "tz_w_tags_tza_wo_tags_mismatch" () ())
 
 let test_tz_w_tags_tza_wo_tags_dup _ () =
   let code =
@@ -36,7 +35,6 @@ let test_tz_w_tags_tza_wo_tags_dup _ () =
     typecheck
       code
       script
-  >|= (fun () -> Alcotest.(check pass) "tz_w_tags_tza_wo_tags_dup" () ())
 
 let test_tz_wo_tags_tza_w_tags_match _ () =
   let code =
@@ -59,7 +57,6 @@ let test_tz_wo_tags_tza_w_tags_mismatch _ () =
     typecheck
       code
       script
-  >|= (fun () -> Alcotest.(check pass) "tz_wo_tags_tza_w_tags_mismatch" () ())
 
 let test_tz_wo_tags_tza_w_tags_dup _ () =
   let code =
@@ -71,7 +68,6 @@ let test_tz_wo_tags_tza_w_tags_dup _ () =
     typecheck
       code
       script
-  >|= (fun () -> Alcotest.(check pass) "tz_wo_tags_tza_w_tags_dup" () ())
 
 let test_tz_wo_tags_tza_wo_tags_match _ () =
   let code =
@@ -94,7 +90,6 @@ let test_tz_wo_tags_tza_wo_tags_mismatch _ () =
     typecheck
       code
       script
-  >|= (fun () -> Alcotest.(check pass) "tz_wo_tags_tza_wo_tags_mismatch" () ())
 
 let test_tz_wo_tags_tza_wo_tags_dup _ () =
   let code =
@@ -106,7 +101,6 @@ let test_tz_wo_tags_tza_wo_tags_dup _ () =
     typecheck
       code
       script
-  >|= (fun () -> Alcotest.(check pass) "tz_wo_tags_tza_wo_tags_dup" () ())
 
 let test_tz_w_tags_tza_w_tags_match _ () =
   let code =
