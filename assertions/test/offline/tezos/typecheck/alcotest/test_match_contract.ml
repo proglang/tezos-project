@@ -83,7 +83,7 @@ let test_tz_wo_tags_tza_wo_tags_match _ () =
 let test_tz_wo_tags_tza_wo_tags_mismatch _ () =
   let code =
     {|(entrypoint (a: int) (assert true))
-      (entrypoint (right (b: nat) (assert true))|}
+      (entrypoint (right (b: nat)) (assert true))|}
   in
   let script = generate_contract "(or int bool)" in
   lwt_check_raises (Some error_mismatch_default) @@
