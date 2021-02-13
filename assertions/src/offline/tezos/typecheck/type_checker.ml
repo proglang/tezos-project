@@ -140,13 +140,30 @@ let compare_type_pattern ep_pattern expr =
   let root = Micheline.root expr in
   cmp_type_pattern_rec ep_pattern root
 
-let rec type_check_single entrypoints ep_pattern =
+let rec type_check_single entrypoints (ep_name, ep_pattern) matches =
+  let rec get_unambiguous_ep ep_name = function
+    | [] -> failwith "Ambiguous entry point: %s" ep_name
+    | ((tag, _) as ep) :: eps ->
+       if tag = ep_name then return (Some ep)
+       else get_unambiguous_ep ep_name eps
+  in
   match entrypoints with
-  | (_, expr) :: rest ->
+  | (tag, expr) :: rest ->
      compare_type_pattern ep_pattern expr
      >>=? fun res ->
-     if res then return_true else type_check_single rest ep_pattern
-  | [] -> return_false
+     if res then type_check_single rest (ep_name, ep_pattern) ((tag, expr) :: matches)
+     else type_check_single rest (ep_name, ep_pattern) matches
+  | [] ->
+     begin
+       match matches with
+       | [] -> return_none
+       | ms ->
+          begin
+            match ep_name with
+            | Some name -> get_unambiguous_ep name ms
+            | None -> get_unambiguous_ep "default" ms
+          end
+     end
 
 let add_missing_tags
       ({source = src; expanded = exp; unexpanded = unexp; expansion_table = exp_tbl; unexpansion_table = unexp_tbl} : Michelson_v1_parser.parsed) =
@@ -187,18 +204,16 @@ let get_script = function
   | DAO_String s -> Dao_string.get_script s
 
 let type_check dao (asts : Ast.ast list)  =
-  let rec type_check_rec eps asts =
-    match asts with
-    | ({entrypoint = (tag, pat); _}: Ast.ast ) :: rest ->
-       type_check_single eps pat
-       >>=? fun eq ->
-       if eq then type_check_rec eps rest else
-         begin
-           match tag with
-           | Some t -> failwith "Entrypoint type mismatch: %s" t
-           | None -> failwith "Entrypoint type mismatch: default"
-         end
-    | [] -> return_unit
+  let f eps ({entrypoint = (tag, pat); _}: Ast.ast) =
+    type_check_single eps (tag, pat) []
+    >>=? function
+    | Some (ep_tag, _) -> return @@ List.filter (fun (t, _ ) -> if t = "default" then true else if t = ep_tag then false else true) eps
+    | None ->
+      begin
+        match tag with
+        | Some t -> failwith "Entrypoint type mismatch: %s" t
+        | None -> failwith "Entrypoint type mismatch: default"
+      end
   in
   begin
     get_script dao
@@ -207,7 +222,8 @@ let type_check dao (asts : Ast.ast list)  =
     >>=? fun script ->
     get_entrypoints script
     >>=? fun entrypoints ->
-    type_check_rec entrypoints asts
+    fold_left_s f entrypoints asts
+    >>=? fun _ -> return_unit
   end
   >>= function
   | Ok () -> Lwt.return_unit
