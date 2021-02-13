@@ -1,21 +1,3 @@
-(* Type matching examples:
- *
- * contract:
- * parameter (or % (unit %setLocked)
- *              (or (list %appendReceivers (pair (address :to) (nat :value)))
- *                  (unit %nextBatchTransfer)));
- *
- * Unit -> type match with %setLocked, %nextBatchTransfer
- *
- * {Pair "tz1ghdqCDWpaQtND8vb3YBJDW4EgZLDQRSBr" 4} -> matches %appendReceivers
- *
- * Left Unit -> matches default
- *
- * Right (Left {Pair "tz1ghdqCDWpaQtND8vb3YBJDW4EgZLDQRSBr" 4}) -> matches default
- *
- * Right (Right Unit) -> matches default
- *)
-
 open Tezos_micheline
 open Tezos_client_007_PsDELPH1
 open Tezos_raw_protocol_007_PsDELPH1.Michelson_v1_primitives
@@ -43,6 +25,7 @@ let ctxt =
         ~password_filename:None
         ~base_dir:"/home/bernhard/.tezos-client"
         ~rpc_config:rpc_config)
+
 
 let get_entrypoints (progr : Michelson_v1_parser.parsed) =
   Michelson_v1_entrypoints.list_entrypoints
@@ -157,11 +140,41 @@ let compare_type_pattern ep_pattern expr =
   let root = Micheline.root expr in
   cmp_type_pattern_rec ep_pattern root
 
-let type_check_single entrypoints ep_pattern =
+let rec type_check_single entrypoints ep_pattern =
   match entrypoints with
-  | (_, expr) :: _ ->
+  | (_, expr) :: rest ->
      compare_type_pattern ep_pattern expr
+     >>=? fun res ->
+     if res then return_true else type_check_single rest ep_pattern
   | [] -> return_false
+
+let add_missing_tags
+      ({source = src; expanded = exp; unexpanded = unexp; expansion_table = exp_tbl; unexpansion_table = unexp_tbl} : Michelson_v1_parser.parsed) =
+  let n = ref 0 in
+  let rec add_tags (exprs : (int, prim) Micheline.node list) : (int, prim) Micheline.node list =
+    match exprs with
+    | (Prim (l, T_or, nodes, [])) :: rest ->
+       let tag = "%" ^ string_of_int !n in
+       n := !n + 1;
+       let new_nodes = add_tags nodes in
+       (Prim (l, T_or, new_nodes, [tag])) :: (add_tags rest)
+    | (_ as node) :: rest -> node :: (add_tags rest)
+    | [] -> []
+  in
+  let rec find_parameters (expr : (int, prim) Micheline.node) : (int, prim) Micheline.node =
+    match expr with
+    | Prim (l, K_parameter, nodes, annot) ->
+       let new_nodes = add_tags nodes in
+       Prim (l, K_parameter, new_nodes, annot)
+    | Prim (l, prim, nodes, annot) ->
+       let new_nodes = List.map (fun node -> find_parameters node) nodes in
+       Prim (l, prim, new_nodes, annot)
+    | _ as node -> node
+  in
+  let root = Micheline.root exp in
+  let new_expanded = Micheline.strip_locations @@ find_parameters root in
+  return
+  ({source = src; expanded = new_expanded; unexpanded = unexp; expansion_table = exp_tbl; unexpansion_table = unexp_tbl} : Michelson_v1_parser.parsed)
 
 let get_script = function
   | DAO_File path -> Dao_script_file.get_script ~path
@@ -183,6 +196,8 @@ let type_check dao (asts : Ast.ast list)  =
   in
   begin
     get_script dao
+    >>=? fun script ->
+    add_missing_tags script
     >>=? fun script ->
     get_entrypoints script
     >>=? fun entrypoints ->
