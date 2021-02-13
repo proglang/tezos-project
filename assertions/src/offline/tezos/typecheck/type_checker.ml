@@ -6,8 +6,8 @@ open Format
 open List
 open SyncAPIV0_context
 open Tezos_ast
+open Dao_script
 open Dao_type
-open Dao_file
 
 let ctxt =
   let rpc_config : RPC_client_unix.config = {
@@ -182,8 +182,9 @@ let add_missing_tags
   ({source = src; expanded = new_expanded; unexpanded = unexp; expansion_table = exp_tbl; unexpansion_table = unexp_tbl} : Michelson_v1_parser.parsed)
 
 let get_script = function
-  | DAO_File path -> Dao_script_file.get_script ~path
+  | DAO_File path -> Dao_file.get_script ~path
   | DAO_Chain _ -> failwith "Not supported"
+  | DAO_String s -> Dao_string.get_script s
 
 let type_check dao (asts : Ast.ast list)  =
   let rec type_check_rec eps asts =

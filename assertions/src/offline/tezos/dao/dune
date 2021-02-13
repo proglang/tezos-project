@@ -1,5 +1,5 @@
 (library
- (name dao_file)
+ (name dao_script)
  (libraries core
 	    tezos-client-007-PsDELPH1
 	    tezos-micheline

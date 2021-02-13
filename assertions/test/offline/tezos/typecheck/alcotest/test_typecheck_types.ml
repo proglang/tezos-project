@@ -1,6 +1,5 @@
 open Core
 open Typecheck_wrapper
-open Contract_generator
 open Lwt.Infix
 open Test_helpers
 open Random
@@ -15,35 +14,35 @@ let types = [
 
 let test_type_match type_s =
   let code = Printf.sprintf ("(entrypoint (x: %s) (assert true))") type_s in
-  generate_contract type_s;
+  let script = generate_contract type_s in
   typecheck
     code
-    file_path ()
+    script ()
   >|= (fun () -> Alcotest.(check pass) type_s () ())
 
 let test_pattern_match type_s pattern_s =
   let code = Printf.sprintf ("(entrypoint %s (assert true))") pattern_s in
-  generate_contract type_s;
+  let script = generate_contract type_s in
   typecheck
     code
-    file_path ()
+    script ()
   >|= (fun () -> Alcotest.(check pass) pattern_s () ())
 
 let test_type_mismatch type1_s type2_s =
   let code = Printf.sprintf ("(entrypoint (x: %s) (assert true))") type1_s in
-  generate_contract type2_s;
+  let script = generate_contract type2_s in
   lwt_check_raises (Some error_mismatch_default) @@
   typecheck
     code
-    file_path
+    script
 
 let test_pattern_mismatch pat_s type_s =
   let code = Printf.sprintf ("(entrypoint %s (assert true))") pat_s in
-  generate_contract type_s;
+  let script = generate_contract type_s in
   lwt_check_raises (Some error_mismatch_default) @@
   typecheck
     code
-    file_path
+    script
 
 let pattern_match_test_cases =
   let open Alcotest_lwt in

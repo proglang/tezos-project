@@ -2,8 +2,8 @@
   (name type_checker)
   (modules type_checker SyncAPIV0_context)
   (libraries core
+             dao_script
              dao_type
-             dao_file
              transformation
 	     tezos_ast
 	     tezos-rpc-http-client-unix
