@@ -158,12 +158,7 @@ let rec type_check_single entrypoints (ep_name, ep_pattern) matches =
        match matches with
        | [] -> return_none
        | m :: [] -> return_some m
-       | ms ->
-          begin
-            match ep_name with
-            | Some name -> get_unambiguous_ep name ms
-            | None -> get_unambiguous_ep "default" ms
-          end
+       | ms -> get_unambiguous_ep ep_name ms
      end
 
 let add_missing_tags
@@ -209,12 +204,7 @@ let type_check dao (asts : Ast.ast list)  =
     type_check_single eps (tag, pat) []
     >>=? function
     | Some (ep_tag, _) -> return @@ List.filter (fun (t, _ ) -> if t = "default" then true else if t = ep_tag then false else true) eps
-    | None ->
-      begin
-        match tag with
-        | Some t -> failwith "Entrypoint type mismatch: %s" t
-        | None -> failwith "Entrypoint type mismatch: default"
-      end
+    | None -> failwith "Entrypoint type mismatch: %s" tag
   in
   begin
     get_script dao

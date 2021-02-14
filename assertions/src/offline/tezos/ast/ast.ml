@@ -10,4 +10,4 @@ type bound = Parsing.Assertion.expression
 
 type assertion = Parsing.Assertion.assertion
 
-type ast = {entrypoint : string option * pattern; body : assertion}
+type ast = {entrypoint : string * pattern; body : assertion}

@@ -187,9 +187,7 @@ let pp_bounds ppf ~indent bounds =
 let pp_entrypoint ppf ~indent (ep, pat) =
   let print_ep_name = Fmt.pf ppf "%sEntrypoint: %%%s@." indent in
   let new_indent = indent_space ^ indent in
-  match ep with
-  | Some s -> print_ep_name s; pp_pattern ppf ~indent:new_indent pat
-  | None -> print_ep_name "default"; pp_pattern ppf ~indent:new_indent pat
+  print_ep_name ep; pp_pattern ppf ~indent:new_indent pat
 
 let pp_ast ppf ({entrypoint = ep; body = assertion}: ast) =
   let indent = "└──" in
