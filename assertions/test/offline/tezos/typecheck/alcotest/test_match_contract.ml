@@ -131,7 +131,7 @@ let test_tz_w_tags_tza_w_tags_dup _ () =
       (entrypoint %A (b: int) (assert true))|}
   in
   let script = generate_contract "(or (int %A) (bool %B))" in
-  lwt_check_raises (Some (error_mismatch_ep "B")) @@
+  lwt_check_raises (Some (error_mismatch_ep "A")) @@
     typecheck
       code
       script
@@ -139,7 +139,7 @@ let test_tz_w_tags_tza_w_tags_dup _ () =
 let test_mixed_tags_match _ () =
   let code =
     {|(entrypoint %A (a: int) (assert true))
-      (entrypoint (b: bool) (assert true))|}
+      (entrypoint (right (b: bool)) (assert true))|}
   in
   let script = generate_contract "(or (int %A) bool)" in
   typecheck
@@ -150,7 +150,7 @@ let test_mixed_tags_match _ () =
 let test_mixed_tags_mismatch _ () =
   let code =
     {|(entrypoint %A (a: int) (assert true))
-      (entrypoint (b: nat) (assert true))|}
+      (entrypoint (right (b: nat)) (assert true))|}
   in
   let script = generate_contract "(or (int %A) bool)" in
   lwt_check_raises (Some error_mismatch_default) @@
@@ -161,7 +161,7 @@ let test_mixed_tags_mismatch _ () =
 let test_mixed_tags_dup _ () =
   let code =
     {|(entrypoint %A (a: int) (assert true))
-      (entrypoint (a: int) (assert true))|}
+      (entrypoint (left (a: int)) (assert true))|}
   in
   let script = generate_contract "(or (int %A) bool)" in
   lwt_check_raises (Some error_mismatch_default) @@
@@ -178,6 +178,7 @@ let () =
            test_case "tz_wo_tags_tza_w_tags_match" `Quick test_tz_wo_tags_tza_w_tags_match;
            test_case "tz_wo_tags_tza_wo_tags_match" `Quick test_tz_wo_tags_tza_wo_tags_match;
            test_case "tz_w_tags_tza_w_tags_match" `Quick test_tz_w_tags_tza_w_tags_match;
+           test_case "mixed_tags_match" `Quick test_mixed_tags_match
          ]; "Mismatching", [
              test_case "tz_w_tags_tza_wo_tags_mismatch" `Quick test_tz_w_tags_tza_wo_tags_mismatch;
              test_case "tz_w_tags_tza_wo_tags_dup" `Quick test_tz_w_tags_tza_wo_tags_dup;
@@ -186,5 +187,7 @@ let () =
              test_case "tz_wo_tags_tza_wo_tags_mismatch" `Quick test_tz_wo_tags_tza_wo_tags_mismatch;
              test_case "tz_wo_tags_tza_wo_tags_dup" `Quick test_tz_wo_tags_tza_wo_tags_dup;
              test_case "tz_w_tags_tza_w_tags_mismatch" `Quick test_tz_w_tags_tza_w_tags_mismatch;
-             test_case "tz_w_tags_tza_w_tags_dup" `Quick test_tz_w_tags_tza_w_tags_dup
+             test_case "tz_w_tags_tza_w_tags_dup" `Quick test_tz_w_tags_tza_w_tags_dup;
+             test_case "mixed_tags_mismatch" `Quick test_mixed_tags_mismatch;
+             test_case "mixed_tags_dup" `Quick test_mixed_tags_dup
        ]]
