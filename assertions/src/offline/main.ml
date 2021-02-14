@@ -38,8 +38,8 @@ let main =
     |> check_and_compile !tz_dao ~verbose
     >>= fun () -> Lwt.return 1
   with
-  | Failure s -> Printf.eprintf "%s" s; Lwt.return 0
-  | _ -> Printf.eprintf "Caught exception"; Lwt.return 0
+  | Failure s -> Printf.eprintf "%s\n" s; Lwt.return 0
+  | e -> Printf.eprintf "%s\n" (Printexc.to_string e); Lwt.return 0
 
 (* The example contract is first parsed and then transformed by the backend *)
 let () =
