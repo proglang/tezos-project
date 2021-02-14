@@ -1,11 +1,11 @@
 open Client_keys
-open Tezos_client_006_PsCARTHA
-open Tezos_client_006_PsCARTHA.Protocol_client_context
-open Tezos_client_006_PsCARTHA.Injection
-open Tezos_client_006_PsCARTHA.Client_proto_contracts
-open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
-open Tezos_raw_protocol_006_PsCARTHA
-open Tezos_protocol_environment_006_PsCARTHA
+open Tezos_client_007_PsDELPH1
+open Tezos_client_007_PsDELPH1.Protocol_client_context
+open Tezos_client_007_PsDELPH1.Injection
+open Tezos_client_007_PsDELPH1.Client_proto_contracts
+open Tezos_protocol_007_PsDELPH1.Protocol.Alpha_context
+open Tezos_raw_protocol_007_PsDELPH1
+open Tezos_protocol_environment_007_PsDELPH1
 open Apply_results
 open SyncAPIV0_error
 open SyncAPIV0_context
@@ -137,8 +137,8 @@ let catch_error_f err = if !(current_config.debug_mode) then catch_trace err
 let make_fee_parameter () =
   let fp : fee_parameter = {
     minimal_fees = !(current_fee_config.minimal_fees);
-    minimal_nanotez_per_byte = Z.of_int !(current_fee_config.minimal_nanotez_per_byte);
-    minimal_nanotez_per_gas_unit = Z.of_int !(current_fee_config.minimal_nanotez_per_gas_unit);
+    minimal_nanotez_per_byte = Q.of_int !(current_fee_config.minimal_nanotez_per_byte);
+    minimal_nanotez_per_gas_unit = Q.of_int !(current_fee_config.minimal_nanotez_per_gas_unit);
     force_low_fee = !(current_fee_config.force_low_fee);
     fee_cap = !(current_fee_config.fee_cap);
     burn_cap = !(current_fee_config.burn_cap);
@@ -310,7 +310,7 @@ let get_result ((op, res) : 'kind contents_list * 'kind contents_result_list) (b
     | Single_and_result (Manager_operation _,
                          Manager_operation_result {operation_result;_}) ->
        begin
-         let open Tezos_protocol_006_PsCARTHA.Protocol.Contract_storage in
+         let open Tezos_protocol_007_PsDELPH1.Protocol.Contract_storage in
          match operation_result with
            | Failed (_, errs) -> (
              match errs with
@@ -322,11 +322,14 @@ let get_result ((op, res) : 'kind contents_list * 'kind contents_result_list) (b
              | _ -> Answer.return (Rejected (Unknown_reason "Empty trace")))
            | Applied (Transaction_result r) ->
               begin
+                let consumed = Int.of_string
+                               @@ asprintf "%a" Gas.Arith.pp r.consumed_gas
+                in
                 let res : op_result = {
                     block_hash = b;
                     rpc_position = (i,j);
                     balance_updates = r.balance_updates;
-                    consumed_gas = Z.to_int r.consumed_gas;
+                    consumed_gas = consumed;
                     storage = r.storage;
                     originated_contracts = r.originated_contracts;
                     storage_size = Z.to_int r.storage_size;
