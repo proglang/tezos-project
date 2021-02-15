@@ -9,7 +9,6 @@ type rejection_message = Insufficient_balance
                      | Reached_feecap
                      | Empty_transaction
                      | Empty_implicit_contract
-                     | Michelson_parser_error
                      | Michelson_runtime_error of string
 
 type error = Rejection of rejection_message (** Injection failed due to {!type:rejection_message} *)
@@ -22,6 +21,7 @@ type error = Rejection of rejection_message (** Injection failed due to {!type:r
            | Wrong_contract_notation of string (** Contract unknown or malformed notation *)
            | Invalid_public_key_hash (** A malformed public key hash was given *)
            | Not_callable (** The given contract is not originated *)
+           | Michelson_parser_error of string
            | Unknown of string (** Unknown error - error list should be extended if this occurs; used by debug_mode to return the Tezos error trace*)
 
 (** Simple error monad to handle improper input and Tezos errors*)

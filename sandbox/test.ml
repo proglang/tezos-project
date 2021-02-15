@@ -23,7 +23,6 @@ let str_of_err err = match err with
   | SyncAPIV0_error.Rejection Reached_feecap -> "Reached_feecap"
   | SyncAPIV0_error.Rejection Empty_transaction -> "Empty_transaction"
   | SyncAPIV0_error.Rejection Empty_implicit_contract -> "Empty_implicit_contract"
-  | SyncAPIV0_error.Rejection Michelson_parser_error -> "Michelson_parser_error"
   | SyncAPIV0_error.Rejection Michelson_runtime_error s -> "Michelson_runtime_error: " ^ s
   | SyncAPIV0_error.RPC_error {uri} -> "RPC error at " ^ uri
   | SyncAPIV0_error.Node_connection_failed -> "Node_connection_failed"
@@ -33,6 +32,7 @@ let str_of_err err = match err with
   | SyncAPIV0_error.Keys_not_found -> "Keys not found"
   | SyncAPIV0_error.Wrong_contract_notation s -> "Wrong_contract_notation " ^ s
   | SyncAPIV0_error.Invalid_public_key_hash -> "Invalid_public_key_hash"
+  | SyncAPIV0_error.Michelson_parser_error s -> "Michelson_parser_error: " ^ s
   | SyncAPIV0_error.Not_callable -> "Not_callable"
   | SyncAPIV0_error.Unknown e -> e
 

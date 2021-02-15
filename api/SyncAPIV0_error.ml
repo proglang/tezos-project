@@ -1,7 +1,7 @@
 open Tezos_protocol_environment_007_PsDELPH1
 open Tezos_protocol_007_PsDELPH1.Protocol.Alpha_context
 open Tezos_protocol_007_PsDELPH1.Protocol.Script_interpreter
-open Tezos_raw_protocol_007_PsDELPH1.Contract_repr
+open Tezos_protocol_007_PsDELPH1.Protocol.Michelson_v1_primitives
 open Tezos_micheline.Micheline_parser
 open Tezos_rpc_http.RPC_client_errors
 open Format
@@ -16,7 +16,6 @@ type rejection_message = Insufficient_balance
                      | Reached_feecap
                      | Empty_transaction
                      | Empty_implicit_contract
-                     | Michelson_parser_error
                      | Michelson_runtime_error of string
 
 type error = Rejection of rejection_message
@@ -29,6 +28,7 @@ type error = Rejection of rejection_message
            | Wrong_contract_notation of string
            | Invalid_public_key_hash
            | Not_callable
+           | Michelson_parser_error of string
            | Unknown of string
 
 let errors_of_strings =
@@ -68,6 +68,7 @@ let rec catch_last_error errs =
   | e :: _ -> Answer.return e
   >>=? fun err ->
   let open Tezos_protocol_007_PsDELPH1.Protocol.Contract_storage in
+  let open Tezos_raw_protocol_007_PsDELPH1.Contract_repr in
   match err with
   | Environment.Ecoproto_error (Invalid_contract_notation s) -> Answer.fail (Wrong_contract_notation s)
   | RPC_context.Not_found {uri; _}
@@ -88,8 +89,8 @@ let rec catch_last_error errs =
     -> Answer.fail (Rejection Empty_transaction)
   | Environment.Ecoproto_error Empty_implicit_contract _
     -> Answer.fail (Rejection Empty_implicit_contract)
-  | Invalid_utf8_sequence _
-    | Unexpected_character _
+  | Unexpected_character _
+    | Invalid_utf8_sequence _
     | Undefined_escape_sequence _
     | Missing_break_after_number _
     | Unterminated_string _
@@ -101,7 +102,11 @@ let rec catch_last_error errs =
     | Unexpected _
     | Extra _
     | Misaligned _
-    | Empty -> Answer.fail (Rejection Michelson_parser_error)
+    | Environment.Ecoproto_error
+      ( Invalid_primitive_name _
+      | Unknown_primitive_name _
+      | Invalid_case _)
+    | Empty -> Answer.fail (Michelson_parser_error (err_to_str err))
   (* Remove toplevel runtime error from the top of the trace as it contains no specific information*)
   | Environment.Ecoproto_error Runtime_contract_error _ ->
      begin
