@@ -174,3 +174,15 @@ val call_contract : Tez_t.t -> pukh -> contract -> ?entrypoint:string -> ?arg:st
     @return the parsed contract code
  *)
 val get_contract_code : contract -> script Answer.t
+
+(** [parse_script code] parses a Michelson script
+    @param code Michelson script
+    @return the result of parsing and expanding a Michelson script
+ *)
+val parse_script : string -> script Answer.t
+
+(** [parse_expression expr] parses a Michelson expression/data
+    @param code Michelson expression
+    @return the result of parsing and expanding a Michelson expression/data
+ *)
+val parse_expression : string -> script Answer.t

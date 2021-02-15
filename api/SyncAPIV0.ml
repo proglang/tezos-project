@@ -456,3 +456,25 @@ let get_contract_code c =
           Answer.return @@ Michelson_v1_printer.unparse_toplevel code
      end
   | Error errs -> catch_error_f errs
+
+let parse_script s =
+  Lwt.catch
+    (fun () ->
+      let parsed = Michelson_v1_parser.parse_toplevel s in
+      Lwt.return @@ Micheline_parser.no_parsing_error parsed
+    )
+    exception_handler
+  >>= function
+  | Ok parsed -> Answer.return parsed
+  | Error err -> catch_error_f err
+
+let parse_expression s =
+   Lwt.catch
+    (fun () ->
+      let parsed = Michelson_v1_parser.parse_expression s in
+      Lwt.return @@ Micheline_parser.no_parsing_error parsed
+    )
+    exception_handler
+   >>= function
+   | Ok parsed -> Answer.return parsed
+   | Error err -> catch_error_f err
