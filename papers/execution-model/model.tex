@@ -16,7 +16,7 @@
   morecomment=[s]{/*}{*/},
   morestring=[b]",
 }
-\lstset{language=michelson}
+\lstset{language=Caml}
 \input{macros}
 
 \title{A Typed Programmatic Interface to Contracts on the Blockchain}
@@ -85,13 +85,13 @@ header of an auction contract in Michelson \cite{michelson}. The
 \lstinline/parameter/ clause specifies the contract's parameter
 type. It is a sum type (indicated by \lstinline/or/) and each
 alternative constitutes an entrypoint, named \lstinline/%close/ and
-\lstinline/%bid/. Entrypoint \lstinline/%close/ takes a \texttt{unit}
-parameter and \lstinline/%bid/ takes an amount of tokens \texttt{mutez}.
+\lstinline/%bid/. Entrypoint \lstinline/%close/ takes a \lstinline{unit}
+parameter and \lstinline/%bid/ takes an amount of tokens of type \lstinline{mutez}.
 The \lstinline/storage/ clause declares the state of the contract,
-which is a nested pair type indicating whether bidding is allowed, the address of the
+which is a nested pair type indicating whether bidding is allowed (\lstinline{bool}), the address of the
 contract owner (to prohibit unauthorized calls to \lstinline/%close/),
-the highest bid, and the bidder's address.
-\begin{lstlisting}[numbers=none,float,caption={Header of the auction contract},label={lst:auction-contract-header},captionpos=b,emph={close,bid},emphstyle=\underbar]
+the highest bid (of type \lstinline{mutez}), and the bidder's address.
+\begin{lstlisting}[language=michelson,numbers=none,float,caption={Header of the auction contract},label={lst:auction-contract-header},captionpos=b,emph={close,bid},emphstyle=\underbar]
 parameter (or (unit %close)
               (mutez %bid)); # participant's bid
 storage (pair
@@ -100,32 +100,52 @@ storage (pair
         );
 \end{lstlisting}
 
+Here is an outline of the implementation of the entrypoints. The
+\lstinline/%close/ entrypoint first checks its sender's address
+against the owner's address in the store. Then it transfers the funds
+to the owner, closes the contract, and trusts the owner to deliver the
+goods.\footnote{For simplicity we elide safeguarding by a third-party oracle.}
+The \lstinline/%bid/ entrypoint rejects and reimburses each bid that is not higher
+than the existing highest bid. Otherwise, it keeps the funds
+transferred, returns the previous highest bid to its owner, and stores
+the current bid as the new highest bid.
 
-There are two purposes for calling an auction contract: (1) a bid by a bidder, or (2) a contract closing by the contract owner. Michelson supports multiple entrypoints, distinguished by \texttt{or}. The contract's storage contains two pairs, the first pair containing the flag indicating whether bidding is allowed or the contract is closed and the address of the contract owner, and the second pair containing the current highest bid and the address of the bidder. Michelson is stack-based. It takes a pair of the parameter and the current storage as inputs and returns the updated storage and a list of internal operations. When a bidder invokes the contract to bid, its bid and address are updated in the storage if the bid is higher than the current highest bid, otherwise they are discharged. The closing of the contract is called by the contract owner when it reaches 48 hours.
 
+Timed contract closing and strategic bidding cannot be implemented in
+a smart contract, but could be implemented in separate programs that
+interact with the blockchain. We present some idealized code for these tasks.
 
-
-
-Although contract closing  and bidding strategy tasks are not able to be implemented in a smart contract, they could be in programs that interact with smart contracts on the blockchain. We call the function that deploys a contract \texttt{originate-contract}, and  it returns the contract's address on the blockchain.  The function that invokes a contract is \texttt{call-contract}. \texttt{get-state} function queries data on the blockchain and returns the storage of a contract. The owner could first deploy the contract, wait 48 hours, and then call the contract with the entrypoint \texttt{Unit} to close the contract.
-
-\begin{lstlisting}[numbers=none]
-address = originate-contract(script);
-Time.sleep(to-second(48));
-call-contract(address, Unit);
+First the code that creates an auction contract and closes it after 48 hours. 
+\begin{lstlisting}[language=Caml,numbers=none]
+let initial_store = ((true, my_address), (1, my_address))
+let contract = Cl.originate(auction_script, 1, initial_store)
+Time.sleep(48 * 3600); (* 48h in seconds *)
+Cl.call_contract(contract, left ());
 \end{lstlisting}
-where \texttt{script} is the contract's script and \texttt{to-second} function converts hour to second.
+We assume that \lstinline/Cl/ is the contract library,  \lstinline/originate/ deploys its argument contract along with
+the provided funds and the \lstinline/initial_store/, 
+\lstinline{auction_script} is the contract from Listing~\ref{lst:auction-contract-header}, and 
+\lstinline{call_contract} invokes a contract with a parameter.
 
-The bidding strategy could be implemented by first calling a contract with a minimum amount, watching the state of the contract, say every 5 minutes. If the bidder is not the current highest bidder and bidding is allowed, the bid has not reached the limit. He emits a contract call with a higher bid.
 
+To implement the bidding strategy, we first check the state of the
+contract to find the current highest bid. As long as bidding is
+allowed and the current bid is below our \lstinline/limit/, we update
+our bid by a given amount \lstinline/step/, and then keep watching the state of the contract by
+polling it every five minutes. 
 \begin{lstlisting}[numbers=none]
-while get-state(address).flag = true and 
-get-state(address).highestBid > bid and bid < limit do
-    bid = bid + a;
-    call_contract(address, bid); 
-    Time.speep(5);
-done;
+let rec poll (limit, step, ((bidding, _), (high_bid, _))) =
+  if bidding and high_bid < limit then
+    Cl.call_contract (contract, 
+      right (min (high_bid + step, limit)));
+    Time.sleep(5);
+    let state = Cl.get_state (contract);
+    poll (limit, step, state)
+in
+poll (limit, step, Cl.get_state (contract))
 \end{lstlisting}
-
+The \lstinline{get_state} function queries data on
+the blockchain and returns the storage of a contract. 
 
 On another level, running a contract requires to propose a fee to the
 blockchain, which may or may not be accepted. In any case, starting a
