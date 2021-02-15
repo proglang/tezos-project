@@ -133,6 +133,9 @@ let make_context () =
 let ctxt = ref (make_context ())
 let catch_error_f err = if !(current_config.debug_mode) then catch_trace err
                         else catch_last_error err
+let catch_error_env_f err errs s = if !(current_config.debug_mode) then
+                                     catch_trace_env err errs s
+                                   else catch_last_env_error err s
 
 let make_fee_parameter () =
   let fp : fee_parameter = {
@@ -197,11 +200,10 @@ let get_contract s =
   | Error err -> (
     match Contract.of_b58check s with
     | Ok v -> Answer.return v
-    | Error _ as err2 -> (
-       let wrapped = Environment.wrap_error err2 in
-       match wrapped with
-       | Error e -> catch_error_f (e @ err)
-       | Ok _ -> catch_error_f err))
+    | Error _ as err2 -> catch_error_env_f
+                           err2
+                           err
+                           "B58 check of address failed")
 
 let set_port p =
   (current_config.port) := p;
