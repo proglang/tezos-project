@@ -4,6 +4,7 @@
 
 (executables
  (names test )
- (libraries tezos_api)
+ (libraries tezos_api
+            core)
   (flags (:standard -open Tezos_base__TzPervasives
                     -linkall)))
