@@ -18,6 +18,7 @@ type pukh = Signature.public_key_hash
 type contract = Contract.t
 type oph = Operation_hash.t
 type blockh = Block_hash.t
+type script = Michelson_v1_parser.parsed
 
 module Tez_t : sig
   type t = Tez.t
@@ -436,3 +437,22 @@ let get_balance c =
   >>= function
   | Ok amount -> Answer.return amount
   | Error err -> catch_error_f err
+
+let get_contract_code c =
+  let ctxt_proto = new wrap_full !ctxt in
+  Client_proto_context.get_script
+    ctxt_proto
+    ~chain:ctxt_proto#chain
+    ~block:ctxt_proto#block
+    c
+  >>= function
+  | Ok None -> Answer.fail Not_callable
+  | Ok (Some {code; storage = _}) ->
+     begin
+       match Script_repr.force_decode code with
+       | Error _ as err2 ->
+          catch_error_env_f err2 [] "Error while decoding contract code"
+       | Ok (code, _) ->
+          Answer.return @@ Michelson_v1_printer.unparse_toplevel code
+     end
+  | Error errs -> catch_error_f errs

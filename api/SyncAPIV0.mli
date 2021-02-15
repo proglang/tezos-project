@@ -1,5 +1,6 @@
 (** This API provides functions to interact with a Tezos node *)
 open Tezos_protocol_007_PsDELPH1.Protocol.Alpha_context
+open Tezos_client_007_PsDELPH1
 open SyncAPIV0_error
 
 (** A public key of an account (implicit or originated)*)
@@ -16,6 +17,8 @@ type oph
 
 (** Block hash *)
 type blockh
+
+type script = Michelson_v1_parser.parsed
 
 (** Representation of Tezos tokens (tez) *)
 module Tez_t : sig
@@ -165,3 +168,9 @@ val get_balance : contract -> Tez_t.t Answer.t
     @param fee the amount of fees to pay to the baker
  *)
 val call_contract : Tez_t.t -> pukh -> contract -> ?entrypoint:string -> ?arg:string -> Tez_t.t -> oph Answer.t
+
+(** [get_contract_code dst] retrieves the code of a smart contract.
+    @param dst contract representation
+    @return the parsed contract code
+ *)
+val get_contract_code : contract -> script Answer.t
