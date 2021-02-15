@@ -7,9 +7,16 @@
 \usepackage[colorinlistoftodos]{todonotes}
 \usepackage{mathpartir}
 \usepackage{fixme}
-\usepackage{listings}
 \usepackage{xcolor}
-
+\usepackage{listings}
+\lstdefinelanguage{michelson}{
+%  basicstyle=\ttfamily,
+  morekeywords={parameter,storage,or,unit,mutez,pair,bool,address}, sensitive=false,
+  morecomment=[l]{\#},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+}
+\lstset{language=michelson}
 \input{macros}
 
 \title{A Typed Programmatic Interface to Contracts on the Blockchain}
@@ -26,7 +33,7 @@ Peter Thiemann\orcidID{0000-0002-9000-1239}}
 \maketitle
 \pagestyle{plain}
 \begin{abstract}
-  Smart contract applications on the blocking can only reach their full potential if
+  Smart contract applications on the block chain can only reach their full potential if
   they can be integrated with traditional software systems. Invoking
   contracts and observing the state of the blockchain requires a
   programmatic interface. We propose a typed API for this
@@ -34,49 +41,65 @@ Peter Thiemann\orcidID{0000-0002-9000-1239}}
   system. Specifically, we provide an execution model that
   enables us to prove type-safe interaction between programs and the 
   blockchain. We establish further properties of the model that
-  translate into requirements on the API. A prototype of the interface
+  give rise to requirements on the API. A prototype of the interface
   is implemented in OCaml for the Tezos blockchain.
 \end{abstract}
+
+\section{Introduction}
+\label{sec:introduction}
+
+Smart contracts rarely live in isolation. To reach their full
+potential, it should be possible to integrate them with traditional
+software systems and to enable input from outside the blockchain. Such
+input requires trusted intermediaries that run so-called oracles \cite{oracles}. A
+smart contract registers a request and a callback with an oracle. The
+oracle invokes the callback as soon as an answer is available. 
+
+We present two examples where integration of smart contracts is needed
+and propose a typed API for making such integration type safe.
 
 \section{Motivation}
 \label{sec:motivation}
 
-An auctioneer wants to run an auction on the blockchain using a smart
-contract. Once to the contract is deployed on the blockchain, the
+Suppose you want to run an auction on the blockchain using a smart
+contract. Once to the contract is deployed, the
 auction is open for bidding, but it should be closed after 48 hours,
-say. Bidding on the auction and closing the auction are two different
-entrypoints / methods of the auction contract.
+say. Such a timeout is a typical task for an oracle. Rather than
+trusting a generic oracle, you prefer to roll your own mechanism that reliably closes the auction
+after 48 hours have passed. So you want to write a program to do so. 
 
-While it is acceptable for the auctioneer to deploy the contract manually, it
-is desirable to have a mechanism that reliably closes the auction
-after 48 hours have passed. So the auctioneer wants to write a program
-to do so.
-
-On the other side, a bidder may want to implement a certain bidding
+As a bidder, you may want to implement a bidding
 strategy that starts at a certain amount and increases the bid until a
-certain limit is reached. Of course, the bidder only increases if
-someone else placed a higher bid. So the bidder also wants to write a
+limit is reached. Of course, you only want to increase if
+someone else placed a higher bid. So you also want to write a
 program to implement this strategy.
 
-Both tasks cannot be implemented as smart contracts because they react
-to external triggers. Closing requires
-to schedule the activation of a contract at a certain time and bidding
-requires to watch the state of the contract (current highest bid) and
+Neither task can be implemented as a smart contract alone because they react
+to external triggers. Closing requires to schedule the activation of a
+contract at a certain time and bidding 
+requires to watch the current highest bid of the contract and
 react if another bidder places a higher bid.
 
-Let us consider how this auction contract could be written in Michelson, the language of smart contracts in Tezos. The state of a smart contract is presented in its storage on the blockchain. The input data provided with a contract invocation is specified as a parameter.
-
-\begin{lstlisting}[numbers=none]
+For concreteness, Listing~\ref{lst:auction-contract-header} shows the
+header of an auction contract in Michelson \cite{michelson}. The
+\lstinline/parameter/ clause specifies the contract's parameter
+type. It is a sum type (indicated by \lstinline/or/) and each
+alternative constitutes an entrypoint, named \lstinline/%close/ and
+\lstinline/%bid/. Entrypoint \lstinline/%close/ takes a \texttt{unit}
+parameter and \lstinline/%bid/ takes an amount of tokens \texttt{mutez}.
+The \lstinline/storage/ clause declares the state of the contract,
+which is a nested pair type indicating whether bidding is allowed, the address of the
+contract owner (to prohibit unauthorized calls to \lstinline/%close/),
+the highest bid, and the bidder's address.
+\begin{lstlisting}[numbers=none,float,caption={Header of the auction contract},label={lst:auction-contract-header},captionpos=b,emph={close,bid},emphstyle=\underbar]
 parameter (or (unit %close)
               (mutez %bid)); # participant's bid
 storage (pair
-              (pair bool address)  # is bidding allowed,
-               contract owner's address
-              (pair mutez address) # current highest bid
-               and bidder's address
+          (pair bool address)  # bidding allowed, contract owner
+          (pair mutez address) # highest bid, bidder's address
         );
 \end{lstlisting}
-where \texttt{unit} is the type whose only value is \texttt{Unit}, \texttt{mutez} is a specific type for tokens in Tezos, and \texttt{pair} is a pair of values a and b of types (l) and (r) written as (\texttt{Pair a b}).
+
 
 There are two purposes for calling an auction contract: (1) a bid by a bidder, or (2) a contract closing by the contract owner. Michelson supports multiple entrypoints, distinguished by \texttt{or}. The contract's storage contains two pairs, the first pair containing the flag indicating whether bidding is allowed or the contract is closed and the address of the contract owner, and the second pair containing the current highest bid and the address of the bidder. Michelson is stack-based. It takes a pair of the parameter and the current storage as inputs and returns the updated storage and a list of internal operations. When a bidder invokes the contract to bid, its bid and address are updated in the storage if the bid is higher than the current highest bid, otherwise they are discharged. The closing of the contract is called by the contract owner when it reaches 48 hours.
 
@@ -86,7 +109,7 @@ There are two purposes for calling an auction contract: (1) a bid by a bidder, o
 Although contract closing  and bidding strategy tasks are not able to be implemented in a smart contract, they could be in programs that interact with smart contracts on the blockchain. We call the function that deploys a contract \texttt{originate-contract}, and  it returns the contract's address on the blockchain.  The function that invokes a contract is \texttt{call-contract}. \texttt{get-state} function queries data on the blockchain and returns the storage of a contract. The owner could first deploy the contract, wait 48 hours, and then call the contract with the entrypoint \texttt{Unit} to close the contract.
 
 \begin{lstlisting}[numbers=none]
-address = orinigate-contract(script);
+address = originate-contract(script);
 Time.sleep(to-second(48));
 call-contract(address, Unit);
 \end{lstlisting}
