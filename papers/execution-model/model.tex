@@ -58,6 +58,17 @@ oracle invokes the callback as soon as an answer is available.
 We present two examples where integration of smart contracts is needed
 and propose a typed API for making such integration type safe.
 
+\subsection{Contributions}
+\label{sec:contributions}
+
+\begin{itemize}
+\item An operational semantics for functional programs running
+  alongside smart contracts in a blockchain. 
+\item Proofs of various properties of the combined system.
+\item An implementation of a low-level OCaml-API to the Tezos
+  blockchain, which corresponds to the operational semantics.
+\end{itemize}
+
 \section{Motivation}
 \label{sec:motivation}
 
@@ -161,31 +172,49 @@ accepted and incorporated in the blockchain.
 Hence, after starting the invocation, we have to observe the fate of
 this invocation. If it does not get incorporated, then we need to
 analyse the reason and react accordingly. For example, if the
-invocation was rejected because of a insufficient fee, we might want
+invocation was rejected because of an insufficient fee, we might want
 to restart with an increased fee. Or we might decide to wait until the
-invocation goes through with the low fee, if it is not that important.
+invocation goes through without increasing the fee.
 
 Hence, we would implement a scheme similar to
-the bidding strategy: start with a low fee and increase until the
+the bidding strategy: start with a low fee and increase (or wait) until the
 contract is accepted or a fee cap is reached. On the other hand, an
 observer function like \lstinline/get_state/ always succeeds.
 
-The low-level interface that we propose in this paper requires 
-(From this scenario we see the required functionality for a
-programmatic interface to a blockchain:)
+The low-level interface that we propose in this paper requires the
+programmer to be explicit about fees, waiting, and polling the state
+of contract invocations. 
 
+In summary, a useful smart-contract-API  has facilities to
 \begin{itemize}
-\item query certain components like the state of a contract (to obtain
-  the current highest bid, to check the fees of the last block)
-\item invoke contracts and initiate transfers
+\item query the current state of the blockchain (e.g., fees in the
+  current block),
+\item query the state and the balance of a contract (e.g., to obtain
+  the current highest bid),
+\item originate contracts, invoke contracts, and initiate
+  transfers. To this end, the program using the API has to run on
+  behalf of some authority (i.e., expressed by holding the private key
+  for some account).
 \end{itemize}
+All these facilities are supported by the (untyped) RPC interface of the Tezos
+blockchain, which is the basis of our implementation. 
 
-\section{Definitions}
-\begin{definition}%[Set]
-Let $\mathbf{Elt}$ be the set of (concrete) elements. Let $\emptyset$ be an empty set and $\mathbf{e}$ $\in$  $\mathbf{Elt}$. A set of elements is expressed as the following syntax:
-\\
-$\mathbf{s} :: = \emptyset \mid \mathbf{e} \mid \mathbf{s :: s}$
-\end{definition}
+\section{Execution Model}
+\label{sec:execution-model}
+
+The execution model is an abstraction of the Tezos blockchain \cite{Tezos}
+augmented with functional (OCaml) programs that interact with the
+blockchain. As the blockchain is realized by a peer-to-peer network of
+independent nodes, interaction happens through
+\emph{local nodes} that receive requests to originate and invoke
+contracts from programs that run on a particular node. We model the blockchain
+itself as a separate, abstract global entity that represents the
+current consensual state of the system. Our model does not express
+low-level details, but relies on nondeterminism to describe
+the possible behaviors of the system.
+
+We write $\emptyset$ for the empty set and $\mathbf{e :: s}$ to
+decompose a set into an element $\mathbf{e}$ and a set  $\mathbf{s}$.
 
 \subsection{Local Node}
 \label{sec:local-node}
