@@ -70,13 +70,13 @@ after 48 hours have passed. So you want to write a program to do so.
 
 As a bidder, you may want to implement a bidding
 strategy that starts at a certain amount and increases the bid until a
-limit is reached. Of course, you only want to increase if
+limit is reached. Of course, you only want to increase your bid if
 someone else placed a higher bid. So you also want to write a
 program to implement this strategy.
 
-Neither task can be implemented as a smart contract alone because they react
-to external triggers. Closing requires to schedule the activation of a
-contract at a certain time and bidding 
+Neither task can be implemented as a smart contract alone because both react
+to external triggers. Closing requires to schedule the invocation of a
+contract at a certain time. Bidding 
 requires to watch the current highest bid of the contract and
 react if another bidder places a higher bid.
 
@@ -85,7 +85,8 @@ header of an auction contract in Michelson \cite{michelson}. The
 \lstinline/parameter/ clause specifies the contract's parameter
 type. It is a sum type (indicated by \lstinline/or/) and each
 alternative constitutes an entrypoint, named \lstinline/%close/ and
-\lstinline/%bid/. Entrypoint \lstinline/%close/ takes a \lstinline{unit}
+\lstinline/%bid/. The caller selects the entrypoint by injecting the argument into the
+\lstinline/left/ or \lstinline/right/ summand. Entrypoint \lstinline/%close/ takes a \lstinline{unit}
 parameter and \lstinline/%bid/ takes an amount of tokens of type \lstinline{mutez}.
 The \lstinline/storage/ clause declares the state of the contract,
 which is a nested pair type indicating whether bidding is allowed (\lstinline{bool}), the address of the
@@ -100,12 +101,13 @@ storage (pair
         );
 \end{lstlisting}
 
-Here is an outline of the implementation of the entrypoints. The
+To avoid too much detail, we just outline the implementation of the entrypoints. The
 \lstinline/%close/ entrypoint first checks its sender's address
 against the owner's address in the store. Then it transfers the funds
-to the owner, closes the contract, and trusts the owner to deliver the
+to the owner, closes the contract by clearing the bidding flag, and
+leaves it to the owner to deliver the
 goods.\footnote{For simplicity we elide safeguarding by a third-party oracle.}
-The \lstinline/%bid/ entrypoint rejects and reimburses each bid that is not higher
+The \lstinline/%bid/ entrypoint immediately returns each bid that is not higher
 than the existing highest bid. Otherwise, it keeps the funds
 transferred, returns the previous highest bid to its owner, and stores
 the current bid as the new highest bid.
@@ -116,14 +118,15 @@ a smart contract, but could be implemented in separate programs that
 interact with the blockchain. We present some idealized code for these tasks.
 
 First the code that creates an auction contract and closes it after 48 hours. 
-\begin{lstlisting}[language=Caml,numbers=none]
+\begin{lstlisting}[language=Caml,numbers=none,basicstyle=\small]
 let initial_store = ((true, my_address), (1, my_address))
 let contract = Cl.originate(auction_script, 1, initial_store)
-Time.sleep(48 * 3600); (* 48h in seconds *)
-Cl.call_contract(contract, left ());
+Time.sleep(48 * 3600);               (* 48h in seconds *)
+Cl.call_contract(contract, left ()); (* entrypoint %close *)
 \end{lstlisting}
-We assume that \lstinline/Cl/ is the contract library,  \lstinline/originate/ deploys its argument contract along with
-the provided funds and the \lstinline/initial_store/, 
+We assume that \lstinline/Cl/ is the module containing the contract
+library,  \lstinline/originate/ deploys its argument contract along
+with the provided funds and the \lstinline/initial_store/, 
 \lstinline{auction_script} is the contract from Listing~\ref{lst:auction-contract-header}, and 
 \lstinline{call_contract} invokes a contract with a parameter.
 
@@ -133,12 +136,12 @@ contract to find the current highest bid. As long as bidding is
 allowed and the current bid is below our \lstinline/limit/, we update
 our bid by a given amount \lstinline/step/, and then keep watching the state of the contract by
 polling it every five minutes. 
-\begin{lstlisting}[numbers=none]
+\begin{lstlisting}[numbers=none,basicstyle=\small]
 let rec poll (limit, step, ((bidding, _), (high_bid, _))) =
   if bidding and high_bid < limit then
     Cl.call_contract (contract, 
-      right (min (high_bid + step, limit)));
-    Time.sleep(5);
+      right (min (high_bid + step, limit))); (* entrypoint %bid *)
+    Time.sleep(5 * 60);
     let state = Cl.get_state (contract);
     poll (limit, step, state)
 in
@@ -147,16 +150,27 @@ poll (limit, step, Cl.get_state (contract))
 The \lstinline{get_state} function queries data on
 the blockchain and returns the storage of a contract. 
 
-On another level, running a contract requires to propose a fee to the
-blockchain, which may or may not be accepted. In any case, starting a
-contract may timeout for a range of different reasons. So just
-starting a contract with a fixed fee does not guarantee the contract's execution.
-This scenario can also be addressed by a program that tries to run the
-contract with successively increasing fees until the blockchain
-accepts the contract invocation. The program can also calculate the
-required fee by observing the current state of the blockchain.
+This code is idealized in several respects. Originating or running a contract
+requires to propose a fee to the blockchain, which may or may not be
+accepted.
+Starting a contract may also time out for a variety of reasons. So just
+invoking a contract with a fixed fee does not guarantee the contract's
+execution.  Even if the invocation is locally accepted, it still takes
+a couple of cycles before we can be sure the invocation is globally
+accepted and incorporated in the blockchain.
+Hence, after starting the invocation, we have to observe the fate of
+this invocation. If it does not get incorporated, then we need to
+analyse the reason and react accordingly. For example, if the
+invocation was rejected because of a insufficient fee, we might want
+to restart with an increased fee. Or we might decide to wait until the
+invocation goes through with the low fee, if it is not that important.
 
+Hence, we would implement a scheme similar to
+the bidding strategy: start with a low fee and increase until the
+contract is accepted or a fee cap is reached. On the other hand, an
+observer function like \lstinline/get_state/ always succeeds.
 
+The low-level interface that we propose in this paper requires 
 (From this scenario we see the required functionality for a
 programmatic interface to a blockchain:)
 
