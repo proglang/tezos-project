@@ -18,7 +18,9 @@ type pukh = Signature.public_key_hash
 type contract = Contract.t
 type oph = Operation_hash.t
 type blockh = Block_hash.t
-type script = Michelson_v1_parser.parsed
+type parsed_michelson = Michelson_v1_parser.parsed
+type expression_michelson = Script.expr
+type tag = string
 
 module Tez_t : sig
   type t = Tez.t
@@ -478,3 +480,14 @@ let parse_expression s =
    >>= function
    | Ok parsed -> Answer.return parsed
    | Error err -> catch_error_f err
+
+let list_entrypoints (s : Michelson_v1_parser.parsed)  =
+  let ctxt_proto = new wrap_full !ctxt in
+  Michelson_v1_entrypoints.list_entrypoints
+    ctxt_proto
+    ~chain:Client_config.default_chain
+    ~block:Client_config.default_block
+    s.expanded
+  >>= function
+  | Ok eps -> Answer.return eps
+  | Error err -> catch_error_f err

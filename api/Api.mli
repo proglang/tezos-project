@@ -18,7 +18,9 @@ type oph
 (** Block hash *)
 type blockh
 
-type script = Michelson_v1_parser.parsed
+type parsed_michelson = Michelson_v1_parser.parsed
+type expression_michelson = Script.expr
+type tag = string
 
 (** Representation of Tezos tokens (tez) *)
 module Tez_t : sig
@@ -173,16 +175,22 @@ val call_contract : Tez_t.t -> pukh -> contract -> ?entrypoint:string -> ?arg:st
     @param dst contract representation
     @return the parsed contract code
  *)
-val get_contract_code : contract -> script Answer.t
+val get_contract_code : contract -> parsed_michelson Answer.t
 
 (** [parse_script code] parses a Michelson script
     @param code Michelson script
     @return the result of parsing and expanding a Michelson script
  *)
-val parse_script : string -> script Answer.t
+val parse_script : string -> parsed_michelson Answer.t
 
 (** [parse_expression expr] parses a Michelson expression/data
     @param code Michelson expression
     @return the result of parsing and expanding a Michelson expression/data
  *)
-val parse_expression : string -> script Answer.t
+val parse_expression : string -> parsed_michelson Answer.t
+
+(** [list_entrypoints parsed] returns the list of entrypoints of the given Michelson script
+    @param a parsed Michelson script
+    @return the entrypoints with tag and script
+ *)
+val list_entrypoints : parsed_michelson -> (tag * expression_michelson) list Answer.t
