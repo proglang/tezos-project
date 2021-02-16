@@ -1,7 +1,7 @@
 (** This API provides functions to interact with a Tezos node *)
 open Tezos_protocol_007_PsDELPH1.Protocol.Alpha_context
 open Tezos_client_007_PsDELPH1
-open SyncAPIV0_error
+open Api_error
 
 (** A public key of an account (implicit or originated)*)
 type puk
@@ -78,14 +78,14 @@ val get_puk_from_alias: string -> puk Answer.t
  *)
 val get_puk_from_hash: string -> puk Answer.t
 
-(** [get_pukh_from_alias s] expects an alias of an implicit account and returns 
+(** [get_pukh_from_alias s] expects an alias of an implicit account and returns
     the associated public key hash.
     @param s alias of implicit account
     @return {!type:pukh} the associated public key hash
 *)
 val get_pukh_from_alias: string -> pukh Answer.t
 
-(** [get_pukh_from_hash s] expects a public key hash as string and returns 
+(** [get_pukh_from_hash s] expects a public key hash as string and returns
     the associated public key hash.
     @param s public key hash of implicit account
     @return {!type:pukh} the associated public key hash

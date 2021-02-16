@@ -10,6 +10,6 @@ class unix_full_silent ~base_dir ~chain ~block ~confirmations ~password_filename
               ~confirmations
               ~password_filename
               ~rpc_config
- 
+
     inherit! Client_context.simple_printer log
 end

@@ -1,5 +1,5 @@
 (library
- (name tezos_api)
+ (name SyncAPIV1)
  (libraries tezos-base
             tezos-base.unix
             tezos-rpc-http-client

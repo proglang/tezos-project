@@ -7,8 +7,8 @@ open Tezos_protocol_007_PsDELPH1.Protocol.Alpha_context
 open Tezos_raw_protocol_007_PsDELPH1
 open Tezos_protocol_environment_007_PsDELPH1
 open Apply_results
-open SyncAPIV0_error
-open SyncAPIV0_context
+open Api_error
+open Api_context
 open Format
 open Base
 open Int64

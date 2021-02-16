@@ -4,7 +4,7 @@
 
 (executables
  (names bidder)
- (libraries tezos_api
+ (libraries SyncAPIV1
  	    lwt
 	    lwt.unix
 	    unix)

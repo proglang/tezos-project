@@ -155,3 +155,28 @@ let catch_trace_env err errs s =
   match wrapped with
   | Error e -> catch_trace (e @ errs)
   | Ok _ -> Answer.fail (Unknown s)
+
+let pp_rejection_msg = function
+  | Insufficient_balance -> "Insufficient_balance"
+  | Counter_mismatch -> "Counter_mismatch"
+  | Invalid_receiver -> "Invalid_receiver"
+  | Insufficient_fee -> "Insufficient_fee"
+  | Reached_burncap -> "Reached_burncap"
+  | Reached_feecap -> "Reached_feecap"
+  | Empty_transaction -> "Empty_transaction"
+  | Empty_implicit_contract -> "Empty_implicit_contract"
+  | Michelson_runtime_error s -> "Michelson_runtime_error: " ^ s
+
+let pp_error fmt = function
+  | Rejection msg -> Fmt.pf fmt "Rejected - %s" @@ pp_rejection_msg msg
+  | RPC_error {uri = u} -> Fmt.pf fmt "RPC_error: %s" u
+  | Node_connection_failed -> Fmt.pf fmt "Node_connection_failed"
+  | Unexpected_result -> Fmt.pf fmt "Unexpected_result"
+  | Unknown_secret_key -> Fmt.pf fmt "Unknown_secret_key"
+  | Unknown_public_key -> Fmt.pf fmt "Unknown_public_key"
+  | Keys_not_found -> Fmt.pf fmt "Keys_not_found"
+  | Wrong_contract_notation s -> Fmt.pf fmt "Wrong_contract_notation: %s" s
+  | Invalid_public_key_hash -> Fmt.pf fmt "Invalid_public_key_hash"
+  | Not_callable -> Fmt.pf fmt "Not_callable"
+  | Michelson_parser_error s -> Fmt.pf fmt "Michelson_parser_error: %s" s
+  | Unknown s -> Fmt.pf fmt "Unknown_error: %s" s

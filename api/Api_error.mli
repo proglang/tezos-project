@@ -1,4 +1,5 @@
 open Tezos_protocol_environment_007_PsDELPH1
+open Format
 
 (** Provides information about why a transaction was rejected *)
 type rejection_message = Insufficient_balance
@@ -43,3 +44,5 @@ val catch_trace_env : 'a Environment.Error_monad.tzresult -> Error_monad.error l
 
 (** Error handling - wraps a Tezos Environment error to a normal error and handles it *)
 val catch_last_env_error : 'a Environment.Error_monad.tzresult -> string -> 'a Answer.t
+
+val pp_error : formatter -> error -> unit

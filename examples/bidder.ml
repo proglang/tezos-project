@@ -1,6 +1,6 @@
-open Tezos_api
-open Tezos_api.SyncAPIV0_error.Answer
-open Tezos_api.SyncAPIV0_error
+open SyncAPIV1.Api_error
+open SyncAPIV1.Api_error.Answer
+open SyncAPIV1
 open Str
 
 (* CLI arguments (all optional) *)
@@ -63,18 +63,18 @@ let print_result succ msg =
 
 (* Handle ambiguous input of the source/bidder contract (may be given as alias or address) *)
 let parse_acc acc_arg =
-  SyncAPIV0.get_pukh_from_alias acc_arg
+  Api.get_pukh_from_alias acc_arg
   >>= function
   | Ok pkh -> return pkh
-  | Error _ -> SyncAPIV0.get_pukh_from_hash acc_arg
+  | Error _ -> Api.get_pukh_from_hash acc_arg
 
 (* Places a bid (calls the auction contract) *)
 let place_bid src contr bid charge fee =
   let bid_str = string_of_int bid in
-  let src_str = SyncAPIV0.string_of_pukh src in
+  let src_str = Api.string_of_pukh src in
   let arg = "(Pair " ^ bid_str ^ "\"" ^ src_str ^ "\")" in
-  let fee_tz = SyncAPIV0.Tez_t.tez fee in
-  SyncAPIV0.call_contract charge src contr ~arg fee_tz
+  let fee_tz = Api.Tez_t.tez fee in
+  Api.call_contract charge src contr ~arg fee_tz
 
 (* Maps the contract specific runtime error to the respective error types *)
 let match_runtime_error s =
@@ -102,7 +102,7 @@ let increase_bid current_bid =
 (* Queries periodically if the transaction was included or failed *)
 let rec wait_for_inclusion oph =
   Unix.sleep 2;
-  SyncAPIV0.query oph
+  Api.query oph
   >>=? function
   | Accepted res -> return res
   | Still_pending -> (wait_for_inclusion oph)
@@ -117,7 +117,7 @@ let rec wait_for_confirmation to_wait addr balance =
   else
   begin
     Unix.sleep 1;
-    SyncAPIV0.get_balance addr
+    Api.get_balance addr
     >>=? fun cur_balance ->
     (* Bid was refunded *)
     if cur_balance = balance then (print_endline "Someone placed a higher bid!"; return false)
@@ -133,7 +133,7 @@ let rec run_bidding src contr bid charge fee balance =
     print_endline "Waiting for inclusion...";
     wait_for_inclusion oph
     >>=? fun _ ->
-    SyncAPIV0.get_contract !src_arg
+    Api.get_contract !src_arg
     >>=? fun src_contr ->
     print_endline "Waiting for counterbids...";
     wait_for_confirmation !wait_conf_arg src_contr balance
@@ -171,7 +171,7 @@ let rec run_bidding src contr bid charge fee balance =
   | Error (Rejection Insufficient_balance) -> print_fatal_error "Insufficient balance of the bidder account" ; return 0
   | Error (Rejection Reached_burncap) -> print_fatal_error "The burncap was reached" ; return 0
   | Error (Rejection Reached_feecap) -> print_fatal_error "The feecap was reached" ; return 0
-  | Error (Rejection Michelson_parser_error) -> print_fatal_error "Invalid/malformed contract arguments" ; return 0
+  | Error (Michelson_parser_error _) -> print_fatal_error "Invalid/malformed contract arguments" ; return 0
   | Error (Unknown s) -> print_fatal_error s; return 0
   | Error _ -> print_fatal_error "Some other fatal error"; return 0
 
@@ -181,21 +181,21 @@ let main =
     spec_list
     (fun x -> raise (Arg.Bad ("Bad argument: " ^ x)))
     usage;
-  SyncAPIV0.set_basedir !base_dir_arg;
-  let burn_cap = if !burn_cap_arg > 0.0 then SyncAPIV0.Tez_t.tez !burn_cap_arg
-                 else SyncAPIV0.Tez_t.zero in
-  let fee_cap = if !fee_cap_arg > 0.0 then SyncAPIV0.Tez_t.tez !fee_cap_arg
-                 else SyncAPIV0.Tez_t.zero in
-  SyncAPIV0.set_fee_parameters ~fee_cap:fee_cap ~burn_cap:burn_cap ();
+  Api.set_basedir !base_dir_arg;
+  let burn_cap = if !burn_cap_arg > 0.0 then Api.Tez_t.tez !burn_cap_arg
+                 else Api.Tez_t.zero in
+  let fee_cap = if !fee_cap_arg > 0.0 then Api.Tez_t.tez !fee_cap_arg
+                 else Api.Tez_t.zero in
+  Api.set_fee_parameters ~fee_cap:fee_cap ~burn_cap:burn_cap ();
   begin
-    let charge = SyncAPIV0.Tez_t.tez !charge_arg in
+    let charge = Api.Tez_t.tez !charge_arg in
     parse_acc !src_arg
     >>=? fun src ->
-    SyncAPIV0.get_contract !contract_arg
+    Api.get_contract !contract_arg
     >>=? fun contract ->
-    SyncAPIV0.get_contract !src_arg
+    Api.get_contract !src_arg
     >>=? fun src_contr ->
-    SyncAPIV0.get_balance src_contr
+    Api.get_balance src_contr
     >>=? fun balance ->
     run_bidding src contract !min_bid_arg charge !base_fee_arg balance
   end
