@@ -1,12 +1,15 @@
 (library
  (name dao_script)
  (libraries core
+            lwt
 	    tezos-client-007-PsDELPH1
 	    tezos-micheline
+	    SyncAPIV1
 
             (select void_for_linking-007-PsDELPH1 from
               (tezos-client-007-PsDELPH1-commands.registration -> void_for_linking)
               (-> void_for_linking))
 )
-  (flags (:standard -open Tezos_micheline
+  (flags (:standard -open Lwt
+                    -open Tezos_micheline
                     -linkall)))

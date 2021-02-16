@@ -196,7 +196,7 @@ let add_missing_tags
 
 let get_script = function
   | DAO_File path -> Dao_file.get_script ~path
-  | DAO_Chain _ -> failwith "Not supported"
+  | DAO_Chain address -> Dao_chain.get_script ~address
   | DAO_String s -> Dao_string.get_script s
 
 let type_check dao (asts : Ast.ast list)  =

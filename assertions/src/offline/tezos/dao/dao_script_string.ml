@@ -1,5 +1,8 @@
-open Tezos_client_007_PsDELPH1
+open SyncAPIV1
+open Tezos_error_monad.Error_monad
 
 let get_script string =
-  let parsed = Michelson_v1_parser.parse_toplevel string in
-  Lwt.return @@ Micheline_parser.no_parsing_error parsed
+  Api.parse_script string
+  >>= function
+  | Ok script -> return script
+  | Error err -> failwith "%a" Api_error.pp_error err
