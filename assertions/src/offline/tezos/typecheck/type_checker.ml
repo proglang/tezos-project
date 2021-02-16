@@ -4,35 +4,16 @@ open Tezos_raw_protocol_007_PsDELPH1.Michelson_v1_primitives
 open Tezos_error_monad.Error_monad
 open Format
 open List
-open SyncAPIV0_context
+open SyncAPIV1
 open Tezos_ast
 open Dao_script
 open Dao_type
 
-let ctxt =
-  let rpc_config : RPC_client_unix.config = {
-      RPC_client_unix.default_config with
-      host = "127.0.0.1";
-      port = 8732;
-      tls = false;
-    }
-  in
-  new Protocol_client_context.wrap_full (
-      new unix_full_silent
-        ~chain:Client_config.default_chain
-        ~block:Client_config.default_block
-        ~confirmations:None
-        ~password_filename:None
-        ~base_dir:"/home/bernhard/.tezos-client"
-        ~rpc_config:rpc_config)
-
-
 let get_entrypoints (progr : Michelson_v1_parser.parsed) =
-  Michelson_v1_entrypoints.list_entrypoints
-    ctxt
-    ~chain:Client_config.default_chain
-    ~block:Client_config.default_block
-    progr.expanded
+  Api.list_entrypoints progr
+  >>= function
+  | Ok eps -> return eps
+  | Error err -> failwith "%a" Api_error.pp_error err
 
 let get_error_str errs =
   let f = (fun s err -> s ^ (asprintf "%a" pp err)) in
