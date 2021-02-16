@@ -211,7 +211,11 @@ contracts from programs that run on a particular node. We model the blockchain
 itself as a separate, abstract global entity that represents the
 current consensual state of the system. Our model does not express
 low-level details, but relies on nondeterminism to describe
-the possible behaviors of the system.
+the possible behaviors of the system. In particular, we do
+\textbf{not} formalize the execution of the smart contracts
+themselves, we rather consider them as black boxes that execute in a
+safe-safe way. Tezos' smart contract language Michelson and its
+properties have been formalized elsewhere \cite{type-safe-michelson}.
 
 We write $\emptyset$ for the empty set and $\mathbf{e :: s}$ to
 decompose a set into an element $\mathbf{e}$ and a set  $\mathbf{s}$.
@@ -219,49 +223,51 @@ decompose a set into an element $\mathbf{e}$ and a set  $\mathbf{s}$.
 \subsection{Local Node}
 \label{sec:local-node}
 
-
-\begin{definition}%[Account]
-  An implicit \emph{account} is represented by a key pair $\langle
-  %\ALS,
+A local node runs on behalf of authorities, which are called
+\emph{accounts} in Tezos. An account is represented by a key pair $\Angle{
   \PAK, \PUK
-  %, \PKH
-  \rangle $, where
-  $\PAK$ is its private key and $\PUK$ is its public key.
-\end{definition}
+} $, where $\PAK$ is a private key and $\PUK$ the corresponding public
+key in a public key encryption scheme.
 
+The local node offers operations to transfer tokens from one account
+to another, to invoke a contract, and to originate a contract on the blockchain.
+\begin{align*}
+  \OP &::= \TRANSFER[\PARAMETER]\NTEZ\PUK\ADDR\MTEZ
+  \\&\mid \ORIGINATE\NTEZ\PUK\CODE\INIT\MTEZ
+\end{align*}
+Here, \NTEZ\ and \MTEZ\ are tokens, \PUK\ is the public key of the
+sender, \ADDR\ is either a public 
+key for an implicit account (in case of a simple transfer)  or a
+public hash for a smart contract (for an invocation), \PARAMETER\ is
+the argument passed to the smart contract, 
+which is empty for a simple transfer. Furthermore,  \CODE\ is
+a script of a smart contract and \INIT\ is the initial value of the
+contract's storage. Each operation returns an \emph{operation hash}
+\OPH, on which we can query the status of the operation.
 
-\begin{definition}%[Operation]
-  \emph{Operations} are defined by the following grammar:
-  \begin{align*}
-    \OP &::= \TRANSFER[\PARAMETER]\NTEZ\PUK\ADDR\MTEZ
-    \\&\mid \ORIGINATE\NTEZ\PUK\CODE\INIT\MTEZ
-  \end{align*}
-  where \NTEZ\ and \MTEZ\ are tokens, \ADDR\ is either a public
-  key for an implicit account  or a public hash for a smart contract,
-  \PARAMETER\ is an argument passed to the smart contract's script,
-  which is empty if it is a transfer to an implicit account, \CODE\ is
-  a script of the smart contract, \INIT\ is an initial value of the
-  contract's storage. 
-\end{definition}
-
-\begin{definition}%[Query]
+The local node also offer several ways to query the current state of
+the blockchain.
 \emph{Queries} are defined by the following grammar:
 \begin{align*}
   \QRY & ::=
-  \GETCOUNTER\PUK  
-  \\&\mid \GETBALANCE\ADDR
-  \\&\mid \GETSTATUS\OPH
-  \\&\mid \GETSTORAGE\PUH
-  % \\&\mid \GETCODE\PUH 
-  % \\&\mid \GETTYPE\PUH
-  \\&\mid \GETCONTRACT\OPH
+  % \GETCOUNTER\PUK  
+  %        \mid
+         \GETBALANCE\ADDR
+  \mid \GETSTATUS\OPH
+  \mid \GETSTORAGE\PUH
+  % \mid \GETCODE\PUH 
+  % \mid \GETTYPE\PUH
+  \mid \GETCONTRACT\OPH
 \end{align*}
-\end{definition}
+We obtain the balance associated with an implicit account or a
+contract by its public key or public hash, respectively; the status of
+a submitted operation by its operation hash; the stored value of a
+contract by its public hash; and the code of a contract by the
+operation hash of its originating transaction.
 
-\begin{definition}%[Program]
-\emph{Expressions} are defined by the following grammar:
+\begin{figure}[tp]
 \begin{align*}
-  \CONSTANT & ::= \INT %\mid \ADDR
+  \CONSTANT & ::= \INT \mid \FIX
               \mid \OPH \mid \PUH \mid\PUK \mid \CODE \mid
               \NTEZ \mid \SUNIT \mid \FALSE \mid \TRUE \\
   \STATUS & ::= \STATUSPENDING \mid \STATUSINCLUDING (\INT) \mid
@@ -269,56 +275,89 @@ decompose a set into an element $\mathbf{e}$ and a set  $\mathbf{s}$.
   \ERROR &::= \ERRPRG \mid \ERRBAL \mid \ERRCOUNT \mid \ERRFEE \mid
            \ERRPUK \mid \ERRPUH \mid \ERRARG \mid \ERRINIT\\
 	\EXPR & :: =  \CONSTANT \mid \STATUS \mid \ERROR \mid \VARIABLE \mid \lambda \VARIABLE. \EXPR\ 
-	\mid \EXPR\EXPR \mid (\EXPR,\EXPR) \mid \FST\ \EXPR \mid \SND\ \EXPR 	%\mid \NI \EI
-	\\&\mid \EXPR\ \PLUS\ \EXPR\ \mid \EXPR\ \MINUS\ \EXPR\ \mid \EXPR\ \EQUAL\ \EXPR\ \mid \EXPR\ \LESS\ \EXPR
-	\\&\mid \EXPR\ \AND\ \EXPR\ \mid \EXPR\ \OR\ \EXPR\ \mid \NOT\ \EXPR
-  \\&\mid \NIL\ \mid \CONS\ \EXPR\ \EXPR \mid \LEFT\ \EXPR \mid\RIGHT\
+	\mid \EXPR\EXPR  %\mid \FST\ \EXPR \mid \SND\ \EXPR 	%\mid \NI \EI
+  \mid \EXPR\ \PLUS\ \EXPR\ \mid
+  % \EXPR\ \MINUS\ \EXPR\ \mid
+  \EXPR\ \EQUAL\ \EXPR\
+  % \mid  \EXPR\ \LESS\ \EXPR
+  \mid \EXPR\ \AND\ \EXPR\ \mid \EXPR\ \OR\ \EXPR\ \mid \NOT\ \EXPR
+  \\& \mid (\EXPR,\EXPR)\mid \NIL\ \mid \CONS\ \EXPR\ \EXPR \mid \LEFT\ \EXPR \mid\RIGHT\
   \EXPR \mid \SOME\ \EXPR \mid \NONE
+  \mid \MATCH\ \EXPR\ \WITH\ \PATTERN\to\EXPR \dots 
   \\& \mid \RAISE\ \EXPR \mid \TRY\ \EXPR\ \EXCEPT\ \EXPR
-  \\& \mid \MATCH\ \EXPR\ \WITH\ \PATTERN\to\EXPR \dots
   \\& \mid \TRANSFER[\EXPR]\EXPR\EXPR\EXPR\EXPR
   \\& \mid \ORIGINATE\EXPR\EXPR\EXPR\EXPR\EXPR
-  \\&\mid \QOP\  \EXPR \mid \CONTRACT\ \TYPE\ \EXPR \mid \TOSTRING\
-  \EXPR \mid \FROMSTRING\ \TYPE\ \EXPR\\
-  \QOP & ::= balance \mid status \mid storage \mid code \mid counter \mid type
-\end{align*}
-We let $\EXPRS$ range over sets of expressions.
-
-We let $\ECS$ range over evaluation contexts. They are defined as
-follows.
-\begin{align*}
-  \EC{} & :: = \SC[\overline\VAL\ \EC{}\ \overline\EXPR] \mid \RAISE\ \EC{} \mid \TRY\ \EC{}\ \EXCEPT\ \EXPR
-  \mid \MATCH\ \EC{}\ \WITH\ \PATTERN\to\EXPR \dots
-\end{align*}
-Here $\SC$ ranges over the remaining syntactic constructors, which are
-treated uniformly: evaluation proceeds from left to right.
-\begin{align*}
-  \VAL & ::= \CONSTANT \mid \STATUS \mid \ERROR \mid \lambda x.\EXPR \mid(\VAL, \VAL) \mid
-         \NIL \mid \CONS\ \VAL\ \VAL \mid \LEFT\ \VAL \mid \RIGHT\
-         \VAL \mid \SOME\ \VAL\mid \NONE
-\end{align*}
-\end{definition}
-
-Example pseudo code
-\begin{align*}
-  \OPH &=  \TRANSFER[\EXPR]\EXPR\EXPR\EXPR\EXPR \\
-       & \MATCH\ {status\ \OPH}\ \WITH \\
-       & \mid \STATUSPENDING \to \textrm{not yet included, continue waiting} \\
-       & \mid \STATUSINCLUDING (n) \to \textrm{included with $n$
-         blocks confirmation}\\
-       & \mid \STATUSTIMEOUT \to \textrm{lost, try again}
-\end{align*}
-Grammar of types
-\begin{align*}
-  \TYPE, \TYPEU & ::= \TADDR \mid \TOPH \mid
+  \\&\mid \QOP\  \EXPR \mid
+  \CONTRACT\ \TYPE\ \EXPR \mid \TOSTRING\
+  \EXPR \mid \FROMSTRING\ \TYPE\ \EXPR
+  \\
+  \PATTERN &::= \VARIABLE \mid (\PATTERN, \PATTERN) \mid \NIL \mid \CONS\ \PATTERN\ \PATTERN \mid \LEFT\ \PATTERN \mid\RIGHT\
+             \PATTERN \mid \SOME\ \PATTERN \mid \NONE \\
+  &\mid \FALSE \mid \TRUE \mid \STATUS \mid \ERROR\\
+  \QOP & ::= balance \mid status \mid storage \mid code \mid counter
+         \mid type
+  \\[2ex]
+  \TYPE, \TYPEU & ::=
+                  \TADDR \mid \TOPH \mid
                   \TCONTRACT\ \TYPE \mid
                   % \TPUH\ \TYPE \mid
                   \TPUK \mid
                   \TCODE\ \TYPE\ \TYPEU \mid \TTEZ \mid
-          \TINT \mid \TUNIT \mid \TBOOL \mid \TSTRING \mid \TSTATUS \\
-  & \mid \TYPE\to\TYPEU \mid \TPAIR\ \TYPE\ \TYPEU \mid \TLIST\ \TYPE
-    \mid \TSUM\ \TYPE\ \TYPEU \mid \TOPTION\ \TYPE \mid \TEXCEPTION
+          \TSTATUS \mid \TEXCEPTION \\
+  & \mid \TINT \mid \TUNIT \mid \TBOOL \mid \TSTRING \mid \TYPE\to\TYPEU \mid \TPAIR\ \TYPE\ \TYPEU \mid \TLIST\ \TYPE
+    \mid \TSUM\ \TYPE\ \TYPEU \mid \TOPTION\ \TYPE 
 \end{align*}
+  \caption{Syntax of expressions, \EXPR, and types, \TYPE}
+  \label{fig:syntax-expressions}
+\end{figure}
+All queries and operations are started by closed expressions that run on the
+local node. Figure~\ref{fig:syntax-expressions} defines the syntax of
+expressions, which describe the usual constructs of call-by-value PCF
+with sum, product, list, and option types and exceptions. Moreover, there are
+primitive types and constants \CONSTANT\ to support blockchain
+operations, as well as several exceptional values collected in \ERROR.
+Pattern matching is the only means to decompose values, cf.\ \PATTERN.
+There is syntax to initiate transfers and to originate contracts as
+well as for the queries. Finally, the three constructs 
+\CONTRACT\ \TYPE\ \EXPR, \TOSTRING\  \EXPR, and \FROMSTRING\ \TYPE\
+\EXPR\ are casts between untyped and typed representations of
+contracts and their parameters.
+
+\begin{figure}[tp]
+\begin{align*}
+  \ECN{} & :: = \ECHOLE \mid \SC[\overline\VAL\ \ECN{}\ \overline\EXPR] \mid \RAISE\ \ECN{} \mid \TRY\ \ECN{}\ \EXCEPT\ \EXPR
+  \mid \MATCH\ \ECN{}\ \WITH\ \PATTERN\to\EXPR \dots
+  \\
+  \VAL & ::= \CONSTANT \mid \STATUS \mid \ERROR \mid \lambda x.\EXPR \mid(\VAL, \VAL) \mid
+         \NIL \mid \CONS\ \VAL\ \VAL \mid \LEFT\ \VAL \mid \RIGHT\
+         \VAL \mid \SOME\ \VAL\mid \NONE
+\end{align*}
+  \caption{Evaluation contexts and values}
+  \label{fig:evaluation-contexts-values}
+\end{figure}
+Figure~\ref{fig:evaluation-contexts-values} defines evaluation
+contexts $\ECS$ and values $\VAL$.
+Here $\SC$ ranges over the remaining syntactic constructors, which are
+treated uniformly: evaluation proceeds from left to right. Values are
+standard for call-by-value lambda calculus.
+
+\begin{figure}[tp]
+  \begin{align*}
+    \OPH &=  \TRANSFER[\STRING]\NTEZ\PUK\PUH\MTEZ \\
+    \\
+         & \MATCH\ {status\ \OPH}\ \WITH \\
+         & \mid \STATUSPENDING \to \textrm{not yet included, continue waiting} \\
+         & \mid \STATUSINCLUDING (n) \to \textrm{included with $n$
+           blocks confirmation}\\
+         & \mid \STATUSTIMEOUT \to \textrm{lost, try again}
+  \end{align*}
+  \caption{Pseudocode example}
+  \label{fig:pseudocode-example}
+\end{figure}
+Figure~\ref{fig:pseudocode-example} shows an expression that invokes a
+contract at \PUH\ with argument \STRING.
+
+Grammar of types
 
 Typing rules, relying on an external typing judgment
 $\JTypeCode\CODE\TYPE$ for the contract language and
