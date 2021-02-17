@@ -300,12 +300,13 @@ operation hash of its originating transaction.
          \mid type
   \\[2ex]
   \TYPE, \TYPEU & ::=
-                  \TADDR \mid \TOPH \mid
-                  \TCONTRACT\ \TYPE \mid
-                  % \TPUH\ \TYPE \mid
+                  \TPUH \mid
                   \TPUK \mid
+                  \TADDR \mid 
+                  \TCONTRACT\ \TYPE \mid
                   \TCODE\ \TYPE\ \TYPEU \mid \TTEZ \mid
-          \TSTATUS \mid \TEXCEPTION \\
+                  \TOPH \mid
+                  \TSTATUS \mid \TEXCEPTION \\
   & \mid \TINT \mid \TUNIT \mid \TBOOL \mid \TSTRING \mid \TYPE\to\TYPEU \mid \TPAIR\ \TYPE\ \TYPEU \mid \TLIST\ \TYPE
     \mid \TSUM\ \TYPE\ \TYPEU \mid \TOPTION\ \TYPE 
 \end{align*}
@@ -324,6 +325,18 @@ well as for the queries. Finally, the three constructs
 \CONTRACT\ \TYPE\ \EXPR, \TOSTRING\  \EXPR, and \FROMSTRING\ \TYPE\
 \EXPR\ are casts between untyped and typed representations of
 contracts and their parameters.
+
+Types (also in Figure~\ref{fig:syntax-expressions}) comprise a
+collection of standard base types as well as 
+functions, pairs, lists, sums, and option types. In addition, there
+are domain specific types of public hashes $\TPUH$ and public keys $\TPUK$ subsumed by
+a type of addresses $\TADDR$. $\TCONTRACT\ \TYPE$ is the type of
+a contract with parameter type $\TYPE$. $\CODE\ \TYPE\ \TYPEU$
+indicates a Michelson program with parameter type $\TYPE$ and storage
+type $\TYPEU$. Tezos tokens have type $\TTEZ$. The type $\TOPH$ signifies operation hashes
+returned by blockchain operations. Querying the status of an operation
+returns a value of type $\TSTATUS$. Exceptions have type
+$\TEXCEPTION$. 
 
 \begin{figure}[tp]
 \begin{align*}
@@ -345,32 +358,37 @@ standard for call-by-value lambda calculus.
 
 \begin{figure}[tp]
   \begin{align*}
-    \OPH &=  \TRANSFER[\STRING]\NTEZ\PUK\PUH\MTEZ \\
-    \\
-         & \MATCH\ {status\ \OPH}\ \WITH \\
+    \LET\ \OPH &=  \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+         & \MATCH\ \QRY\ \GETSTATUS\OPH\ \WITH \\
          & \mid \STATUSPENDING \to \textrm{not yet included, continue waiting} \\
          & \mid \STATUSINCLUDING (n) \to \textrm{included with $n$
            blocks confirmation}\\
-         & \mid \STATUSTIMEOUT \to \textrm{lost, try again}
+         & \mid \STATUSTIMEOUT \to \textrm{lost operation, try again}
   \end{align*}
-  \caption{Pseudocode example}
+  \caption{Pseudocode example for a token transfer}
   \label{fig:pseudocode-example}
 \end{figure}
 Figure~\ref{fig:pseudocode-example} shows an expression that invokes a
 contract at \PUH\ with argument \STRING.
 
-Subtyping
-\begin{mathpar}
-  \inferrule{}{\TPUH \SubType \TADDR}
+Subtyping in Figure~\ref{fig:subtyping} etablishes that public hashes
+and public keys can both stand for addresses. Moreover, a smart
+contract with parameter type $\TYPE$ is represented by its public hash
+at run time. Subtyping for function types has the usual co-/contravariant definition.
+\begin{figure}[tp]
+  \begin{mathpar}
+    \inferrule{}{\TPUH \SubType \TADDR}
 
-  \inferrule{}{\TPUK \SubType \TADDR}
+    \inferrule{}{\TPUK \SubType \TADDR}
 
-  \inferrule{}{\TCONTRACT\ \TYPE \SubType \TPUH}
+    \inferrule{}{\TCONTRACT\ \TYPE \SubType \TPUH}
 
-  \inferrule{\TYPEU' \SubType \TYPE' \\ \TYPE \SubType \TYPEU}{
-    \TYPE' \to \TYPE \SubType \TYPEU' \to \TYPEU}
-\end{mathpar}
-
+    \inferrule{\TYPEU' \SubType \TYPE' \\ \TYPE \SubType \TYPEU}{
+      \TYPE' \to \TYPE \SubType \TYPEU' \to \TYPEU}
+  \end{mathpar}
+  \caption{Subtyping}
+  \label{fig:subtyping}
+\end{figure}
 Figure~\ref{fig:typing-expressions} presents selected typing rules for
 expressions. We rely on an external typing judgment
 $\JTypeCode\CODE\TYPE$ for the contract language, which we leave
