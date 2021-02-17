@@ -49,7 +49,7 @@
 %\newcommand{\ORIG}{\textbf{orig}}
 \newcommand{\TOPH}{\textbf{Oph}}
 \newcommand{\TTIME}{\textbf{Time}}
-\newcommand{\TTEZ}{\textbf{Tez}}
+\newcommand{\TTEZ}{\textbf{Tz}}
 
 %% operations
 \newcommand{\TRANSFER}[5][\SUNIT]{\text{transfer $#2$ from $#3$ to $#4$ arg $#1$ fee $#5$}}
@@ -62,7 +62,7 @@
 \newcommand\INIT{\textbf{s}}
 \newcommand\PARAMETER{\textbf{p}}
 %% queries
-\newcommand{\QRY}{\textbf{qry}}
+\newcommand{\QRY}{\textbf{get}}%{\textbf{qry}}
 \newcommand{\GETBALANCE}[1]{\text{balance $#1$}}
 \newcommand{\GETSTATUS}[1]{\text{status $#1$}}
 \newcommand{\GETSTORAGE}[1]{\text{storage $#1$}} % get contract storage
@@ -76,7 +76,9 @@
 \newcommand{\OPERATIONS}{\textbf{O}}
 \newcommand{\CONTRACTS}{\textbf{S}}
 \newcommand\ECS{\textbf{EC}}
+\newcommand\ECN[1][E]{\underline{\textbf{#1}}}
 \newcommand\EC[2][E]{\underline{\textbf{#1}}[#2]}
+\newcommand\ECHOLE{[~]}
 \newcommand{\EXPRS}{\textbf{E}}
 \newcommand{\EXPR}{\textbf{e}}
 \newcommand{\VARIABLE}{\textbf{x}}
@@ -94,6 +96,7 @@
 \newcommand{\LESS}{\textbf{$<$}}
 \newcommand{\NI}{\textbf{$n_i$}}
 \newcommand{\EI}{\textbf{$e_i$}}
+\newcommand\FIX{{\bf fix}}
 \newcommand\FST{{\bf fst}}
 \newcommand\SND{{\bf snd}}
 \newcommand{\RETURN}{\textbf{r}}
@@ -116,13 +119,13 @@
 \newcommand\TINT{\textbf{Int}}
 \newcommand\TUNIT{\textbf{Unit}}
 \newcommand\TBOOL{\textbf{Bool}}
-\newcommand\TSTRING{\textbf{String}}
+\newcommand\TSTRING{\textbf{Str}}
 \newcommand\TSTATUS{\textbf{Status}}
 \newcommand\TPAIR{\textbf{Pair}}
 \newcommand\TLIST{\textbf{List}}
 \newcommand\TSUM{\textbf{Or}}
 \newcommand\TOPTION{\textbf{Option}}
-\newcommand\TEXCEPTION{\textbf{Exception}}
+\newcommand\TEXCEPTION{\textbf{Exc}}
 \newcommand\TCONTRACT{\textbf{Contract}}
 
 \newcommand\QOP{\textbf{qop}}
@@ -134,6 +137,7 @@
 \newcommand\JTypeCode[2]{\vdash_C#1 : #2}
 \newcommand\JTypeValue[2]{\vdash_V#1:#2}
 \newcommand\JTypeExpr[3]{#1 \vdash #2 : #3}
+\newcommand\SubType{<:}
 
 \newcommand{\NODE}{\textbf{N}}
 \newcommand{\BLOCKCHAIN}{\textbf{B}}
@@ -173,14 +177,14 @@
 %% metavariables
 \newcommand\STATUS{\textbf{st}}
 \newcommand\ERROR{\textbf{err}}
-\newcommand\ERRPRG{\textbf{excPrg}}
-\newcommand\ERRBAL{\textbf{excBal}}
-\newcommand\ERRCOUNT{\textbf{excCount}}
-\newcommand\ERRFEE{\textbf{excFee}}
-\newcommand\ERRPUK{\textbf{excPub}}
-\newcommand\ERRPUH{\textbf{excPuh}}
-\newcommand\ERRARG{\textbf{excArg}}
-\newcommand\ERRINIT{\textbf{excInit}}
+\newcommand\ERRPRG{\textbf{xPrg}}
+\newcommand\ERRBAL{\textbf{xBal}}
+\newcommand\ERRCOUNT{\textbf{xCount}}
+\newcommand\ERRFEE{\textbf{xFee}}
+\newcommand\ERRPUK{\textbf{xPub}}
+\newcommand\ERRPUH{\textbf{xPuh}}
+\newcommand\ERRARG{\textbf{xArg}}
+\newcommand\ERRINIT{\textbf{xInit}}
 
 \newcommand\partialto\hookrightarrow
 \newcommand\DOM{\textit{dom}}

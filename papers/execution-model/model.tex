@@ -48,6 +48,8 @@ Peter Thiemann\orcidID{0000-0002-9000-1239}}
 \section{Introduction}
 \label{sec:introduction}
 
+{[Ultra-brief intro to blockchain]}
+
 Smart contracts rarely live in isolation. To reach their full
 potential, it should be possible to integrate them with traditional
 software systems and to enable input from outside the blockchain. Such
@@ -357,133 +359,129 @@ standard for call-by-value lambda calculus.
 Figure~\ref{fig:pseudocode-example} shows an expression that invokes a
 contract at \PUH\ with argument \STRING.
 
-Grammar of types
-
-Typing rules, relying on an external typing judgment
-$\JTypeCode\CODE\TYPE$ for the contract language and
-$\JTypeValue\STRING\TYPE$ for serialized values as stored on the blockchain.
+Subtyping
 \begin{mathpar}
-  \inferrule{}{\JTypeExpr\TEnv\INT\TINT}
+  \inferrule{}{\TPUH \SubType \TADDR}
 
-  \inferrule{}{\JTypeExpr\TEnv\OPH\TOPH}
+  \inferrule{}{\TPUK \SubType \TADDR}
 
-  \inferrule{}{\JTypeExpr\TEnv\PUH{\TADDR}}
+  \inferrule{}{\TCONTRACT\ \TYPE \SubType \TPUH}
 
-  \inferrule{}{\JTypeExpr\TEnv\PUK\TPUK}
-
-  \inferrule{\JTypeCode \CODE{ \TPAIR\ \TYPE_p\
-      \TYPE_s}}{\JTypeExpr\TEnv\CODE{\TCODE\ \TYPE_p\ \TYPE_s}}
-
-  \inferrule{\JTypeExpr\TEnv\EXPR\TADDR}{\JTypeExpr\TEnv{\CONTRACT\ \TYPE\ \EXPR}{\TOPTION
-      (\TCONTRACT\ \TYPE)}}
-
-  \inferrule{}{\JTypeExpr\TEnv\NTEZ\TTEZ}
-
-  \inferrule{}{\JTypeExpr\TEnv\SUNIT\TUNIT}
-
-  \inferrule{}{\JTypeExpr\TEnv\FALSE\TBOOL}
-
-  \inferrule{}{\JTypeExpr\TEnv\TRUE\TBOOL}
-
-  \inferrule{}{\JTypeExpr\TEnv\STATUSPENDING\TSTATUS}
-
-  \inferrule{}{\JTypeExpr\TEnv\STATUSTIMEOUT\TSTATUS}
-
-  \inferrule{}{\JTypeExpr\TEnv{\STATUSINCLUDING (\INT)}\TSTATUS}
-
-  \inferrule{}{\JTypeExpr\TEnv\ERROR\TEXCEPTION}
-
-  \inferrule{}{\JTypeExpr\TEnv\VARIABLE{\TEnv (\VARIABLE)}}
-
-  \inferrule{
-    \JTypeExpr{\TEnv, \VARIABLE:\TYPE'}\EXPR{\TYPE}
-  }{
-    \JTypeExpr\TEnv{\lambda\VARIABLE.\EXPR}{\TYPE'\to\TYPE}}
-
-  \inferrule{
-    \JTypeExpr\TEnv\EXPR{\TYPE'\to\TYPE} \\
-    \JTypeExpr\TEnv{\EXPR'}{\TYPE'}
-  }{
-    \JTypeExpr\TEnv{\EXPR\ \EXPR'}\TYPE
-  }
-
-  \inferrule{
-    \JTypeExpr\TEnv\EXPR\TYPE \\
-    \JTypeExpr\TEnv{\EXPR'}{\TYPE'}
-  }{
-    \JTypeExpr\TEnv{(\EXPR, \EXPR')}{\TPAIR\ \TYPE\ \TYPE'}
-  }
-
-  \inferrule{
-    \JTypeExpr\TEnv{\EXPR}{\TPAIR\ \TYPE\ \TYPE'}
-  }{
-    \JTypeExpr\TEnv{\FST\ \EXPR}\TYPE
-  }
-
-  \inferrule{
-    \JTypeExpr\TEnv{\EXPR}{\TPAIR\ \TYPE\ \TYPE'}
-  }{
-    \JTypeExpr\TEnv{\SND\ \EXPR}{\TYPE'}
-  }
-  \\\\
-  \inferrule{
-    \JTypeExpr\TEnv\EXPR\TEXCEPTION
-  }{
-    \JTypeExpr\TEnv{\RAISE\ \EXPR}\TYPE
-  }
-
-  \inferrule{
-    \JTypeExpr\TEnv\EXPR\TYPE \\
-    \JTypeExpr\TEnv{\EXPR'}{\TEXCEPTION\to\TYPE}
-  }{
-    \JTypeExpr\TEnv{\TRY\ \EXPR\ \EXCEPT\ \EXPR'}\TYPE
-  }
-  \\\\
-  % too generic
-  % \inferrule{
-  %   \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
-  %   \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
-  %   \JTypeExpr\TEnv{\EXPR_3}\TADDR \\
-  %   \JTypeExpr\TEnv{\EXPR_4}\TSTRING \\
-  %   \JTypeExpr\TEnv{\EXPR_5}\TTEZ
-  % }{
-  %   \JTypeExpr\TEnv{\TRANSFER[\EXPR_4]{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}\TOPH
-  % }
-  %   
-  \inferrule{
-    \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
-    \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
-    % \JTypeExpr\TEnv{\EXPR_3}\TPUK \\
-    \JTypeExpr\TEnv{\EXPR_3}{\TCONTRACT\ \TUNIT} \\
-    % \JTypeExpr\TEnv{\EXPR_4}\TSTRING \\
-    \JTypeExpr\TEnv{\EXPR_5}\TTEZ
-  }{
-    \JTypeExpr\TEnv{\TRANSFER{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}\TOPH
-  }
-
-  \inferrule{
-    \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
-    \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
-    \JTypeExpr\TEnv{\EXPR_3}\TCONTRACT\ \TYPE \\
-    \JTypeExpr\TEnv{\EXPR_4}{\TYPE} \\
-    \JTypeExpr\TEnv{\EXPR_5}\TTEZ
-  }{
-    \JTypeExpr\TEnv{\TRANSFER[\EXPR_4]{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}\TOPH
-  }
-
-
-  \inferrule{
-    \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
-    \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
-    \JTypeExpr\TEnv{\EXPR_3}{\TCODE\ \TYPE_p\ \TYPE_s} \\
-    \JTypeExpr\TEnv{\EXPR_4}\TYPE_s \\ % really \TSTRING \\
-    \JTypeExpr\TEnv{\EXPR_5}\TTEZ
-  }{
-    \JTypeExpr\TEnv{\ORIGINATE{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_4}{\EXPR_5}}\TOPH 
-  }
+  \inferrule{\TYPEU' \SubType \TYPE' \\ \TYPE \SubType \TYPEU}{
+    \TYPE' \to \TYPE \SubType \TYPEU' \to \TYPEU}
 \end{mathpar}
 
-Types for queries
+Figure~\ref{fig:typing-expressions} presents selected typing rules for
+expressions. We rely on an external typing judgment
+$\JTypeCode\CODE\TYPE$ for the contract language, which we leave
+unspecified, and $\JTypeValue\STRING\TYPE$ for serialized values as
+stored on the blockchain. The latter judgment states $\STRING$ is
+a string parseable as a value of type $\TYPE$.
+\begin{figure}[tp]
+  \begin{mathpar}
+    \inferrule{}{\JTypeExpr\TEnv\INT\TINT}
+
+    \inferrule{}{\JTypeExpr\TEnv\OPH\TOPH}
+
+    \inferrule{}{\JTypeExpr\TEnv\PUH{\TPUH}}
+
+    \inferrule{}{\JTypeExpr\TEnv\PUK\TPUK}
+
+    \inferrule{\JTypeCode \CODE{ \TPAIR\ \TYPE_p\
+        \TYPE_s}}{\JTypeExpr\TEnv\CODE{\TCODE\ \TYPE_p\ \TYPE_s}}
+
+    \inferrule{\JTypeExpr\TEnv\EXPR\TADDR}{\JTypeExpr\TEnv{\CONTRACT\
+        \TYPE\ \EXPR}{\TOPTION (\TCONTRACT\ \TYPE)}}
+
+    \inferrule{}{\JTypeExpr\TEnv\NTEZ\TTEZ}
+
+    \inferrule{}{\JTypeExpr\TEnv\SUNIT\TUNIT}
+
+    \inferrule{}{\JTypeExpr\TEnv\FALSE\TBOOL}
+
+    \inferrule{}{\JTypeExpr\TEnv\TRUE\TBOOL}
+
+    \inferrule{}{\JTypeExpr\TEnv\STATUSPENDING\TSTATUS}
+
+    \inferrule{}{\JTypeExpr\TEnv\STATUSTIMEOUT\TSTATUS}
+
+    \inferrule{\JTypeExpr\TEnv\EXPR\TINT}{\JTypeExpr\TEnv{\STATUSINCLUDING
+        (\EXPR)}\TSTATUS}
+
+    \inferrule{}{\JTypeExpr\TEnv\ERROR\TEXCEPTION}
+
+    \inferrule{\JTypeExpr\TEnv\EXPR\TYPE \\ \TYPE \SubType
+      \TYPEU}{\JTypeExpr\TEnv\EXPR\TYPEU}
+
+    \inferrule{}{\JTypeExpr\TEnv\VARIABLE{\TEnv (\VARIABLE)}}
+
+    \inferrule{ \JTypeExpr{\TEnv, \VARIABLE:\TYPE'}\EXPR{\TYPE} }{
+      \JTypeExpr\TEnv{\lambda\VARIABLE.\EXPR}{\TYPE'\to\TYPE}}
+
+    \inferrule{
+      \JTypeExpr\TEnv\EXPR{\TYPE'\to\TYPE} \\
+      \JTypeExpr\TEnv{\EXPR'}{\TYPE'} }{ \JTypeExpr\TEnv{\EXPR\
+        \EXPR'}\TYPE }
+
+    \inferrule{
+      \JTypeExpr\TEnv\EXPR\TYPE \\
+      \JTypeExpr\TEnv{\EXPR'}{\TYPE'} }{ \JTypeExpr\TEnv{(\EXPR,
+        \EXPR')}{\TPAIR\ \TYPE\ \TYPE'} }
+  % 
+    % \inferrule{
+    % \JTypeExpr\TEnv{\EXPR}{\TPAIR\ \TYPE\ \TYPE'}
+    % }{
+    %   \JTypeExpr\TEnv{\FST\ \EXPR}\TYPE
+    % }
+  %   
+    %   \inferrule{
+    %   \JTypeExpr\TEnv{\EXPR}{\TPAIR\ \TYPE\ \TYPE'}
+    % }{
+    %   \JTypeExpr\TEnv{\SND\ \EXPR}{\TYPE'}
+    % }
+
+    \inferrule{ \JTypeExpr\TEnv\EXPR\TEXCEPTION }{
+      \JTypeExpr\TEnv{\RAISE\ \EXPR}\TYPE }
+
+    \inferrule{
+      \JTypeExpr\TEnv\EXPR\TYPE \\
+      \JTypeExpr\TEnv{\EXPR'}{\TEXCEPTION\to\TYPE} }{
+      \JTypeExpr\TEnv{\TRY\ \EXPR\ \EXCEPT\ \EXPR'}\TYPE }
+  \end{mathpar}
+  \caption{Typing rules for expressions}
+  \label{fig:typing-expressions}
+\end{figure}
+\begin{figure}[tp]
+  \begin{mathpar}
+    \inferrule{
+      \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
+      \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
+      \JTypeExpr\TEnv{\EXPR_3}\TPUK \\
+      % \JTypeExpr\TEnv{\EXPR_3}{\TCONTRACT\ \TUNIT} \\
+      \JTypeExpr\TEnv{\EXPR_4}\TUNIT \\
+      \JTypeExpr\TEnv{\EXPR_5}\TTEZ }{
+      \JTypeExpr\TEnv{\TRANSFER[\EXPR_4]{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}\TOPH
+    }
+
+    \inferrule{
+      \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
+      \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
+      \JTypeExpr\TEnv{\EXPR_3}\TCONTRACT\ \TYPE \\
+      \JTypeExpr\TEnv{\EXPR_4}{\TYPE} \\
+      \JTypeExpr\TEnv{\EXPR_5}\TTEZ }{
+      \JTypeExpr\TEnv{\TRANSFER[\EXPR_4]{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}\TOPH
+    }
+
+
+    \inferrule{
+      \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
+      \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
+      \JTypeExpr\TEnv{\EXPR_3}{\TCODE\ \TYPE_p\ \TYPE_s} \\
+      \JTypeExpr\TEnv{\EXPR_4}\TYPE_s \\ % really \TSTRING \\
+      \JTypeExpr\TEnv{\EXPR_5}\TTEZ }{
+      \JTypeExpr\TEnv{\ORIGINATE{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_4}{\EXPR_5}}\TOPH
+    }
+  \end{mathpar}
 \begin{mathpar}
   \inferrule{
     \JTypeExpr\TEnv\EXPR\TPUK
@@ -504,7 +502,7 @@ Types for queries
   }
 
   \inferrule{
-    \JTypeExpr\TEnv\EXPR{\CONTRACT\ \TYPE}
+    \JTypeExpr\TEnv\EXPR{\TPUH}
   }{
     \JTypeExpr\TEnv {\QRY\ \GETSTORAGE\EXPR}\TSTRING
   }
@@ -527,6 +525,21 @@ Types for queries
     \JTypeExpr\TEnv {\QRY\ \GETCONTRACT\EXPR}\TPUH
   }
 \end{mathpar}
+  \caption{Typing rules for blockchain operations and queries}
+  \label{fig:typing-blockchain-operations}
+\end{figure}
+% Generic rule for transfers
+% \begin{mathpar}
+%  \inferrule{
+%    \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
+%    \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
+%    \JTypeExpr\TEnv{\EXPR_3}\TADDR \\
+%    \JTypeExpr\TEnv{\EXPR_4}\TSTRING \\
+%    \JTypeExpr\TEnv{\EXPR_5}\TTEZ
+%  }{
+%    \JTypeExpr\TEnv{\TRANSFER[\EXPR_4]{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}\TOPH
+%  }
+% \end{mathpar}
 
 Conversion to and from serialized storage; deserialization may fail
 with an exception
