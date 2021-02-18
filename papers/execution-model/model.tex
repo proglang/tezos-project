@@ -220,7 +220,11 @@ safe-safe way. Tezos' smart contract language Michelson and its
 properties have been formalized elsewhere \cite{type-safe-michelson}.
 
 We write $\emptyset$ for the empty set and $\mathbf{e :: s}$ to
-decompose a set into an element $\mathbf{e}$ and a set  $\mathbf{s}$.
+decompose a set into an element $\mathbf{e}$ and a set
+$\mathbf{s}$. We generally use lowercase boldface for metavariables
+ranging over values of a certain syntactic category, e.g., \PUK\ for
+public keys, and the corresponding uppercase name for the
+corresponding type or the set of these values (as in \TPUK).
 
 \subsection{Local Node}
 \label{sec:local-node}
@@ -237,17 +241,18 @@ to another, to invoke a contract, and to originate a contract on the blockchain.
   \OP &::= \TRANSFER[\PARAMETER]\NTEZ\PUK\ADDR\MTEZ
   \\&\mid \ORIGINATE\NTEZ\PUK\CODE\INIT\MTEZ
 \end{align*}
-Here, \NTEZ\ and \MTEZ\ are tokens, \PUK\ is the public key of the
+In the transfer, \NTEZ\ is the amount of tokens transferred, \PUK\ is the public key of the
 sender, \ADDR\ is either a public 
 key for an implicit account (in case of a simple transfer)  or a
 public hash for a smart contract (for an invocation), \PARAMETER\ is
 the argument passed to the smart contract, 
-which is empty for a simple transfer. Furthermore,  \CODE\ is
-a script of a smart contract and \INIT\ is the initial value of the
+which is empty for a simple transfer, and \MTEZ\ is
+the amount of tokens for the transaction fee. In originate,  \CODE\ is
+the script of a smart contract and \INIT\ is the initial value of the
 contract's storage. Each operation returns an \emph{operation hash}
 \OPH, on which we can query the status of the operation.
 
-The local node also offer several ways to query the current state of
+The local node offers several ways to query the current state of
 the blockchain.
 \emph{Queries} are defined by the following grammar:
 \begin{align*}
@@ -266,6 +271,18 @@ contract by its public key or public hash, respectively; the status of
 a submitted operation by its operation hash; the stored value of a
 contract by its public hash; and the code of a contract by the
 operation hash of its originating transaction.
+
+\begin{definition}%[State of a node]
+  The \emph{state of a node} is a pair
+  $\NODE = [ \EXPRS, \ACCOUNTS
+  % , \OPERATIONS
+  ]$, where $\EXPRS$ is a
+  set of programs and $\ACCOUNTS \subseteq \TPAK \times \TPUK$  is a set of
+  implicit accounts.
+  % , and
+  % $\OPERATIONS \subseteq \ECS \times \TOP $ is a set of pairs of
+  % expression contexts and operations.
+\end{definition}
 
 \begin{figure}[tp]
 \begin{align*}
@@ -286,18 +303,17 @@ operation hash of its originating transaction.
   \\& \mid (\EXPR,\EXPR)\mid \NIL\ \mid \CONS\ \EXPR\ \EXPR \mid \LEFT\ \EXPR \mid\RIGHT\
   \EXPR \mid \SOME\ \EXPR \mid \NONE
   \mid \MATCH\ \EXPR\ \WITH\ \PATTERN\to\EXPR \dots 
-  \\& \mid \RAISE\ \EXPR \mid \TRY\ \EXPR\ \EXCEPT\ \EXPR
-  \\& \mid \TRANSFER[\EXPR]\EXPR\EXPR\EXPR\EXPR
+  \\& \mid \RAISE\ \EXPR \mid \TRY\ \EXPR\ \EXCEPT\ \EXPR \mid \CAST\EXPR\TYPE\TYPEU
+  \\& \mid \QOP\  \EXPR \mid \TRANSFER[\EXPR]\EXPR\EXPR\EXPR\EXPR
   \\& \mid \ORIGINATE\EXPR\EXPR\EXPR\EXPR\EXPR
-  \\&\mid \QOP\  \EXPR \mid
-  \CONTRACT\ \TYPE\ \EXPR \mid \TOSTRING\
-  \EXPR \mid \FROMSTRING\ \TYPE\ \EXPR
+  % \\&\mid \CONTRACT\ \TYPE\ \EXPR
+  \\& \mid \TOSTRING\ \EXPR \mid \FROMSTRING\ \TYPE\ \EXPR
   \\
   \PATTERN &::= \VARIABLE \mid (\PATTERN, \PATTERN) \mid \NIL \mid \CONS\ \PATTERN\ \PATTERN \mid \LEFT\ \PATTERN \mid\RIGHT\
              \PATTERN \mid \SOME\ \PATTERN \mid \NONE \\
   &\mid \FALSE \mid \TRUE \mid \STATUS \mid \ERROR\\
-  \QOP & ::= balance \mid status \mid storage \mid code \mid counter
-         \mid type
+  \QOP & ::= \GETBALANCE{} \mid \GETSTATUS{} \mid \GETSTORAGE{} \mid \GETCODE{} \mid \GETCOUNTER{}
+         \mid \GETTYPE{}
   \\[2ex]
   \TYPE, \TYPEU & ::=
                   \TPUH \mid
@@ -313,18 +329,19 @@ operation hash of its originating transaction.
   \caption{Syntax of expressions, \EXPR, and types, \TYPE}
   \label{fig:syntax-expressions}
 \end{figure}
-All queries and operations are started by closed expressions that run on the
+All queries and operations are started by programs, i.e., closed expressions that run on the
 local node. Figure~\ref{fig:syntax-expressions} defines the syntax of
 expressions, which describe the usual constructs of call-by-value PCF
-with sum, product, list, and option types and exceptions. Moreover, there are
+with sum, product, list, and option types, exceptions and fixpoint. Moreover, there are
 primitive types and constants \CONSTANT\ to support blockchain
 operations, as well as several exceptional values collected in \ERROR.
 Pattern matching is the only means to decompose values, cf.\ \PATTERN.
 There is syntax to initiate transfers and to originate contracts as
-well as for the queries. Finally, the three constructs 
-\CONTRACT\ \TYPE\ \EXPR, \TOSTRING\  \EXPR, and \FROMSTRING\ \TYPE\
-\EXPR\ are casts between untyped and typed representations of
-contracts and their parameters.
+well as for the queries. Finally, there is a type cast
+$\CAST\EXPR\TYPE\TYPEU$, which is only applicable to pairs of
+types related in the reflexive, transitive, and symmetric closure of
+the subtyping relation in Figure~\ref{fig:subtyping}. Upcasts will
+just go through, but downcasts may raise an exception, as usual.
 
 Types (also in Figure~\ref{fig:syntax-expressions}) comprise a
 collection of standard base types as well as 
@@ -358,23 +375,34 @@ standard for call-by-value lambda calculus.
 
 \begin{figure}[tp]
   \begin{align*}
-    \LET\ \OPH &=  \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
-         & \MATCH\ \QRY\ \GETSTATUS\OPH\ \WITH \\
-         & \mid \STATUSPENDING \to \textrm{not yet included, continue waiting} \\
-         & \mid \STATUSINCLUDING (n) \to \textrm{included with $n$
-           blocks confirmation}\\
-         & \mid \STATUSTIMEOUT \to \textrm{lost operation, try again}
+    \LET\ \mathit{oph} &=  \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+         & \FIX \lambda f.\lambda x. \MATCH\ \GETSTATUS{\mathit{oph}}\ \WITH \\
+         & \mid \STATUSPENDING \to \text{Time.sleep(1)}; f () \textrm{\qquad(* not yet included,
+           continue waiting *)} \\
+         & \mid \STATUSINCLUDING (n) \to \text{if } n < 50\text{ then
+           Time.sleep(1)};f ()\textrm{\quad(* included with $n$
+           blocks confirmation *)}\\
+         & \mid \STATUSTIMEOUT \to \textrm{(* lost operation, try
+           again *)}
   \end{align*}
   \caption{Pseudocode example for a token transfer}
   \label{fig:pseudocode-example}
 \end{figure}
-Figure~\ref{fig:pseudocode-example} shows an expression that invokes a
-contract at \PUH\ with argument \STRING.
+Figure~\ref{fig:pseudocode-example} shows an incomplete example
+expression that transfers tokens from $\PUK$ to $\PUK'$ and then
+checks the status of the operation. The outer loop to raise the fee
+and retry is omitted.
 
-Subtyping in Figure~\ref{fig:subtyping} etablishes that public hashes
-and public keys can both stand for addresses. Moreover, a smart
+
+Our type system does not include subtyping. The relation in
+Figure~\ref{fig:subtyping} just etablishes pairs of types that can be
+subjected to casting. A cast from $\TYPE$ to $\TYPEU$ is only allowed
+if $\TYPE \SubType^* \TYPEU$ (upcast) or $\TYPEU \SubType^* \TYPE$
+(downcast). Upcasts always succeed, but downcasts may fail at run time.
+In particular,  public hashes and public keys can both stand for addresses. Moreover, a smart
 contract with parameter type $\TYPE$ is represented by its public hash
-at run time. Subtyping for function types has the usual co-/contravariant definition.
+at run time. The corresponding downcast must check whether the public
+hash is valid and has the expected parameter type.
 \begin{figure}[tp]
   \begin{mathpar}
     \inferrule{}{\TPUH \SubType \TADDR}
@@ -382,9 +410,6 @@ at run time. Subtyping for function types has the usual co-/contravariant defini
     \inferrule{}{\TPUK \SubType \TADDR}
 
     \inferrule{}{\TCONTRACT\ \TYPE \SubType \TPUH}
-
-    \inferrule{\TYPEU' \SubType \TYPE' \\ \TYPE \SubType \TYPEU}{
-      \TYPE' \to \TYPE \SubType \TYPEU' \to \TYPEU}
   \end{mathpar}
   \caption{Subtyping}
   \label{fig:subtyping}
@@ -408,9 +433,9 @@ a string parseable as a value of type $\TYPE$.
     \inferrule{\JTypeCode \CODE{ \TPAIR\ \TYPE_p\
         \TYPE_s}}{\JTypeExpr\TEnv\CODE{\TCODE\ \TYPE_p\ \TYPE_s}}
 
-    \inferrule{\JTypeExpr\TEnv\EXPR\TADDR}{\JTypeExpr\TEnv{\CONTRACT\
-        \TYPE\ \EXPR}{\TOPTION (\TCONTRACT\ \TYPE)}}
-
+    % \inferrule{\JTypeExpr\TEnv\EXPR\TADDR}{\JTypeExpr\TEnv{\CONTRACT\
+    %     \TYPE\ \EXPR}{\TOPTION (\TCONTRACT\ \TYPE)}}
+    %     
     \inferrule{}{\JTypeExpr\TEnv\NTEZ\TTEZ}
 
     \inferrule{}{\JTypeExpr\TEnv\SUNIT\TUNIT}
@@ -465,6 +490,13 @@ a string parseable as a value of type $\TYPE$.
       \JTypeExpr\TEnv\EXPR\TYPE \\
       \JTypeExpr\TEnv{\EXPR'}{\TEXCEPTION\to\TYPE} }{
       \JTypeExpr\TEnv{\TRY\ \EXPR\ \EXCEPT\ \EXPR'}\TYPE }
+
+    \inferrule{
+      \JTypeExpr\TEnv\EXPR\TYPE \\
+      \TYPE \SubType \TYPEU \vee \TYPEU \SubType \TYPE
+    }{
+      \JTypeExpr\TEnv{\CAST\EXPR\TYPE\TYPEU}\TYPEU
+    }
   \end{mathpar}
   \caption{Typing rules for expressions}
   \label{fig:typing-expressions}
@@ -576,17 +608,6 @@ with an exception
   }
 \end{mathpar}
 
-\begin{definition}%[State of a node]
-  The \emph{state of a node} is a tuple
-  $\NODE = [ \EXPRS, \ACCOUNTS
-  % , \OPERATIONS
-  ]$, where $\EXPRS$ is a
-  set of programs and $\ACCOUNTS \subseteq \TPAK \times \TPUK$  is a set of
-  implicit accounts.
-  % , and
-  % $\OPERATIONS \subseteq \ECS \times \TOP $ is a set of pairs of
-  % expression contexts and operations.
-\end{definition}
 
 
 \subsection{Global}

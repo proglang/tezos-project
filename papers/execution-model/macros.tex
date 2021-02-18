@@ -2,9 +2,9 @@
 \newcommand{\Angle}[1]{\langle#1\rangle}
 
 %% values
-\newcommand\SUNIT{\textbf{()}}
-\newcommand{\TRUE}{\textbf{True}}
-\newcommand{\FALSE}{\textbf{False}}
+\newcommand\SUNIT{\text{()}}
+\newcommand{\TRUE}{\text{True}}
+\newcommand{\FALSE}{\text{False}}
 \newcommand{\NEG}{\neg}
 
 %% names
@@ -28,28 +28,28 @@
 \newcommand{\ACCEPTED}{\textbf{A}} %obsolete
 \newcommand{\MANAGERS}{\textbf{M}} 
 \newcommand{\BLOCKSYSTEM}{\textbf{B}}
-\newcommand{\STATUSPENDING}{\textbf{pending}} 
-\newcommand{\STATUSINCLUDING}{\textbf{including}}
-\newcommand{\STATUSTIMEOUT}{\textbf{timeout}}
-\newcommand{\STATUSINCLUDED}{\textbf{included}}
+\newcommand{\STATUSPENDING}{\text{pending}} 
+\newcommand{\STATUSINCLUDING}{\text{including}}
+\newcommand{\STATUSTIMEOUT}{\text{timeout}}
+\newcommand{\STATUSINCLUDED}{\text{included}}
 
 %% types
 %\newcommand{\ALS}{\textbf{als}}
-\newcommand{\TPAK}{\textbf{Pak}}
-\newcommand{\TPUK}{\textbf{Puk}}
-\newcommand{\TADDR}{\textbf{Addr}}
+\newcommand{\TPAK}{\text{Pak}}
+\newcommand{\TPUK}{\text{Puk}}
+\newcommand{\TADDR}{\text{Addr}}
 %\newcommand{\PKH}{\textbf{pkh}}
-\newcommand{\TPUH}{\textbf{Puh}}
-\newcommand{\TCODE}{\textbf{Code}}
-\newcommand{\TBAL}{\textbf{Bal}}
-\newcommand{\TCOU}{\textbf{Cou}}
+\newcommand{\TPUH}{\text{Puh}}
+\newcommand{\TCODE}{\text{Code}}
+\newcommand{\TBAL}{\text{Bal}}
+\newcommand{\TCOU}{\text{Cou}}
 %\newcommand{\FAIL}{\textbf{fail}}
-\newcommand{\TSTORAGE}{\textbf{Storage}}
-\newcommand{\TOP}{\textbf{Op}}
+\newcommand{\TSTORAGE}{\text{Storage}}
+\newcommand{\TOP}{\text{Op}}
 %\newcommand{\ORIG}{\textbf{orig}}
-\newcommand{\TOPH}{\textbf{Oph}}
-\newcommand{\TTIME}{\textbf{Time}}
-\newcommand{\TTEZ}{\textbf{Tz}}
+\newcommand{\TOPH}{\text{Oph}}
+\newcommand{\TTIME}{\text{Time}}
+\newcommand{\TTEZ}{\text{Tz}}
 
 %% operations
 \newcommand{\TRANSFER}[5][\SUNIT]{\text{transfer $#2$ from $#3$ to $#4$ arg $#1$ fee $#5$}}
@@ -62,7 +62,7 @@
 \newcommand\INIT{\textbf{s}}
 \newcommand\PARAMETER{\textbf{p}}
 %% queries
-\newcommand{\QRY}{\textbf{get}}%{\textbf{qry}}
+\newcommand{\QRY}{\textbf{qry}}
 \newcommand{\GETBALANCE}[1]{\text{balance $#1$}}
 \newcommand{\GETSTATUS}[1]{\text{status $#1$}}
 \newcommand{\GETSTORAGE}[1]{\text{storage $#1$}} % get contract storage
@@ -83,50 +83,51 @@
 \newcommand{\EXPR}{\textbf{e}}
 \newcommand{\VARIABLE}{\textbf{x}}
 \newcommand{\CONSTANT}{\textbf{c}}
-\newcommand{\CONS}{\textbf{cons}}
-\newcommand{\NIL}{\textbf{nil}}
-\newcommand\LEFT{\textbf{left}}
-\newcommand\RIGHT{\textbf{right}}
-\newcommand{\AND}{\textbf{and}}
-\newcommand{\OR}{\textbf{or}}
-\newcommand{\NOT}{\textbf{not}}
+\newcommand{\CONS}{\text{cons}}
+\newcommand{\NIL}{\text{nil}}
+\newcommand\LEFT{\text{left}}
+\newcommand\RIGHT{\text{right}}
+\newcommand{\AND}{\text{and}}
+\newcommand{\OR}{\text{or}}
+\newcommand{\NOT}{\text{not}}
 \newcommand{\PLUS}{\textbf{+}}
 \newcommand{\MINUS}{\textbf{-}}
 \newcommand{\EQUAL}{\textbf{=}}
 \newcommand{\LESS}{\textbf{$<$}}
 \newcommand{\NI}{\textbf{$n_i$}}
 \newcommand{\EI}{\textbf{$e_i$}}
-\newcommand\FIX{{\bf fix}}
-\newcommand\FST{{\bf fst}}
-\newcommand\SND{{\bf snd}}
+\newcommand\FIX{\text{fix}}
+\newcommand\FST{\text{fst}}
+\newcommand\SND{\text{snd}}
 \newcommand{\RETURN}{\textbf{r}}
-\newcommand\RAISE{\textbf{raise}}
-\newcommand\TRY{\textbf{try}}
-\newcommand\EXCEPT{\textbf{except}}
-\newcommand\MATCH{\textbf{match}}
-\newcommand\WITH{\textbf{with}}
+\newcommand\RAISE{\text{raise}}
+\newcommand\TRY{\text{try}}
+\newcommand\EXCEPT{\text{except}}
+\newcommand\MATCH{\text{match}}
+\newcommand\WITH{\text{with}}
 \newcommand\PATTERN{\textbf{pat}}
-\newcommand\SOME{\textbf{some}}
-\newcommand\NONE{\textbf{none}}
+\newcommand\SOME{\text{some}}
+\newcommand\NONE{\text{none}}
 \newcommand\VAL{\textbf{v}}
 \newcommand\SC{\textbf{sc}}
-\newcommand\CONTRACT{\textbf{contract}}
-\newcommand\TOSTRING{\textbf{tostr}}
-\newcommand\FROMSTRING{\textbf{fromstr}}
+\newcommand\CONTRACT{\text{contract}}
+\newcommand\TOSTRING{\text{tostr}}
+\newcommand\FROMSTRING{\text{fromstr}}
+\newcommand\CAST[3]{(#1 : #2 \Rightarrow #3)}
 
 \newcommand\TYPE{T}%{\textbf{ty}}
 \newcommand\TYPEU{U}%{\textbf{ty}}
-\newcommand\TINT{\textbf{Int}}
-\newcommand\TUNIT{\textbf{Unit}}
-\newcommand\TBOOL{\textbf{Bool}}
-\newcommand\TSTRING{\textbf{Str}}
-\newcommand\TSTATUS{\textbf{Status}}
-\newcommand\TPAIR{\textbf{Pair}}
-\newcommand\TLIST{\textbf{List}}
-\newcommand\TSUM{\textbf{Or}}
-\newcommand\TOPTION{\textbf{Option}}
-\newcommand\TEXCEPTION{\textbf{Exc}}
-\newcommand\TCONTRACT{\textbf{Contract}}
+\newcommand\TINT{\text{Int}}
+\newcommand\TUNIT{\text{Unit}}
+\newcommand\TBOOL{\text{Bool}}
+\newcommand\TSTRING{\text{Str}}
+\newcommand\TSTATUS{\text{Status}}
+\newcommand\TPAIR{\text{Pair}}
+\newcommand\TLIST{\text{List}}
+\newcommand\TSUM{\text{Or}}
+\newcommand\TOPTION{\text{Option}}
+\newcommand\TEXCEPTION{\text{Exc}}
+\newcommand\TCONTRACT{\text{Contract}}
 
 \newcommand\QOP{\textbf{qop}}
 \newcommand\INT{\textbf{i}}
@@ -178,14 +179,14 @@
 %% metavariables
 \newcommand\STATUS{\textbf{st}}
 \newcommand\ERROR{\textbf{err}}
-\newcommand\ERRPRG{\textbf{xPrg}}
-\newcommand\ERRBAL{\textbf{xBal}}
-\newcommand\ERRCOUNT{\textbf{xCount}}
-\newcommand\ERRFEE{\textbf{xFee}}
-\newcommand\ERRPUK{\textbf{xPub}}
-\newcommand\ERRPUH{\textbf{xPuh}}
-\newcommand\ERRARG{\textbf{xArg}}
-\newcommand\ERRINIT{\textbf{xInit}}
+\newcommand\ERRPRG{\text{xPrg}}
+\newcommand\ERRBAL{\text{xBal}}
+\newcommand\ERRCOUNT{\text{xCount}}
+\newcommand\ERRFEE{\text{xFee}}
+\newcommand\ERRPUK{\text{xPub}}
+\newcommand\ERRPUH{\text{xPuh}}
+\newcommand\ERRARG{\text{xArg}}
+\newcommand\ERRINIT{\text{xInit}}
 
 \newcommand\partialto\hookrightarrow
 \newcommand\DOM{\textit{dom}}
