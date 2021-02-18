@@ -99,19 +99,21 @@ header of an auction contract in Michelson \cite{michelson}. The
 type. It is a sum type (indicated by \lstinline/or/) and each
 alternative constitutes an entrypoint, named \lstinline/%close/ and
 \lstinline/%bid/. The caller selects the entrypoint by injecting the argument into the
-\lstinline/left/ or \lstinline/right/ summand. Entrypoint \lstinline/%close/ takes a \lstinline{unit}
-parameter and \lstinline/%bid/ takes an amount of tokens of type \lstinline{mutez}.
+\lstinline/left/ or \lstinline/right/ summand. Both entrypoints take a \lstinline{unit}
+parameter. The \lstinline/%bid/ entrypoint considers the transferred
+tokens as the bid.
 The \lstinline/storage/ clause declares the state of the contract,
-which is a nested pair type indicating whether bidding is allowed (\lstinline{bool}), the address of the
-contract owner (to prohibit unauthorized calls to \lstinline/%close/),
-the highest bid (of type \lstinline{mutez}), and the bidder's address.
+which is a nested pair type indicating whether bidding is allowed
+(\lstinline{bool}), the address of the contract owner (to prohibit
+unauthorized calls to \lstinline/%close/), and the bidder's
+address. The highest bid corresponds to the token balance of the contract.
 \begin{lstlisting}[language=michelson,numbers=none,float,caption={Header of the auction contract},label={lst:auction-contract-header},captionpos=b,emph={close,bid},emphstyle=\underbar]
 parameter (or (unit %close)
-              (mutez %bid)); # participant's bid
-storage (pair
-          (pair bool address)  # bidding allowed, contract owner
-          (pair mutez address) # highest bid, bidder's address
-        );
+              (unit %bid)); # bid in transfer
+storage (pair bool          # bidding allowed
+         (pair address      #  contract owner
+          address           # highest bidder's address
+        ));
 \end{lstlisting}
 
 To avoid too much detail, we just outline the implementation of the entrypoints. The
@@ -123,7 +125,7 @@ goods.\footnote{For simplicity we elide safeguarding by a third-party oracle.}
 The \lstinline/%bid/ entrypoint immediately returns each bid that is not higher
 than the existing highest bid. Otherwise, it keeps the funds
 transferred, returns the previous highest bid to its owner, and stores
-the current bid as the new highest bid.
+the current bidder as the new highest bidder.
 
 
 Timed contract closing and strategic bidding cannot be implemented in
@@ -132,16 +134,20 @@ interact with the blockchain. We present some idealized code for these tasks.
 
 First the code that creates an auction contract and closes it after 48 hours. 
 \begin{lstlisting}[language=Caml,numbers=none,basicstyle=\small]
-let initial_store = ((true, my_address), (1, my_address))
+let _ = Cl.set_authority (my_address)
+let initial_store = (true, (my_address, my_address))
 let contract = Cl.originate(auction_script, 1, initial_store)
 Time.sleep(48 * 3600);               (* 48h in seconds *)
 Cl.call_contract(contract, left ()); (* entrypoint %close *)
 \end{lstlisting}
 We assume that \lstinline/Cl/ is the module containing the contract
-library,  \lstinline/originate/ deploys its argument contract along
-with the provided funds and the \lstinline/initial_store/, 
+library, \lstinline{set_authority} sets the sender address for
+upcoming operations,  \lstinline/originate/ deploys its argument contract along
+with the provided funds of one token and the \lstinline/initial_store/, 
 \lstinline{auction_script} is the contract from Listing~\ref{lst:auction-contract-header}, and 
-\lstinline{call_contract} invokes a contract with a parameter.
+\lstinline{call_contract} invokes a contract with a parameter. The
+\lstinline{initial_store} sets the bidding flag, and both owner and
+highest bidder to the sender account.
 
 
 To implement the bidding strategy, we first check the state of the
