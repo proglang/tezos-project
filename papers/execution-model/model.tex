@@ -229,8 +229,8 @@ We write $\emptyset$ for the empty set and $\mathbf{e :: s}$ to
 decompose a set into an element $\mathbf{e}$ and a set
 $\mathbf{s}$. We generally use lowercase boldface for metavariables
 ranging over values of a certain syntactic category, e.g., \PUK\ for
-public keys, and the corresponding uppercase name for the
-corresponding type or the set of these values (as in \TPUK).
+public keys, and the capitalized name for the
+corresponding type as well as the set of these values (as in \TPUK).
 
 \subsection{Local Node}
 \label{sec:local-node}
@@ -277,6 +277,16 @@ contract by its public key or public hash, respectively; the status of
 a submitted operation by its operation hash; the stored value of a
 contract by its public hash; and the code of a contract by the
 operation hash of its originating transaction.
+
+The domain-specific types come with different guarantees. Values of
+type \TPUH\ and \TPUK\ as well as \TADDR\ are not necessarily valid,
+as there might be no contract associated with a hash / no account
+associated with a public key. In contrast, a value of type
+$\TCONTRACT\ \TYPE$ is a public hash that is verified to be associated
+with a contract with parameter type $\TYPE$. Operation hashes \OPH\
+are only returned from blockchain operations. As the surface language
+neither contains literals of type \TOPH\ nor are there casts into
+that type, all values of \TOPH\ are valid. 
 
 \begin{definition}%[State of a node]
   The \emph{state of a node} is a pair
@@ -336,10 +346,11 @@ operation hash of its originating transaction.
   \label{fig:syntax-expressions}
 \end{figure}
 All queries and operations are started by programs, i.e., closed expressions that run on the
-local node. Figure~\ref{fig:syntax-expressions} defines the syntax of
+local node. Each program can send transactions on behalf of any
+account on the local node.  Figure~\ref{fig:syntax-expressions} defines the syntax of
 expressions, which describe the usual constructs of call-by-value PCF
 with sum, product, list, and option types, exceptions and fixpoint. Moreover, there are
-primitive types and constants \CONSTANT\ to support blockchain
+domain-specific primitive types and constants \CONSTANT\ to support blockchain
 operations, as well as several exceptional values collected in \ERROR.
 Pattern matching is the only means to decompose values, cf.\ \PATTERN.
 There is syntax to initiate transfers and to originate contracts as
@@ -403,7 +414,7 @@ and retry is omitted.
 Our type system does not include subtyping. The relation in
 Figure~\ref{fig:subtyping} just etablishes pairs of types that can be
 subjected to casting. A cast from $\TYPE$ to $\TYPEU$ is only allowed
-if $\TYPE \SubType^* \TYPEU$ (upcast) or $\TYPEU \SubType^* \TYPE$
+if $\TYPE \SubType \TYPEU$ (upcast) or $\TYPEU \SubType \TYPE$
 (downcast). Upcasts always succeed, but downcasts may fail at run time.
 In particular,  public hashes and public keys can both stand for addresses. Moreover, a smart
 contract with parameter type $\TYPE$ is represented by its public hash
@@ -616,66 +627,69 @@ with an exception
 
 
 
-\subsection{Global}
+\subsection{Global Structures}
 \label{sec:global}
 
+Our execution model abstracts from the particulars of the blockchain
+implementation, like the peer-to-peer structure or the distributed
+consensus protocol. Hence, we represent the blockchain by a few global
+entities: managers, contractors, and a pool of operations. 
 
-
-\begin{definition}%[Manager]
-A \emph{manager} manages a single implicit account. Managers are
-represented by a partial mapping $\MANAGERS : \TPUK \partialto \TBAL
+%\begin{definition}%[Manager]
+A \emph{manager} keeps track of a single implicit account. Managers are
+represented by a partial map $\MANAGERS : \TPUK \partialto \TBAL
 \times \TCOU$. If $\MANAGERS (\PUK) = \Angle{\BAL, \COU}$ is defined, then  $\PUK$ is the
 public key of an account, $\BAL$ is its
 balance and $\COU$ is its counter whose form is a value-flag pair
 $(n,b) \in \Nat\times\TBOOL$, where $n$ is the value of the counter
-and ${b}$ is its flag.   
-\end{definition}
+and ${b}$ is its flag.   The counter is used internally to serialize transactions.
+%\end{definition}
 
-\begin{definition}%[Contractor]
-  A \emph{contractor} manages a smart contract. Contractors are
-  represented by a partial mapping $\CONTRACTORS : \TPUH \partialto
-  \TCODE \times \TIME  \times \TBAL \times  \TSTORAGE$. If $\CONTRACTORS (\PUH) = \langle
-  \CODE, \TIME, \BAL, \STORAGE \rangle $ is defined, then $\PUH$ is the
-  public hash of a contract,
-  $\CODE$ is its  code,
-  $\TIME$ is the time when it was accepted,
-  $\BAL$ is its current balance,
-  and $\STORAGE$ is its current storage.
-\end{definition}
+%\begin{definition}%[Contractor]
+A \emph{contractor} manages a smart contract. Contractors are
+represented by a partial map $\CONTRACTORS : \TPUH \partialto
+\TCODE \times \TIME  \times \TBAL \times  \TSTORAGE$. If $\CONTRACTORS (\PUH) = \langle
+\CODE, \TIME, \BAL, \STORAGE \rangle $ is defined, then $\PUH$ is the
+public hash of a contract,
+$\CODE$ is its  code,
+$\TIME$ is the time when it was accepted,
+$\BAL$ is its current balance,
+and $\STORAGE$ is its current storage. The hash $\PUH$ is
+self-verifying as it is calculated from the fixed components $\CODE$
+and $\TIME$. All time stamps will be different in our model.
+% \end{definition}
 
-When an operation is injected in a node, it enters a \emph{pending
-  pool}. Later on, such a pending operation is either dismissed or
-promoted to an accepted operation.
+When an operation is started on a node, it enters a \emph{pool} as a
+pending operation. A pending operation is either dismissed after some time or
+promoted to an included operation, which has become a permanent part
+of the blockchain.
 
  %\begin{definition}%[Pending operation]
 %An \emph{operation} is represented by a tuple  $\langle  \OP, \TIME, \STATUS \rangle $, where $\OP$ is an operation, $\TIME$ is the time when the operation was injected, and $\STATUS$ is either $\STATUSPENDING$,$\STATUSINCLUDED\ \TIME'$, or $\STATUSTIMEOUT$.  
 %\end{definition}
-\begin{definition}
-  The pool of operations, $\PENDING$, is defined as a partial mapping from
-  operation hashes $\OPH$: 
-  \begin{align*}
-    \PENDING &= \TOPH \partialto \TOP\times \TTIME \times \TSTATUS \\
-    \TSTATUS&= \STATUSPENDING + \STATUSINCLUDED\ \TTIME + \STATUSTIMEOUT
-  \end{align*}
-  
-  if $\PENDING(\OPH) = \langle  \OP, \TIME, \STATUS
+%\begin{definition}
+The pool is a partial map $  \PENDING= \TOPH \partialto
+\TOP\times \TTIME \times \TSTATUS$ where
+\begin{align*}
+  \TSTATUS&= \STATUSPENDING + \STATUSINCLUDED\ \TTIME + \STATUSTIMEOUT
+\end{align*}
+such that
+if $\PENDING(\OPH) = \langle  \OP, \TIME, \STATUS
 \rangle $ is defined, then $\OPH$ is the public hash of the operation, $\OP$ is the operation, $\TIME$ is the time when the
 operation was injected, and $\STATUS$ is either $\STATUSPENDING$,
 $\STATUSINCLUDED\ \TIME'$, or $\STATUSTIMEOUT$.
 A pool $\PENDING$ is \emph{well-formed} if, for all $\OPH$, $\PENDING (\OPH) =
-  \Angle{\OP,\TIME, \STATUSINCLUDED\ \TIME'}$ implies $\TIME' \ge
-  \TIME$ and $\OPH = \GENERATEOPH (\OP, \TIME)$.
-\end{definition}
+\Angle{\OP,\TIME, \STATUSINCLUDED\ \TIME'}$ implies $\TIME' \ge
+\TIME$ and $\OPH = \GENERATEOPH (\OP, \TIME)$.
+%\end{definition}
 
 
 A \emph{pending operation} is represented by
-$\OPH \mapsto \langle  \OP, \TIME, \STATUSPENDING\rangle $,
-where $\OP$ is an operation, $\OPH$ is the operation hash,
-and $\TIME$ is the time when the operation was injected.
-Once it is accepted, it changes to an \emph{accepted operation}:
+$\OPH \mapsto \langle  \OP, \TIME, \STATUSPENDING\rangle $.
+Once the operation is accepted, it changes its status to included:
 $\OPH \mapsto \langle  \OP, \TIME, \STATUSINCLUDED\ \TIME'\rangle $, where
 $\TIME' \ge \TIME$ is  when the operation was included in the
-blockchain.  The operation can also be dropped at any time, which is
+blockchain.  The operation may also be dropped at any time, which is
 represented by
 $\OPH \mapsto \langle  \OP, \TIME, \STATUSTIMEOUT\rangle $. There are several
 causes for dropping, primarily timeout or overflow of the pending
@@ -690,28 +704,31 @@ pool which is limited in size in the implementation.
 % $\TIME'$ is the time when it was included in the blockchain. 
 % \end{definition}
 
-\begin{definition}%[Blockchain]
-  The \emph{state of a blockchain} is a tuple
-  $\BLOCKCHAIN = [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]$ where
-  $\PENDING$ is a pool of operations, $\MANAGERS$ is a map of managers,
-  $\CONTRACTORS$ is a map of contractors, and $\TIME$ is the current
-  time. 
-\end{definition}
-\begin{definition}%[Blockchain system]
-A \emph{blockchain configuration} is a pair
-$ \NODE \| \BLOCKCHAIN$ where
-\fxnote[inline]{Should the model contain multiple nodes?}
+%\begin{definition}%[Blockchain]
+In summary, the \emph{state of a blockchain} is a tuple
+$\BLOCKCHAIN = [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]$ where
+$\PENDING$ is a pool of operations, $\MANAGERS$ is a map of managers,
+$\CONTRACTORS$ is a map of contractors, and $\TIME$ is the current
+time. 
+% \end{definition}
+
+We often use the dot notation to project a component from a tuple. For
+instance, we write $\BLOCKCHAIN.\MANAGERS$ to access the managers
+component. 
+
+%\begin{definition}%[Blockchain system]
+A \emph{blockchain configuration} has the form
+$\BLOCKCHAIN[ \NODE_1, \dots, \NODE_n]$, for some $n>0$, where $\BLOCKCHAIN$ is a
+blockchain and the $\NODE_i$ are local nodes, for $1\le i\le n$.
+Moreover, the accounts on the local nodes are all different and each
+local account has a manager in $\BLOCKCHAIN$:
 \begin{enumerate}
-\item $\NODE = [\EXPRS, \ACCOUNTS]$ is the state of a node, and
-\item $\BLOCKCHAIN = [\PENDING, \MANAGERS, \CONTRACTORS,
-  \TIME]$ is the state of a blockchain  
-  such that
-  \begin{itemize}
-  \item
-    $\forall a \in \ACCOUNTS \implies a.\PUK \in \DOM( \MANAGERS)$;
-  \end{itemize}
+\item for all $1\le i< j\le n$, $\NODE_i.\ACCOUNTS \cap
+  \NODE_j.\ACCOUNTS = \emptyset$;
+\item for all $1\le i \le n$, 
+    $\forall a \in \NODE_i.\ACCOUNTS \implies a.\PUK \in \DOM( \BLOCKCHAIN.\MANAGERS)$.
 \end{enumerate}
-\end{definition}
+%\end{definition}
 \begin{definition}
   Preserved by a step on a well-formed configuration $ [\EXPRS, \ACCOUNTS] \|
   [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]$:
@@ -842,64 +859,53 @@ We distinguish several kinds of transitions depending on their scope:
 \end{enumerate}
 
 Evaluation of expressions is standard call-by-value lambda calculus defined
-using evaluation contexts $\EC{}$.
-\begin{mathpar}
-  \inferrule{}{
-    \EC{(\lambda x.\EXPR)\VAL} \ExprTrans \EC{\EXPR[\VAL/x]}
-  }
+using evaluation contexts
+$\EC{}$. Figure~\ref{fig:expression-reduction} shows some of the
+reduction rules. 
+\begin{figure}[tp]
+  \begin{mathpar}
+    \inferrule{}{ \EC{(\lambda x.\EXPR)\VAL} \ExprTrans
+      \EC{\EXPR[\VAL/x]} }
 
-  \inferrule{}{
-    \EC{\FST (\VAL_1, \VAL_2)} \ExprTrans \EC{\VAL_1}
-  }
+    % \inferrule{}{
+    % \EC{\FST (\VAL_1, \VAL_2)} \ExprTrans \EC{\VAL_1}
+    % }
+  %   
+    %   \inferrule{}{
+    %   \EC{\SND (\VAL_1, \VAL_2)} \ExprTrans \EC{\VAL_2}
+    % }
+  %   
+    \inferrule{ \TRY \notin \EC[F]{} }{ \EC{\TRY\ {\EC[F]{\RAISE\
+            \VAL}}\ \EXCEPT\ \EXPR} \ExprTrans \EC{\EXPR\ \VAL} }
 
-  \inferrule{}{
-    \EC{\SND (\VAL_1, \VAL_2)} \ExprTrans \EC{\VAL_2}
-  }
+    \inferrule{}{ \EC{\MATCH\ (\VAL_1, \VAL_2) \WITH\ (x_1,
+        x_2)\to\EXPR \mid \dots} \ExprTrans \EC{\EXPR[\VAL_1,
+        \VAL_2/x_1, x_2]} }
 
-  \inferrule{
-    \TRY \notin \EC[F]{}
-  }{
-    \EC{\TRY\ {\EC[F]{\RAISE\ \VAL}}\ \EXCEPT\ \EXPR} \ExprTrans
-    \EC{\EXPR\ \VAL}
-  }
+    \inferrule{}{ \EC{\MATCH\ \NIL\ \WITH\ \NIL\to\EXPR \mid \dots}
+      \ExprTrans \EC{\EXPR} }
 
-  \inferrule{}{
-    \EC{\MATCH\ \NIL\ \WITH\ \NIL\to\EXPR \mid \dots}
-    \ExprTrans
-    \EC{\EXPR}
-  }
+    \inferrule{}{ \EC{\MATCH\ (\CONS\ \VAL_1\ \VAL_2)\ \WITH\ (\CONS\
+        x_1\ x_2)\to\EXPR \mid \dots} \ExprTrans
+      \EC{\EXPR[\VAL_1,\VAL_2/x_1, x_2]} }
 
-  \inferrule{}{
-    \EC{\MATCH\ (\CONS\ \VAL_1\ \VAL_2)\ \WITH\ (\CONS\ x_1\ x_2)\to\EXPR \mid \dots}
-    \ExprTrans
-    \EC{\EXPR[\VAL_1,\VAL_2/x_1, x_2]}
-  }
+    \inferrule{}{ \EC{\MATCH\ \NONE\ \WITH\ \NONE\to\EXPR \mid \dots}
+      \ExprTrans \EC{\EXPR} }
 
-  \inferrule{}{
-    \EC{\MATCH\ \NONE\ \WITH\ \NONE\to\EXPR \mid \dots}
-    \ExprTrans
-    \EC{\EXPR}
-  }
+    \inferrule{}{ \EC{\MATCH\ (\SOME\ \VAL)\ \WITH\ (\SOME\ x)\to\EXPR
+        \mid \dots} \ExprTrans \EC{\EXPR[\VAL/x]} }
 
-  \inferrule{}{
-    \EC{\MATCH\ (\SOME\ \VAL)\ \WITH\ (\SOME\ x)\to\EXPR \mid \dots}
-    \ExprTrans
-    \EC{\EXPR[\VAL/x]}
-  }
+    \inferrule{}{ \EC{\MATCH\ (\LEFT\ \VAL)\ \WITH\ (\LEFT\ x)\to\EXPR
+        \mid \dots} \ExprTrans \EC{\EXPR[\VAL/x]} }
 
-  \inferrule{}{
-    \EC{\MATCH\ (\LEFT\ \VAL)\ \WITH\ (\LEFT\ x)\to\EXPR \mid \dots}
-    \ExprTrans
-    \EC{\EXPR[\VAL/x]}
-  }
+    \inferrule{}{ \EC{\MATCH\ (\RIGHT\ \VAL)\ \WITH\ (\RIGHT\
+        x)\to\EXPR \mid \dots} \ExprTrans \EC{\EXPR[\VAL/x]} }
 
-  \inferrule{}{
-    \EC{\MATCH\ (\RIGHT\ \VAL)\ \WITH\ (\RIGHT\ x)\to\EXPR \mid \dots}
-    \ExprTrans
-    \EC{\EXPR[\VAL/x]}
-  }
-\end{mathpar}
-
+    \inferrule{\TYPE \SubType \TYPEU}{ \EC{\CAST\VAL\TYPE\TYPEU} \ExprTrans \EC{\VAL}}
+  \end{mathpar}
+  \caption{Select expression reduction rules}
+  \label{fig:expression-reduction}
+\end{figure}
 The internal transitions of a node are just evaluation of expressions.
 \begin{mathpar}
   \inferrule[Node-Eval]
