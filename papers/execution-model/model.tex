@@ -1228,6 +1228,14 @@ if  $\PENDING (\OPH) =  \Angle{\OP, \hat\TIME, \STATUS}$
 \end{itemize}
 
 
+\section{Related Work}
+\label{sec:related work}
+Smart contracts can only access information within their blockchain network. The inability to interact directly with external data sources limits the potential of smart contracts. Oracles \cite{oracle-patterns}\cite{call-action-oracle}\cite{oracles-study} can help overcome this limitation by providing a bridge between the outside world and the blockchain network. Oracles, a third-party service, can be used to provide external data to smart contracts. Several research works have been done to provide oracle solutions for blockchain. The work in \cite{blockchain-oracles} attempts to explore the relationship between oracles and blockchain and classifies different types of oracles. This framework aims to provide developers with a guide for incorporating oracles into blockchain-based applications. Chainlink \cite{chainlink-whitepaper} promises to provide reliable, tamper-proof input and output for smart contracts on any blockchain. For a specific application, a system called Town Crier \cite{town-crier} provides an authenticated data feed sourced from HTTPS-enabled data websites to smart contracts on Ethereum. The authors in \cite{oracle-real-value} construct a general-purpose decentralized oracle that can estimate the value of a real-world quantity, such as $R$. 
+For application to prediction markets, the Truthcoin \cite{truthcoin-whitepaper} system proposes a proof-of-work sidechain that collects information about the creation and state of Prediction Markets. The paper \cite{astraea} briefly discusses some oracle solutions and provides a trustless decentralized oracle and prediction market platform. 
+
+The main issues in using an oracle are trust and security \cite{trustworthy}. There are few studies that consider the issues of trust and reliability in blockchain oracles. The researchers in \cite{reliable-oracle} address the verification of blockchain oracles. They propose a decentralized oracle to verify the interactions between blockchain smart contracts and oracles. Similarly, in the paper in \cite{reliablity-oracles}, the researchers focus on the notion of trust and offer a framework to perform reliability analysis of different blockchain oracle platforms. In our research, we care about guaranteeing security over the interface system by utilizing type-system. Closely to our work, in \cite{interact-coq}, the authors present a model-executable specification of smart-contract execution in Coq. Their formalizations target to Ethereum and Tezos. 
+
+
 \newpage{}
 
 \bibliographystyle{splncs04}
