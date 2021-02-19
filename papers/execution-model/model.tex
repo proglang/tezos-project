@@ -60,13 +60,14 @@ oracle invokes the callback as soon as an answer is available.
 We present two examples where integration of smart contracts is needed
 and propose a typed API for making such integration type safe.
 
-\subsection{Contributions}
+\subsubsection{Contributions}
 \label{sec:contributions}
 
 \begin{itemize}
 \item An operational semantics for functional programs running
   alongside smart contracts in a blockchain. 
-\item Proofs of various properties of the combined system.
+\item Established various properties of the combined system withs
+  proofs in upcoming techreport.
 \item An implementation of a low-level OCaml-API to the Tezos
   blockchain, which corresponds to the operational semantics.
 \end{itemize}
@@ -166,8 +167,8 @@ let rec poll (limit, step, ((bidding, _), (high_bid, _))) =
 in
 poll (limit, step, Cl.get_state (contract))
 \end{lstlisting}
-The \lstinline{get_state} function queries data on
-the blockchain and returns the storage of a contract. 
+The \lstinline{get_state} function obtains the storage of a contract from
+the blockchain.
 
 This code is idealized in several respects. Originating or running a contract
 requires to propose a fee to the blockchain, which may or may not be
@@ -197,19 +198,18 @@ In summary, a useful smart-contract-API  has facilities to
 \begin{itemize}
 \item query the current state of the blockchain (e.g., fees in the
   current block),
-\item query the state and the balance of a contract (e.g., to obtain
+\item query storage and balance of a contract (to obtain
   the current highest bid),
 \item originate contracts, invoke contracts, and initiate
-  transfers. To this end, the program using the API has to run on
-  behalf of some authority (i.e., expressed by holding the private key
-  for some account).
+  transfers. Hence, the API has to run on
+  behalf of some account (by holding its private key).
 \end{itemize}
 All these facilities are supported by the (untyped) RPC interface of the Tezos
 blockchain, which is the basis of our implementation. 
 
 \section{Execution Model}
 \label{sec:execution-model}
-The context of our work is the Tezos blockchain \cite{tezos-whitepaper, tezos-intropaper}. Tezos is a self-amending blockchain that improves several aspects compared to established 
+The context of our work is the Tezos blockchain \cite{tezos-whitepaper,tezos-intropaper}. Tezos is a self-amending blockchain that improves several aspects compared to established 
 blockchains. Tezos introduces an original consensus algorithm called Liquid Proof of Stake that allows consensus not only on the state of its ledger, like Bitcoin \cite{bitcoin-whitepaper} or Ethereum \cite{eth-whitepaper}, but also on how the economic protocol and the nodes should  upgrade, and serves as a decentralized smart contract platform that focuses on formal methods to improve security. 
 
 In Tezos, there are two types of accounts: implicit accounts and smart contracts, and they are stateful. An implicit account is a non-programmable account and is associated with a pair of private/public keys. A smart contract is a programmable account created by an origination operation and has no corresponding secret key. The address of a smart contract is a unique public hash that depends on the creation operation. All existing accounts are stored in a context component on the blockchain. An implicit account is managed with its public key, balance, and counter, whose job is to prevent replay attacks. A smart contract account is stored with its script, storage, and balance. Tezos provides the Michelson language for writing a smart contract. Michelson is a stack-based language with strict static type checking. A contract is a function that maps a pair of a parameter and a storage, which have fixed and monomorphic types to a pair of a list of internal operations and an updated storage. The script of a smart contract must be type-checked before it is introduced into the system.  
@@ -400,47 +400,39 @@ Here $\SC$ ranges over the remaining syntactic constructors, which are
 treated uniformly: evaluation proceeds from left to right. Values are
 standard for call-by-value lambda calculus.
 
-\begin{figure}[tp]
-  \begin{align*}
-    \LET\ \mathit{oph} &=  \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
-         & \FIX \lambda f.\lambda x. \MATCH\ \GETSTATUS{\mathit{oph}}\ \WITH \\
-         & \mid \STATUSPENDING \to \text{Time.sleep(1)}; f () \textrm{\qquad(* not yet included,
-           continue waiting *)} \\
-         & \mid \STATUSINCLUDING (n) \to \text{if } n < 50\text{ then
-           Time.sleep(1)};f ()\textrm{\quad(* included with $n$
-           blocks confirmation *)}\\
-         & \mid \STATUSTIMEOUT \to \textrm{(* lost operation, try
-           again *)}
-  \end{align*}
-  \caption{Pseudocode example for a token transfer}
-  \label{fig:pseudocode-example}
-\end{figure}
-Figure~\ref{fig:pseudocode-example} shows an incomplete example
-expression that transfers tokens from $\PUK$ to $\PUK'$ and then
-checks the status of the operation. The outer loop to raise the fee
-and retry is omitted.
+% \begin{figure}[tp]
+%   \begin{align*}
+%     \LET\ \mathit{oph} &=  \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+%          & \FIX \lambda f.\lambda x. \MATCH\ \GETSTATUS{\mathit{oph}}\ \WITH \\
+%          & \mid \STATUSPENDING \to \text{Time.sleep(1)}; f () \textrm{\qquad(* not yet included,
+%            continue waiting *)} \\
+%          & \mid \STATUSINCLUDING (n) \to \text{if } n < 50\text{ then
+%            Time.sleep(1)};f ()\textrm{\quad(* included with $n$
+%            blocks confirmation *)}\\
+%          & \mid \STATUSTIMEOUT \to \textrm{(* lost operation, try
+%            again *)}
+%   \end{align*}
+%   \caption{Pseudocode example for a token transfer}
+%   \label{fig:pseudocode-example}
+% \end{figure}
+% Figure~\ref{fig:pseudocode-example} shows an incomplete example
+% expression that transfers tokens from $\PUK$ to $\PUK'$ and then
+% checks the status of the operation. The outer loop to raise the fee
+% and retry is omitted.
 
 
-Our type system does not include subtyping. The relation in
-Figure~\ref{fig:subtyping} just etablishes pairs of types that can be
-subjected to casting. A cast from $\TYPE$ to $\TYPEU$ is only allowed
+We define a relation $\SubType$ that establishes pairs of types that can be
+subjected to casting. It is given by the axioms
+$\inferrule{}{\TPUH \SubType \TADDR}$, $\inferrule{}{\TPUK \SubType
+  \TADDR}$, and $\inferrule{}{\TCONTRACT\ \TYPE \SubType \TPUH}$.
+A cast from $\TYPE$ to $\TYPEU$ is only allowed
 if $\TYPE \SubType \TYPEU$ (upcast) or $\TYPEU \SubType \TYPE$
 (downcast). Upcasts always succeed, but downcasts may fail at run time.
 In particular,  public hashes and public keys can both stand for addresses. Moreover, a smart
 contract with parameter type $\TYPE$ is represented by its public hash
 at run time. The corresponding downcast must check whether the public
 hash is valid and has the expected parameter type.
-\begin{figure}[tp]
-  \begin{mathpar}
-    \inferrule{}{\TPUH \SubType \TADDR}
 
-    \inferrule{}{\TPUK \SubType \TADDR}
-
-    \inferrule{}{\TCONTRACT\ \TYPE \SubType \TPUH}
-  \end{mathpar}
-  \caption{Subtyping}
-  \label{fig:subtyping}
-\end{figure}
 Figure~\ref{fig:typing-expressions} presents selected typing rules for
 expressions. We rely on an external typing judgment
 $\JTypeCode\CODE\TYPE$ for the contract language, which we leave
@@ -757,8 +749,11 @@ $\EC{}$. Figure~\ref{fig:expression-reduction} shows some of the
 reduction rules. 
 \begin{figure}[tp]
   \begin{mathpar}
-    \inferrule{}{ \EC{(\lambda x.\EXPR)\VAL} \ExprTrans
+    \inferrule{}{ \EC{(\lambda x.\EXPR)\VAL} 
+      \ExprTrans 
       \EC{\EXPR[\VAL/x]} }
+
+    \inferrule{}{ \EC{\TRY\ \VAL\ \EXCEPT\ \EXPR} \ExprTrans \EC{\VAL} }
 
     % \inferrule{}{
     % \EC{\FST (\VAL_1, \VAL_2)} \ExprTrans \EC{\VAL_1}
@@ -768,10 +763,10 @@ reduction rules.
     %   \EC{\SND (\VAL_1, \VAL_2)} \ExprTrans \EC{\VAL_2}
     % }
   %   
+    \inferrule{\TYPE \SubType \TYPEU}{ \EC{\CAST\VAL\TYPE\TYPEU} \ExprTrans \EC{\VAL}}
+
     \inferrule{ \TRY \notin \EC[F]{} }{ \EC{\TRY\ {\EC[F]{\RAISE\
             \VAL}}\ \EXCEPT\ \EXPR} \ExprTrans \EC{\EXPR\ \VAL} }
-
-    \inferrule{\TYPE \SubType \TYPEU}{ \EC{\CAST\VAL\TYPE\TYPEU} \ExprTrans \EC{\VAL}}
     %
     % \inferrule{}{ \EC{\MATCH\ (\VAL_1, \VAL_2) \WITH\ (x_1,
     %     x_2)\to\EXPR \mid \dots} \ExprTrans \EC{\EXPR[\VAL_1,
@@ -1234,6 +1229,11 @@ if  $\PENDING (\OPH) =  \Angle{\OP, \hat\TIME, \STATUS}$
 
 
 \newpage{}
+
+\bibliographystyle{splncs04}
+\bibliography{bio}
+
+\newpage{}
 \appendix
 
 \section{Unused}
@@ -1633,8 +1633,5 @@ Rule 3 [rejected of balance]:
 
 
     
-
-\bibliographystyle{splncs04}
-\bibliography{bio}
 
 \end{document}
