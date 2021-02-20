@@ -54,7 +54,7 @@ Peter Thiemann\orcidID{0000-0002-9000-1239}}
 Smart contracts rarely live in isolation. To reach their full
 potential, it should be possible to integrate them with traditional
 software systems and to enable input from outside the blockchain. Such
-input requires trusted intermediaries that run so-called oracles \cite{oracle-patterns, call-action-oracle}. A
+input requires trusted intermediaries that run so-called oracles \cite{oracle-patterns,call-action-oracle}. A
 smart contract registers a request and a callback with an oracle. The
 oracle invokes the callback as soon as an answer is available. 
 
@@ -231,11 +231,11 @@ safe-safe way. Tezos' smart contract language Michelson and its
 properties have been formalized elsewhere \cite{type-safe-michelson}.
 
 We write $\emptyset$ for the empty set and $\mathbf{e :: s}$ to
-decompose a set into an element $\mathbf{e}$ and a set
+decompose a set nondeterministically into an element $\mathbf{e}$ and a set
 $\mathbf{s}$. We generally use lowercase boldface for metavariables
 ranging over values of a certain syntactic category, e.g., \PUK\ for
 public keys, and the capitalized name for the
-corresponding type as well as the set of these values (as in \TPUK).
+corresponding type as well as for the set of these values (as in \TPUK).
 
 \subsection{Local Node}
 \label{sec:local-node}
@@ -252,7 +252,7 @@ to another, to invoke a contract, and to originate a contract on the blockchain.
   \OP &::= \TRANSFER[\PARAMETER]\NTEZ\PUK\ADDR\MTEZ
   \\&\mid \ORIGINATE\NTEZ\PUK\CODE\INIT\MTEZ
 \end{align*}
-In the transfer, \NTEZ\ is the amount of tokens transferred, \PUK\ is the public key of the
+In the transfer, which also serves as invocation, \NTEZ\ is the amount of tokens transferred, \PUK\ is the public key of the
 sender, \ADDR\ is either a public 
 key for an implicit account (in case of a simple transfer)  or a
 public hash for a smart contract (for an invocation), \PARAMETER\ is
@@ -350,7 +350,8 @@ that type, all values of \TOPH\ are valid.
   \caption{Syntax of expressions, \EXPR, and types, \TYPE}
   \label{fig:syntax-expressions}
 \end{figure}
-All queries and operations are started by programs, i.e., closed expressions that run on the
+All queries and operations are started by programs, i.e., closed
+expressions of type unit that run on the
 local node. Each program can send transactions on behalf of any
 account on the local node.  Figure~\ref{fig:syntax-expressions} defines the syntax of
 expressions, which describe the usual constructs of call-by-value PCF
@@ -467,9 +468,6 @@ a string parseable as a value of type $\TYPE$.
 
     \inferrule{}{\JTypeExpr\TEnv\ERROR\TEXCEPTION}
 
-    \inferrule{\JTypeExpr\TEnv\EXPR\TYPE \\ \TYPE \SubType
-      \TYPEU}{\JTypeExpr\TEnv\EXPR\TYPEU}
-
     \inferrule{}{\JTypeExpr\TEnv\VARIABLE{\TEnv (\VARIABLE)}}
 
     \inferrule{ \JTypeExpr{\TEnv, \VARIABLE:\TYPE'}\EXPR{\TYPE} }{
@@ -512,7 +510,7 @@ a string parseable as a value of type $\TYPE$.
       \JTypeExpr\TEnv{\CAST\EXPR\TYPE\TYPEU}\TYPEU
     }
   \end{mathpar}
-  \caption{Typing rules for expressions}
+  \caption{Typing rules for expressions (excerpt)}
   \label{fig:typing-expressions}
 \end{figure}
 \begin{figure}[tp]
@@ -547,46 +545,46 @@ a string parseable as a value of type $\TYPE$.
     }
   \end{mathpar}
 \begin{mathpar}
-  \inferrule{
-    \JTypeExpr\TEnv\EXPR\TPUK
-  }{
-    \JTypeExpr\TEnv {\QRY\ \GETCOUNTER\EXPR}\TINT
-  }
-
+  % \inferrule{
+  %   \JTypeExpr\TEnv\EXPR\TPUK
+  % }{
+  %   \JTypeExpr\TEnv {\GETCOUNTER\EXPR}\TINT
+  % }
+  %   
   \inferrule{
     \JTypeExpr\TEnv\EXPR\TADDR
   }{
-    \JTypeExpr\TEnv {\QRY\ \GETBALANCE\EXPR}\TTEZ
+    \JTypeExpr\TEnv {\GETBALANCE\EXPR}\TTEZ
   }
 
   \inferrule{
     \JTypeExpr\TEnv\EXPR\TOPH
   }{
-    \JTypeExpr\TEnv {\QRY\ \GETSTATUS\EXPR}\TSTATUS
+    \JTypeExpr\TEnv {\GETSTATUS\EXPR}\TSTATUS
   }
 
   \inferrule{
     \JTypeExpr\TEnv\EXPR{\TPUH}
   }{
-    \JTypeExpr\TEnv {\QRY\ \GETSTORAGE\EXPR}\TSTRING
+    \JTypeExpr\TEnv {\GETSTORAGE\EXPR}\TSTRING
   }
 
   % \inferrule{
   %   \JTypeExpr\TEnv\EXPR{\CONTRACT\ \TYPE}
   % }{
-  %   \JTypeExpr\TEnv {\QRY\ \GETCODE\EXPR}?
+  %   \JTypeExpr\TEnv {\GETCODE\EXPR}?
   % }
   %   
   % \inferrule{
   %   \JTypeExpr\TEnv\EXPR{\CONTRACT\ \TYPE}
   % }{
-  %   \JTypeExpr\TEnv {\QRY\ \GETTYPE\EXPR}?
+  %   \JTypeExpr\TEnv {\GETTYPE\EXPR}?
   % }
   %   
   \inferrule{
     \JTypeExpr\TEnv\EXPR{\TOPH}
   }{
-    \JTypeExpr\TEnv {\QRY\ \GETCONTRACT\EXPR}\TPUH
+    \JTypeExpr\TEnv {\GETCONTRACT\EXPR}\TPUH
   }
 \end{mathpar}
   \caption{Typing rules for blockchain operations and queries}
@@ -1097,7 +1095,7 @@ unknown, then we raise an exception
 Running a program that starts with valid references to accounts,
 operations, and contracts does not get corrupted by a transition.
 \begin{proposition}
-  The following property is preserved by a step on a well-formed
+  The following properties are preserved by a step on a well-formed
   configuration $ [\EXPRS, \ACCOUNTS] \| \BLOCKCHAIN$:
   \begin{itemize}
   \item for all $\OPH$ in $\EXPRS$, $\OPH \in \DOM (\BLOCKCHAIN.\PENDING)$,
@@ -1115,21 +1113,22 @@ If $[\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \BlockTrans{}
 \item invariant for the pool: if  $\PENDING (\OPH) = \Angle{\OP,
     \hat\TIME, \STATUS}$, then $\OPH = \GENERATEOPH (\OP,
   \hat\TIME)$. 
-\item for all $\OPH \in \DOM(P)$, if 
+\item\label{item:7} for all $\OPH \in \DOM(P)$, if 
   $\PENDING (\OPH) = \Angle{\OP,  \hat\TIME, \STATUS}$, then either
   \begin{itemize}
   \item     $\PENDING'    (\OPH) = \PENDING (\OPH)$; or
   \item $\STATUS  = \STATUSPENDING$ and $\PENDING' (\OPH) =
     \Angle{\OP, \hat\TIME, \STATUSTIMEOUT}$; or
   \item  $\STATUS  = \STATUSPENDING$, $\TIME - \hat\TIME
-    \le 60 $, and
+    \le 60 $, 
     $\PENDING' (\OPH) =       \Angle{\OP, \hat\TIME, \STATUSINCLUDED\
-      \TIME}$.
+      \TIME}$, and $\TIME'=\TIME+1$.
   \end{itemize}
- \item\label{item:2} for all $\OPH \in \DOM(P)$ and $\PENDING (\OPH) = \Angle{\OP,  \hat\TIME, \STATUSPENDING}$, 
+ \item\label{item:2} for all $\OPH \in \DOM(P)$ and $\PENDING (\OPH) = \Angle{\OP,  \hat\TIME, \STATUS}$, 
     \begin{itemize}
-    	\item  if $\MANAGERS(\OP.\PUK) =  \Angle{\BAL, \COU}$ then  
-  $\COU.b = \TRUE$.
+    	\item  if $\STATUS=\STATUSPENDING$ and $\MANAGERS(\OP.\PUK) =  \Angle{\BAL, \COU}$ then  
+  $\COU.b = \TRUE$ and $\BAL \ge \OP.\NTEZ + \OP.\MTEZ$;
+\item if $\STATUS=\STATUSINCLUDED\ \hat\TIME$, then $\hat\TIME<\TIME'$.
     \end{itemize}
  \item\label{item:3} $ \DOM (\MANAGERS) \subseteq \DOM (\MANAGERS')$
  \item\label{item:4} for all $\PUK \in \DOM (\MANAGERS)$\\
@@ -1157,75 +1156,89 @@ If $[\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \BlockTrans{}
    implies that $\PUH = \GENERATEHASH (\CODE, \tilde\TIME)$.
 \end{enumerate}
 \end{proposition}
-Establishing these properties relies on the preimage resistance of the
+Establishing items~\ref{item:7} and~\ref{item:4} relies on the preimage resistance of the
 various hash functions used to calculate operation hashes and public
-hashes. Items~\ref{item:1}--\ref{item:2} describe an invariant and the lifecycle of
+hashes: we always feed a fresh timestamp into the hash
+functions for operations and code. Items~\ref{item:1}--\ref{item:2} describe an invariant and
+the lifecycle of 
 operations. Items~\ref{item:3} and \ref{item:4} describe the lifecycle
 of a transfer and items~\ref{item:5} and~\ref{item:6} describe
 invariants for contractors. The invariants establish the
 self-verifying property common of blockchain entities.
 
 \subsection{Typing related properties}
+% , the parameter type and the storage type.
+To describe the typing of contracts we maintain an environment
+$\Delta ::= \EmptyEnv \mid \PUH: \TYPE, \Delta$ that associates a
+public hash with a type.
+We define typing for blockchains, local nodes, and configurations.
+\begin{mathpar}
+  \inferrule{
+    \DOM (\Delta) = \DOM (\BLOCKCHAIN.\CONTRACTORS) \\
+    (\forall\PUH\in\DOM (\Delta)) \\
+    \Delta (\PUH) = \TPAIR\ \TYPE_p\ \TYPE_s \\
+    \JTypeCode{\BLOCKCHAIN.\CONTRACTORS (\PUH).\CODE} {\TPAIR\ \TYPE_p\ \TYPE_s}
+    \\
+    \JTypeValue{\BLOCKCHAIN.\CONTRACTORS (\PUH).\STORAGE}{ \TYPE_s}
+  }{\JTypeBlockchain\Delta\BLOCKCHAIN}
+\end{mathpar}
+The type for a hash is a pair type, which coincides with the type of
+the code stored at that hash. The storage at that hash has the type
+expected by the code.
+\begin{mathpar}
+  \inferrule{
+    \JTypeExpr\cdot{ \EXPR_i}\TUNIT  }{
+    \JTypeNode{[\overline{\EXPR}, \ACCOUNTS]}
+  }
 
-To describe contracts we associate each public hash with a pair of
-types, the parameter type and the storage type.
-\begin{align*}
-  \Delta & ::= \EmptyEnv \mid \PUH: \TPAIR\ \TYPE\ \TYPEU, \Delta
-\end{align*}
+  \inferrule{\JTypeBlockchain\Delta\BLOCKCHAIN \\
+    \JTypeNode{\NODE_i}
+  }{\JTypeConfig\Delta{\BLOCKCHAIN[\overline\NODE]}}
+\end{mathpar}
 
-Define $ \Delta \vdash \CONTRACTORS$ by
-\begin{itemize}
-\item $\DOM (\Delta) = \DOM (\CONTRACTORS)$
-\item $\JTypeCode{\CONTRACTORS (\PUH).\CODE} {\Delta (\PUH)}$
-\item $\JTypeValue{\CONTRACTORS (\PUH).\STORAGE}{ \TYPE_s}$ where
-  $\Delta (\PUH) = \TPAIR\ \TYPE_p\ \TYPE_s$. 
-\end{itemize}
-
-Preservation
-
-If $[\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \BlockTrans{}
-[\PENDING', \MANAGERS', \CONTRACTORS', \TIME']$
-and $\Delta \vdash \CONTRACTORS$, \\
-then
-there is some $\Delta' \supseteq \Delta$ such that $\Delta' \vdash
-\CONTRACTORS'$. 
-
-Consider a blockchain state  $[\PENDING, \MANAGERS, \CONTRACTORS,
-\TIME]$ where $\Delta \vdash \CONTRACTORS$.
+\begin{lemma}[Preservation]
+  If $\BLOCKCHAIN[\overline\NODE] \SystemTrans{} \BLOCKCHAIN'[\overline\NODE']$ and
+  $\JTypeBlockchain\Delta \BLOCKCHAIN$, then there is some
+  $\Delta' \supseteq \Delta$ such that
+  $\JTypeBlockchain{\Delta'}{ \BLOCKCHAIN'}$.
+\end{lemma}
+This lemma includes the standard preservation for the lambda calculus part.
+\begin{lemma}[Progress]
+  If $\JTypeConfig\Delta{\BLOCKCHAIN[\overline\NODE]}$, then either
+  all expressions in all nodes are unit values or there is a
+  configuration $\BLOCKCHAIN'[\overline\NODE']$ such that
+  $\BLOCKCHAIN[\overline\NODE] \SystemTrans \BLOCKCHAIN'[\overline\NODE']$.
+\end{lemma}
+The consistency lemma says that all committed transactions respect the
+typing.
+\begin{lemma}[Consistency]
+Consider a blockchain state with $\JTypeBlockchain\Delta {[\PENDING, \MANAGERS, \CONTRACTORS,
+\TIME]}$.
 
 For all $\OPH\in\DOM (\PENDING)$,
 if  $\PENDING (\OPH) =  \Angle{\OP, \hat\TIME, \STATUS}$
 \begin{itemize}
 \item if $\OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ$, then
-\begin{itemize}
-  \item
-  $\PUK, \PUK' \in \DOM (\MANAGERS)$
-\end{itemize}
+  $\PUK, \PUK' \in \DOM (\MANAGERS)$;
 \item if $\OP = \TRANSFER[\PARAMETER]\NTEZ\PUK\PUH\MTEZ$, then
   \begin{itemize}
-  \item $\PUK \in \DOM (\MANAGERS)$ and $\PUH\in\DOM (\CONTRACTORS)$
-  \item $\PARAMETER : \TYPE_p$ where $\Delta (\PUH)  =\TPAIR\ \TYPE_p\ \TYPE_s$. 
+  \item $\PUK \in \DOM (\MANAGERS)$ and $\PUH\in\DOM (\CONTRACTORS)$,
+  \item $\JTypeValue\PARAMETER{ \TYPE_p}$ where $\Delta (\PUH)  =\TPAIR\ \TYPE_p\ \TYPE_s$;
   \end{itemize}
-  
 \item if $\OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ$ and $\STATUS =
   \STATUSINCLUDED\ \TIME'$, then
-   \begin{itemize}
-   \item $\PUK \in \DOM (\MANAGERS)$
-  \item $\CODE : \TPAIR\ \TYPE_p\ \TYPE_s$
-  \item $\STRING : \TYPE_s$
-  \item if $\STATUS =
-  \STATUSINCLUDED\ \TIME'$, then $\PUH =\GENERATEHASH (\CODE, \hat\TIME) \in \DOM (\CONTRACTORS)$ and $\Delta (\PUH)  =\TPAIR\ \TYPE_p\ \TYPE_s$ (or $\CONTRACTORS(\PUH).\CODE = \CODE$).
-
+  \begin{itemize}
+  \item $\PUK \in \DOM (\MANAGERS)$ and  $\PUH =\GENERATEHASH (\CODE, \hat\TIME) \in \DOM (\CONTRACTORS)$,
+  \item $\Delta (\PUH)  =\TPAIR\ \TYPE_p\ \TYPE_s$,  $\JTypeCode\CODE{
+      \TPAIR\ \TYPE_p\ \TYPE_s}$ and $\JTypeValue\STRING{ \TYPE_s}$.
   \end{itemize}
-  
- \item if $st = \STATUSPENDING$ and $\MANAGERS(\PUK) = \Angle{\BAL,
-     \COU}$, then $\BAL \ge \NTEZ +  \MTEZ$ 
 \end{itemize}
+\end{lemma}
 
 
 \section{Related Work}
 \label{sec:related work}
-The inability to access external data sources limits the potential of smart contracts. Oracles \cite{oracle-patterns, call-action-oracle, oracles-study} can help overcome this limitation by providing a bridge between the outside sources and the blockchain network. A blockchain oracle is used to provide external data to smart contracts. Several researches have been done to provide oracle solutions for blockchain. The work in \cite{blockchain-oracles} proposes a framework to explain blockchain oracles and various key aspects of oracles. This framework aims to provide developers with a guide for incorporating oracles into blockchain-based applications. Practically, the decentralized oracle network Chainlink \cite{chainlink-whitepaper} is being developed to provide reliable, tamper-proof input for smart contracts on any blockchain. For a specific application, a system called Town Crier \cite{town-crier} provides an authenticated data feed, sourced from HTTPS-enabled data websites, for smart contracts on Ethereum. The authors in \cite{oracle-real-value} construct an oracle that can estimate the value of a real quantity, such as $R$. 
+The inability to access external data sources limits the potential of smart contracts. Oracles \cite{oracle-patterns,call-action-oracle,oracles-study} can help overcome this limitation by providing a bridge between the outside sources and the blockchain network. A blockchain oracle is used to provide external data to smart contracts. Several researches have been done to provide oracle solutions for blockchain. The work in \cite{blockchain-oracles} proposes a framework to explain blockchain oracles and various key aspects of oracles. This framework aims to provide developers with a guide for incorporating oracles into blockchain-based applications. Practically, the decentralized oracle network Chainlink \cite{chainlink-whitepaper} is being developed to provide reliable, tamper-proof input for smart contracts on any blockchain. For a specific application, a system called Town Crier \cite{town-crier} provides an authenticated data feed, sourced from HTTPS-enabled data websites, for smart contracts on Ethereum. The authors in \cite{oracle-real-value} construct an oracle that can estimate the value of a real quantity, such as $R$. 
 For application to prediction markets, there are Truthcoin system \cite{truthcoin-whitepaper} and Astraea, a trustless decentralized oracle \cite{astraea}.  
 
 The main problems with using a blockchain oracle are the untrusted data provided maliciously or inaccurately \cite{trustworthy}. The researchers in \cite{reliable-oracle} propose an oracle equipped with verification and disputation mechanisms. Similarly, researchers in \cite{reliablity-oracles} provide a framework for performing reliability analysis of various blockchain oracle platforms. Closely following our work, the authors in \cite{interact-coq} present a model-executable specification of smart-contract execution in Coq. Their formalizations target Ethereum and Tezos. 
