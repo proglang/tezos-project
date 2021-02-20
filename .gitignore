@@ -1,4 +1,6 @@
 auto
+*.bbl
+*.blg
 *.aux
 *.log
 *.out
