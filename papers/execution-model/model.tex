@@ -49,17 +49,43 @@ Peter Thiemann\orcidID{0000-0002-9000-1239}}
 \label{sec:introduction}
 
 
-{[Ultra-brief intro to blockchain]}
+First generation blockchains were primarily geared towards supporting
+cryptocurrencies. The most prominent system of this kind is Bitcoin
+\cite{bitcoin-whitepaper}. Though Bitcoin already features a
+rudimentary programming language called Script, second generation
+blockchains like the Ethereum blockchain \cite{eth-whitepaper} feature
+Turing-complete programming facilities, called 
+Smart Contracts. They provide robust trustworthy distributed computing
+facilities even though the programs run on a peer-to-peer network with
+untrusted participants. Each peer in the network runs the same program
+and uses cryptographic methods to check the results among the other
+peers and to create a persistent ledger of all transactions, the
+blockchain, thus ensuring the integrity of the results. Third
+generation blockchains, like Tezos \cite{tezos-whitepaper}, are even adaptable to
+new requirements without breaking participating peers (no ``hard
+forks'' required).
 
-Smart contracts rarely live in isolation. To reach their full
-potential, it should be possible to integrate them with traditional
-software systems and to enable input from outside the blockchain. Such
-input requires trusted intermediaries that run so-called oracles \cite{oracle-patterns,call-action-oracle}. A
+The strength of programs on the blockchain is also their
+weakness. They are fully deterministic in that they can only depend on
+data that is stored on the chain and on contract invocations, which are
+also stored on the chain. Moreover, the entire data as well as all
+transactions are public. These properties make it hard to react to
+external stimuli like time triggers or events like an exchange rate or
+a share price hitting a limit. 
+
+As smart contracts rarely live in isolation, it should be possible to
+integrate them with traditional software systems and to enable
+triggering contracts from outside the blockchain. Such triggers
+require trusted intermediaries that provide so-called oracles \cite{oracle-patterns,call-action-oracle}. A
 smart contract registers a request and a callback with an oracle. The
 oracle invokes the callback as soon as an answer is available. 
 
-We present two examples where integration of smart contracts is needed
-and propose a typed API for making such integration type safe.
+We present a typed API for invoking contracts from OCaml
+programs. Such an API with a reliable computing facility and network
+connection is sufficient to self provision an oracle and to avoid
+having to trust an oracle provider. Moreover, our approach provides a
+type-safe facility rather than oracles which are intrisically untyped
+because they aim to provide a generic service.
 
 \subsubsection{Contributions}
 \label{sec:contributions}
@@ -1269,6 +1295,16 @@ reliability analysis of various blockchain oracle platforms. Closely
 following our work, Nielsen and Spitters \cite{interact-coq} present a
 model-executable specification of smart-contract execution in
 Coq. Their formalizations target Ethereum and Tezos.  
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We present a first step towards a typed API for smart contracts on the
+Tezos blockchain. Our formalization enables us to establish basic
+properties of the interaction between ordinary programs and smart
+contracts. We see ample scope for future work to provide a
+higher-level interface that exploits the similarities between
+blockchain programming and concurrent programs.
 
 \newpage{}
 
