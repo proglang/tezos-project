@@ -1,6 +1,6 @@
 (library
   (name type_checker)
-  (modules type_checker)
+  (modules type_checker union_path)
   (libraries core
              dao_script
              dao_type

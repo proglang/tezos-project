@@ -142,36 +142,38 @@ let rec match_single entrypoints (ep_name, ep_pattern) matches =
        | ms -> get_unambiguous_ep ep_name ms
      end
 
+module EntrypointPaths = Map.Make(String)
+
 let add_missing_tags
       ({source = src; expanded = exp; unexpanded = unexp; expansion_table = exp_tbl; unexpansion_table = unexp_tbl} : Michelson_v1_parser.parsed) =
   (* Use id numbers from 1..n as generated ep tags; maybe use something more random in the future to avoid collisions with original tags *)
   let n = ref 1 in
-  let rec add_tags (exprs : (int, prim) Micheline.node list) : (int, prim) Micheline.node list =
+  let rec add_tags (exprs : (int, prim) Micheline.node) : (int, prim) Micheline.node =
     match exprs with
     (* Prim (location, primitive, operator nodes, annotations) *)
-    | (Prim (l, T_or, nodes, [])) :: rest ->
+    | (Prim (l, T_or, nodes, [])) ->
        if !n = 1 then
          (* Default tag is automatically added by Tezos to the toplevel node; we don't have to add one too*)
-         (Prim (l, T_or, nodes, [])) :: (add_tags rest)
+         let new_nodes = List.map add_tags nodes in
+         (Prim (l, T_or, new_nodes, []))
        else
          (* Add field annotation with generated entrypoint tag*)
          let tag = "%" ^ string_of_int !n in
          n := !n + 1;
          (* Recursively add tags to all entrypoints within the union *)
-         let new_nodes = add_tags nodes in
-         (Prim (l, T_or, new_nodes, [tag])) :: (add_tags rest)
+         let new_nodes = List.map add_tags nodes in
+         (Prim (l, T_or, new_nodes, [tag]))
     (* Skip Or nodes which already have an annotation *)
-    | (Prim (l, T_or, nodes, annot)) :: rest ->
-       let new_nodes = add_tags nodes in
-       (Prim (l, T_or, new_nodes, annot)) :: (add_tags rest)
+    | (Prim (l, T_or, nodes, annot)) ->
+       let new_nodes = List.map add_tags nodes in
+       (Prim (l, T_or, new_nodes, annot))
     (* Reached a non-union entrypoint - add tag and skip operators*)
-    | (Prim (l, prim, nodes, [])) :: rest ->
+    | (Prim (l, prim, nodes, [])) ->
        let tag = "%" ^ string_of_int !n in
        n := !n + 1;
-       (Prim (l, prim, nodes, [tag])) :: (add_tags rest)
+       (Prim (l, prim, nodes, [tag]))
     (* Type signatures should only contain primitives; we don't care about other node types*)
-    | (_ as node) :: rest -> node :: (add_tags rest)
-    | [] -> []
+    | node -> node
   in
   (* TODO: find more accurate name *)
   let rec find_parameters (root : (int, prim) Micheline.node) : (int, prim) Micheline.node =
@@ -179,14 +181,14 @@ let add_missing_tags
     match root with
     (* The contract parameter type is tagged with the K_parameter primitive *)
     | Prim (l, K_parameter, nodes, annot) ->
-       let new_nodes = add_tags nodes in
+       let new_nodes = List.map add_tags nodes in
        Prim (l, K_parameter, new_nodes, annot)
     | Prim (l, prim, nodes, annot) ->
-       let new_nodes = List.map (fun node -> find_parameters node) nodes in
+       let new_nodes = List.map find_parameters nodes in
        Prim (l, prim, new_nodes, annot)
     (* root = [parameters; storage; code ]; Represented in the Tezos AST with a Sequence node *)
     | Seq (l, nodes) ->
-       let new_nodes = List.map (fun node -> find_parameters node) nodes in
+       let new_nodes = List.map find_parameters nodes in
        Seq (l, new_nodes)
     | _ as node -> node
   in
