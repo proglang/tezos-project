@@ -121,7 +121,7 @@ let compare_type_pattern ep_pattern expr =
   let root = Micheline.root expr in
   cmp_type_pattern_rec ep_pattern root
 
-let rec type_check_single entrypoints (ep_name, ep_pattern) matches =
+let rec match_single entrypoints (ep_name, ep_pattern) matches =
   let rec get_unambiguous_ep ep_name = function
     | [] -> failwith "Ambiguous entry point: %s" ep_name
     | ((tag, _) as ep) :: eps ->
@@ -132,8 +132,8 @@ let rec type_check_single entrypoints (ep_name, ep_pattern) matches =
   | (tag, expr) :: rest ->
      compare_type_pattern ep_pattern expr
      >>=? fun res ->
-     if res then type_check_single rest (ep_name, ep_pattern) ((tag, expr) :: matches)
-     else type_check_single rest (ep_name, ep_pattern) matches
+     if res then match_single rest (ep_name, ep_pattern) ((tag, expr) :: matches)
+     else match_single rest (ep_name, ep_pattern) matches
   | [] ->
      begin
        match matches with
@@ -208,9 +208,10 @@ let get_script = function
 
 let type_check dao (asts : Ast.ast list)  =
   let f eps ({entrypoint = (tag, pat); _}: Ast.ast) =
-    type_check_single eps (tag, pat) []
+    match_single eps (tag, pat) []
     >>=? function
-    | Some (ep_tag, _) -> return @@ List.filter (fun (t, _ ) -> if t = "default" then true else if t = ep_tag then false else true) eps
+    | Some (ep_tag, _) ->
+      return @@ List.filter (fun (t, _ ) -> if t = "default" then true else if t = ep_tag then false else true) eps
     | None -> failwith "Entrypoint type mismatch: %s" tag
   in
   begin
