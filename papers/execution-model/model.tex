@@ -96,7 +96,8 @@ because they aim to provide a generic service.
 \item Established various properties of the combined system withs
   proofs in upcoming techreport.
 \item An implementation of a low-level OCaml-API to the Tezos
-  blockchain, which corresponds to the operational semantics.
+  blockchain, which corresponds to the operational semantics.\footnote{%
+    Available at \url{https://github.com/tezos-project/Tezos-Ocaml-API}.}
 \end{itemize}
 
 \section{Motivation}
@@ -254,7 +255,7 @@ the possible behaviors of the system. In particular, we do
 \textbf{not} formalize the execution of the smart contracts
 themselves, we rather consider them as black boxes that execute in a
 safe-safe way. Tezos' smart contract language Michelson and its
-properties have been formalized elsewhere \cite{type-safe-michelson}.
+properties have been formalized elsewhere \cite{DBLP:conf/fm/BernardoCHPT19}.
 
 We write $\emptyset$ for the empty set and $\mathbf{e :: s}$ to
 decompose a set nondeterministically into an element $\mathbf{e}$ and a set
@@ -291,22 +292,22 @@ contract's storage. Each operation returns an \emph{operation hash}
 
 The local node offers several ways to query the current state of
 the blockchain.
-\emph{Queries} are defined by the following grammar:
+\emph{Query operators} are defined by the following grammar:
 \begin{align*}
-  \QRY & ::=
+  \QOP & ::=
   % \GETCOUNTER\PUK  
   %        \mid
-         \GETBALANCE\ADDR
-  \mid \GETSTATUS\OPH
-  \mid \GETSTORAGE\PUH
+         \GETBALANCE{}%\ADDR
+  \mid \GETSTATUS{}%\OPH
+  \mid \GETSTORAGE{}%\PUH
   % \mid \GETCODE\PUH 
   % \mid \GETTYPE\PUH
-  \mid \GETCONTRACT\OPH
+  \mid \GETCONTRACT{}%\OPH
 \end{align*}
 We obtain the balance associated with an implicit account or a
 contract by its public key or public hash, respectively; the status of
 a submitted operation by its operation hash; the stored value of a
-contract by its public hash; and the code of a contract by the
+contract by its public hash; and the public hash of a contract by the
 operation hash of its originating transaction.
 
 The domain-specific types come with different guarantees. Values of
@@ -358,9 +359,10 @@ that type, all values of \TOPH\ are valid.
   \\
   \PATTERN &::= \VARIABLE \mid (\PATTERN, \PATTERN) \mid \NIL \mid \CONS\ \PATTERN\ \PATTERN \mid \LEFT\ \PATTERN \mid\RIGHT\
              \PATTERN \mid \SOME\ \PATTERN \mid \NONE \\
-  &\mid \FALSE \mid \TRUE \mid \STATUS \mid \ERROR\\
-  \QOP & ::= \GETBALANCE{} \mid \GETSTATUS{} \mid \GETSTORAGE{} \mid \GETCODE{} \mid \GETCOUNTER{}
-         \mid \GETTYPE{}
+            &\mid \FALSE \mid \TRUE \mid \STATUS \mid \ERROR
+  % \\
+  % \QOP & ::= \GETBALANCE{} \mid \GETSTATUS{} \mid \GETSTORAGE{} \mid \GETCODE{} \mid \GETCOUNTER{}
+  %        \mid \GETTYPE{}
   \\[2ex]
   \TYPE, \TYPEU & ::=
                   \TPUH \mid
@@ -387,10 +389,7 @@ operations, as well as several exceptional values collected in \ERROR.
 Pattern matching is the only means to decompose values, cf.\ \PATTERN.
 There is syntax to initiate transfers and to originate contracts as
 well as for the queries. Finally, there is a type cast
-$\CAST\EXPR\TYPE\TYPEU$, which is only applicable to pairs of
-types related in the reflexive, transitive, and symmetric closure of
-the subtyping relation in Figure~\ref{fig:subtyping}. Upcasts will
-just go through, but downcasts may raise an exception, as usual.
+$\CAST\EXPR\TYPE\TYPEU$, which we describe after discussing types.
 
 Types (also in Figure~\ref{fig:syntax-expressions}) comprise a
 collection of standard base types as well as 
@@ -443,8 +442,9 @@ standard for call-by-value lambda calculus.
 % and retry is omitted.
 
 
-We define a relation $\SubType$ that establishes pairs of types that can be
-subjected to casting. It is given by the axioms
+Type casts are only applicable to certain pairs of
+types governed by a relation $\SubType$, which could also serve as a
+subtyping relation. It is given by the axioms
 $\inferrule{}{\TPUH \SubType \TADDR}$, $\inferrule{}{\TPUK \SubType
   \TADDR}$, and $\inferrule{}{\TCONTRACT\ \TYPE \SubType \TPUH}$.
 A cast from $\TYPE$ to $\TYPEU$ is only allowed
