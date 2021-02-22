@@ -147,6 +147,10 @@ let add_missing_tags
   let n = ref 1 in
   let rec add_tags (exprs : (int, prim) Micheline.node list) : (int, prim) Micheline.node list =
     match exprs with
+    | (Prim (l, T_or, nodes, [])) :: rest ->
+       let tag = "%" ^ string_of_int !n in
+       n := !n + 1;
+       (Prim (l, T_or, nodes, [tag])) :: (add_tags rest)
     | (Prim (l, T_or, nodes, annot)) :: rest ->
        let new_nodes = add_tags nodes in
        (Prim (l, T_or, new_nodes, annot)) :: (add_tags rest)
