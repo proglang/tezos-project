@@ -1,6 +1,6 @@
 (library
   (name type_checker)
-  (modules type_checker SyncAPIV0_context)
+  (modules type_checker)
   (libraries core
              dao_script
              dao_type

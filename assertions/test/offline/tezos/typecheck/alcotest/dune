@@ -1,5 +1,7 @@
+(copy_files ../../../../../src/offline/tezos/typecheck/union_path.ml*)
+
 (tests
- (names test_typecheck_types test_match_contract)
+ (names test_typecheck_types test_match_contract test_union_path)
  (libraries core
 	    alcotest-lwt
 	    lwt
