@@ -144,8 +144,12 @@ let rec match_single entrypoints (ep_name, ep_pattern) matches =
 
 module EntrypointPaths = Map.Make(String)
 
-let add_missing_tags
-      ({source = src; expanded = exp; unexpanded = unexp; expansion_table = exp_tbl; unexpansion_table = unexp_tbl} : Michelson_v1_parser.parsed) =
+let add_tags_and_build_paths
+      ({source = src;
+        expanded = exp;
+        unexpanded = unexp;
+        expansion_table = exp_tbl;
+        unexpansion_table = unexp_tbl} : Michelson_v1_parser.parsed) =
   (* Use id numbers from 1..n as generated ep tags; maybe use something more random in the future to avoid collisions with original tags *)
   let n = ref 0 in
   let paths = ref EntrypointPaths.empty in
@@ -185,8 +189,31 @@ let add_missing_tags
     (* Type signatures should only contain primitives; we don't care about other node types *)
     | _ -> node
   in
+  (* Traverses the parameter tree and builds a map which stores the path of the entrypoint within possibly nested unions *)
+  let rec build_path path (node : (int, prim) Micheline.node) =
+    let open Union_path in
+    match node with
+    (* Union node; build paths recursively for left and right *)
+    | (Prim (_, T_or, l :: r :: [], annot)) ->
+       begin
+         build_path (add (Left T) path) l;
+         build_path (add (Right T) path) r;
+         match get_tag_annot annot with
+         | Some tag ->
+            (* Add the path to the current node into the map *)
+            paths := EntrypointPaths.add tag path !paths;
+         | None -> () (* Toplevel node has likely no annotation *)
+       end
+    (* Reached a non-union entrypoint; add path and skip operators*)
+    | (Prim (_, _, _, annot)) ->
+       begin
+         match get_tag_annot annot with
+         | Some tag -> paths := EntrypointPaths.add tag path !paths
+         | None -> Stdlib.failwith "Unexpected error: entrypoints has no tag"
+       end
     (* Type signatures should only contain primitives; we don't care about other node types*)
-    | node -> node
+    | _ -> ()
+(* TODO: find more accurate name *)
   in
   let rec find_and_edit_parameters (root : (int, prim) Micheline.node) : (int, prim) Micheline.node =
     (* Search the toplevel parameter node in the Tezos AST *)
@@ -195,6 +222,8 @@ let add_missing_tags
     | Prim (l, K_parameter, node :: [], annot) ->
        (* Add missing ep tags *)
        let new_node = rec_add_tags node in
+       (* Build a map with the path within the union for each entrypoint *)
+       build_path T node;
        Prim (l, K_parameter, [new_node], annot)
     (* root = [parameters; storage; code ]; Represented in the Tezos AST with a Sequence node *)
     | Seq (l, nodes) ->
@@ -213,7 +242,7 @@ let add_missing_tags
       unexpanded = unexp;
       expansion_table = exp_tbl;
       unexpansion_table = unexp_tbl} : Michelson_v1_parser.parsed) in
-  return new_parsed
+  return (new_parsed, !paths)
 
 let get_script = function
   | DAO_File path -> Dao_file.get_script ~path
@@ -232,7 +261,7 @@ let type_check dao (asts : Ast.ast list)  =
     get_script dao
     >>=? fun script ->
     add_tags_and_build_paths script
-    >>=? fun script ->
+    >>=? fun (script, _) ->
     get_entrypoints script
     >>=? fun entrypoints ->
     fold_left_s f entrypoints asts
