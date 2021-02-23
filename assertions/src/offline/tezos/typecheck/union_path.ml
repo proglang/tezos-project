@@ -9,6 +9,11 @@ let rec eq up1 up2 =
   | Right r_up1, Right r_up2 -> eq r_up1 r_up2
   | _ -> false
 
+let rec add lvl = function
+  | T -> lvl
+  | Left l -> Left (add lvl l)
+  | Right r -> Right (add lvl r)
+
 let rec pp ppf = function
   | T -> ()
   | Left l -> Fmt.pf ppf "L"; pp ppf l

@@ -37,5 +37,15 @@ let () =
          test_case "RL" `Quick (fun () -> test_up_uneq (Right T, Left T));
          test_case "LR" `Quick (fun () -> test_up_uneq (Left T, Right T));
        ]
-      )
+      );
+      ("Add",
+       [
+         test_case "T + T" `Quick (fun () -> test_up_eq (T, add T T));
+         test_case "L + T" `Quick (fun () -> test_up_eq (Left T, add T (Left T)));
+         test_case "T + L" `Quick (fun () -> test_up_eq (Left T, add (Left T) T));
+         test_case "R + T" `Quick (fun () -> test_up_eq (Right T, add T (Right T)));
+         test_case "T + R" `Quick (fun () -> test_up_eq (Right T, add (Right T) T));
+         test_case "L + R" `Quick (fun () -> test_up_eq (Left (Right T), add (Right T) (Left T)));
+         test_case "R + L" `Quick (fun () -> test_up_eq (Right (Left T), add (Left T) (Right T)));
+      ])
     ]
