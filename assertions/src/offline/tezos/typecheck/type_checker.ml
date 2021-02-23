@@ -261,7 +261,10 @@ let type_check dao (asts : Ast.ast list)  =
     get_script dao
     >>=? fun script ->
     add_tags_and_build_paths script
-    >>=? fun (script, _) ->
+    >>=? fun (script, paths) ->
+    EntrypointPaths.iter
+      (fun tag up -> Printf.printf "%s: %s" tag (asprintf "%a" Union_path.pp up))
+      paths;
     get_entrypoints script
     >>=? fun entrypoints ->
     fold_left_s f entrypoints asts
