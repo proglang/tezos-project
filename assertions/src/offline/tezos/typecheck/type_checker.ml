@@ -147,61 +147,73 @@ module EntrypointPaths = Map.Make(String)
 let add_missing_tags
       ({source = src; expanded = exp; unexpanded = unexp; expansion_table = exp_tbl; unexpansion_table = unexp_tbl} : Michelson_v1_parser.parsed) =
   (* Use id numbers from 1..n as generated ep tags; maybe use something more random in the future to avoid collisions with original tags *)
-  let n = ref 1 in
-  let rec add_tags (exprs : (int, prim) Micheline.node) : (int, prim) Micheline.node =
-    match exprs with
+  let n = ref 0 in
+  let paths = ref EntrypointPaths.empty in
+  let tag_regex = Str.regexp "%." in
+  let rec get_tag_annot = function
+    | a :: annots -> if Str.string_match tag_regex a 0
+                     then Some a else get_tag_annot annots
+    | [] -> None
+  in
+  let add_tag_annot annot =
+    (* Default tag is automatically added by Tezos to the toplevel node; we don't have to add one too *)
+    (* start the id counter *)
+    if !n = 0 then (n := 1; annot)
+    else
+      match get_tag_annot annot with
+      | Some _ -> annot
+      | None ->
+         begin
+           let tag = "%" ^ string_of_int !n in
+           n := !n + 1;
+           tag :: annot
+         end
+  in
+  (* Add generated tags to tagless entrypoints recursively *)
+  let rec rec_add_tags (node : (int, prim) Micheline.node) : ((int, prim) Micheline.node) =
+    match node with
     (* Prim (location, primitive, operator nodes, annotations) *)
-    | (Prim (l, T_or, nodes, [])) ->
-       if !n = 1 then
-         (* Default tag is automatically added by Tezos to the toplevel node; we don't have to add one too*)
-         let new_nodes = List.map add_tags nodes in
-         (Prim (l, T_or, new_nodes, []))
-       else
-         (* Add field annotation with generated entrypoint tag*)
-         let tag = "%" ^ string_of_int !n in
-         n := !n + 1;
-         (* Recursively add tags to all entrypoints within the union *)
-         let new_nodes = List.map add_tags nodes in
-         (Prim (l, T_or, new_nodes, [tag]))
-    (* Skip Or nodes which already have an annotation *)
     | (Prim (l, T_or, nodes, annot)) ->
-       let new_nodes = List.map add_tags nodes in
-       (Prim (l, T_or, new_nodes, annot))
+       let new_annot = add_tag_annot annot in
+       let new_nodes = List.map rec_add_tags nodes in
+       (Prim (l, T_or, new_nodes, new_annot))
     (* Reached a non-union entrypoint - add tag and skip operators*)
     | (Prim (l, prim, nodes, [])) ->
        let tag = "%" ^ string_of_int !n in
        n := !n + 1;
        (Prim (l, prim, nodes, [tag]))
+    (* Type signatures should only contain primitives; we don't care about other node types *)
+    | _ -> node
+  in
     (* Type signatures should only contain primitives; we don't care about other node types*)
     | node -> node
   in
-  (* TODO: find more accurate name *)
-  let rec find_parameters (root : (int, prim) Micheline.node) : (int, prim) Micheline.node =
+  let rec find_and_edit_parameters (root : (int, prim) Micheline.node) : (int, prim) Micheline.node =
     (* Search the toplevel parameter node in the Tezos AST *)
     match root with
     (* The contract parameter type is tagged with the K_parameter primitive *)
-    | Prim (l, K_parameter, nodes, annot) ->
-       let new_nodes = List.map add_tags nodes in
-       Prim (l, K_parameter, new_nodes, annot)
-    | Prim (l, prim, nodes, annot) ->
-       let new_nodes = List.map find_parameters nodes in
-       Prim (l, prim, new_nodes, annot)
+    | Prim (l, K_parameter, node :: [], annot) ->
+       (* Add missing ep tags *)
+       let new_node = rec_add_tags node in
+       Prim (l, K_parameter, [new_node], annot)
     (* root = [parameters; storage; code ]; Represented in the Tezos AST with a Sequence node *)
     | Seq (l, nodes) ->
-       let new_nodes = List.map find_parameters nodes in
+       let new_nodes = List.map find_and_edit_parameters nodes in
        Seq (l, new_nodes)
     | _ as node -> node
   in
   (* Transform the AST from the canonical representation to the editable non-canonical representation *)
   let root = Micheline.root exp in
   (* Add entrypoint tags and transform back to the canonical representation *)
-  let new_expanded = Micheline.strip_locations @@ find_parameters root in
-  return
-    ({source = src;
+  let new_expanded = Micheline.strip_locations @@
+                       find_and_edit_parameters root
+  in
+  let new_parsed = ({source = src;
       expanded = new_expanded;
       unexpanded = unexp;
       expansion_table = exp_tbl;
-      unexpansion_table = unexp_tbl} : Michelson_v1_parser.parsed)
+      unexpansion_table = unexp_tbl} : Michelson_v1_parser.parsed) in
+  return new_parsed
 
 let get_script = function
   | DAO_File path -> Dao_file.get_script ~path
@@ -219,7 +231,7 @@ let type_check dao (asts : Ast.ast list)  =
   begin
     get_script dao
     >>=? fun script ->
-    add_missing_tags script
+    add_tags_and_build_paths script
     >>=? fun script ->
     get_entrypoints script
     >>=? fun entrypoints ->
