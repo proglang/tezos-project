@@ -8,6 +8,7 @@ open SyncAPIV1
 open Tezos_ast
 open Dao_script
 open Dao_type
+open Micheline_annotations
 
 let get_entrypoints (progr : Michelson_v1_parser.parsed) =
   Api.list_entrypoints progr
@@ -170,22 +171,16 @@ let add_tags_and_build_paths
   (* Use id numbers from 1..n as generated ep tags; maybe use something more random in the future to avoid collisions with original tags *)
   let n = ref 0 in
   let paths = ref EntrypointPaths.empty in
-  let tag_regex = Str.regexp "%." in
-  let rec get_tag_annot = function
-    | a :: annots -> if Str.string_match tag_regex a 0
-                     then Some a else get_tag_annot annots
-    | [] -> None
-  in
   let add_tag_annot annot =
     (* Default tag is automatically added by Tezos to the toplevel node; we don't have to add one too *)
     (* start the id counter *)
     if !n = 0 then (n := 1; annot)
     else
-      match get_tag_annot annot with
+      match get_field_annot annot with
       | Some _ -> annot
       | None ->
          begin
-           let tag = "%" ^ string_of_int !n in
+           let tag = field_annot_of_string @@ string_of_int !n in
            n := !n + 1;
            tag :: annot
          end
@@ -199,10 +194,9 @@ let add_tags_and_build_paths
        let new_nodes = List.map rec_add_tags nodes in
        (Prim (l, T_or, new_nodes, new_annot))
     (* Reached a non-union entrypoint - add tag and skip operators*)
-    | (Prim (l, prim, nodes, [])) ->
-       let tag = "%" ^ string_of_int !n in
-       n := !n + 1;
-       (Prim (l, prim, nodes, [tag]))
+    | (Prim (l, prim, nodes, annot)) ->
+       let new_annot = add_tag_annot annot in
+       (Prim (l, prim, nodes, new_annot))
     (* Type signatures should only contain primitives; we don't care about other node types *)
     | _ -> node
   in
