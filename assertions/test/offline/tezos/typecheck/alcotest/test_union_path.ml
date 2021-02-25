@@ -1,3 +1,6 @@
+open Test_helpers
+open Dao_script
+open Tezos_raw_protocol_007_PsDELPH1.Michelson_v1_primitives
 
 let union_path_testable_eq =
   Alcotest.testable Union_path.pp (fun up1 up2 -> Union_path.eq up1 up2)
@@ -10,6 +13,62 @@ let test_up_eq (up1, up2) =
 
 let test_up_uneq (up1, up2) =
   Alcotest.(check union_path_testable_uneq) "unequal" up1 up2
+
+let union_path_mapping_testable =
+  let rec eq_mapping m1 m2 =
+    match m1, m2 with
+    | [], [] -> true
+    | (t1, p1) :: r1, (t2, p2) :: r2 ->
+       if t1 = t2 && (Union_path.eq p1 p2)
+       then eq_mapping r1 r2
+       else false
+    | _ -> false
+  in
+  let pp_mapping ppf mapping =
+    let rec rec_pp_mapping ppf = function
+      | [] -> ()
+      | (t, p) :: [] -> (
+         Fmt.pf ppf "(%s, " t;
+         Union_path.pp ppf p;
+         Fmt.pf ppf ")"; )
+      | (t, p) :: rest -> (
+        Fmt.pf ppf "(%s, " t;
+        Union_path.pp ppf p;
+        Fmt.pf ppf ");";
+        rec_pp_mapping ppf rest)
+    in
+    Fmt.pf ppf "[" ;
+    rec_pp_mapping ppf mapping;
+    Fmt.pf ppf "]" ;
+  in
+  Alcotest.testable pp_mapping (fun map1 map2 -> eq_mapping map1 map2)
+
+let test_mapping (param, target_mapping) =
+  let rec get_parameters (nodes : (int, prim) Micheline.node list) =
+    match nodes with
+    | Prim (_, K_parameter, node :: [], _) :: _ ->
+       node
+    | Seq (_, ns) :: _ -> get_parameters ns
+    | _ :: nodes -> get_parameters nodes
+    | [] -> Alcotest.fail "No parameters found in Micheline AST"
+  in
+   let contract = generate_contract param in
+   let script = Lwt_main.run @@ Dao_string.get_script contract in
+   match script with
+   | Ok {expanded = exp; _} ->
+      begin
+        let root = Micheline.root exp in
+        let parameter_node = get_parameters [root] in
+        let path_bindings = Union_path.from_micheline parameter_node in
+        Alcotest.(check union_path_mapping_testable)
+          "same mapping"
+          target_mapping
+          path_bindings
+      end
+   | Error err ->
+      let open Tezos_error_monad in
+      let print_error = (fun s err -> s ^ (Format.asprintf "%a\n" Error_monad.pp err)) in
+      Alcotest.fail @@ List.fold_left print_error "" err
 
 let () =
   let open Alcotest in
@@ -47,5 +106,10 @@ let () =
          test_case "T + R" `Quick (fun () -> test_up_eq (Right T, add (Right T) T));
          test_case "L + R" `Quick (fun () -> test_up_eq (Left (Right T), add (Right T) (Left T)));
          test_case "R + L" `Quick (fun () -> test_up_eq (Right (Left T), add (Left T) (Right T)));
+      ]);
+       ("Build paths from Micheline",
+       [
+         test_case "No union w/o tag" `Quick (fun () -> test_mapping ("int", [("%default", T)]));
+         test_case "No union w/ tag" `Quick (fun () -> test_mapping ("(int %A)", [("%A", T)]))
       ])
     ]
