@@ -47,6 +47,6 @@ let from_micheline node =
   build_paths node T []
 
 let rec pp ppf = function
-  | T -> ()
+  | T -> Fmt.pf ppf "T"
   | Left l -> Fmt.pf ppf "L"; pp ppf l
   | Right r -> Fmt.pf ppf "R"; pp ppf r
