@@ -200,32 +200,6 @@ let add_tags_and_build_paths
     (* Type signatures should only contain primitives; we don't care about other node types *)
     | _ -> node
   in
-  (* Traverses the parameter tree and builds a map which stores the path of the entrypoint within possibly nested unions *)
-  let rec build_path path (node : (int, prim) Micheline.node) =
-    let open Union_path in
-    match node with
-    (* Union node; build paths recursively for left and right *)
-    | (Prim (_, T_or, l :: r :: [], annot)) ->
-       begin
-         build_path (add (Left T) path) l;
-         build_path (add (Right T) path) r;
-         match get_tag_annot annot with
-         | Some tag ->
-            (* Add the path to the current node into the map *)
-            paths := EntrypointPaths.add tag path !paths;
-         | None -> () (* Toplevel node has likely no annotation *)
-       end
-    (* Reached a non-union entrypoint; add path and skip operators*)
-    | (Prim (_, _, _, annot)) ->
-       begin
-         match get_tag_annot annot with
-         | Some tag -> paths := EntrypointPaths.add tag path !paths
-         | None -> Stdlib.failwith "Unexpected error: entrypoints has no tag"
-       end
-    (* Type signatures should only contain primitives; we don't care about other node types*)
-    | _ -> ()
-(* TODO: find more accurate name *)
-  in
   let rec find_and_edit_parameters (root : (int, prim) Micheline.node) : (int, prim) Micheline.node =
     (* Search the toplevel parameter node in the Tezos AST *)
     match root with
@@ -233,8 +207,11 @@ let add_tags_and_build_paths
     | Prim (l, K_parameter, node :: [], annot) ->
        (* Add missing ep tags *)
        let new_node = rec_add_tags node in
-       (* Build a map with the path within the union for each entrypoint *)
-       build_path T node;
+       (* Build the union paths for each entrypoint and create a mapping *)
+       let path_bindings = Union_path.from_micheline new_node in
+       List.iter
+         (fun (tag, path) -> paths := EntrypointPaths.add tag path !paths)
+         path_bindings;
        Prim (l, K_parameter, [new_node], annot)
     (* root = [parameters; storage; code ]; Represented in the Tezos AST with a Sequence node *)
     | Seq (l, nodes) ->
@@ -262,14 +239,44 @@ let get_script = function
   | DAO_Chain address -> Dao_chain.get_script ~address
   | DAO_String s -> Dao_string.get_script s
 
-let type_check dao (asts : Ast.ast list)  =
-  let f eps ({entrypoint = (tag, pat); _}: Ast.ast) =
-    match_single eps (tag, pat) []
+let do_typecheck asts paths entrypoints =
+  let update_unvisited tag path unvisited =
+    if List.mem path unvisited then
+      (* Remove ancestors & decendants *)
+      return unvisited
+    else
+      failwith "Duplicate entrypoint: %s" tag
+  in
+  let do_typecheck_single unvisited ({entrypoint = (tag, pat); _}: Ast.ast) =
+    match_single entrypoints (tag, pat) []
     >>=? function
     | Some (ep_tag, _) ->
-      return @@ List.filter (fun (t, _ ) -> if t = "default" then true else if t = ep_tag then false else true) eps
+       begin
+         if ep_tag = "default" then
+           begin
+             (*
+             let path = build_path_from_assertion_type pat in
+             return @@ update_unvisited tag path unvisited
+              *)
+             return unvisited
+           end
+         else
+           begin
+             match EntrypointPaths.find_opt ep_tag paths with
+             (* Update the list of unvisited paths *)
+             | Some path -> update_unvisited tag path unvisited
+             (* Should never happen, as we calculated the path for all eps *)
+             | None -> failwith "Unexpected error: no union path for entrypoint found"
+           end
+       end
     | None -> failwith "Entrypoint type mismatch: %s" tag
   in
+  let unvisited = List.map (fun (_, path) -> path)
+                    @@ EntrypointPaths.bindings paths
+  in
+  fold_left_s do_typecheck_single unvisited asts
+
+let type_check dao (asts : Ast.ast list) =
   begin
     get_script dao
     >>=? fun script ->
@@ -280,7 +287,7 @@ let type_check dao (asts : Ast.ast list)  =
       paths;
     get_entrypoints script
     >>=? fun entrypoints ->
-    fold_left_s f entrypoints asts
+    do_typecheck asts paths entrypoints
     >>=? fun _ -> return_unit
   end
   >>= function
