@@ -69,30 +69,29 @@ let rec compare_type (ty1: (int, prim) Micheline.node) (ty2: Ast.ty) =
      end
   | _ -> return_false (*failwith "Unexpected Micheline AST node"*)
 
-(*  Renaming after adding completion -> eq, not cmp*)
-let compare_type_pattern ep_pattern expr =
-  let rec cmp_type_pattern_rec ep_pattern (expr : (int, prim) Micheline.node)  =
+let eq_type_pattern ep_pattern expr =
+  let rec eq_type_pattern_rec ep_pattern (expr : (int, prim) Micheline.node)  =
     match expr with
     | Prim (_, prim, nodes, _) ->
        begin
          match prim, ep_pattern, nodes with
          | T_or, `Left p, op1_ty :: _ :: [] ->
             (* TODO: return completed type tree *)
-            cmp_type_pattern_rec p op1_ty
+            eq_type_pattern_rec p op1_ty
          | T_or, `Right p, _ :: op2_ty :: [] ->
             (* TODO: return completed type tree *)
-            cmp_type_pattern_rec p op2_ty
+            eq_type_pattern_rec p op2_ty
          | T_option, `None, _ :: [] ->
             (* TODO: return completed type tree *)
             return_true
          | T_option, `Some p, op_ty :: [] ->
             (* TODO: return completed type tree *)
-            cmp_type_pattern_rec p op_ty
+            eq_type_pattern_rec p op_ty
          | T_pair, `Pair (p1, p2), op1_ty :: op2_ty :: [] ->
             begin
-              cmp_type_pattern_rec p1 op1_ty
+              eq_type_pattern_rec p1 op1_ty
               >>=? fun eq_op1 ->
-              cmp_type_pattern_rec p2 op2_ty
+              eq_type_pattern_rec p2 op2_ty
               >>=? fun eq_op2 ->
               (* TODO: return completed type tree *)
               return (eq_op1 && eq_op2)
@@ -101,9 +100,9 @@ let compare_type_pattern ep_pattern expr =
             (* TODO: return completed type tree *) return_true
          | T_list, `Cons (p1, p2), op_ty :: [] ->
             begin
-              cmp_type_pattern_rec p1 op_ty
+              eq_type_pattern_rec p1 op_ty
               >>=? fun eq_op1 ->
-              cmp_type_pattern_rec p2 expr
+              eq_type_pattern_rec p2 expr
               >>=? fun eq_op2 ->
               (* TODO: return completed type tree *)
               return (eq_op1 && eq_op2)
@@ -119,10 +118,17 @@ let compare_type_pattern ep_pattern expr =
     | _ -> failwith "Unexpected Tezos internal AST type"
   in
   let root = Micheline.root expr in
-  cmp_type_pattern_rec ep_pattern root
+  eq_type_pattern_rec ep_pattern root
 
+(* Checks whether the assertion type matches an entrypoint type of the contract
+ * and returns the matching entrypoint if the assignment is unambiguous
+ *)
 let rec match_single entrypoints (ep_name, ep_pattern) matches =
+  (* If >1 entrypoints match the assertion type, check if it can be matched
+   * unambiguosly through the tags
+   *)
   let rec get_unambiguous_ep ep_name = function
+      (* No identical tags found; assertion cannot be unambigusouly assigned to an entrypoint *)
     | [] -> failwith "Ambiguous entry point: %s" ep_name
     | ((tag, _) as ep) :: eps ->
        if tag = ep_name then return_some ep
@@ -130,20 +136,31 @@ let rec match_single entrypoints (ep_name, ep_pattern) matches =
   in
   match entrypoints with
   | (tag, expr) :: rest ->
-     compare_type_pattern ep_pattern expr
-     >>=? fun res ->
-     if res then match_single rest (ep_name, ep_pattern) ((tag, expr) :: matches)
+     eq_type_pattern ep_pattern expr
+     >>=? fun eq ->
+     (* Collect all matching entrypoints in a list *)
+     if eq then match_single rest (ep_name, ep_pattern) ((tag, expr) :: matches)
      else match_single rest (ep_name, ep_pattern) matches
   | [] ->
      begin
        match matches with
+       (* No match was found *)
        | [] -> return_none
+       (* Single and thus unambiguous match *)
        | m :: [] -> return_some m
+       (* Several entrypoints match; check if tags resolve ambiguity *)
        | ms -> get_unambiguous_ep ep_name ms
      end
 
+(* Maps entrypoints to their respective path within unions
+ * (or (or (unit %A) (unit %B) (unit %C))
+ * {%A -> (Left (Left T)); %B -> (Left (Right T)); %C -> (Right T)}
+ *)
 module EntrypointPaths = Map.Make(String)
 
+(* Traverses the Micheline AST and adds tags for each possible entrypoint and
+ * builds a mapping between tags and their respective paths within unions
+ *)
 let add_tags_and_build_paths
       ({source = src;
         expanded = exp;
@@ -233,7 +250,9 @@ let add_tags_and_build_paths
   in
   (* Transform the AST from the canonical representation to the editable non-canonical representation *)
   let root = Micheline.root exp in
-  (* Add entrypoint tags and transform back to the canonical representation *)
+  (* Add entrypoint tags and transform back to the canonical representation
+   * Builds the union path mapping for each ep as a side-effect to avoid several traversals of the Michelin AST
+   *)
   let new_expanded = Micheline.strip_locations @@
                        find_and_edit_parameters root
   in
