@@ -120,5 +120,21 @@ let () =
                                                                       ("%CD", Right (Left T)); ("%D", Right (Left (Right T))); ("%C", Right (Left (Left T)));
                                                                       ("%AB", Left T); ("%B", Left (Right T)); ("%A", Left (Left T))]));
         ]
-       )
+       );
+       ("Build path from assertion type pattern",
+        [
+          test_case "from wildcard" `Quick (fun () -> test_up_eq (Union_path.from_assertion_pattern `Wildcard, T));
+          test_case "from ident" `Quick (fun () -> test_up_eq (Union_path.from_assertion_pattern (`Ident ("i", `Int_t)), T));
+          test_case "from pair" `Quick (fun () -> test_up_eq (Union_path.from_assertion_pattern (`Pair (`Wildcard, `Wildcard)), T));
+          test_case "from none" `Quick (fun () -> test_up_eq (Union_path.from_assertion_pattern `None, T));
+          test_case "from some" `Quick (fun () -> test_up_eq (Union_path.from_assertion_pattern (`Some `Wildcard), T));
+          test_case "from cons" `Quick (fun () -> test_up_eq (Union_path.from_assertion_pattern (`Cons (`Wildcard, `Wildcard)), T));
+          test_case "from nil" `Quick (fun () -> test_up_eq (Union_path.from_assertion_pattern `Nil, T));
+          test_case "from left" `Quick (fun () -> test_up_eq (Union_path.from_assertion_pattern (`Left `Wildcard), Left T));
+          test_case "from right" `Quick (fun () -> test_up_eq (Union_path.from_assertion_pattern (`Right `Wildcard), Right T));
+          test_case "from LL" `Quick (fun () -> test_up_eq (Union_path.from_assertion_pattern (`Left (`Left `Wildcard)), Left (Left T)));
+          test_case "from LR" `Quick (fun () -> test_up_eq (Union_path.from_assertion_pattern (`Left (`Right `Wildcard)), Left (Right T)));
+          test_case "from RL" `Quick (fun () -> test_up_eq (Union_path.from_assertion_pattern (`Right (`Left `Wildcard)), Right (Left T)));
+          test_case "from RR" `Quick (fun () -> test_up_eq (Union_path.from_assertion_pattern (`Right (`Right `Wildcard)), Right (Right T)));
+       ])
     ]

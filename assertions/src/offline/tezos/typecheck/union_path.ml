@@ -46,6 +46,20 @@ let from_micheline node =
   in
   build_paths node T []
 
+let from_assertion_pattern pattern =
+  let rec build_path path = function
+    | `Wildcard
+      | `Ident _
+      | `Pair _
+      | `None
+      | `Some _
+      | `Cons _
+      | `Nil -> path
+    | `Left l -> build_path (add (Left T) path) l
+    | `Right r -> build_path (add (Right T) path) r
+  in
+  build_path T pattern
+
 let rec pp ppf = function
   | T -> Fmt.pf ppf "T"
   | Left l -> Fmt.pf ppf "L"; pp ppf l
