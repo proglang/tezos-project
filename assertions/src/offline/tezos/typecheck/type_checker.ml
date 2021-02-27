@@ -242,8 +242,8 @@ let get_script = function
 let do_typecheck asts paths entrypoints =
   let update_unvisited tag path unvisited =
     if List.mem path unvisited then
-      (* Remove ancestors & decendants *)
-      return unvisited
+      let wo_prefixes = Union_path.remove_prefixes unvisited path in
+      return @@ Union_path.remove_with_prefix wo_prefixes path
     else
       failwith "Duplicate entrypoint: %s" tag
   in
@@ -252,13 +252,10 @@ let do_typecheck asts paths entrypoints =
     >>=? function
     | Some (ep_tag, _) ->
        begin
-         if ep_tag = "default" then
+         if tag = "default" then
            begin
-             (*
-             let path = build_path_from_assertion_type pat in
-             return @@ update_unvisited tag path unvisited
-              *)
-             return unvisited
+             let path = Union_path.from_assertion_pattern pat in
+             update_unvisited tag path unvisited
            end
          else
            begin
