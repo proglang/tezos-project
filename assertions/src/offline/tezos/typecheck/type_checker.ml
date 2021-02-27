@@ -135,24 +135,37 @@ let rec match_single entrypoints (ep_name, ep_pattern) matches =
        if tag = ep_name then return_some ep
        else get_unambiguous_ep ep_name eps
   in
-  match entrypoints with
-  | (tag, expr) :: rest ->
-     eq_type_pattern ep_pattern expr
-     >>=? fun eq ->
-     (* Collect all matching entrypoints in a list *)
-     if eq then match_single rest (ep_name, ep_pattern) ((tag, expr) :: matches)
-     else match_single rest (ep_name, ep_pattern) matches
-  | [] ->
-     begin
-       match matches with
-       (* No match was found *)
-       | [] -> return_none
-       (* Single and thus unambiguous match *)
-       | m :: [] -> return_some m
-       (* Several entrypoints match; check if tags resolve ambiguity *)
-       | ms -> get_unambiguous_ep ep_name ms
-     end
-
+  let rec get_default_ep = function
+    | (tag, _) as ep :: eps -> if tag = "default" then return ep else get_default_ep eps
+    | [] -> failwith "Unexpected error: default entrypoint is missing"
+  in
+  if ep_name = "default"
+  then
+    get_default_ep entrypoints
+    >>=? fun (tag, expr) ->
+    eq_type_pattern ep_pattern expr
+    >>=? fun eq ->
+    if eq then return_some (tag, expr) else return_none
+  else
+    begin
+      match entrypoints with
+      | (tag, expr) :: rest ->
+         eq_type_pattern ep_pattern expr
+         >>=? fun eq ->
+         (* Collect all matching entrypoints in a list *)
+         if eq then match_single rest (ep_name, ep_pattern) ((tag, expr) :: matches)
+         else match_single rest (ep_name, ep_pattern) matches
+      | [] ->
+         begin
+           match matches with
+           (* No match was found *)
+           | [] -> return_none
+           (* Single and thus unambiguous match *)
+           | m :: [] -> return_some m
+           (* Several entrypoints match; check if tags resolve ambiguity *)
+           | ms -> get_unambiguous_ep ep_name ms
+         end
+    end
 (* Maps entrypoints to their respective path within unions
  * (or (or (unit %A) (unit %B) (unit %C))
  * {%A -> (Left (Left T)); %B -> (Left (Right T)); %C -> (Right T)}

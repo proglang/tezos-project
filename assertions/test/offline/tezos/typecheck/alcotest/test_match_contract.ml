@@ -5,7 +5,7 @@ open Test_helpers
 
 let test_tz_w_tags_tza_wo_tags_match _ () =
   let code =
-    {|(entrypoint (a: int) (assert true))
+    {|(entrypoint (left (a: int)) (assert true))
       (entrypoint (right (b: bool)) (assert true))|}
   in
   let script = generate_contract "(or (int %A) (bool %B))" in

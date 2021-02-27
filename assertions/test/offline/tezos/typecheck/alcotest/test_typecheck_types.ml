@@ -7,7 +7,7 @@ open Random
 let types = [
      "int"; "bool"; "string"; "mutez"; "bytes"; "nat"; "address"; "chain_id";
      "key"; "key_hash"; "timestamp"; "unit"; "(list int)";
-     "(set nat)"; "(option bool)"; "(pair address bytes)";
+     "(set nat)"; "(option bool)"; "(or mutez string)";"(pair address bytes)";
      "(lambda (option chain_id) unit)"; "(map address timestamp)";
      "(contract unit)"; "(big_map key_hash key)"
     ]
@@ -63,8 +63,6 @@ let pattern_match_test_cases =
       ("(or mutez string)", "(left (x : mutez))");
       ("(or mutez string)", "(right _)");
       ("(or mutez string)", "(right (x : string))");
-      ("(or mutez string)", "(x : mutez)");
-      ("(or mutez string)", "(x : string)");
       ("(pair address bytes)", "_"); ("(pair address bytes)", "(pair _ _)");
       ("(pair address bytes)", "(pair (x : address) _)");
       ("(pair address bytes)", "(pair _ (x : bytes))");
