@@ -60,6 +60,36 @@ let from_assertion_pattern pattern =
   in
   build_path T pattern
 
+(* Removed all prefixes of the given path from the list of paths
+ * Also considers the path itself as a prefix
+ *)
+let remove_prefixes ps p =
+  let rec get_prefixes p path prefixes =
+    match p with
+    | T -> T :: prefixes
+    | Left l ->
+       let new_path = add (Left T) path in
+       new_path :: (get_prefixes l new_path prefixes)
+    | Right r ->
+       let new_path = add (Right T) path in
+       new_path :: (get_prefixes r new_path prefixes)
+  in
+  let prefixes = get_prefixes p T [] in
+  List.filter (fun e -> if List.mem e prefixes then false else true) ps
+
+let remove_with_prefix ps p =
+  let rec is_prefix path prefix =
+    match path, prefix with
+    | T, T -> true
+    | Left _, Right _ -> false
+    | Right _ , Left _ -> false
+    | Left l1, Left l2 -> is_prefix l1 l2
+    | Right r1, Right r2 -> is_prefix r1 r2
+    | T, _ -> false
+    | _, T -> true
+  in
+  List.filter (fun e -> if is_prefix e p then false else true) ps
+
 let rec pp ppf = function
   | T -> Fmt.pf ppf "T"
   | Left l -> Fmt.pf ppf "L"; pp ppf l

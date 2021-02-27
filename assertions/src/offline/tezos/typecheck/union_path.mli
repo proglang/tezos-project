@@ -15,4 +15,8 @@ val eq : union_path -> union_path -> bool
 (* add : level -> path -> path *)
 val add : union_path -> union_path -> union_path
 
+val remove_prefixes : union_path list -> union_path -> union_path list
+
+val remove_with_prefix : union_path list -> union_path -> union_path list
+
 val pp : Format.formatter ->  union_path -> unit
