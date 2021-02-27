@@ -263,7 +263,7 @@ let do_typecheck asts paths entrypoints =
              (* Update the list of unvisited paths *)
              | Some path -> update_unvisited tag path unvisited
              (* Should never happen, as we calculated the path for all eps *)
-             | None -> failwith "Unexpected error: no union path for entrypoint found"
+             | None -> failwith "Unexpected error: no union path for entrypoint %s found" ep_tag
            end
        end
     | None -> failwith "Entrypoint type mismatch: %s" tag

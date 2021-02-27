@@ -2,7 +2,10 @@
 (copy_files ../../../../../src/offline/tezos/typecheck/micheline_annotations.ml*)
 
 (tests
- (names test_typecheck_types test_match_contract test_union_path)
+ (names test_typecheck_types
+        test_match_contract
+        test_union_path
+        test_micheline_annotations)
  (libraries core
 	    alcotest-lwt
 	    lwt

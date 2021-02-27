@@ -31,7 +31,7 @@ let from_micheline node =
          |> (fun new_paths ->
          match get_field_annot annot with
          | Some tag -> (tag, path) :: new_paths
-         | None -> (field_annot_of_string "default", path) :: new_paths) (* Toplevel node likely has no annotation *)
+         | None -> ("default", path) :: new_paths) (* Toplevel node likely has no annotation *)
        end
     (* Reached a non-union entrypoint; add path and skip operators*)
     | (Prim (_, _, _, annot)) ->
@@ -39,7 +39,7 @@ let from_micheline node =
          match get_field_annot annot with
          | Some tag -> (tag, path) :: paths
          (* Should never happen, as we added tags everywhere before *)
-         | None -> (field_annot_of_string "default", path) :: paths
+         | None -> ("default", path) :: paths
        end
     (* Type signatures should only contain primitives; we don't care about other node types*)
     | _ -> paths

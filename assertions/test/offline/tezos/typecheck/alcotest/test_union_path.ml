@@ -132,16 +132,16 @@ let () =
       ]);
       ("Build paths from Micheline",
        [
-         test_case "No union w/o tag" `Quick (fun () -> test_mapping ("int", [("%default", T)]));
-         test_case "No union w/ tag" `Quick (fun () -> test_mapping ("(int %A)", [("%A", T)]));
-         test_case "1 union w/ tags" `Quick (fun () -> test_mapping ("(or (int %A) (int %B))",[("%default", T); ("%B", Right T); ("%A", Left T)]));
+         test_case "No union w/o tag" `Quick (fun () -> test_mapping ("int", [("default", T)]));
+         test_case "No union w/ tag" `Quick (fun () -> test_mapping ("(int %A)", [("A", T)]));
+         test_case "1 union w/ tags" `Quick (fun () -> test_mapping ("(or (int %A) (int %B))",[("default", T); ("B", Right T); ("A", Left T)]));
          test_case "2 unions w/ tags" `Quick (fun () -> test_mapping ("(or (or %AB (int %A) (int %B)) (int %C))",
-                                                                      [("%default", T); ("%C", Right T); ("%AB", Left T);
-                                                                       ("%B", Left (Right T)); ("%A", Left (Left T))]));
+                                                                      [("default", T); ("C", Right T); ("AB", Left T);
+                                                                       ("B", Left (Right T)); ("A", Left (Left T))]));
          test_case "complex unions" `Quick (fun () -> test_mapping ("(or (or %AB (int %A) (int %B)) (or %CDE (or %CD (int %C) (int %D)) (int %E)))",
-                                                                    [("%default", T); ("%CDE", Right T); ("%E", (Right (Right T)));
-                                                                     ("%CD", Right (Left T)); ("%D", Right (Left (Right T))); ("%C", Right (Left (Left T)));
-                                                                     ("%AB", Left T); ("%B", Left (Right T)); ("%A", Left (Left T))]));
+                                                                    [("default", T); ("CDE", Right T); ("E", (Right (Right T)));
+                                                                     ("CD", Right (Left T)); ("D", Right (Left (Right T))); ("C", Right (Left (Left T)));
+                                                                     ("AB", Left T); ("B", Left (Right T)); ("A", Left (Left T))]));
        ]
       );
       ("Build path from assertion type pattern",
