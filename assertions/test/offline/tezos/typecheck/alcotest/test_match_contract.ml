@@ -169,6 +169,38 @@ let test_mixed_tags_dup _ () =
       code
       script
 
+let test_unambiguous_tza _ () =
+  let code =
+    {|(entrypoint %A (a: int) (assert true))
+      (entrypoint %B (b: int) (assert true))|}
+  in
+  let script = generate_contract "(or (int %A) (int %B))" in
+  typecheck
+    code
+    script ()
+  >|= (fun () -> Alcotest.(check pass) "test_unambiguous" () ())
+
+let test_ambiguous_w_tags_tza _ () =
+  let code =
+    {|(entrypoint %A (a: int) (assert true))
+      (entrypoint %C (c: int) (assert true))|}
+  in
+  let script = generate_contract "(or (int %A) (int %B))" in
+  lwt_check_raises (Some (error_ambiguous_ep "C")) @@
+    typecheck
+      code
+      script
+
+let test_ambiguous_wo_tags_tza _ () =
+  let code =
+    {|(entrypoint %A (a: int) (assert true))|}
+  in
+  let script = generate_contract "(or int int)" in
+  lwt_check_raises (Some (error_ambiguous_ep "A")) @@
+    typecheck
+      code
+      script
+
 let () =
   let open Alcotest_lwt in
   Lwt_main.run
@@ -178,7 +210,8 @@ let () =
            test_case "tz_wo_tags_tza_w_tags_match" `Quick test_tz_wo_tags_tza_w_tags_match;
            test_case "tz_wo_tags_tza_wo_tags_match" `Quick test_tz_wo_tags_tza_wo_tags_match;
            test_case "tz_w_tags_tza_w_tags_match" `Quick test_tz_w_tags_tza_w_tags_match;
-           test_case "mixed_tags_match" `Quick test_mixed_tags_match
+           test_case "mixed_tags_match" `Quick test_mixed_tags_match;
+           test_case "unambiguous" `Quick test_unambiguous_tza
          ]; "Mismatching", [
              test_case "tz_w_tags_tza_wo_tags_mismatch" `Quick test_tz_w_tags_tza_wo_tags_mismatch;
              test_case "tz_w_tags_tza_wo_tags_dup" `Quick test_tz_w_tags_tza_wo_tags_dup;
@@ -189,5 +222,7 @@ let () =
              test_case "tz_w_tags_tza_w_tags_mismatch" `Quick test_tz_w_tags_tza_w_tags_mismatch;
              test_case "tz_w_tags_tza_w_tags_dup" `Quick test_tz_w_tags_tza_w_tags_dup;
              test_case "mixed_tags_mismatch" `Quick test_mixed_tags_mismatch;
-             test_case "mixed_tags_dup" `Quick test_mixed_tags_dup
+             test_case "mixed_tags_dup" `Quick test_mixed_tags_dup;
+             test_case "ambiguous_w_tags" `Quick test_ambiguous_w_tags_tza;
+             test_case "ambiguous_wo_tags" `Quick test_ambiguous_wo_tags_tza
        ]]
