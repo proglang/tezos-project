@@ -9,20 +9,9 @@ open Tezos_ast
 open Dao_script
 open Dao_type
 open Micheline_annotations
+open Entrypoint_mapping
 
-module EntrypointAssertionMapping =
-  Map.Make(struct type t = Union_path.union_path
-                  let compare = Union_path.compare end)
-
-let pp_ep_assertion_map ppf m =
-  let bindings = EntrypointAssertionMapping.bindings m in
-  let num_bindings = List.length bindings in
-  Fmt.pf ppf "[";
-  List.iteri (fun i (p, ({entrypoint = (tag, _); _}: Ast.ast)) ->
-      Union_path.pp ppf p;
-      if i < num_bindings then Fmt.pf ppf ": %s," tag
-      else Fmt.pf ppf ": %s" tag) bindings;
-  Fmt.pf ppf "]"
+module Entrypoint_mapping = Entrypoint_mapping
 
 let get_entrypoints (progr : Michelson_v1_parser.parsed) =
   Api.list_entrypoints progr

@@ -1,5 +1,7 @@
+
 let maybe_pprint_ep_mapping ~verbose mapping =
-  if verbose then Type_checker.pp_ep_assertion_map Fmt.stdout mapping;
+  let open Type_checker.Entrypoint_mapping in
+  if verbose then pp_mapping Fmt.stdout mapping;
   Lwt.return mapping
 
 let check_and_compile dao_t t_asts ~verbose =
