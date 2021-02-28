@@ -184,13 +184,16 @@ let pp_bounds ppf ~indent bounds =
       print_assertion "Assert";
       pp_expr ppf ~indent:new_indent e
 
-let pp_entrypoint ppf ~indent (ep, pat) =
+let pp_entrypoint ppf ~indent (tag, pat) =
   let print_ep_name = Fmt.pf ppf "%sEntrypoint: %%%s@." indent in
   let new_indent = indent_space ^ indent in
-  print_ep_name ep; pp_pattern ppf ~indent:new_indent pat
+  print_ep_name tag; pp_pattern ppf ~indent:new_indent pat
 
 let pp_ast ppf ({entrypoint = ep; body = assertion}: ast) =
   let indent = "└──" in
   Fmt.pf ppf "Tezos_AST@." ;
   pp_entrypoint ppf ~indent ep;
   pp_assertion ppf ~indent assertion
+
+let pp_ast_entrypoint ppf ep =
+  pp_entrypoint ppf ~indent:"" ep
