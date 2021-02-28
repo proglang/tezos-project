@@ -1,6 +1,9 @@
 (library
  (name tezos_backend)
- (libraries type_checker
+ (libraries lwt
+            type_checker
             transformation
             tezos_ast)
- (implements check_and_compile))
+ (implements check_and_compile)
+ (flags (:standard -open Lwt
+                    -linkall)))

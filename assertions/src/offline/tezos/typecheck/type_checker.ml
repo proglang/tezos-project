@@ -10,6 +10,8 @@ open Dao_script
 open Dao_type
 open Micheline_annotations
 
+module EntrypointAssertionMapping = Map.Make(String)
+
 let get_entrypoints (progr : Michelson_v1_parser.parsed) =
   Api.list_entrypoints progr
   >>= function
@@ -260,7 +262,7 @@ let do_typecheck asts paths entrypoints =
     else
       failwith "Duplicate entrypoint: %s" tag
   in
-  let do_typecheck_single unvisited ({entrypoint = (tag, pat); _}: Ast.ast) =
+  let do_typecheck_single (unvisited, ep_mapping) (({entrypoint = (tag, pat); _}: Ast.ast) as ast) =
     match_single entrypoints (tag, pat) []
     >>=? function
     | Some (ep_tag, _) ->
@@ -269,12 +271,17 @@ let do_typecheck asts paths entrypoints =
            begin
              let path = Union_path.from_assertion_pattern pat in
              update_unvisited tag path unvisited
+             >>=? fun new_unvisited ->
+             return (new_unvisited, EntrypointAssertionMapping.add ep_tag ast ep_mapping)
            end
          else
            begin
              match EntrypointPaths.find_opt ep_tag paths with
              (* Update the list of unvisited paths *)
-             | Some path -> update_unvisited tag path unvisited
+             | Some path ->
+                update_unvisited tag path unvisited
+                >>=? fun new_unvisited ->
+                return (new_unvisited, EntrypointAssertionMapping.add ep_tag ast ep_mapping)
              (* Should never happen, as we calculated the path for all eps *)
              | None -> failwith "Unexpected error: no union path for entrypoint %s found" ep_tag
            end
@@ -284,7 +291,7 @@ let do_typecheck asts paths entrypoints =
   let unvisited = List.map (fun (_, path) -> path)
                     @@ EntrypointPaths.bindings paths
   in
-  fold_left_s do_typecheck_single unvisited asts
+  fold_left_s do_typecheck_single (unvisited, EntrypointAssertionMapping.empty)  asts
 
 let type_check dao (asts : Ast.ast list) =
   begin
@@ -295,8 +302,8 @@ let type_check dao (asts : Ast.ast list) =
     get_entrypoints script
     >>=? fun entrypoints ->
     do_typecheck asts paths entrypoints
-    >>=? fun _ -> return_unit
+    >>=? fun (_, mapping) -> return mapping
   end
   >>= function
-  | Ok () -> Lwt.return_unit
+  | Ok res -> Lwt.return res
   | Error errs -> Lwt.fail_with @@ get_error_str errs
