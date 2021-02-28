@@ -5,14 +5,20 @@ type union_path = Left of union_path
                 | Right of union_path
                 | T
 
-(* val from_assertion_type : Ast.pattern -> union_path *)
-
-let rec eq up1 up2 =
+(* Defines a total order over paths, s.t. it can be used as a map key
+ * Order is defined as T > LT > L...T > RT > R...T
+ *)
+let rec compare up1 up2 =
   match (up1, up2) with
-  | T, T -> true
-  | Left l_up1, Left l_up2 -> eq l_up1 l_up2
-  | Right r_up1, Right r_up2 -> eq r_up1 r_up2
-  | _ -> false
+  | T, T -> 0
+  | Left x, Left y
+    | Right x, Right y -> compare x y
+  | Left _, Right _ -> 1
+  | Right _, Left _ -> -1
+  | T, _ -> 1
+  | _, T -> -1
+
+let eq up1 up2 = if (compare up1 up2) = 0 then true else false
 
 let rec add lvl = function
   | T -> lvl

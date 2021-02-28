@@ -60,6 +60,9 @@ let test_up_eq (up1, up2) =
 let test_up_uneq (up1, up2) =
   Alcotest.(check union_path_testable_uneq) "unequal" up1 up2
 
+let test_up_cmp (up1, up2, exp) =
+  Alcotest.(check int) "compare" exp (Union_path.compare up1 up2)
+
 let test_mapping (param, target_mapping) =
   let rec get_parameters (nodes : (int, prim) Micheline.node list) =
     match nodes with
@@ -118,6 +121,25 @@ let () =
          test_case "RT" `Quick (fun () -> test_up_uneq (Right T, T));
          test_case "RL" `Quick (fun () -> test_up_uneq (Right T, Left T));
          test_case "LR" `Quick (fun () -> test_up_uneq (Left T, Right T));
+       ]
+      );
+      ("Compare union paths",
+       [
+         test_case "T-T" `Quick (fun () -> test_up_cmp (T, T, 0));
+         test_case "T-LT" `Quick (fun () -> test_up_cmp (T, Left T, 1));
+         test_case "LT-T" `Quick (fun () -> test_up_cmp (Left T, T, -1));
+         test_case "LT-LT" `Quick (fun () -> test_up_cmp (Left T, Left T, 0));
+         test_case "T-RT" `Quick (fun () -> test_up_cmp (T, Right T, 1));
+         test_case "RT-T" `Quick (fun () -> test_up_cmp (Right T, T, -1));
+         test_case "RT-RT" `Quick (fun () -> test_up_cmp (Right T, Right T, 0));
+         test_case "LT-RT" `Quick (fun () -> test_up_cmp (Left T, Right T, 1));
+         test_case "RT-LT" `Quick (fun () -> test_up_cmp (Right T, Left T, -1));
+         test_case "LT-LLT" `Quick (fun () -> test_up_cmp (Left T, Left (Left T), 1));
+         test_case "LLT-LT" `Quick (fun () -> test_up_cmp (Left (Left T), Left T, -1));
+         test_case "RT-RRT" `Quick (fun () -> test_up_cmp (Right T, Right (Right T), 1));
+         test_case "RRT-RT" `Quick (fun () -> test_up_cmp (Right (Right T), Right T, -1));
+         test_case "LLT-LRT" `Quick (fun () -> test_up_cmp (Left (Left T), Left (Right T), 1));
+         test_case "LRT-LLT" `Quick (fun () -> test_up_cmp (Left (Right T), Left (Left T), -1));
        ]
       );
       ("Add",

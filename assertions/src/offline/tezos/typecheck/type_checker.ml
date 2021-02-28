@@ -10,7 +10,9 @@ open Dao_script
 open Dao_type
 open Micheline_annotations
 
-module EntrypointAssertionMapping = Map.Make(String)
+module EntrypointAssertionMapping =
+  Map.Make(struct type t = Union_path.union_path
+                  let compare = Union_path.compare end)
 
 let get_entrypoints (progr : Michelson_v1_parser.parsed) =
   Api.list_entrypoints progr
@@ -272,7 +274,7 @@ let do_typecheck asts paths entrypoints =
              let path = Union_path.from_assertion_pattern pat in
              update_unvisited tag path unvisited
              >>=? fun new_unvisited ->
-             return (new_unvisited, EntrypointAssertionMapping.add ep_tag ast ep_mapping)
+             return (new_unvisited, EntrypointAssertionMapping.add path ast ep_mapping)
            end
          else
            begin
@@ -281,7 +283,7 @@ let do_typecheck asts paths entrypoints =
              | Some path ->
                 update_unvisited tag path unvisited
                 >>=? fun new_unvisited ->
-                return (new_unvisited, EntrypointAssertionMapping.add ep_tag ast ep_mapping)
+                return (new_unvisited, EntrypointAssertionMapping.add path ast ep_mapping)
              (* Should never happen, as we calculated the path for all eps *)
              | None -> failwith "Unexpected error: no union path for entrypoint %s found" ep_tag
            end

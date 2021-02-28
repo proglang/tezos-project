@@ -12,6 +12,8 @@ val from_assertion_pattern : Ast.pattern -> union_path
 
 val eq : union_path -> union_path -> bool
 
+val compare : union_path -> union_path -> int
+
 (* add : level -> path -> path *)
 val add : union_path -> union_path -> union_path
 
