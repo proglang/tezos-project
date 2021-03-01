@@ -130,3 +130,13 @@ let%expect_test "Non-matching tags but unambiguous types" =
     Entrypoint: %C
     └──Pattern: Id:a
       └──Type: Int_t|}]
+
+let%expect_test "Wildcard" =
+  exec
+    (tz_code "(or (int %A) (bool %B))")
+    {|(entrypoint %A _ (assert true))|};
+  [%expect
+    {|
+    LT:
+    Entrypoint: %A
+    └──Pattern: Wildcard|}]

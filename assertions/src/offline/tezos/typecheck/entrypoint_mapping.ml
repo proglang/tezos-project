@@ -10,5 +10,5 @@ let pp_mapping ppf m =
   List.iter
     (fun (p, ({entrypoint = ep; _}: Ast.ast)) ->
       Fmt.pf ppf "%a:\n" Union_path.pp p;
-      Fmt.pf ppf "%a\n" pp_ast_entrypoint ep)
+      Fmt.pf ppf "%a" pp_ast_entrypoint ep)
     bindings

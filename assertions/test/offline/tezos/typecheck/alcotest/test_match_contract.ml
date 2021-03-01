@@ -201,6 +201,38 @@ let test_ambiguous_wo_tags_tza _ () =
       code
       script
 
+let test_ambiguous_wildcard _ () =
+  let code =
+    {|(entrypoint _ (assert true))|}
+  in
+  let script = generate_contract "(or (int %A) (int %B))" in
+  lwt_check_raises (Some (error_ambiguous_ep "default")) @@
+    typecheck
+      code
+      script
+
+let test_overlapping_assertions_w_tags _ () =
+  let code =
+    {|(entrypoint %A (a: int) (assert true))
+      (entrypoint %AB _ (assert true))|}
+  in
+  let script = generate_contract "(or %AB (or (int %A) (int %B)) int)" in
+  lwt_check_raises (Some (error_mismatch_ep "AB")) @@
+    typecheck
+      code
+      script
+
+let test_overlapping_assertions_w_tags_2 _ () =
+  let code =
+    {|(entrypoint %AB _ (assert true))
+      (entrypoint %A (a: int) (assert true))|}
+  in
+  let script = generate_contract "(or %AB (or (int %A) (int %B)) int)" in
+  lwt_check_raises (Some (error_mismatch_ep "A")) @@
+    typecheck
+      code
+      script
+
 let () =
   let open Alcotest_lwt in
   Lwt_main.run
@@ -224,5 +256,8 @@ let () =
              test_case "mixed_tags_mismatch" `Quick test_mixed_tags_mismatch;
              test_case "mixed_tags_dup" `Quick test_mixed_tags_dup;
              test_case "ambiguous_w_tags" `Quick test_ambiguous_w_tags_tza;
-             test_case "ambiguous_wo_tags" `Quick test_ambiguous_wo_tags_tza
+             test_case "ambiguous_wo_tags" `Quick test_ambiguous_wo_tags_tza;
+             test_case "ambiguous wildcard" `Quick test_ambiguous_wildcard;
+             test_case "overlapping_w_tags" `Quick test_overlapping_assertions_w_tags;
+             test_case "overlapping_wo_tags" `Quick test_overlapping_assertions_w_tags_2
        ]]
