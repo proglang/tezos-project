@@ -1,5 +1,5 @@
 (library
- (name test_mapping)
+ (name test_match_contract)
  (libraries core parsing type_checker tezos_ast)
  (inline_tests)
  (preprocess

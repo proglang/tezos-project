@@ -3,7 +3,7 @@
 
 (tests
  (names test_typecheck_types
-        test_match_contract
+        test_mismatch_contract
         test_union_path
         test_micheline_annotations)
  (libraries core
