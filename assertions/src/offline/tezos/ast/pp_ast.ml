@@ -195,5 +195,6 @@ let pp_ast ppf ({entrypoint = ep; body = assertion}: ast) =
   pp_entrypoint ppf ~indent ep;
   pp_assertion ppf ~indent assertion
 
-let pp_ast_entrypoint ppf ep =
-  pp_entrypoint ppf ~indent:"" ep
+let pp_ast_entrypoint ppf (tag, pat) =
+  Fmt.pf ppf "Entrypoint: %%%s@." tag;
+  pp_pattern ppf ~indent:"└──" pat

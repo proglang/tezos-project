@@ -8,10 +8,9 @@ module EntrypointAssertionMapping =
 let pp_mapping ppf m =
   let bindings = EntrypointAssertionMapping.bindings m in
   let num_bindings = List.length bindings in
-  Fmt.pf ppf "{";
-  List.iteri (fun i (p, ({entrypoint = ep; _}: Ast.ast)) ->
-      Union_path.pp ppf p;
-      Fmt.pf ppf ":\n";
-      if i < num_bindings then (pp_ast_entrypoint ppf ep; Fmt.pf ppf "\n")
-      else (pp_ast_entrypoint ppf ep; Fmt.pf ppf ";\n")) bindings;
-  Fmt.pf ppf "}"
+  List.iteri
+    (fun i (p, ({entrypoint = ep; _}: Ast.ast)) ->
+      Fmt.pf ppf "%a:\n" Union_path.pp p;
+      if i < num_bindings then (Fmt.pf ppf "%a\n" pp_ast_entrypoint ep)
+      else (Fmt.pf ppf "%a;\n" pp_ast_entrypoint ep))
+    bindings;

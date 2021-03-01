@@ -13,11 +13,12 @@ let exec tz tza =
 
 let%expect_test "test" =
   exec
-    {|parameter int; storage unit; code {UNIT ; NIL operation ; PAIR }\n|}
+    {|parameter int; storage unit; code {UNIT ; NIL operation ; PAIR}|}
     {|(entrypoint %A (i : int)
         (assert true))|};
   [%expect
     {|
-    T: Entrypoint: %A
-         └──Pattern: Id:i
-           └──Type: Bool_t|}]
+    T:
+    Entrypoint: %A
+    └──Pattern: Id:i
+      └──Type: Int_t|}]
