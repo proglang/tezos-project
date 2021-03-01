@@ -99,6 +99,16 @@ let%expect_test "Tz w/ tags; assertions w/o tags" =
     └──Pattern: Id:a
       └──Type: Int_t|}]
 
+ let%expect_test "Match default ep" =
+   exec
+    (tz_code "(or (int %A) (int %B))")
+    {|(entrypoint _ (assert true))|};
+  [%expect
+    {|
+    T:
+    Entrypoint: %default
+    └──Pattern: Wildcard|}]
+
  let%expect_test "Unambiguous" =
   exec
     (tz_code "(or (int %A) (int %B))")

@@ -203,10 +203,10 @@ let test_ambiguous_wo_tags_tza _ () =
 
 let test_ambiguous_wildcard _ () =
   let code =
-    {|(entrypoint _ (assert true))|}
+    {|(entrypoint %C _ (assert true))|}
   in
   let script = generate_contract "(or (int %A) (int %B))" in
-  lwt_check_raises (Some (error_ambiguous_ep "default")) @@
+  lwt_check_raises (Some (error_ambiguous_ep "C")) @@
     typecheck
       code
       script
@@ -217,7 +217,7 @@ let test_overlapping_assertions_w_tags _ () =
       (entrypoint %AB _ (assert true))|}
   in
   let script = generate_contract "(or %AB (or (int %A) (int %B)) int)" in
-  lwt_check_raises (Some (error_mismatch_ep "AB")) @@
+  lwt_check_raises (Some (error_dup_ep "AB")) @@
     typecheck
       code
       script
@@ -228,7 +228,7 @@ let test_overlapping_assertions_w_tags_2 _ () =
       (entrypoint %A (a: int) (assert true))|}
   in
   let script = generate_contract "(or %AB (or (int %A) (int %B)) int)" in
-  lwt_check_raises (Some (error_mismatch_ep "A")) @@
+  lwt_check_raises (Some (error_dup_ep "A")) @@
     typecheck
       code
       script
