@@ -1,9 +1,10 @@
 
 (executable
   (name main)
-  (modules main)
+  (modules main generate_assertion_contract)
   (preprocess (pps ppx_let))
   (libraries lwt
+             cli_args
              parsing
              transformation
              dao_type
@@ -20,7 +21,8 @@
 (library
  (name check_and_compile)
  (modules check_and_compile)
- (libraries parsing
+ (libraries cli_args
+            parsing
             dao_type
 	    lwt)
  (virtual_modules check_and_compile)

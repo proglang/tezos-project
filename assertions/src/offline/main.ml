@@ -1,47 +1,47 @@
-open Parsing.Lex_and_parse
-open Check_and_compile
 open Dao_type
+open Generate_assertion_contract
 
-let tza_path = ref "./test.tza"
-let tz_dao = ref (DAO_File "./test.tz")
 let verbose_arg = ref false
+let assertion_file_arg = ref ""
+let dao_contract_arg = ref (DAO_File "")
+let node_port_arg = ref None
+let node_basedir_arg = ref None
+(* Tezos specific flags *)
+let tezos_api_verbose_arg = ref None
 
-let set_tz_dao_file path = tz_dao := DAO_File path
-let set_tz_dao_chain addr = tz_dao := DAO_Chain addr
-let set_tz_dao_string s = tz_dao := DAO_String s
+let set_dao_file path = dao_contract_arg := DAO_File path
+let set_dao_chain addr = dao_contract_arg := DAO_Chain addr
+let set_dao_string s = dao_contract_arg := DAO_String s
+let set_port p = node_port_arg := Some p
+let set_basedir dir = node_basedir_arg := Some dir
+let set_tezos_api_verbose v = tezos_api_verbose_arg := Some v
 
-let usage = "Usage: " ^ Sys.argv.(0) ^ "--tza <path> (-a <address> | -f <path>) [-v]"
+let usage = "Usage: " ^ Sys.argv.(0) ^ "-a <path> (--address <address> | --file <path> | --script string) [-p <port>] [-d <dir>] [--tz-api-v]"
 let spec_list = [
-    ("-a", Arg.String (set_tz_dao_chain), "Address of the parent contract");
-    ("-f", Arg.String (set_tz_dao_file), "File path of the parent contract code");
-    ("-s", Arg.String (set_tz_dao_string), "Script of the parent contract");
-    ("--tza", Arg.Set_string tza_path, "File path of the assertion contract");
-    ("-v", Arg.Set verbose_arg, "Verbose mode - prints out intermediate results")
-    (* Can be used later when API is used *)
-    (*
-    ("-p", Arg.Set_int port, ": specifies RPC port of the Tezos node; default =8732");
-    ("-d", Arg.Set_string basedir, ": specifies base directory of the Tezos client; default = /home/tezos/.tezos-client");
-    ("-v", Arg.Set debug, ": enables debug mode (prints the whole Tezos error trace)")*)
+    ("-v", Arg.Set verbose_arg, "Verbose mode - prints out intermediate results");
+    ("-a", Arg.Set_string assertion_file_arg, "File path of the assertion contract");
+    ("--address", Arg.String (set_dao_chain), "Address of the parent contract");
+    ("--file", Arg.String (set_dao_file), "File path of the parent contract code");
+    ("--script", Arg.String (set_dao_string), "Script of the parent contract");
+    ("-p", Arg.Int (set_port), ": specifies RPC port of the node; default depends on the backend");
+    ("-d", Arg.String (set_basedir), ": specifies base directory of node or client; default depends on the backend");
+    ("--tz-api-v", Arg.Bool (set_tezos_api_verbose), ": enables debug mode of the Tezos API (prints the whole Tezos error trace)")
   ]
-
-let read_tza path = let open Core in
-                    In_channel.read_all path
 
 let main =
   Arg.parse
            spec_list
            (fun x -> raise (Arg.Bad ("Bad argument: " ^ x)))
            usage;
-  let verbose = !verbose_arg in
-  try
-    read_tza !tza_path
-    |> parse_contract ~verbose
-    |> Transformation.transform ~verbose
-    |> check_and_compile !tz_dao ~verbose
-    >>= fun () -> Lwt.return 1
-  with
-  | Failure s -> Printf.eprintf "%s\n" s; Lwt.return 0
-  | e -> Printf.eprintf "%s\n" (Printexc.to_string e); Lwt.return 0
+  let args = Cli_args.build_args
+               !verbose_arg
+               !assertion_file_arg
+               !dao_contract_arg
+               !node_port_arg
+               !node_basedir_arg
+               !tezos_api_verbose_arg
+  in
+  generate_assertion_contract args
 
 (* The example contract is first parsed and then transformed by the backend *)
 let () =

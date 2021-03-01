@@ -1,0 +1,3 @@
+(library
+  (name cli_args)
+  (libraries dao_type))

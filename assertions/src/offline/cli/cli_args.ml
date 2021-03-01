@@ -1,0 +1,40 @@
+open Dao_type
+
+type cli_args =
+  {
+    verbose: bool;
+    assertion_file: string;
+    dao_contract: dao_type;
+    (* out_file: string; *)
+    node_port: int option;
+    node_basedir: string option;
+    tezos_api_verbose: bool option;
+  }
+
+let sanity_check_assertion_path p =
+  if p = "" then raise @@ Invalid_argument "No assertion file given!"
+  else p
+
+let sanity_check_dao_contract dao =
+  match dao with
+  | DAO_File s
+    | DAO_Chain s
+    | DAO_String s ->
+     if s = "" then raise @@ Invalid_argument "No contract given!"
+     else dao
+
+let sanity_check_port port =
+  match port with
+  | Some p ->
+     if p >= 0 then port else raise @@ Invalid_argument "Ports must be >= 0"
+  | None -> port
+
+let build_args v assertion_f dao port basedir tzv =
+  {
+      verbose = v;
+      assertion_file = sanity_check_assertion_path assertion_f;
+      dao_contract = sanity_check_dao_contract dao;
+      node_port = sanity_check_port port;
+      node_basedir = basedir;
+      tezos_api_verbose = tzv
+    }

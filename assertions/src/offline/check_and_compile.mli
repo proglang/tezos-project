@@ -1,4 +1,4 @@
 open Parsing.Assertion
-open Dao_type
+open Cli_args
 
-val check_and_compile: dao_type -> assertion_ast list -> verbose:bool -> unit Lwt.t
+val check_and_compile: cli_args -> assertion_ast list -> unit Lwt.t
