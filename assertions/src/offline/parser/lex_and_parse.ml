@@ -6,14 +6,13 @@ let print_position lexbuf =
   Fmt.str "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
-(* TODO: return Error monad instead raise exception *)
 let parse_with_error lexbuf =
   try Parser.main Lexer.read lexbuf with
   | Lexer.SyntaxError msg ->
-     let error_msg = Fmt.str "%s: %s@." (print_position lexbuf) msg in
+     let error_msg = Fmt.str "Lexing the assertion failed. @.--- @.%s: %s@." (print_position lexbuf) msg in
      failwith error_msg
   | Parser.Error ->
-     let error_msg = Fmt.str "%s: syntax error\n" (print_position lexbuf) in
+     let error_msg = Fmt.str "Parsing the assertion failed. @.--- @.%s: syntax error\n" (print_position lexbuf) in
      failwith error_msg
 
 let parse_contract input_str =

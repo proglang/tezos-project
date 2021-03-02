@@ -8,4 +8,4 @@ let get_script ~path =
   Api.parse_script @@ read_toplevel path
   >>= function
   | Ok script -> return script
-  | Error err -> failwith "%a" Api_error.pp_error err
+  | Error err -> failwith "Parsing the contract code failed. @.--- @.%a@." Api_error.pp_error err

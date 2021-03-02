@@ -13,11 +13,18 @@ open Entrypoint_mapping
 
 module Entrypoint_mapping = Entrypoint_mapping
 
+let err_fmt : ('a -> 'b -> 'c, formatter, unit, 'd tzresult Lwt.t) format4 =
+  "Entrypoint type checking failed. @.---@.%a@."
+let err_fmt_2 : ('a -> 'b -> 'c, formatter, unit, 'd tzresult Lwt.t) format4 =
+  "Entrypoint type checking failed. @.---@.%s@.%a@."
+let err_msg : ('a, formatter, unit, 'b tzresult Lwt.t) format4  =
+  "Entrypoint type checking failed. @.---@.%s@."
+
 let get_entrypoints (progr : Michelson_v1_parser.parsed) =
   Api.list_entrypoints progr
   >>= function
   | Ok eps -> return eps
-  | Error err -> failwith "%a" Api_error.pp_error err
+  | Error err -> failwith err_fmt Api_error.pp_error err
 
 let get_error_str errs =
   let f = (fun s err -> s ^ (asprintf "%a" pp err)) in
@@ -80,16 +87,12 @@ let eq_type_pattern ep_pattern expr =
        begin
          match prim, ep_pattern, nodes with
          | T_or, `Left p, op1_ty :: _ :: [] ->
-            (* TODO: return completed type tree *)
             eq_type_pattern_rec p op1_ty
          | T_or, `Right p, _ :: op2_ty :: [] ->
-            (* TODO: return completed type tree *)
             eq_type_pattern_rec p op2_ty
          | T_option, `None, _ :: [] ->
-            (* TODO: return completed type tree *)
             return_true
          | T_option, `Some p, op_ty :: [] ->
-            (* TODO: return completed type tree *)
             eq_type_pattern_rec p op_ty
          | T_pair, `Pair (p1, p2), op1_ty :: op2_ty :: [] ->
             begin
@@ -97,29 +100,26 @@ let eq_type_pattern ep_pattern expr =
               >>=? fun eq_op1 ->
               eq_type_pattern_rec p2 op2_ty
               >>=? fun eq_op2 ->
-              (* TODO: return completed type tree *)
               return (eq_op1 && eq_op2)
             end
-         | T_list, `Nil, _ ->
-            (* TODO: return completed type tree *) return_true
+         | T_list, `Nil, _ -> return_true
          | T_list, `Cons (p1, p2), op_ty :: [] ->
             begin
               eq_type_pattern_rec p1 op_ty
               >>=? fun eq_op1 ->
               eq_type_pattern_rec p2 expr
               >>=? fun eq_op2 ->
-              (* TODO: return completed type tree *)
               return (eq_op1 && eq_op2)
             end
          | _, `Ident (_, ty), _ ->
-         (* TODO: return completed type tree *)
             compare_type expr ty
          | _, `Wildcard, _  ->
-            (* TODO: complete type *)
             return_true
          | _  -> return_false
        end
-    | _ -> failwith "Unexpected Tezos internal AST type"
+    | _ ->
+       (* Parameter nodes only contain primitives; this should never happen *)
+       failwith err_msg "Unexpected Tezos internal AST type"
   in
   let root = Micheline.root expr in
   eq_type_pattern_rec ep_pattern root
@@ -131,16 +131,17 @@ let rec match_single entrypoints (ep_name, ep_pattern) matches =
   (* If >1 entrypoints match the assertion type, check if it can be matched
    * unambiguosly through the tags
    *)
-  let rec get_unambiguous_ep ep_name = function
+  let rec get_unambiguous_ep = function
       (* No identical tags found; assertion cannot be unambigusouly assigned to an entrypoint *)
-    | [] -> failwith "Ambiguous entry point: %s" ep_name
+    | [] -> failwith err_fmt_2 "Ambiguous entry point:" Pp_ast.pp_ast_entrypoint (ep_name, ep_pattern)
     | ((tag, _) as ep) :: eps ->
        if tag = ep_name then return_some ep
-       else get_unambiguous_ep ep_name eps
+       else get_unambiguous_ep eps
   in
   let rec get_default_ep = function
     | (tag, _) as ep :: eps -> if tag = "default" then return ep else get_default_ep eps
-    | [] -> failwith "Unexpected error: default entrypoint is missing"
+    (* Should never happen *)
+    | [] -> failwith err_msg "Unexpected error: default entrypoint not found"
   in
   if ep_name = "default"
   then
@@ -166,7 +167,7 @@ let rec match_single entrypoints (ep_name, ep_pattern) matches =
            (* Single and thus unambiguous match *)
            | m :: [] -> return_some m
            (* Several entrypoints match; check if tags resolve ambiguity *)
-           | ms -> get_unambiguous_ep ep_name ms
+           | ms -> get_unambiguous_ep ms
          end
     end
 (* Maps entrypoints to their respective path within unions
@@ -256,12 +257,12 @@ let get_script = function
   | DAO_String s -> Dao_string.get_script s
 
 let do_typecheck asts paths entrypoints =
-  let update_unvisited tag path unvisited =
+  let update_unvisited (tag, pat) path unvisited =
     if List.mem path unvisited then
       let wo_prefixes = Union_path.remove_prefixes unvisited path in
       return @@ Union_path.remove_with_prefix wo_prefixes path
     else
-      failwith "Duplicate entrypoint: %s" tag
+      failwith err_fmt_2 "Duplicate entrypoint:" Pp_ast.pp_ast_entrypoint (tag, pat)
   in
   let do_typecheck_single (unvisited, ep_mapping) (({entrypoint = (tag, pat); _}: Ast.ast) as ast) =
     match_single entrypoints (tag, pat) []
@@ -271,7 +272,7 @@ let do_typecheck asts paths entrypoints =
          if tag = "default" then
            begin
              let path = Union_path.from_assertion_pattern pat in
-             update_unvisited tag path unvisited
+             update_unvisited (tag, pat) path unvisited
              >>=? fun new_unvisited ->
              return (new_unvisited, EntrypointAssertionMapping.add path ast ep_mapping)
            end
@@ -280,14 +281,14 @@ let do_typecheck asts paths entrypoints =
              match EntrypointPaths.find_opt ep_tag paths with
              (* Update the list of unvisited paths *)
              | Some path ->
-                update_unvisited tag path unvisited
+                update_unvisited (tag, pat) path unvisited
                 >>=? fun new_unvisited ->
                 return (new_unvisited, EntrypointAssertionMapping.add path ast ep_mapping)
              (* Should never happen, as we calculated the path for all eps *)
-             | None -> failwith "Unexpected error: no union path for entrypoint %s found" ep_tag
+             | None -> failwith err_msg (Fmt.str "Unexpected error: no union path for entrypoint %s found" ep_tag)
            end
        end
-    | None -> failwith "Entrypoint type mismatch: %s" tag
+    | None -> failwith err_fmt_2 "Entrypoint type mismatch:" Pp_ast.pp_ast_entrypoint (tag, pat)
   in
   let unvisited = List.map (fun (_, path) -> path)
                     @@ EntrypointPaths.bindings paths

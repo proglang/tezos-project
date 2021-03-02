@@ -10,4 +10,4 @@ let get_script ~address =
   end
   >>= function
   | Ok script -> return script
-  | Error err -> failwith "%a" Api_error.pp_error err
+  | Error err -> failwith "Parsing the contract code failed. @.--- @.%a@." Api_error.pp_error err

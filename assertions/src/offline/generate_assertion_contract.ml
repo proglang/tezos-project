@@ -24,5 +24,9 @@ let generate_assertion_contract args =
     |> check_and_compile args
     >>= fun () -> Lwt.return 0)
   (function
-   | Failure s -> Printf.eprintf "%s\n" s; Lwt.return 1
-   | e -> Printf.eprintf "%s\n" (Printexc.to_string e); Lwt.return 1)
+   | Failure s ->
+      Printf.eprintf "\027[1;4;31mERROR:\n";
+      Printf.eprintf "\027[0m%s" s; Lwt.return 1
+   | e ->
+      Printf.eprintf "\027[1;4;31mERROR:\n";
+      Printf.eprintf "\027[0m%s" (Printexc.to_string e); Lwt.return 1)
