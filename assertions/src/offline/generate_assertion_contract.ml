@@ -13,7 +13,8 @@ let maybe_pprint_ast asts ~verbose =
   if verbose then (print asts; asts) else asts
 
 let generate_assertion_contract args =
-  try
+  Lwt.catch
+  ( fun () ->
     let verbose = args.verbose in
     read_assertion args.assertion_file
     |> Lex_and_parse.parse_contract
@@ -21,7 +22,7 @@ let generate_assertion_contract args =
     |> Transformation.transform
     |> maybe_pprint_ast ~verbose
     |> check_and_compile args
-    >>= fun () -> Lwt.return 0
-  with
-  | Failure s -> Printf.eprintf "%s\n" s; Lwt.return 1
-  | e -> Printf.eprintf "%s\n" (Printexc.to_string e); Lwt.return 1
+    >>= fun () -> Lwt.return 0)
+  (function
+   | Failure s -> Printf.eprintf "%s\n" s; Lwt.return 1
+   | e -> Printf.eprintf "%s\n" (Printexc.to_string e); Lwt.return 1)
