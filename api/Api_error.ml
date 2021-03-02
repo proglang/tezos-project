@@ -43,10 +43,11 @@ let errors_of_strings =
       ("no keys for the source contract manager", Keys_not_found);
       ("no .* alias named .*", Keys_not_found);
       ("Failed to read a b58check_encoding data (Signature.Public_key_hash): .*", Invalid_public_key_hash);
-        ("no contract or key named .*", Keys_not_found)
+      ("no contract or key named .*", Keys_not_found)
     ]
 
 let err_to_str = asprintf "%a" Error_monad.pp
+let trace_to_str = asprintf "%a" Error_monad.pp_print_error
 
 module Answer : sig
   type 'a t = ('a, error) Result.t Lwt.t
@@ -61,7 +62,7 @@ end = struct
     v >>= function Error _ as err -> Lwt.return err | Result.Ok v -> f v
 end
 
-let rec catch_last_error errs =
+let catch_last_error errs =
   let open Answer in
   match errs with
   | [] -> Answer.fail (Unknown "Empty trace")
@@ -106,15 +107,11 @@ let rec catch_last_error errs =
       ( Invalid_primitive_name _
       | Unknown_primitive_name _
       | Invalid_case _)
-    | Empty -> Answer.fail (Michelson_parser_error (err_to_str err))
+    | Empty -> Answer.fail (Michelson_parser_error (trace_to_str errs))
   (* Remove toplevel runtime error from the top of the trace as it contains no specific information*)
   | Environment.Ecoproto_error Runtime_contract_error _ ->
-     begin
-       match errs with
-       | _ :: e :: _ -> catch_last_error [e]
-       | _ -> let err_str = err_to_str err in
-              Answer.fail (Rejection (Michelson_runtime_error err_str))
-     end
+     let trace_str = trace_to_str errs in
+     Answer.fail (Rejection (Michelson_runtime_error trace_str))
   | Environment.Ecoproto_error
       ( Reject _
       | Overflow _
@@ -122,13 +119,13 @@ let rec catch_last_error errs =
       | Cannot_serialize_log
       | Cannot_serialize_failure
       | Cannot_serialize_storage ) ->
-     let err_str = err_to_str err in
-     Answer.fail (Rejection (Michelson_runtime_error err_str))
+     let trace_str = trace_to_str errs in
+     Answer.fail (Rejection (Michelson_runtime_error trace_str))
   | _ ->
      begin
        let err_str = err_to_str err in
        let rec match_error l str = match l with
-         | [] -> Unknown err_str
+         | [] -> Unknown (trace_to_str errs)
          | x::xs -> (
            let r = Str.regexp x in
            if string_match r err_str 0 then (Base.Map.find_exn errors_of_strings x)
@@ -140,9 +137,7 @@ let rec catch_last_error errs =
      end
 
 let catch_trace errs =
-  let f = (fun s err -> s ^ (err_to_str err) ^ "\n+++++++++++ \n") in
-  let trace_str = List.fold_left f "+++ Error trace +++ \n" errs in
-  Answer.fail (Unknown trace_str)
+  Answer.fail (Unknown (trace_to_str errs))
 
 let catch_last_env_error err s =
   let wrapped = Environment.wrap_error err in
@@ -178,5 +173,5 @@ let pp_error fmt = function
   | Wrong_contract_notation s -> Fmt.pf fmt "Wrong_contract_notation: %s" s
   | Invalid_public_key_hash -> Fmt.pf fmt "Invalid_public_key_hash"
   | Not_callable -> Fmt.pf fmt "Not_callable"
-  | Michelson_parser_error s -> Fmt.pf fmt "Michelson_parser_error: %s" s
-  | Unknown s -> Fmt.pf fmt "Unknown_error: %s" s
+  | Michelson_parser_error s -> Fmt.pf fmt "Michelson_parser_error:@ %s" s
+  | Unknown s -> Fmt.pf fmt "%s" s
