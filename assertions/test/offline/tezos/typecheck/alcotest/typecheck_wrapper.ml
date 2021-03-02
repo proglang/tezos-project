@@ -9,6 +9,6 @@ let typecheck input script () =
               dao_contract = (DAO_String script); node_port = None;
               node_basedir = None; tezos_api_verbose = None}
   in
-  parse_contract ~verbose:false input
-  |> transform ~verbose:false
+  parse_contract input
+  |> transform
   |> check_and_compile args

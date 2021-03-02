@@ -3,7 +3,7 @@ open Parsing.Lex_and_parse
 open Transformer_wrapper
 
 let%expect_test "negation quantifiers" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint _
         (forall (n : int)
           (exists (m: int)
@@ -26,7 +26,7 @@ let%expect_test "negation quantifiers" =
           └──Expr: Bool:false|}]
 
 let%expect_test "negation bools w/ quantifiers" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint %e1 _
         (forall (i:int)
           (assert true)))
@@ -56,7 +56,7 @@ let%expect_test "negation bools w/ quantifiers" =
         └──Expr: Bool:true|}]
 
 let%expect_test "negation bools w/o quantifiers" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint %e1 _
         (assert true))
       (entrypoint %e2 _
@@ -76,7 +76,7 @@ let%expect_test "negation bools w/o quantifiers" =
       └──Expr: Bool:false|}]
 
 let%expect_test "negation logic operators w/ quantifiers" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint (pair (a: bool) (b: bool))
         (forall (i:int)
           (assert (and (or (not a) b) b))))|}
@@ -104,7 +104,7 @@ let%expect_test "negation logic operators w/ quantifiers" =
             └──Expr: Id:b|}]
   
 let%expect_test "negation logic operators w/o quantifiers" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint (pair (a: bool) (b: bool))
         (assert (and (or (not a) b) b)))|}
   |> transform;
@@ -126,7 +126,7 @@ let%expect_test "negation logic operators w/o quantifiers" =
         └──Expr: Id:b|}]
 
 let%expect_test "negation xor w/ quantifiers" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint (pair (a: bool) (b: bool))
         (forall (i:int)
           (assert (xor (and a b) (not b)))))|}
@@ -161,7 +161,7 @@ let%expect_test "negation xor w/ quantifiers" =
             └──Expr: Id:b|}]
 
 let%expect_test "negation xor w/o quantifiers" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint (pair (a: bool) (b: bool))
         (assert (xor (and a b) (not b))))|}
   |> transform;
@@ -183,7 +183,7 @@ let%expect_test "negation xor w/o quantifiers" =
           └──Expr: Id:b|}]
 
 let%expect_test "negation relation operators w/ quantifiers" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint %eq_ (a: int)
         (forall (i:int)
           (assert (eq a 10))))
@@ -284,7 +284,7 @@ let%expect_test "negation relation operators w/ quantifiers" =
           └──Expr: Int:10|}]
 
 let%expect_test "negation relation operators w/o quantifiers" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint %eq_ (a: int)
         (assert (eq a 10)))
 
@@ -355,7 +355,7 @@ let%expect_test "negation relation operators w/o quantifiers" =
         └──Expr: Int:10|}]
 
 let%expect_test "byte/string op w/ quantifiers" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint %slice_ (s: string)
         (forall (i : int)
           (assert (eq (slice 0 1 s) "h"))))|}
@@ -379,7 +379,7 @@ let%expect_test "byte/string op w/ quantifiers" =
           └──Expr: Str:"h"|}]
 
 let%expect_test "skip ifs" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint _
         (if true
           (assert true)))|}

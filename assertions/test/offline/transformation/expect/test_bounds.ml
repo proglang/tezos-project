@@ -3,7 +3,7 @@ open Parsing.Lex_and_parse
 open Transformer_wrapper
 
 let%expect_test "condition with single variable" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint _
         (forall (a: int)
           (if (gt a 10)
@@ -25,7 +25,7 @@ let%expect_test "condition with single variable" =
         └──Expr: Bool:false|}]
 
 let%expect_test "condition with two variables" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint _
         (forall (a: int)
           (forall (b: int)
@@ -52,7 +52,7 @@ let%expect_test "condition with two variables" =
           └──Expr: Bool:false|}]
 
 let%expect_test "condition without generated variable" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint (a: int)
         (forall (b: int)
           (if (gt a 10)
@@ -76,7 +76,7 @@ let%expect_test "condition without generated variable" =
           └──Expr: Bool:false|}]
 
 let%expect_test "condition before generator" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint _
         (if (gt a 10)
           (forall (a: int)
@@ -98,7 +98,7 @@ let%expect_test "condition before generator" =
         └──Expr: Bool:false|}]
 
 let%expect_test "isolated condition" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint (a: int)
         (if (gt a 10)
           (assert true)))|}
@@ -117,7 +117,7 @@ let%expect_test "isolated condition" =
         └──Expr: Bool:true|}]
 
 let%expect_test "skip or/xor" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint (a: bool)
         (forall (b: int)
           (if (or (gt b 10) a)
@@ -163,7 +163,7 @@ let%expect_test "skip or/xor" =
           └──Expr: Bool:false|}]
 
 let%expect_test "skip <>/=" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint (a: int)
         (forall (b: int)
           (if (eq a b)

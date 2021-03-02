@@ -1,8 +1,6 @@
 open List
 open Parsing.Assertion
 
-let pp_ast = Parsing.Pp_ast.pp_ast
-
 (* Negates an expression *)
 let rec negate_expr = function
   | `Int _ as i -> i
@@ -221,20 +219,14 @@ let merge_generator_bounds t_ast =
   let (vars, conds) = build_generator_index t_ast in
   rec_merge_bounds vars conds t_ast
 
-let maybe_pprint_transformation v (a : assertion_ast) =
-  if v then (pp_ast Fmt.stdout a; a)
-  else a
-
-let transform_single v ({entrypoint = ep; body = a} : assertion_ast) =
+let transform_single ({entrypoint = ep; body = a} : assertion_ast) =
   negate a
   |> break_conjunctions
   |> merge_generator_bounds
   |> (fun b -> ({entrypoint = ep; body = b}: assertion_ast))
-  |> maybe_pprint_transformation v
 
-let rec transform ~verbose (asts : assertion_ast list) =
-  match asts with
+let rec transform = function
   | a :: rest ->
-     let a_t = transform_single verbose a in
-     a_t :: (transform ~verbose rest)
+     let a_t = transform_single a in
+     a_t :: (transform rest)
   | [] -> []

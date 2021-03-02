@@ -3,7 +3,7 @@ open Parsing.Lex_and_parse
 open Transformer_wrapper
 
 let%expect_test "break conjunctions" =
-  parse_contract ~verbose:false
+  parse_contract
     {|(entrypoint _
         (if (and a (and b c))
           (assert true)))

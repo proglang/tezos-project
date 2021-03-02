@@ -16,17 +16,11 @@ let parse_with_error lexbuf =
      let error_msg = Fmt.str "%s: syntax error\n" (print_position lexbuf) in
      failwith error_msg
 
-let maybe_pprint_ast a ~verbose =
-  if verbose then (Pp_ast.pp_ast Fmt.stdout a; ())
-  else ()
-
-let parse_contract input_str ~verbose =
+let parse_contract input_str =
   let lexbuf = Lexing.from_string input_str in
   let rec rec_parse_contract lxbf = 
   match parse_with_error lxbf with
-  | Some x ->
-     maybe_pprint_ast x ~verbose;
-     (x :: (rec_parse_contract lxbf))
+  | Some x -> (x :: (rec_parse_contract lxbf))
   | None -> []
   in
   rec_parse_contract lexbuf

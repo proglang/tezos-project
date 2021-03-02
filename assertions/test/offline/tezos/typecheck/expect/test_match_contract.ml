@@ -8,8 +8,8 @@ let tz_code = asprintf "parameter %s; storage unit; code {UNIT ; NIL operation ;
 let exec tz tza =
   let open Type_checker.Entrypoint_mapping in
   let dao_t = DAO_String tz in
-  parse_contract ~verbose:false tza
-  |> Tezos_ast.cast ~verbose:false
+  parse_contract tza
+  |> Tezos_ast.cast
   |> Type_checker.type_check dao_t
   |> Lwt_main.run
   |> pp_mapping Fmt.stdout
