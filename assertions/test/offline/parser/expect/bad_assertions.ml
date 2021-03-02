@@ -5,42 +5,60 @@ let%expect_test "missing assert" =
   parse
    "(entrypoint (b: bool) b)" ;
   [%expect
-    {|:1:24: syntax error |}]
+    {|
+     Parsing the assertion failed.
+     ---
+     :1:24: syntax error|}]
 
 let%expect_test "non-expression in if condition" =
   parse
    "(entrypoint (b: bool)
       (if (assert true) (assert true)))" ;
   [%expect
-    {|:2:18: syntax error |}] 
+    {|
+     Parsing the assertion failed.
+     ---
+     :2:18: syntax error |}]
 
 let%expect_test "expression in if body" =
   parse
    "(entrypoint (b: bool)
       (if true true))" ;
   [%expect
-      {|:2:20: syntax error |}]
+    {|
+     Parsing the assertion failed.
+     ---
+     :2:20: syntax error |}]
 
 let%expect_test "non-expression in if condition" =
   parse
    "(entrypoint (b: bool)
       (if (assert true) (assert true)))" ;
   [%expect
-    {|:2:18: syntax error |}] 
+    {|
+     Parsing the assertion failed.
+     ---
+     :2:18: syntax error |}]
 
 let%expect_test "missing if condition" =
   parse
    "(entrypoint (b: bool)
       (if (assert true)))" ;
   [%expect
-    {|:2:18: syntax error |}] 
+    {|
+     Parsing the assertion failed.
+     ---
+     :2:18: syntax error |}]
 
 let%expect_test "missing if body" =
   parse
     "(entrypoint (b: bool)
      (if b ))" ;
   [%expect
-      {|:2:13: syntax error |}] 
+    {|
+     Parsing the assertion failed.
+     ---
+     :2:13: syntax error |}]
 
  let%expect_test "missing forall predicate" =
   parse
@@ -48,14 +66,20 @@ let%expect_test "missing if body" =
       (forall
          (assert true)))" ;
   [%expect
-   {|:3:17: syntax error |}]
+    {|
+     Parsing the assertion failed.
+     ---
+     :3:17: syntax error |}]
 
   let%expect_test "missing forall body" =
   parse
    "(entrypoint _
       (forall (a: int)))" ;
   [%expect
-   {|:2:24: syntax error |}]
+    {|
+     Parsing the assertion failed.
+     ---
+     :2:24: syntax error |}]
 
      let%expect_test "missing exists predicate" =
   parse
@@ -63,26 +87,38 @@ let%expect_test "missing if body" =
       (exists
          (assert true)))" ;
   [%expect
-   {|:3:17: syntax error |}]
+    {|
+     Parsing the assertion failed.
+     ---
+     :3:17: syntax error |}]
 
   let%expect_test "missing exists body" =
   parse
    "(entrypoint _
       (exists (a: int)))" ;
   [%expect
-   {|:2:24: syntax error |}]
+    {|
+     Parsing the assertion failed.
+     ---
+     :2:24: syntax error |}]
 
   let%expect_test "quantifier  wrong predicate declaration" =
   parse
    "(entrypoint (b: bool)
       (forall (assert true) (assert true)))" ;
   [%expect
-    {|:2:22: syntax error |}] 
+    {|
+     Parsing the assertion failed.
+     ---
+     :2:22: syntax error |}]
 
 let%expect_test "expression in quantifier body" =
   parse
    "(entrypoint (b: bool)
       (exists (a: int) true))" ;
   [%expect
-    {|:2:28: syntax error |}] 
+    {|
+     Parsing the assertion failed.
+     ---
+     :2:28: syntax error |}]
 

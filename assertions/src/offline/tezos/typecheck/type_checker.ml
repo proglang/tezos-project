@@ -14,11 +14,11 @@ open Entrypoint_mapping
 module Entrypoint_mapping = Entrypoint_mapping
 
 let err_fmt : ('a -> 'b -> 'c, formatter, unit, 'd tzresult Lwt.t) format4 =
-  "Entrypoint type checking failed. @.---@.%a@."
+  "Entrypoint type checking failed.@.---@.%a@."
 let err_fmt_2 : ('a -> 'b -> 'c, formatter, unit, 'd tzresult Lwt.t) format4 =
-  "Entrypoint type checking failed. @.---@.%s@.%a@."
+  "Entrypoint type checking failed.@.---@.%s@.%a@."
 let err_msg : ('a, formatter, unit, 'b tzresult Lwt.t) format4  =
-  "Entrypoint type checking failed. @.---@.%s@."
+  "Entrypoint type checking failed.@.---@.%s@."
 
 let get_entrypoints (progr : Michelson_v1_parser.parsed) =
   Api.list_entrypoints progr

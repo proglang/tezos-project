@@ -1,6 +1,6 @@
 open Core
 open Parser_wrapper
-   
+
 let%expect_test "simple assert" =
   parse
    "(entrypoint _

@@ -3,11 +3,11 @@ open Lwt.Infix
 let generate_contract parameter =
   Printf.sprintf "parameter %s; storage unit; code {UNIT ; NIL operation ; PAIR }\n" parameter
 
-let error_mismatch_default = {|Entrypoint type mismatch: default|}
-let error_mismatch_ep ep = Printf.sprintf "Entrypoint type mismatch: %s" ep
-let error_dup_ep_default = {|Duplicate entrypoint: default|}
-let error_dup_ep ep = Printf.sprintf "Duplicate entrypoint: %s" ep
-let error_ambiguous_ep ep = Printf.sprintf "Ambiguous entry point: %s" ep
+let error_mismatch_default = "Entrypoint type checking failed.\n---\nEntrypoint type mismatch:\nEntrypoint: %default"
+let error_mismatch_ep ep = Printf.sprintf "Entrypoint type checking failed.\n---\nEntrypoint type mismatch:\nEntrypoint: %s" ("%" ^ ep)
+let error_dup_ep_default = "Entrypoint type checking failed.\n---\nDuplicate entrypoint:\nEntrypoint: %default"
+let error_dup_ep ep = Printf.sprintf "Entrypoint type checking failed.\n---\nDuplicate entrypoint:\nEntrypoint: %s" ("%" ^ ep)
+let error_ambiguous_ep ep = Printf.sprintf "Entrypoint type checking failed.\n---\nAmbiguous entry point:\nEntrypoint: %s" ("%" ^ ep)
 
 let lwt_check_raises (exp_s : string option) f =
   Lwt.catch
@@ -19,7 +19,10 @@ let lwt_check_raises (exp_s : string option) f =
      begin
        match exp_s with
        | Some exs ->
-          if String.equal s exs then Alcotest.(check pass) "Correct exception" () ()
+          print_endline exs;
+          let exs_regex = Str.regexp exs in
+          if Str.string_match exs_regex s 0
+          then Alcotest.(check pass) "Correct exception" () ()
           else Alcotest.fail ("Caught unexpected exception: \n" ^ s)
        | None -> Alcotest.(check pass) "Correct exception" () ()
      end

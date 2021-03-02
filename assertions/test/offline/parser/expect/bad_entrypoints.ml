@@ -7,7 +7,10 @@ let%expect_test "missing name indicator" =
    "(entrypoint name a
       (assert true))" ;
   [%expect
-      {|:1:17: syntax error |}]
+    {|
+     Parsing the assertion failed.
+     ---
+     :1:17: syntax error |}]
 
 let%expect_test "missing type notation" =
   parse
@@ -15,7 +18,10 @@ let%expect_test "missing type notation" =
       (forall (b:bool)
         (assert b)))" ;
   [%expect
-    {|:1:14: syntax error |}]
+    {|
+     Parsing the assertion failed.
+     ---
+     :1:14: syntax error |}]
 
 let%expect_test "incomplete pattern" =
   parse
@@ -23,7 +29,10 @@ let%expect_test "incomplete pattern" =
       (forall (b:bool)
         (assert b)))" ;
   [%expect
-    {|:1:27: syntax error |}]
+    {|
+     Parsing the assertion failed.
+     ---
+     :1:27: syntax error |}]
 
 let%expect_test "illegal pattern" =
   parse
@@ -31,7 +40,10 @@ let%expect_test "illegal pattern" =
       (forall (b:bool)
         (assert b)))" ;
   [%expect
-    {|:1:21: syntax error |}]
+    {|
+     Parsing the assertion failed.
+     ---
+     :1:21: syntax error |}]
 
 let%expect_test "illegal identifier" =
   parse
@@ -39,7 +51,10 @@ let%expect_test "illegal identifier" =
       (forall (b:bool)
         (assert b)))" ;
   [%expect
-    {|:1:16: syntax error |}]
+    {|
+     Parsing the assertion failed.
+     ---
+     :1:16: syntax error |}]
 
 let%expect_test "missing entrypoint syntax" =
   parse
@@ -47,7 +62,10 @@ let%expect_test "missing entrypoint syntax" =
       (forall (b:bool)
         (assert b)))" ;
   [%expect
-    {|:1:4: syntax error |}]
+    {|
+     Parsing the assertion failed.
+     ---
+     :1:4: syntax error |}]
 
 let%expect_test "missing pattern" =
   parse
@@ -55,4 +73,7 @@ let%expect_test "missing pattern" =
       (forall (b:bool)
         (assert b)))" ;
   [%expect
-    {|:2:14: syntax error |}]
+    {|
+     Parsing the assertion failed.
+     ---
+     :2:14: syntax error |}]
