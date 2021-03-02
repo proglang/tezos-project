@@ -8,7 +8,7 @@ type cli_args =
     (* out_file: string; *)
     node_port: int option;
     node_basedir: string option;
-    tezos_api_verbose: bool option;
+    tezos_api_verbose: bool;
   }
 
-val build_args : bool -> string -> dao_type -> int option -> string option -> bool option -> cli_args
+val build_args : bool -> string -> dao_type -> int option -> string option -> bool -> cli_args

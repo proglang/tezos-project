@@ -8,7 +8,7 @@ type cli_args =
     (* out_file: string; *)
     node_port: int option;
     node_basedir: string option;
-    tezos_api_verbose: bool option;
+    tezos_api_verbose: bool;
   }
 
 let sanity_check_assertion_path p =

@@ -16,7 +16,7 @@ let maybe_pprint_ep_mapping ~verbose mapping =
 let configure_api port basedir v =
   if Option.is_some port then Api.set_port @@ Option.get port;
   if Option.is_some basedir then Api.set_basedir @@ Option.get basedir;
-  if Option.is_some v then Api.set_debugmode @@ Option.get v
+  Api.set_debugmode v
 
 let check_and_compile args t_asts =
   configure_api
