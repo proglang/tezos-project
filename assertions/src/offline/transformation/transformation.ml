@@ -8,10 +8,9 @@ let rec negate_expr = function
   | `Bool false -> `Bool true
   | `String _ as s -> s
   (* it's not apparent whether a variable is of type bool or not; if this function should
-   * be called recursively for arguments is handled by the operators
-   *)
+   * be called recursively for arguments is handled by the operators *)
   | `Ident _ as i -> `Unop (`Not, i)
-  (* Condition is skipped *)
+  (* Conditions are skipped *)
   | `IfThenElse (cond, then_expr, else_expr) ->
      let then_transformed = negate_expr then_expr in
      let else_transformed = negate_expr else_expr in
@@ -87,7 +86,7 @@ let rec negate = function
   | `Forall _ as fa -> negate_assertion fa
   | `Exists _ as ex -> negate_assertion ex
 
-(* Breaks (nested) conjunctions in if-conditions into separate ifs*)
+(* Split conjunctions in if-conditions into separate if conditions *)
 let break_conjunctions ast =
   let rec rec_break = function
     | `If ((e : expression), (body : assertion)) as i ->
@@ -105,8 +104,9 @@ let break_conjunctions ast =
 
 module VariableDepth = Map.Make(String)
 
-(* Traverses the AST and builds a map of quantification variables and their
- * depth in the quantifier nesting and a list of unskipped if-conditions.
+(* Traverses the AST and builds a map of quantification predicates and their
+ * depth in the quantifier nesting, as well as a list of all conditions except
+ * the ones containing certain operators.
  * returns (variables = {<Id>:<depth>}, conditions = [<expression>])
 *)
 let build_generator_index a =
@@ -114,14 +114,12 @@ let build_generator_index a =
     match x with
     | `Forall ((v, _), a, _)
       | `Exists ((v, _), a, _) ->
-       (* Add the quantification variable and its depth to the map *)
+       (* Add the quantification predicate and its depth to the map *)
        traverse (VariableDepth.add v depth vars) conds (depth + 1) a
     | `Assert _ -> (vars, conds)
     | `If (cond, body) ->
        match cond with
-       (* = <> || xor conditions are skipped, as they're not easily mergable with
-        * any generator
-        *)
+       (* = <> || xor conditions are skipped, as they're not easily mergable with any generator *)
        | `Binop (`Neq, _, _)
          | `Binop (`Eq, _, _)
          | `Binop (`Or, _, _)
@@ -145,14 +143,15 @@ let get_variables_of_expr expr =
   in
   traverse [] expr
 
-(* returns true if any variable in the given list is a quantification variable, i.e.
+(* returns true if any variable in the given list is a quantification predicate, i.e.
  * if the variable is present in the variable map
  *)
 let rec is_quantifier_var vars = function
   | e :: es -> if VariableDepth.mem e vars then true else is_quantifier_var vars es
   | [] -> false
 
-(* Returns the list of conditions, i.e. bounds, for a quantification variable *)
+(* Returns the list of conditions, i.e. bounds, that can be merged with the quantifier of
+   the given predicate *)
 let get_bounds vars conds var =
   (* returns the maximum between the current max level and the level of the given variable *)
   let max acc v =
@@ -160,8 +159,8 @@ let get_bounds vars conds var =
     | Some l -> if l > acc then l else acc
     | None -> acc
   in
-  (* Add the condition to the list of bounds if the variable is present in the condition
-   * and the variable has the highest depth of all variables in the condition
+  (* Add the condition to the list of bounds if the predicate is present in the condition
+   * and the predicate has the highest depth of all predicates in the condition
    *)
   let add_bounds acc c =
     let vs = get_variables_of_expr c in
@@ -179,24 +178,22 @@ let get_bounds vars conds var =
     | false -> acc
   in
   (* Extract the conditions from the list of conditions that should be merged with the
-   * generator of the given quantification variable
+   * generator of the given quantification predicate
    *)
   List.fold_left add_bounds [] conds
 
-(* When encountering a quantifier, retrieves all bounds for the respective variable and
- * merges it
- * When encountering a mergable if-condition, removes it
- *)
+(* Merges conditions (bounds) to the respective quantifiers and removes the condition
+   from the AST *)
 let rec rec_merge_bounds vars conds = function
   | `Forall ((v, t), a, _) ->
+     (* Get the list of conditions that can be merged with this quantifier *)
      `Forall ((v, t), rec_merge_bounds vars conds a, get_bounds vars conds v)
   | `Exists ((v, t), a, _) ->
+     (* Get the list of conditions that can be merged with this quantifier *)
      `Exists ((v, t), rec_merge_bounds vars conds a, get_bounds vars conds v)
   | `If (c, a) ->
+     (* Remove the condition if it's mergable (i.e. it contains a predicate and is not skipped) *)
      begin
-       (* Remove if condition is in the list of unskipped conditions & it contains a
-        * quantification variable
-        *)
        match List.mem c conds with
        | true ->
           begin
@@ -209,19 +206,22 @@ let rec rec_merge_bounds vars conds = function
      end
   | `Assert expr -> `Assert expr
 
-(* Merge conditions to the respective generators
+(* Merge conditions to the respective quantifiers (generators)
  * Traverses the AST twice:
- * 1. Generate an index of the quantifier variables and the conditions to be merged
- * 2. Merge the conditions to the respective generators and delete the if conditions
- * Returns a new AST type supporting bounds
+ * 1. Build an index of the quantifier predicates and their depth; build a list of all conditions
+ * 2. Merge the conditions into the respective quantifiers and delete the if conditions from
+ *    the AST
  *)
 let merge_generator_bounds t_ast =
   let (vars, conds) = build_generator_index t_ast in
   rec_merge_bounds vars conds t_ast
 
 let transform_single ({entrypoint = ep; body = a} : assertion_ast) =
+  (* negate the formula *)
   negate a
+  (* split up conjunctive conditions to simplify the later steps *)
   |> break_conjunctions
+  (* assign conditions (bounds) to the respective quantifiers *)
   |> merge_generator_bounds
   |> (fun b -> ({entrypoint = ep; body = b}: assertion_ast))
 
