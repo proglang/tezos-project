@@ -17,7 +17,7 @@ let set_basedir dir = node_basedir_arg := Some dir
 
 let usage = "Usage: " ^ Sys.argv.(0) ^ "-a <path> (--address <address> | --file <path> | --script string) [-p <port>] [-d <dir>] [--tz-api-v]"
 let spec_list = [
-    ("-v", Arg.Set verbose_arg, "Verbose mode - prints out intermediate results");
+    ("-v", Arg.Set verbose_arg, "Verbose mode - prints out intermediate results of the pipeline");
     ("-a", Arg.Set_string assertion_file_arg, "File path of the assertion contract");
     ("--address", Arg.String (set_dao_chain), "Address of the parent contract");
     ("--file", Arg.String (set_dao_file), "File path of the parent contract code");
@@ -32,16 +32,26 @@ let main =
            spec_list
            (fun x -> raise (Arg.Bad ("Bad argument: " ^ x)))
            usage;
-  let args = Cli_args.build_args
-               !verbose_arg
-               !assertion_file_arg
-               !dao_contract_arg
-               !node_port_arg
-               !node_basedir_arg
-               !tezos_api_verbose_arg
-  in
-  generate_assertion_contract args
+  Lwt.catch
+  (fun () ->
+    let args = Cli_args.build_args
+                 !verbose_arg
+                 !assertion_file_arg
+                 !dao_contract_arg
+                 !node_port_arg
+                 !node_basedir_arg
+                 !tezos_api_verbose_arg in
+    generate_assertion_contract args)
+  (function
+   | Invalid_argument s ->
+      Printf.eprintf "\027[1;4;31mERROR:\n";
+      Printf.eprintf "\027[0mInvalid argument - %s\n" s; Lwt.return 1
+   | Failure s ->
+      Printf.eprintf "\027[1;4;31mERROR:\n";
+      Printf.eprintf "\027[0m%s" s; Lwt.return 1
+  | e ->
+      Printf.eprintf "\027[1;4;31mERROR:\n";
+      Printf.eprintf "\027[0m%s\n" (Printexc.to_string e); Lwt.return 1)
 
-(* The example contract is first parsed and then transformed by the backend *)
 let () =
   Stdlib.exit @@ Lwt_main.run main

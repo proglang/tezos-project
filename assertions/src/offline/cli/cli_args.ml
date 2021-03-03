@@ -12,7 +12,7 @@ type cli_args =
   }
 
 let sanity_check_assertion_path p =
-  if p = "" then raise @@ Invalid_argument "No assertion file given!"
+  if p = "" then raise @@ Invalid_argument "no assertion file given!"
   else p
 
 let sanity_check_dao_contract dao =
@@ -20,13 +20,13 @@ let sanity_check_dao_contract dao =
   | DAO_File s
     | DAO_Chain s
     | DAO_String s ->
-     if s = "" then raise @@ Invalid_argument "No contract given!"
+     if s = "" then raise @@ Invalid_argument "no contract given!"
      else dao
 
 let sanity_check_port port =
   match port with
   | Some p ->
-     if p >= 0 then port else raise @@ Invalid_argument "Ports must be >= 0"
+     if p >= 0 then port else raise @@ Invalid_argument "ports must be >= 0"
   | None -> port
 
 let build_args v assertion_f dao port basedir tzv =
