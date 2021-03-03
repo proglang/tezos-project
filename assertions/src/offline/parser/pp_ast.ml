@@ -79,51 +79,43 @@ let rec pp_expr ppf ~indent expr =
      pp_expr ppf ~indent:new_indent e2 ;
      pp_expr ppf ~indent:new_indent e3
 
-let pp_type_expr_top ppf ~indent t =
-  let rec pp_type_expr ppf ~indent t =
-    let print_type = Fmt.pf ppf "%sType: %s" indent in
-    match t with
-    | `List_t tt ->
-       print_type (str_of_ty t);
-       pp_un_composite ppf tt
-    | `Set_t tt ->
-       print_type (str_of_ty t);
-       pp_un_composite ppf tt
-    | `Option_t tt ->
-       print_type (str_of_ty t);
-     pp_un_composite ppf tt
-    | `Or_t (t1, t2) ->
-       print_type (str_of_ty t);
-       pp_bin_composite ppf t1 t2
-    | `Pair_t (t1, t2) ->
-       print_type (str_of_ty t);
-       pp_bin_composite ppf t1 t2
-    | `Lambda_t (t1, t2) ->
-       print_type (str_of_ty t);
-       pp_bin_composite ppf t1 t2
-    | `Map_t (t1, t2) ->
-       print_type (str_of_ty t);
-       pp_bin_composite ppf t1 t2
-    | `Contract_t tt ->
-       print_type (str_of_ty t);
-       pp_un_composite ppf tt
-    | `BigMap_t (t1, t2) ->
-       print_type (str_of_ty t);
-       pp_bin_composite ppf t1 t2
-    | _ -> print_type (str_of_ty t)
-  and pp_un_composite ppf t1 =
-    Fmt.pf ppf "<" ;
-    pp_type_expr ppf ~indent:"" t1;
-    Fmt.pf ppf ">"
-  and pp_bin_composite ppf t1 t2 =
-    Fmt.pf ppf "<" ;
-    pp_type_expr ppf ~indent:"" t1;
-    Fmt.pf ppf ", " ;
-    pp_type_expr ppf ~indent:"" t2;
-    Fmt.pf ppf ">"
-  in
-  pp_type_expr ppf ~indent t;
-  Fmt.pf ppf "@."
+let rec pp_type_expr ppf ~indent t =
+  let print_type = Fmt.pf ppf "%sType: %s@." indent in
+  let new_indent = indent_space ^ indent in
+  match t with
+  | `List_t tt ->
+     print_type (str_of_ty t);
+     pp_type_expr ppf ~indent:new_indent tt
+  | `Set_t tt ->
+     print_type (str_of_ty t);
+     pp_type_expr ppf ~indent:new_indent tt
+  | `Option_t tt ->
+     print_type (str_of_ty t);
+     pp_type_expr ppf ~indent:new_indent tt
+  | `Or_t (t1, t2) ->
+     print_type (str_of_ty t);
+     pp_type_expr ppf ~indent:new_indent t1;
+     pp_type_expr ppf ~indent:new_indent t2
+  | `Pair_t (t1, t2) ->
+     print_type (str_of_ty t);
+     pp_type_expr ppf ~indent:new_indent t1;
+     pp_type_expr ppf ~indent:new_indent t2
+  | `Lambda_t (t1, t2) ->
+     print_type (str_of_ty t);
+     pp_type_expr ppf ~indent:new_indent t1;
+     pp_type_expr ppf ~indent:new_indent t2
+  | `Map_t (t1, t2) ->
+     print_type (str_of_ty t);
+     pp_type_expr ppf ~indent:new_indent t1;
+     pp_type_expr ppf ~indent:new_indent t2
+  | `Contract_t tt ->
+     print_type (str_of_ty t);
+     pp_type_expr ppf ~indent:new_indent tt
+  | `BigMap_t (t1, t2) ->
+     print_type (str_of_ty t);
+     pp_type_expr ppf ~indent:new_indent t1;
+     pp_type_expr ppf ~indent:new_indent t2
+  | _ -> print_type (str_of_ty t)
   
 let rec pp_pattern ppf ~indent pat =
   let print_pattern = Fmt.pf ppf "%sPattern: %s@." indent in
@@ -132,7 +124,7 @@ let rec pp_pattern ppf ~indent pat =
   | `Wildcard -> print_pattern "Wildcard"
   | `Ident (s,t) ->
      print_pattern (Fmt.str "Id:%s" s);
-     pp_type_expr_top ppf ~indent:new_indent t
+     pp_type_expr ppf ~indent:new_indent t
   | `Pair (p1, p2) ->
      print_pattern "Pair";
      pp_pattern ppf ~indent:new_indent p1 ;

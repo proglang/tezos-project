@@ -74,7 +74,8 @@ let%expect_test "comp param type" =
         └──Pattern: Pair
           └──Pattern: Wildcard
           └──Pattern: Id:a
-            └──Type: List_t<Type: Int_t>
+            └──Type: List_t
+              └──Type: Int_t
     └──Assertion: Forall
       └──Pattern: Id:b
         └──Type: Bool_t
@@ -94,11 +95,12 @@ let%expect_test "typed comp pattern" =
     AST
     └──Entrypoint: %default
       └──Pattern: Id:a
-        └──Type: Pair_t<Type: Int_t, Type: Bool_t>
+        └──Type: Pair_t
+          └──Type: Int_t
+          └──Type: Bool_t
     └──Assertion: Forall
       └──Pattern: Id:b
         └──Type: Bool_t
       └──Bounds:
       └──Assertion: Assert 
         └──Expr: Id:b|}]
-

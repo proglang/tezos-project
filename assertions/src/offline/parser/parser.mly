@@ -21,6 +21,8 @@
 
 %start <Assertion.assertion_ast option> main
 
+(* Operator precedence is not handled explicitly, as the grammar enforces parentheses *)
+
 %%
 
 main:

@@ -74,6 +74,7 @@ type expression = [
   | `IfThenElse of expression * expression * expression
   | `Unop of unop * expression
   | `Binop of binop * expression * expression
+  (* Ternary operator slice; should be moved to an own type if more are added later on *)
   | `Slice of expression * expression * expression
   ]
 

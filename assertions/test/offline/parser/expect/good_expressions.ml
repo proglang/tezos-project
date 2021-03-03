@@ -189,7 +189,8 @@ let%expect_test "list/string operators" =
     AST
     └──Entrypoint: %A
       └──Pattern: Id:a
-        └──Type: List_t<Type: Int_t>
+        └──Type: List_t
+          └──Type: Int_t
     └──Assertion: Forall
       └──Pattern: Id:i
         └──Type: Int_t
