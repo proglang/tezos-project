@@ -5,7 +5,7 @@ type cli_args =
     verbose: bool;
     assertion_file: string;
     dao_contract: dao_type;
-    (* out_file: string; *)
+    (* out_file: string; -> not clear yet, how the output will look like *)
     node_port: int option;
     node_basedir: string option;
     tezos_api_verbose: bool;
