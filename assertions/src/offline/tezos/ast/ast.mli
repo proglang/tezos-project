@@ -1,4 +1,5 @@
-(* Needs to be changed when the parser is extended with Solidity stuff *)
+(** Defines how the Tezos specific AST is built. *)
+
 type ty = Parsing.Assertion.ty
 type var_decl = Parsing.Assertion.var_decl
 type pattern = Parsing.Assertion.pattern

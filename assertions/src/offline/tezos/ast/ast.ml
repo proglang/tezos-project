@@ -1,4 +1,6 @@
-(* Needs to be changed when the parser is extended with Solidity stuff *)
+(* Needs to be changed when the parser is extended with Solidity stuff
+   For now, the ASTs are almost the same  *)
+
 type ty = Parsing.Assertion.ty
 type var_decl = Parsing.Assertion.var_decl
 type pattern = Parsing.Assertion.pattern
