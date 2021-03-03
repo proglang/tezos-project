@@ -1,3 +1,4 @@
 open Cli_args
 
-val generate_assertion_contract : cli_args -> int Lwt.t
+(** This is the entry point for execution of the pipeline *)
+val generate_assertion_contract : cli_args -> unit Lwt.t

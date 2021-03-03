@@ -2,6 +2,7 @@ open Check_and_compile
 open Parsing
 open Cli_args
 
+(* Read the assertion contract from file *)
 let read_assertion path = let open Core in
                           In_channel.read_all path
 
@@ -12,6 +13,7 @@ let maybe_pprint_ast asts ~verbose =
   in
   if verbose then (print asts; asts) else asts
 
+
 let generate_assertion_contract args =
   let verbose = args.verbose in
   read_assertion args.assertion_file
@@ -20,4 +22,3 @@ let generate_assertion_contract args =
   |> Transformation.transform
   |> maybe_pprint_ast ~verbose
   |> check_and_compile args
-  >>= fun () -> Lwt.return 0

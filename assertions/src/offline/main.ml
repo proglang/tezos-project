@@ -33,25 +33,27 @@ let main =
            (fun x -> raise (Arg.Bad ("Bad argument: " ^ x)))
            usage;
   Lwt.catch
-  (fun () ->
-    let args = Cli_args.build_args
-                 !verbose_arg
-                 !assertion_file_arg
-                 !dao_contract_arg
-                 !node_port_arg
-                 !node_basedir_arg
-                 !tezos_api_verbose_arg in
-    generate_assertion_contract args)
-  (function
-   | Invalid_argument s ->
-      Printf.eprintf "\027[1;4;31mERROR:\n";
-      Printf.eprintf "\027[0mInvalid argument - %s\n" s; Lwt.return 1
-   | Failure s ->
-      Printf.eprintf "\027[1;4;31mERROR:\n";
-      Printf.eprintf "\027[0m%s" s; Lwt.return 1
-  | e ->
-      Printf.eprintf "\027[1;4;31mERROR:\n";
-      Printf.eprintf "\027[0m%s\n" (Printexc.to_string e); Lwt.return 1)
+    (fun () ->
+      (* Perform sanity checks on arguments and pass as structure *)
+      let args = Cli_args.build_args
+                   !verbose_arg
+                   !assertion_file_arg
+                   !dao_contract_arg
+                   !node_port_arg
+                   !node_basedir_arg
+                   !tezos_api_verbose_arg in
+      generate_assertion_contract args
+      >>= fun () -> Lwt.return 0)
+    (function
+     | Invalid_argument s ->
+        Printf.eprintf "\027[1;4;31mERROR:\n";
+        Printf.eprintf "\027[0mInvalid argument - %s\n" s; Lwt.return 1
+     | Failure s ->
+        Printf.eprintf "\027[1;4;31mERROR:\n";
+        Printf.eprintf "\027[0m%s" s; Lwt.return 1
+     | e ->
+        Printf.eprintf "\027[1;4;31mERROR:\n";
+        Printf.eprintf "\027[0m%s\n" (Printexc.to_string e); Lwt.return 1)
 
 let () =
   Stdlib.exit @@ Lwt_main.run main

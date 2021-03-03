@@ -1,6 +1,15 @@
 open Core
 open Parser_wrapper
 
+let%expect_test "empty assertion contract" =
+  parse
+    "";
+  [%expect
+    {|
+     Parsing the assertion failed.
+     ---
+     The assertion contract must contain at least 1 assertion.|}]
+
 let%expect_test "missing assert" =
   parse
    "(entrypoint (b: bool) b)" ;
