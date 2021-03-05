@@ -7,9 +7,8 @@
 	    SyncAPIV1
 
             (select void_for_linking-007-PsDELPH1 from
-              (tezos-client-007-PsDELPH1-commands.registration -> void_for_linking)
-              (-> void_for_linking))
-)
+              (tezos-client-007-PsDELPH1-commands.registration -> void_for_linking-007-PsDELPH1.empty)
+              (-> void_for_linking-007-PsDELPH1.empty)))
   (flags (:standard -open Lwt
                     -open Tezos_micheline
                     -linkall)))

@@ -11,8 +11,8 @@
             str
 
 	    (select void_for_linking-007-PsDELPH1 from
-              (tezos-client-007-PsDELPH1-commands-registration -> void_for_linking)
-              (-> void_for_linking))
+              (tezos-client-007-PsDELPH1-commands-registration -> void_for_linking-007-PsDELPH1.empty)
+              (-> void_for_linking-007-PsDELPH1.empty))
 
 	    tezos-stdlib-unix
             tezos-client-base-unix)
