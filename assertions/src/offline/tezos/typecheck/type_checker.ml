@@ -134,8 +134,8 @@ let rec match_single entrypoints (ep_name, ep_pattern) matches =
   let rec get_unambiguous_ep = function
       (* No identical tags found; assertion cannot be unambigusouly assigned to an entrypoint *)
     | [] -> failwith err_fmt_2 "Ambiguous entry point:" Pp_ast.pp_ast_entrypoint (ep_name, ep_pattern)
-    | ((tag, _) as ep) :: eps ->
-       if tag = ep_name then return_some ep
+    | (tag, _) :: eps ->
+       if tag = ep_name then return_some tag
        else get_unambiguous_ep eps
   in
   let rec get_default_ep = function
@@ -149,7 +149,7 @@ let rec match_single entrypoints (ep_name, ep_pattern) matches =
     >>=? fun (tag, expr) ->
     eq_type_pattern ep_pattern expr
     >>=? fun eq ->
-    if eq then return_some (tag, expr) else return_none
+    if eq then return_some tag else return_none
   else
     begin
       match entrypoints with
@@ -165,7 +165,7 @@ let rec match_single entrypoints (ep_name, ep_pattern) matches =
            (* No match was found *)
            | [] -> return_none
            (* Single and thus unambiguous match *)
-           | m :: [] -> return_some m
+           | (tag, _) :: [] -> return_some tag
            (* Several entrypoints match; check if tags resolve ambiguity *)
            | ms -> get_unambiguous_ep ms
          end
@@ -267,7 +267,8 @@ let do_typecheck asts paths entrypoints =
   let do_typecheck_single (unvisited, ep_mapping) (({entrypoint = (tag, pat); _}: Ast.ast) as ast) =
     match_single entrypoints (tag, pat) []
     >>=? function
-    | Some (ep_tag, _) ->
+    (* Unambiguous match found *)
+    | Some ep_tag ->
        begin
          if tag = "default" then
            begin
