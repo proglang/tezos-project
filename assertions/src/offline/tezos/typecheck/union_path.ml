@@ -20,31 +20,30 @@ let rec compare up1 up2 =
 
 let eq up1 up2 = if (compare up1 up2) = 0 then true else false
 
-let rec add lvl = function
-  | T -> lvl
-  | Left l -> Left (add lvl l)
-  | Right r -> Right (add lvl r)
+let rec extend ext_path = function
+  | T -> ext_path
+  | Left l -> Left (extend ext_path l)
+  | Right r -> Right (extend ext_path r)
 
-(* Traverses the parameter tree and builds a map which stores the path of the entrypoint within possibly nested unions *)
 let from_micheline node =
   let rec build_paths (node : (int, prim) Micheline.node) path paths =
     match node with
     (* Union node; build paths recursively for left and right *)
     | (Prim (_, T_or, l :: r :: [], annot)) ->
        begin
-         build_paths l (add (Left T) path) paths
-         |> build_paths r (add (Right T) path)
+         build_paths l (extend (Left T) path) paths
+         |> build_paths r (extend (Right T) path)
          |> (fun new_paths ->
          match get_field_annot annot with
+         (* Add path of current node *)
          | Some tag -> (tag, path) :: new_paths
-         | None -> ("default", path) :: new_paths) (* Toplevel node likely has no annotation *)
+         | None -> ("default", path) :: new_paths) (* root node (default ep) likely has no tag *)
        end
     (* Reached a non-union entrypoint; add path and skip operators*)
     | (Prim (_, _, _, annot)) ->
        begin
          match get_field_annot annot with
          | Some tag -> (tag, path) :: paths
-         (* Should never happen, as we added tags everywhere before *)
          | None -> ("default", path) :: paths
        end
     (* Type signatures should only contain primitives; we don't care about other node types*)
@@ -61,23 +60,20 @@ let from_assertion_pattern pattern =
       | `Some _
       | `Cons _
       | `Nil -> path
-    | `Left l -> build_path (add (Left T) path) l
-    | `Right r -> build_path (add (Right T) path) r
+    | `Left l -> build_path (extend (Left T) path) l
+    | `Right r -> build_path (extend (Right T) path) r
   in
   build_path T pattern
 
-(* Removed all prefixes of the given path from the list of paths
- * Also considers the path itself as a prefix
- *)
 let remove_prefixes ps p =
   let rec get_prefixes p path prefixes =
     match p with
     | T -> T :: prefixes
     | Left l ->
-       let new_path = add (Left T) path in
+       let new_path = extend (Left T) path in
        new_path :: (get_prefixes l new_path prefixes)
     | Right r ->
-       let new_path = add (Right T) path in
+       let new_path = extend (Right T) path in
        new_path :: (get_prefixes r new_path prefixes)
   in
   let prefixes = get_prefixes p T [] in

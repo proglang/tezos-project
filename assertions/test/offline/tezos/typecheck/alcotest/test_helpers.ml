@@ -5,8 +5,8 @@ let generate_contract parameter =
 
 let error_mismatch_default = "Entrypoint type checking failed.\n---\nEntrypoint type mismatch:\nEntrypoint: %default"
 let error_mismatch_ep ep = Printf.sprintf "Entrypoint type checking failed.\n---\nEntrypoint type mismatch:\nEntrypoint: %s" ("%" ^ ep)
-let error_dup_ep_default = "Entrypoint type checking failed.\n---\nDuplicate entrypoint:\nEntrypoint: %default"
-let error_dup_ep ep = Printf.sprintf "Entrypoint type checking failed.\n---\nDuplicate entrypoint:\nEntrypoint: %s" ("%" ^ ep)
+let error_dup_ep_default = "Entrypoint type checking failed.\n---\nDuplicate or overlapping entrypoint:\nEntrypoint: %default"
+let error_dup_ep ep = Printf.sprintf "Entrypoint type checking failed.\n---\nDuplicate or overlapping entrypoint:\nEntrypoint: %s" ("%" ^ ep)
 let error_ambiguous_ep ep = Printf.sprintf "Entrypoint type checking failed.\n---\nAmbiguous entry point:\nEntrypoint: %s" ("%" ^ ep)
 
 let lwt_check_raises (exp_s : string option) f =

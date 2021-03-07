@@ -1,7 +1,6 @@
 open Format
 (* According to the Tezos docs; unfortunately there is no defined constant
- * in the Tezos code.
- *)
+ * in the Tezos code. *)
 let field_annot_identifier = '%'
 
 let rec get_field_annot annots =

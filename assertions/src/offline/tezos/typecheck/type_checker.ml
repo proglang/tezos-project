@@ -13,27 +13,32 @@ open Entrypoint_mapping
 
 module Entrypoint_mapping = Entrypoint_mapping
 
+(* Wraps a user defined pretty printer in the standard error message *)
 let err_fmt : ('a -> 'b -> 'c, formatter, unit, 'd tzresult Lwt.t) format4 =
   "Entrypoint type checking failed.@.---@.%a@."
+(* Wraps a specific message and a user defined pretty printer in the standard error message *)
 let err_fmt_2 : ('a -> 'b -> 'c, formatter, unit, 'd tzresult Lwt.t) format4 =
   "Entrypoint type checking failed.@.---@.%s@.%a@."
+(* Appends a specific message to the standard error message *)
 let err_msg : ('a, formatter, unit, 'b tzresult Lwt.t) format4  =
   "Entrypoint type checking failed.@.---@.%s@."
 
+(* Calls API to get entrypoints of a program and wraps result to tzresult monad *)
 let get_entrypoints (progr : Michelson_v1_parser.parsed) =
   Api.list_entrypoints progr
   >>= function
   | Ok eps -> return eps
   | Error err -> failwith err_fmt Api_error.pp_error err
 
+(* Build an error string from an error trace *)
 let get_error_str errs =
   let f = (fun s err -> s ^ (asprintf "%a" pp err)) in
   List.fold_left f "" errs
 
-(*  Renaming after adding completion -> eq, not cmp*)
-let rec compare_type (ty1: (int, prim) Micheline.node) (ty2: Ast.ty) =
+(* Checks if the given type annotations are equivalent *)
+let rec eq_type (ty1: (int, prim) Micheline.node) (ty2: Ast.ty) =
   match ty1 with
-  | Prim (_, prim, nodes, _) ->
+  | Prim (_, prim, operands, _) ->
      begin
        match prim, ty2 with
        | T_address, `Address_t -> return_true
@@ -55,9 +60,12 @@ let rec compare_type (ty1: (int, prim) Micheline.node) (ty2: Ast.ty) =
          | T_option, `Option_t t
          | T_set, `Set_t t ->
           begin
-            match nodes with
-            | op_ty :: [] -> compare_type op_ty t
-            | _ -> return_false (*failwith "Unexpected number of operands in Michelson AST"*)
+            match operands with
+            | op_ty :: [] -> eq_type op_ty t
+            | _ ->
+               (* Should never happen, as these types expect exactly one subtype *)
+               (* failwith "Unexpected number of operands in Michelson AST"*)
+               return_false
           end
        | T_big_map, `BigMap_t (t1, t2)
          | T_lambda, `Lambda_t (t1, t2)
@@ -65,27 +73,34 @@ let rec compare_type (ty1: (int, prim) Micheline.node) (ty2: Ast.ty) =
          | T_or, `Or_t (t1, t2)
          | T_pair, `Pair_t (t1, t2) ->
           begin
-            match nodes with
+            match operands with
             | op1_ty :: op2_ty :: [] ->
                begin
-                 compare_type op1_ty t1
+                 eq_type op1_ty t1
                  >>=? fun eq_op1 ->
-                 compare_type op2_ty t2
+                 eq_type op2_ty t2
                  >>=? fun eq_op2 ->
                  return (eq_op1 && eq_op2)
                end
-            | _ -> return_false (*failwith "Unexpected number of operands in Michelson AST"*)
+            | _ ->
+               (* Should never happen, as these types expect exactly two subtype *)
+               (*failwith "Unexpected number of operands in Michelson AST"*)
+               return_false
           end
-       | _ -> return_false (*failwith "Type mismatch"*)
+       (* Type notations do not match *)
+       | _ -> return_false
      end
-  | _ -> return_false (*failwith "Unexpected Micheline AST node"*)
+  (* Should never happen, as parameter node should only contain nodes of primitives *)
+  (*failwith "Unexpected Micheline AST node"*)
+  | _ -> return_false
 
+(* Checks if the given pattern is equivalent to the Michelson type *)
 let eq_type_pattern ep_pattern expr =
   let rec eq_type_pattern_rec ep_pattern (expr : (int, prim) Micheline.node)  =
     match expr with
-    | Prim (_, prim, nodes, _) ->
+    | Prim (_, prim, operands, _) ->
        begin
-         match prim, ep_pattern, nodes with
+         match prim, ep_pattern, operands with
          | T_or, `Left p, op1_ty :: _ :: [] ->
             eq_type_pattern_rec p op1_ty
          | T_or, `Right p, _ :: op2_ty :: [] ->
@@ -112,7 +127,7 @@ let eq_type_pattern ep_pattern expr =
               return (eq_op1 && eq_op2)
             end
          | _, `Ident (_, ty), _ ->
-            compare_type expr ty
+            eq_type expr ty
          | _, `Wildcard, _  ->
             return_true
          | _  -> return_false
@@ -121,56 +136,63 @@ let eq_type_pattern ep_pattern expr =
        (* Parameter nodes only contain primitives; this should never happen *)
        failwith err_msg "Unexpected Tezos internal AST type"
   in
+  (* Get node in canonical form (which makes it traversable) *)
   let root = Micheline.root expr in
   eq_type_pattern_rec ep_pattern root
 
 (* Checks whether the assertion type matches an entrypoint type of the contract
- * and returns the matching entrypoint if the assignment is unambiguous
- *)
-let rec match_single entrypoints (ep_name, ep_pattern) matches =
-  (* If >1 entrypoints match the assertion type, check if it can be matched
-   * unambiguosly through the tags
-   *)
+ * and returns the matching contract entrypoint if the assignment is unambiguous
+   a_tag denotes the name tag of an assertion entrypoint
+   ep_tag denotes the name tag of a contract entrypoint
+*)
+let rec match_single entrypoints (a_tag, a_pattern) matches =
+  (* If >1 contract entrypoints match the assertion type, check if it can be matched
+   * unambiguosly by identical tags *)
   let rec get_unambiguous_ep = function
       (* No identical tags found; assertion cannot be unambigusouly assigned to an entrypoint *)
-    | [] -> failwith err_fmt_2 "Ambiguous entry point:" Pp_ast.pp_ast_entrypoint (ep_name, ep_pattern)
-    | (tag, _) :: eps ->
-       if tag = ep_name then return_some tag
+    | [] -> failwith err_fmt_2 "Ambiguous entry point:" Pp_ast.pp_ast_entrypoint (a_tag, a_pattern)
+    | (ep_tag, _) :: eps ->
+       if ep_tag = a_tag then return_some ep_tag
        else get_unambiguous_ep eps
   in
+  (* Extract the contract default entrypoint from the list of its entrypoints *)
   let rec get_default_ep = function
-    | (tag, _) as ep :: eps -> if tag = "default" then return ep else get_default_ep eps
-    (* Should never happen *)
+    | (ep_tag, _) as ep :: eps -> if ep_tag = "default" then return ep else get_default_ep eps
+    (* Should never happen, as there always is a default entrypoint *)
     | [] -> failwith err_msg "Unexpected error: default entrypoint not found"
   in
-  if ep_name = "default"
+  (* Assertion eps without an explicit tag are only matched against the contract default entrypoint *)
+  if a_tag = "default"
   then
     get_default_ep entrypoints
-    >>=? fun (tag, expr) ->
-    eq_type_pattern ep_pattern expr
+    >>=? fun (ep_tag, expr) ->
+    eq_type_pattern a_pattern expr
     >>=? fun eq ->
-    if eq then return_some tag else return_none
+    if eq then return_some ep_tag else return_none
   else
+    (* Match against all contract entrypoints *)
     begin
       match entrypoints with
-      | (tag, expr) :: rest ->
-         eq_type_pattern ep_pattern expr
+      | (ep_tag, expr) :: rest ->
+         eq_type_pattern a_pattern expr
          >>=? fun eq ->
-         (* Collect all matching entrypoints in a list *)
-         if eq then match_single rest (ep_name, ep_pattern) ((tag, expr) :: matches)
-         else match_single rest (ep_name, ep_pattern) matches
+         (* Collect all entrypoint with matching type in a list *)
+         if eq then match_single rest (a_tag, a_pattern) ((ep_tag, expr) :: matches)
+         else match_single rest (a_tag, a_pattern) matches
       | [] ->
+         (* Check if assertion can be assigned unambiguously to a match *)
          begin
            match matches with
            (* No match was found *)
            | [] -> return_none
            (* Single and thus unambiguous match *)
-           | (tag, _) :: [] -> return_some tag
+           | (ep_tag, _) :: [] -> return_some ep_tag
            (* Several entrypoints match; check if tags resolve ambiguity *)
-           | ms -> get_unambiguous_ep ms
+           | eps -> get_unambiguous_ep eps
          end
     end
-(* Maps entrypoints to their respective path within unions
+
+(* Maps contract entrypoints to their respective path within unions
  * (or (or (unit %A) (unit %B) (unit %C))
  * {%A -> (Left (Left T)); %B -> (Left (Right T)); %C -> (Right T)}
  *)
@@ -185,9 +207,11 @@ let add_tags_and_build_paths
         unexpanded = unexp;
         expansion_table = exp_tbl;
         unexpansion_table = unexp_tbl} : Michelson_v1_parser.parsed) =
-  (* Use id numbers from 1..n as generated ep tags; maybe use something more random in the future to avoid collisions with original tags *)
+  (* Use unique id numbers from 1..n as generated ep tags; maybe use something more random in the future
+     to avoid collisions with original tags *)
   let n = ref 0 in
   let paths = ref EntrypointPaths.empty in
+  (* Adds a generated field tag to the annotation list *)
   let add_tag_annot annot =
     (* Default tag is automatically added by Tezos to the toplevel node; we don't have to add one too *)
     (* start the id counter *)
@@ -217,8 +241,8 @@ let add_tags_and_build_paths
     (* Type signatures should only contain primitives; we don't care about other node types *)
     | _ -> node
   in
+  (* Search the toplevel parameter node in the Tezos AST and modify its nodes by adding entrypoint tags *)
   let rec find_and_edit_parameters (root : (int, prim) Micheline.node) : (int, prim) Micheline.node =
-    (* Search the toplevel parameter node in the Tezos AST *)
     match root with
     (* The contract parameter type is tagged with the K_parameter primitive *)
     | Prim (l, K_parameter, node :: [], annot) ->
@@ -256,54 +280,73 @@ let get_script = function
   | DAO_Chain address -> Dao_chain.get_script ~address
   | DAO_String s -> Dao_string.get_script s
 
+(* Tries to find an unambiguous mapping between all assertion entrypoints and the contract entrypoints
+   by doing type checks and comparing tags *)
 let do_typecheck asts paths entrypoints =
-  let update_unvisited (tag, pat) path unvisited =
+  (* Checks if path has been visited before; updates list of unvisited by removing path, all its descendants
+     and ancestors to prohibit overlapping assertions entrypoints *)
+  let visit_path (tag, pat) path unvisited =
     if List.mem path unvisited then
+      (* Path not yet visited *)
       let wo_prefixes = Union_path.remove_prefixes unvisited path in
       return @@ Union_path.remove_with_prefix wo_prefixes path
     else
-      failwith err_fmt_2 "Duplicate entrypoint:" Pp_ast.pp_ast_entrypoint (tag, pat)
+      (* Path has been visited before; assertion entrypoint is a duplicate or overlaps with another one *)
+      failwith err_fmt_2 "Duplicate or overlapping entrypoint:" Pp_ast.pp_ast_entrypoint (tag, pat)
   in
-  let do_typecheck_single (unvisited, ep_mapping) (({entrypoint = (tag, pat); _}: Ast.ast) as ast) =
-    match_single entrypoints (tag, pat) []
+  (* Matches the assertion entrypoint against all contract entrypoints and checks, whether it can find an
+     unambiguous match; If a match has been found, update the mapping and update the list of visited paths *)
+  let do_typecheck_single (unvisited, ep_mapping) (({entrypoint = (a_tag, pattern); _}: Ast.ast) as ast) =
+    match_single entrypoints (a_tag, pattern) []
     >>=? function
     (* Unambiguous match found *)
     | Some ep_tag ->
        begin
-         if tag = "default" then
+         (* Assertion matches default entrypoint; derive the path of the specific entrypoint from the type pattern *)
+         if a_tag = "default" then
            begin
-             let path = Union_path.from_assertion_pattern pat in
-             update_unvisited (tag, pat) path unvisited
+             let path = Union_path.from_assertion_pattern pattern in
+             (* Check if path has already been covered by another assertion and update list of unvisited paths if not *)
+             visit_path (a_tag, pattern) path unvisited
              >>=? fun new_unvisited ->
              return (new_unvisited, EntrypointAssertionMapping.add path ast ep_mapping)
            end
          else
+           (* Here we already have the paths of all specific entrypoints stored and just have to look them up *)
            begin
              match EntrypointPaths.find_opt ep_tag paths with
              (* Update the list of unvisited paths *)
              | Some path ->
-                update_unvisited (tag, pat) path unvisited
+                (* Check if path has already been covered by another assertion and update list of unvisited paths if not *)
+                visit_path (a_tag, pattern) path unvisited
                 >>=? fun new_unvisited ->
                 return (new_unvisited, EntrypointAssertionMapping.add path ast ep_mapping)
-             (* Should never happen, as we calculated the path for all eps *)
+             (* Should never happen, as we built the path for all eps *)
              | None -> failwith err_msg (Fmt.str "Unexpected error: no union path for entrypoint %s found" ep_tag)
            end
        end
-    | None -> failwith err_fmt_2 "Entrypoint type mismatch:" Pp_ast.pp_ast_entrypoint (tag, pat)
+    (* No match *)
+    | None -> failwith err_fmt_2 "Entrypoint type mismatch:" Pp_ast.pp_ast_entrypoint (a_tag, pattern)
   in
+  (* Contains all entrypoint paths *)
   let unvisited = List.map (fun (_, path) -> path)
                     @@ EntrypointPaths.bindings paths
   in
-  fold_left_s do_typecheck_single (unvisited, EntrypointAssertionMapping.empty)  asts
+  (* Execute type check for all assertion entrypoints while updating the list of unvisited paths and the mapping *)
+  fold_left_s do_typecheck_single (unvisited, EntrypointAssertionMapping.empty) asts
 
 let type_check dao (asts : Ast.ast list) =
   begin
+    (* Retrieves the contract code to match against *)
     get_script dao
     >>=? fun script ->
+    (* Adds tags to all possible entrypoints and remembers their paths within the (nested) unions *)
     add_tags_and_build_paths script
     >>=? fun (script, paths) ->
+    (* Get the list of all contract entrypoints with their tags *)
     get_entrypoints script
     >>=? fun entrypoints ->
+    (* Check if every assertion entrypoint can be matched unambiguously to a contract entrypoint *)
     do_typecheck asts paths entrypoints
     >>=? fun (_, mapping) -> return mapping
   end
