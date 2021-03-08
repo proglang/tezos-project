@@ -1,7 +1,7 @@
 open Core
 open Typecheck_wrapper
 open Lwt.Infix
-open Test_helpers
+open Helpers
 
 let test_tz_w_tags_tza_wo_tags_mismatch _ () =
   let code =
