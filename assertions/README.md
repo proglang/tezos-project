@@ -13,7 +13,7 @@ distributed fashion by the validators of the (Tezos) network. The code covers mo
 part of the project - the theory and design of the on-chain part is also covered in the thesis.
 
 ## Getting started
-The frontend as well as the Tezos backend of the pipeline is written in OCaml and uses `dune` as build tool. You'll need OCamls package manager `opam` installed.
+The frontend as well as the Tezos backend of the pipeline is written in OCaml and uses the `Dune` build system. You'll need OCamls package manager `opam` installed.
 
 ### Dependencies
 If you want to build the pipeline with the Tezos backend, you'll also need to install the official Tezos libraries with opam:  
