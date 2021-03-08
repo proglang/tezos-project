@@ -20,8 +20,8 @@ let spec_list = [
     ("-v", Arg.Set verbose_arg, "Verbose mode - prints out intermediate results of the pipeline");
     ("-a", Arg.Set_string assertion_file_arg, "File path of the assertion contract");
     ("--address", Arg.String (set_dao_chain), "Address of the parent contract");
-    ("--file", Arg.String (set_dao_file), "File path of the parent contract code");
-    ("--script", Arg.String (set_dao_string), "Script of the parent contract");
+    ("--file", Arg.String (set_dao_file), "File path of the parent contract");
+    ("--script", Arg.String (set_dao_string), "Raw script of the parent contract");
     ("-p", Arg.Int (set_port), ": specifies RPC port of the node; default depends on the backend");
     ("-d", Arg.String (set_basedir), ": specifies base directory of node or client; default depends on the backend");
     ("--tz-api-v", Arg.Set tezos_api_verbose_arg, ": enables debug mode of the Tezos API (prints the whole Tezos error trace)")
