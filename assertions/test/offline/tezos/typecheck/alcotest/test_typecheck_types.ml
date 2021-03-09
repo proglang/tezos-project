@@ -1,7 +1,7 @@
 open Core
 open Typecheck_wrapper
 open Lwt.Infix
-open Test_helpers
+open Helpers
 open Random
 
 let types = [
