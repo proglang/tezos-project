@@ -43,7 +43,10 @@ let main =
                    !node_basedir_arg
                    !tezos_api_verbose_arg in
       generate_assertion_contract args
-      >>= fun () -> Lwt.return 0)
+      >>= fun () ->
+      Printf.printf "\027[1;4;32mSUCCESS\n";
+      Printf.printf "\027[0mThe assertion file is valid. Compile me!\n";
+      Lwt.return 0)
     (function
      | Invalid_argument s ->
         Printf.eprintf "\027[1;4;31mERROR:\n";
