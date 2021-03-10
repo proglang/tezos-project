@@ -1,0 +1,19 @@
+\begin{thebibliography}{1}
+
+\bibitem{blustein_bloom_2002}
+James Blustein and Amal El-Maazawi.
+\newblock Bloom {Filters} — {A} {Tutorial}, {Analysis}, and {Survey}.
+\newblock page~19, 2002.
+
+\bibitem{goodman_tezos_2014}
+L~M Goodman.
+\newblock Tezos — a self-amending crypto-ledger {White} paper.
+\newblock Technical report, 2014.
+
+\bibitem{wood_ethereum_2021}
+Dr~Gavin Wood.
+\newblock {ETHEREUM}: {A} {SECURE} {DECENTRALISED} {GENERALISED} {TRANSACTION}
+  {LEDGER}.
+\newblock Technical report, www.ethereum.org, 2021.
+
+\end{thebibliography}

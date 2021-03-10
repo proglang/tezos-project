@@ -1,0 +1,20 @@
+\chapter{Background}\label{chap:background}
+Explain the general context of your work.
+Explain mathematical background required and introduce notation.
+\input{figures/background/algBackpropagation}
+\input{figures/background/figTikz}
+
+
+effectiveness:
+smaller search spaces = less needed test runs
+example sorted list -> generate 1 random number and check neighbor = many test runs to cover all of them
+partition search space \& generate 2 random numbers better? -> 2 smaller search spaces. would this improve anything?
+
+
+
+\begin{lstlisting}[numbers=none, language=Assertion]
+(entrypoint (left (right (pair ( a : address) _)))
+  (forall (i : int)
+     (if (gt i 10)
+       (assert true))))
+\end{lstlisting}

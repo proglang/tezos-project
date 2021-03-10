@@ -1,0 +1,21 @@
+\usepackage{listings, xcolor}
+
+\definecolor{verylightgray}{rgb}{.97,.97,.97}
+
+\lstdefinelanguage{Assertion}{
+	keywords=[1]{entrypoint, assert, if, else, true, false, forall, exists},
+	keywordstyle=[1]\color{blue}\bfseries,
+	keywords=[2]{address, unit, never, bool, int, nat, string, chain_id, bytes, mutez, key_hash, key, signature, timestamp,
+	option, or, pair, list, set, operation, lambda, map, big_map},	% types; money and time units
+	keywordstyle=[2]\color{teal}\bfseries,
+	keywords=[3]{left, right, some, none, cons, nil, _},
+	keywordstyle=[3]\color{violet}\bfseries,
+	identifierstyle=\color{black},
+	sensitive=false,
+	comment=[l]{//},
+	morecomment=[s]{(*}{*)},
+	commentstyle=\color{gray}\ttfamily,
+	stringstyle=\color{red}\ttfamily,
+	morestring=[b]',
+	morestring=[b]"
+}
