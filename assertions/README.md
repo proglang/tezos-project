@@ -90,7 +90,7 @@ Some operations, however, are crucial for implementing the type of assertion che
 we aim for - VM's not supporting these need to be extended:
 - Universal quantifier ∀
 - Existential quantifier ∃
-- List operations like `size()` or index access (`at()`)
+- List/array indexing (`at()`)
 
 The current version of the pipeline only supports the prefix-notation of the grammar
 described in `doc/grammar/assertion_grammar_prefix.txt`.
