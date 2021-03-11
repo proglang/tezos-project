@@ -305,6 +305,7 @@ let do_typecheck asts paths entrypoints =
          (* Assertion matches default entrypoint; derive the path of the specific entrypoint from the type pattern *)
          if a_tag = "default" then
            begin
+             (* Tech debt: this causes problems when the default entrypoint is not the root of the parameter type *)
              let path = Union_path.from_assertion_pattern pattern in
              (* Check if path has already been covered by another assertion and update list of unvisited paths if not *)
              visit_path (a_tag, pattern) path unvisited
