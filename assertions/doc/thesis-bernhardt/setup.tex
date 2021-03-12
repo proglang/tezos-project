@@ -67,8 +67,7 @@
     \usepackage[protrusion=true,expansion=true, kerning]{microtype}
     \usepackage{enumitem}
 
-    % usually you don't need this, just for demonstration of a longer caption
-    \usepackage{lipsum}
+	\usepackage{csquotes}
 
 %------------------------------------------------------------------------------
 %       (re)new commands / settings
@@ -79,6 +78,7 @@
     \renewcommand{\eqref}[1]{Equation~(\ref{#1})}
     \newcommand{\figref}[1]{Figure~\ref{#1}}
     \newcommand{\tabref}[1]{Table~\ref{#1}}
+    \newcommand{\lstref}[1]{Listing~\ref{#1}}
 
     % ------------------- colors -------------------
     \definecolor{darkgreen}{rgb}{0.0, 0.5, 0.0}

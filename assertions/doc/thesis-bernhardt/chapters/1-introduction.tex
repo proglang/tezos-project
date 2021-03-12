@@ -2,7 +2,7 @@
 Each execution of a blockchain-based Smart Contract in a gas-instrumented virtual machine generates costs proportional to the amount and complexity of computations and the  memory consumption \cite{goodman_tezos_2014}\cite{wood_ethereum_2021}. These fees, often calculated in gas, have to be paid for by the sender of the transaction and thus provides a powerful incentive to keep  smart contracts simple. However, in reality meaningful applications might need to perform some resource intensive computations at some point, which would be too expensive to execute inside the blockchain's virtual machine. Moreover, some blockchains impose a hard cap of how much gas can be consumed in one transaction, limiting the amount of operations that can be executed \cite{goodman_tezos_2014}.\\
 In order to avoid these costs and restrictions, an application could perform some computations outside of the blockchain context (i.e., off-chain) and only submit the results to a smart contract as input parameter for further processing or to store it on the chain. This approach raises another problem though - trusting that the submitted results are correct poses a safety as well as a security risk. Invalid results can be submitted unintentionally, if the computation is faulty, or a third party may pass them intentionally to cause harm or take advantage. Consequently, submitted parameters need to be checked for specified properties before the smart contract is executed. Although in many cases, verification is less expensive than computing the result itself, the generated costs for checking the validity increase with the size of the problem or input, ultimately becoming too expensive. \\
 Consider, for instance, the following contract from \cite{thiemann_2020} that expects a prime number :\todo{State programming language?!}
-\begin{lstlisting}[caption=Smart contract expecting a prime number, numbers=none, language=Solidity]
+\begin{lstlisting}[caption=Smart contract expecting a prime number, numbers=none, language=Solidity, label=lst:prime]
 contract Example {
 	function ( int p ) public {
 	// assume p is prime
@@ -49,18 +49,29 @@ Even though the assertion can be checked in a loop in $\mathcal{O}(1)$, the cons
 \end{equation}
 
 Since the validators do random sampling, none of them finding a counterexample doesn't prove that the assumption is correct - the validation is only probabilistic and the reliability depends on the number of validators in the network. This corresponds to the principle of Bloom filters, where a queried element is either certainly not or possibly in a defined set \cite{blustein_bloom_2002}. In the case of assertion checking, it's the assumption that is either definitely not or maybe valid. The probability of false positives in Bloom filters is an approximate function of the filter size and the number of inserted elements, supposing an optimal number of hash functions have been implemented. Tuning these parameters is a trade-off between making the filter more reliable, that is lowering its error rate, and space efficiency \cite{blustein_bloom_2002}. The same applies, with some reservations, to distributed assertion checking: less samples keep the costs to a minimum, whereas more samples increase the probability that, if it exists, a counterexample is found. In the last example, the probability of false positives depends on the size of $a$ and the number of validators.\\
-How important the former parameter is, becomes clear if we look at the worst case scenario of the same example. Assume the array is unsorted at exactly one position - the probability that the each of the $m$ validators independently check this position is given by $\frac{1}{|a|}$, and any other position by $\frac{|a|-1}{|a|}$. If the random generator chooses each value for $n$ independently from a uniform distribution, the probability that the counterexample is not detected by any validator converges to 0 if the number of validators approach infinity \cite{thiemann_2020}
+The importance of the former parameter becomes obvious when looking at the worst case scenario of the same example. Assume the array is unsorted at exactly one position - the probability that the each of the $m$ validators independently check this position is given by $\frac{1}{|a|}$, and any other position by $\frac{|a|-1}{|a|}$. If the random generator chooses each value for $n$ independently from a uniform distribution, the probability that the counterexample is not detected by any validator converges to 0 if the number of validators approach infinity \cite{thiemann_2020}
 \begin{equation}\label{eq:limes_validators}
 	\lim_{m\to\infty} \left(\frac{|a|-1}{|a|}\right)^m = 0
 \end{equation}
 
+\move{maybe to detailed? move to efficiency section}
+
 \todo{Ueberleitung}
 
+
 \section{Structure overview}
+which formulas are amendable?
+costs of testing them?
+
 This thesis assesses uses cases for this kind of testing, defines a language/syntax to express properties/assumptions like in the examples and explores how the mechanism can be implemented, using the Tezos blockchain and its smart contract language as platform/example. 
 How the mechanism could/would be implemented in the Tezos blockchain ...
 which extensions to the Michelson language and the Tezos protocol are necessary
-
+-> roadmap welche schritte es gibt
+	- language (assertion syntax)
+	- pipeline -> compile to Michelson
+	- extend Michelson language/interpreter etc.
+	- how does protocol have to be adapted
+	
 The effectiveness of this approach is analyzed in detail (how many samples are necessary to reach a certain confidence level? which levels are appropriate?)
 
 Analyze the costs that are incurred by checking a formula with this approach; compare it with non-distributed approach.
