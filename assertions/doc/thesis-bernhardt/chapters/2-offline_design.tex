@@ -1,8 +1,52 @@
-\chapter{Background}\label{chap:background}
-Explain the general context of your work.
-Explain mathematical background required and introduce notation.
-\input{figures/background/algBackpropagation}
-\input{figures/background/figTikz}
+\chapter{Offline Design}\label{chap:offline}
+Implementing distributed assertion checking on Tezos requires some off-chain considerations and infrastructure. First of all, a formal set of logical formulae, that is suitable for distributed assertion checking as described in the introduction, has to be defined. Given this set, section \secref{sec:examples} gives some more in-depth examples for such and analyses them regarding costs and test efficiency. The subsequent section describes a concrete syntax used to write assertions checking these formulae, and demonstrates how some of the previous examples are expressed with it. With the specifications all set, the implementation section of this chapter assesses which of the necessary operations Tezos' smart contract language already provides, which extensions are needed and how the assertions can be made executable by Tezos' virtual machine.
+
+\section{Definition of a set of formulae}\label{sec:formulae} \todo{title}
+Assertion checking becomes expensive when a data structure (such as arrays), certain data types (such as byte sequences) or a range of values are iterated. Of interest are thus formulae with prenex universal or existential quantifiers their set is defined as follows\footnote{Extended version of the set given in \cite{thiemann_2020}.}
+  \begin{align*}
+    t &::= \text{primitive data types (existing in the blockchain VM)} \\
+    \sigma &::= \forall \mid \exists \\
+    \Theta &::= \Phi \mid \sigma (x:t) \Theta \\
+    \Phi,\Psi &::= \neg\Phi \mid \Phi \Rightarrow \Psi \mid \Phi\wedge\Psi \mid
+    				\Phi\vee\Psi \mid \Phi \oplus \Psi \mid M \rho N \\
+    \rho &::= < \mid > \mid \le \mid \ge \mid = \mid \ne \\
+    M, N &::= x \mid c \mid M \odot N  \mid f (\overline M) \\
+    \odot &::= +\mid -\mid * \mid / \mid \% \\
+    c &::= \text{constants: numbers, strings, } \top, \bot \\
+    f &::= \text{operations (existing in the blockchain VM)}
+  \end{align*}
+
+The sets of data types and operations depend on what is supported in the virtual machines of the blockchains. \refsec{?} goes into more detail about what is already supported in Michelson and how the language and VM have to be extended to facilitate the assertion examples given previously and in \refsec{sec:example_formulae}.
+
+\section{Transformation}\label{sec:transformation}
+
+\section{Existential quantifier and proofs of correctness}
+lksddlkdsfk
+- forall/exists -> benefit the most. are there use cases for others? or they implement just "normal" assertion
+	-> auf forall sowie exist case genauer eingehen. (counterexample vs. proof; take text from CBF/DNF examples)
+- formal set of formulae
+
+\subsection{Interesting formulae}\label{sec:example_formulae}
+- paper
+
+
+- First of all some offline stuff to think about - formalize which formulas are amenable for this checking. Formalize what to do for which formulas (exists/forall/mixed) etc.
+- Grammar/language to express these formulas (still general, not protocol specific)
+	-> which operations do we need?
+	-> use the form of expose?
+	-> uses ocaml/michelson like syntax; used by other BC as well though
+- effectiveness
+- formalize the costs for checking these formulas
+
+
+
+New Section/chapter? %\section{Implementation}
+- grammar ? concrete syntax; examples from examples :D
+- Tezos specific: what does VM support? needed extensions?
+	-> compilation target -> what is the result supposed to look like?
+- Description of pipeline
+- 
+
 
 
 effectiveness:
