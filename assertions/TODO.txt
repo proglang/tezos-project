@@ -1,0 +1,3 @@
+- Semantic check: unsupported data types in quantifiers
+- Transformation: negation not only inside of quantifiers
+- Default ep <> root
