@@ -19,6 +19,21 @@ Assertion checking becomes expensive when a data structure (such as arrays), cer
 The sets of data types and operations depend on what is supported in the virtual machines of the blockchains. \refsec{?} goes into more detail about what is already supported in Michelson and how the language and VM have to be extended to facilitate the assertion examples given previously and in \refsec{sec:example_formulae}.
 
 \section{Transformation}\label{sec:transformation}
+The validators will check the input parameter for the negation of the formula. Both quantifiers will ultimately be represented by code that generates a random value from a domain that is stated explicitly in the formula. % restrict the generator to the given domains; analyze the formula and "build" the ranges/domain for each generator, s.t. no uninteresting/unnecessary values are generated.
+
+In some cases, however, implicit boundaries are given by the data type itself. List indices, for instance, are always bound to the range $0.. size(list) - 1$ and could thus be derived from the formula without an explicit specification. As this deduction makes the transformation more complex, as it requires a semantic analysis of the formula, a completely explicit formula in terms of the domain is required for now. Depending on the virtual machine, the lower bound for indexing operations can be handled by the random generator of an appropriate predicate type. As an example, Michelson supports the data type \texttt{nat} representing the natural numbers, which categorically excludes all values below zero. 
+
+As a conclusion, the transformation of the formula consists of the two consecutive steps
+1. Negation of the logical formula
+2. Analysing the formula and definition of the generator domains.
+
+\subsection{Negation}
+- wann wird negiert (nur innerhalb v. quantifiern?) --> stimmt gar nicht :/ Code muss wieder geändert werden
+- skip conditions
+- forall -> exists etc.
+- relational/boolean expr. normal negiert
+
+\subsection{Defining the domain of random generators}
 
 \section{Existential quantifier and proofs of correctness}
 lksddlkdsfk
