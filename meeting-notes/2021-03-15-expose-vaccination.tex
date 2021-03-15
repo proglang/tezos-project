@@ -1,0 +1,72 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{mathpartir}
+\usepackage{listings}
+\usepackage{url}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+
+\title{Expos\'{e}\\
+  Proof of Vaccination on the Blockchain}
+\author{Peter Thiemann}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+\label{sec:introduction}
+
+The world is racing towards containing the Corona virus and fighting the pandemic.
+One important step in this fight is to vaccinate as many people as possible.
+At some point, it is expected that certain activities (e.g., air travel, cruises, sports) are only open to vaccinated  persons. To this end, there must be a central registry for all vaccinations so that everyone can proof their vaccination status.
+
+The goal of the thesis is to investigate whether the blockchain is a suitable technical foundation for building such a registry. At first glance, this seems to be the case because the blockchain is a global decentralized database that can be maintained by mutually untrusting communities.
+
+\section{Outline}
+\label{sec:outline}
+
+The thesis touches on several issues in computer science and economics.
+
+\begin{enumerate}
+\item Software engineering:
+  \begin{itemize}
+  \item identify the actors, design a data model, and specify the
+    actions. Keep the data model simple, but realistic. Apply
+    domain-driven engineering if possible.
+  \item The data model maintains of persons to \emph{records} of vaccination.
+  \item identify the non-functional requirements: size of the personal
+    certificate, time needed to create the certificate (do you get it
+    when you leave the doctor, or is it sufficient to get it the next day)
+  \end{itemize}
+
+\item Economics and scalability:
+  \begin{itemize}
+  \item what is the cost for registering a vaccination? Some cost is
+    acceptable, but it should be kept down as much as possible.
+  \item what is the cost for checking if someone if vaccinated? This
+    check should be cheap and it should take no longer than a few
+    seconds, even for millions of vaccination records
+  \item consider the datastructures required. what is the best way of
+    mapping the data to the blockchain?
+  \end{itemize}
+\item Programming:
+  \begin{itemize}
+  \item build a prototype implementation consisting of smart contracts
+    and web-based user interfaces.
+  \item some authorization infrastructure is necessary for
+    registering; this is not the key focus, so some PK infrastructure
+    for digital signatures should be sufficient.
+  \item Records must be verifiably personalized.
+  \item  Full records may not be needed, for example, it might be
+    possible to collect many records in a Merkle tree and only store
+    the hash on the blockchain. The certificate would contain a proof
+    of containment of the record in the Merkle tree.
+  \item optional: which blockchain platform is most suitable? Ethereum
+    seems like the standard. Tezos? Permissioned blockchains? See here
+    for an overview: \url{https://www.sciencedirect.com/science/article/pii/S2405959520301909}
+  \end{itemize}
+\end{enumerate}
+
+\end{document}
