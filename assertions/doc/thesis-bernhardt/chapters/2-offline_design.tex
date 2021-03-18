@@ -1,39 +1,53 @@
 \chapter{Offline Design}\label{chap:offline}
-Implementing distributed assertion checking on Tezos requires some off-chain considerations and infrastructure. First of all, a formal set of logical formulae, that is suitable for distributed assertion checking as described in the introduction, has to be defined. Given this set, section \secref{sec:examples} gives some more in-depth examples for such and analyses them regarding costs and test efficiency. The subsequent section describes a concrete syntax used to write assertions checking these formulae, and demonstrates how some of the previous examples are expressed with it. With the specifications all set, the implementation section of this chapter assesses which of the necessary operations Tezos' smart contract language already provides, which extensions are needed and how the assertions can be made executable by Tezos' virtual machine.
+Implementing distributed assertion checking on Tezos requires some off-chain considerations and infrastructure. The previous chapter defined a formal set of logical formulae amenable for this approach and gave some in-depth examples. \todo{Allgemeine Beschreibung was das Ziel des Chapters ist -> wir müssen aus einer Formula nun einen Contract erstellen, der einen assertion check ausführen kann. -> Define a syntax and a compilation pipeline that outputs a Michelson sc that can be originated.}
 
-\section{Definition of a set of formulae}\label{sec:formulae} \todo{title}
-Assertion checking becomes expensive when a data structure (such as arrays), certain data types (such as byte sequences) or a range of values are iterated. Of interest are thus formulae with prenex universal or existential quantifiers their set is defined as follows\footnote{Extended version of the set given in \cite{thiemann_2020}.}
-  \begin{align*}
-    t &::= \text{primitive data types (existing in the blockchain VM)} \\
-    \sigma &::= \forall \mid \exists \\
-    \Theta &::= \Phi \mid \sigma (x:t) \Theta \\
-    \Phi,\Psi &::= \neg\Phi \mid \Phi \Rightarrow \Psi \mid \Phi\wedge\Psi \mid
-    				\Phi\vee\Psi \mid \Phi \oplus \Psi \mid M \rho N \\
-    \rho &::= < \mid > \mid \le \mid \ge \mid = \mid \ne \\
-    M, N &::= x \mid c \mid M \odot N  \mid f (\overline M) \\
-    \odot &::= +\mid -\mid * \mid / \mid \% \\
-    c &::= \text{constants: numbers, strings, } \top, \bot \\
-    f &::= \text{operations (existing in the blockchain VM)}
-  \end{align*}
+A concrete syntax for writing assertions on these formulae is described in the subsequent section. It will also show how some of the previously given examples are expressed in that syntax. The transformation of the original assertions to assertions that check for counterexamples or proofs is formalized in \secref{sec:transformation}. \todo{rest}
 
-The sets of data types and operations depend on what is supported in the virtual machines of the blockchains. \refsec{?} goes into more detail about what is already supported in Michelson and how the language and VM have to be extended to facilitate the assertion examples given previously and in \refsec{sec:example_formulae}.
+\section{Assertion syntax}
+
+Argument against if/else conditions outside of assert():
+In order to take advantage of this, the assertion syntax would need to be able to create different generators for different conditions. Currently, we only allow \texttt{if-else} instructions inside an \texttt{assertion} expression; this use-case could be an argument to lift that restriction and allow contracts like this:
+%\lstinputlisting[caption=Assertion contract with conditional generators, label={lst:coprime}]{listings/coprime.tza}
+
+However, this will make the transformation more involved, as the bounds cannot simply be merged with the generator anymore.
 
 \section{Transformation}\label{sec:transformation}
-Since the validators will check the input parameter for the negation of the formula, it has to be transformed before the compilation. Furthermore, the formula should explicitly state the domain for each quantifier, which will have to be translated into a set of bounds that belong to the random generator representing the respective quantifier. These restrictions are important to avoid wasting resources  through testing values out of the relevant (or legal) scope.
-Using the example from the exposé \cite{thiemann_2020}, 
-
+Since the validators will check the input parameter for the negation of the formula, it has to be transformed before the compilation. Furthermore, the formula should explicitly state the domain for each quantifier, which will have to be translated into a set of bounds that belong to the respective random generator. These restrictions are important in order to avoid wasting resources through testing values out of the relevant (or legal) scope.
 
 \subsection{Negation}
-The formula is negated using the negation rules of second-order logic and applying De Morgan's laws until the negation is applied to the literals. Universal quantifiers become existential ones and vice versa. The conditions, however, are not affected by the negation, since the domain stays the same. This is also reflected in the rules of predicate logic - if the bounds are given as a premise in the logical formula, its negation is equivalent.
+The formula is negated using the negation rules of second-order logic and applying De Morgan's laws until the negation is applied to the literals. Negating universal quantification is equivalent to an existential quantification of its negated body (and vice versa): $\neg \forall x P(x) \equiv \exists x \neg P(x)$. The domain restrictions are not affected by the negation - the domain of the statement remains the same. This is also reflected in the rules of predicate logic, if the domain restrictions are given as a premise in the logical formula: $\neg (p \Rightarrow q) \equiv p \Rightarrow \neg q $.
+
+% Nested forall -> exists and reverse: no negation?
 
 \subsection{Defining the domain of random generators}
-In some cases, however, implicit boundaries are given by the data type itself. List indices, for instance, are always bound to the range $0.. size(list) - 1$ and could thus be derived from the formula without an explicit specification. As this deduction makes the transformation more complex, as it requires a semantic analysis of the formula, a completely explicit formula in terms of the domain is required for now. Depending on the virtual machine, the lower bound for indexing operations can be handled by the random generator of an appropriate predicate type. As an example, Michelson supports the data type \texttt{nat} representing the natural numbers, which categorically excludes all values below zero.
+In order to assign each explicit bound to the respective quantifier, the formula has be skimmed for atomic constraints that contain bound variables. They're then moved and assigned to the quantifier that bounds the variable. If the constraint contains more than one, it is assigned to the quantifier with the highest depth in the order of quantifiers. \\
+Consider a variation of the example given in \eqref{eq:sorted}, a formula checking if a given list is sorted:
+\begin{equation}\label{eq:sorted_v2}
+	(\forall n : int)(\forall m : int) (0 \leq n \le m < |a|) \Rightarrow a[n] \leq a[m]
+\end{equation}
+The premise can be considered as a conjunction of the four constraints $0 \leq n$, $n < |a| $, $n \le m$ and $m < |a|$. Applying the rules given above after negating the formula, the constraints are assigned to the quantifiers as follows:
+\begin{equation}\label{eq:sorted_v2_bounds}
+	(\exists n : int, 0 \leq n \wedge n < |a|)(\exists m : int, m > n \wedge m < |a|) \text{ } a[n] > a[m]
+\end{equation}
+Ultimately, the quantifiers are then translated to the corresponding random generators shown in \lstref{lst:rand}.
+\begin{lstlisting}[label=lst:rand]
+n = random(0, size(list))
+m = random(n, size(list))
+\end{lstlisting}
 
-\section{Existential quantifier and proofs of correctness}
-Bisher, alle examples used univeral quantification and checks for counterexamples.
-- forall/exists -> benefit the most. are there use cases for others? or they implement just "normal" assertion
-	-> auf forall sowie exist case genauer eingehen. (counterexample vs. proof; take text from CBF/DNF examples)
-- formal set of formulae
+While conjunctions can be handled easily, other operators make it more difficult to derive efficient random generators. Consider the following constraints:
+\begin{align}
+(\forall n : int) (n < 10 \lor n > 20) ... \\
+(\forall n : int) (n \ne 10) ... \\
+(\forall n : int) (n = 10) ... 
+\end{align}
+
+Both constraints 1) and 2) complicate restricting the random generator in several ways. Firstly, they separate the domain into two disjoint sub-domains, which requires defining a random generator for each range and another one to decide which one is called. Secondly, the operands of a disjunction cannot be considered separately when more than one bound variable is involved. For the predicate whose random generator is executed first, the domain restriction is optional, while the generation of the following random values depend on the previous result. As the complexity of building efficient random generators in these cases is relatively high, restrictions formulated with these operators are kept, for now, as part of the assertion code rather than used as constraints for the generators. Consequently, some validators may generate irrelevant values when checking the assertion. Depending on the size of the gap between the sub-domains, this can significantly decrease the reliability of this kind of assertion checking. Constraint 3) effectively makes the quantifier, which binds $n$, obsolete. Adding this constraint to the respective generator will at least not affect the reliability, but a future improvement could be to optimize the assertion by replacing all occurrences of the bound variable with the assigned value and removing the quantification.\\
+
+In some cases, boundaries are given implicitly by data types. List indices, for instance, are always bound to the range $0.. size(list) - 1$ and could thus be derived from the formula without an explicit specification. As this deduction makes the transformation more complex, as it requires a semantic analysis of the formula, a completely explicit formula in terms of the domain is required for now. Depending on the virtual machine, the lower bound for indexing operations can be handled by the random generator of an appropriate predicate type. As an example, Michelson supports the data type \texttt{nat} representing the natural numbers, which categorically excludes all values below zero. Developers aware of this can exploit this and, for instance, abbreviate \eqref{eq:sorted_v2} with the following formula:
+\begin{equation}\label{eq:sorted_v2_abbr}
+	(\forall n : nat)(\forall m : nat) (n \le m < |a|) \Rightarrow a[n] \leq a[m]
+\end{equation}
 
 \subsection{Interesting formulae}\label{sec:example_formulae}
 - paper
