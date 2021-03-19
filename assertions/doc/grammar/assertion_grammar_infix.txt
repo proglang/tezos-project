@@ -1,5 +1,5 @@
 <assertion contract> ::= <module> +
-<module> ::= entrypoint ['%' <IDENT>] <pattern> '=' <assertion>
+<module> ::= entrypoint ['%'IDENT] <pattern> '=' <assertion>
 <pattern> ::=
   | '_'
   | nil

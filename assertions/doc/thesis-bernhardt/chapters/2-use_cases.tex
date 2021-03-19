@@ -141,7 +141,7 @@ To substantiate this argument, consider a two variations of a contract that expe
 \item $\exists f \exists i \forall j$
 \item $\forall f \exists i \forall j$
 \end{itemize}
-In the first case, each validator can pick a random clause in a random $F$ and check, if all literals evaluate to true. In the second case, the validators have to find a counterexample, namely a clause that is not satisfied by \mathcal{A}. Checking a random clause in isolation cannot disprove the satisfiability, hence the validator has to check all clauses.
+In the first case, each validator can pick a random clause in a random $F$ and check, if all literals evaluate to true. In the second case, the validators have to find a counterexample, namely a clause that is not satisfied by $\mathcal{A}$. Checking a random clause in isolation cannot disprove the satisfiability, hence the validator has to check all clauses.
 
 \subsection{Restriction of use cases} %name?
 The examples given in this chapter have shown that, depending on the type and order of quantification, not all properties can be checked in the same way and need different modi of assertion checking. This increases the complexity and requirements for a implementation of this approach; therefore, for a first iteration, this thesis focuses on providing the fundamentals and implementation for assertions using universal quantification.

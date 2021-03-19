@@ -29,7 +29,7 @@ In order to find counterexamples of an assertion, the formula in \ref{eq:prime} 
 Each validator then checks the inverse property $(p \% n) = 0$ point-wise for some random $n$ within the given boundaries $2 \le n \le \sqrt{p}$. If a validator finds a counterexample, i.e., a value for $n$ where the reminder is $0$, it posts an objection to the network. For each involved validator the constant cost of generating one random number and calculating one division have to be paid, which is independent from $p$. \\
 However, distributed assertion checking is not only applicable for parameters or properties of dynamic size. Another example given in \cite{thiemann_2020} shows a contract that expects an array of integers sorted in ascending order: 
 
-\begin{lstlisting}[caption=Smart Contract expecting a sorted array, numbers=none, language=Solidity]
+\begin{lstlisting}[caption=Smart Contract expecting a sorted array, numbers=none, language=Solidity, label=lst:sorted]
 contract Sorted {
   function find ( int [50] a , int v ) public {
     // assume a is sorted
@@ -39,13 +39,13 @@ contract Sorted {
  
 The assumption that the list is sorted, expressed in predicate logic, is
 \begin{equation}\label{eq:sorted}
-	(\forall n) (0 \leq n \le |a| - 1) \Rightarrow a[n] \leq a[n+1]
+	(\forall n) (0 \leq n < |a| - 1) \Rightarrow a[n] \leq a[n+1]
 \end{equation}
 
 Even though the assertion can be checked in a loop in $\mathcal{O}(1)$, the constant factor is not negligible and can generate unreasonable costs. Hence, we consider the negation again and ask the validators to search for counterexamples by checking a random value for $n$:
  
 \begin{equation}\label{eq:sorted_neg}
-	(\exists n) (0 \leq n \le |a| - 1) \wedge a[n] > a[n+1]
+	(\exists n) (0 \leq n < |a| - 1) \wedge a[n] > a[n+1]
 \end{equation}
 
 Since the validators do random sampling, none of them finding a counterexample doesn't prove that the assumption is correct - the validation is only probabilistic and the reliability depends on the number of validators in the network. This corresponds to the principle of Bloom filters, where a queried element is either certainly not or possibly in a defined set \cite{blustein_bloom_2002}. In the case of assertion checking, it's the assumption that is either definitely not or maybe valid. The probability of false positives in Bloom filters is an approximate function of the filter size and the number of inserted elements, supposing an optimal number of hash functions have been implemented. Tuning these parameters is a trade-off between making the filter more reliable, that is lowering its error rate, and space efficiency \cite{blustein_bloom_2002}. The same applies, with some reservations, to distributed assertion checking: less samples keep the costs to a minimum, whereas more samples increase the probability that, if it exists, a counterexample is found. In the last example, the probability of false positives depends on the size of $a$ and the number of validators.\\
@@ -54,7 +54,7 @@ The importance of the former parameter becomes obvious when looking at the worst
 	\lim_{m\to\infty} \left(\frac{|a|-1}{|a|}\right)^m = 0
 \end{equation}
 
-\move{maybe to detailed? move to efficiency section}
+\move{maybe too detailed? move to efficiency section}
 
 \todo{Ueberleitung}
 

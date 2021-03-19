@@ -119,13 +119,12 @@ let build_generator_index a =
     | `Assert _ -> (vars, conds)
     | `If (cond, body) ->
        match cond with
-       (* = <> || xor conditions are skipped, as they're not easily mergable with any generator *)
+       (* <> || xor conditions are skipped, as they're not easily mergable with any generator *)
        | `Binop (`Neq, _, _)
-         | `Binop (`Eq, _, _)
          | `Binop (`Or, _, _)
          | `Binop (`Xor, _, _) -> traverse vars conds depth body
        (* Other conditions are added to the list *)
-       | _ -> traverse vars (cons cond conds) depth body
+       | _ -> traverse vars (cond :: conds) depth body
   in
   traverse VariableDepth.empty [] 0 a
 

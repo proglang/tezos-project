@@ -39,7 +39,7 @@
     \input{chapters/0_1-declaration}
     \input{chapters/0_2-abstract}
     \tableofcontents
-    % \listoffigures
+    \listoffigures
     % \listoftables
     % \listofalgorithms
     \hypersetup{pageanchor=true}  % re-enable hyperlinking
@@ -52,8 +52,11 @@
     \input{chapters/3-offline_design_tezos}
     \input{chapters/4-blockchain_protocol}
     \input{chapters/5-conclusions}
-    
-    \input{chapters/advice} \todo{Remove}
+
+	\newpage
+	\addcontentsline{toc}{chapter}{Appendix}
+%	\fancyhead[R]{Appendix} %Kopfzeile links
+	\input{chapters/appendix}
     
     % bibliography is not in the table of contents per default, add it manually
     % enable the \renewcommand for german header

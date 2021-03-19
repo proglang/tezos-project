@@ -1,7 +1,7 @@
 <assertion contract> ::= <module> +
 <module> ::=
-  | '(' entrypoint ['%' <IDENT>] <pattern> <assertion app> ')'
-  | '[' entrypoint ['%' <IDENT>] <pattern> <assertion app> ']'
+  | '(' entrypoint ['%'IDENT] <pattern> <assertion app> ')'
+  | '[' entrypoint ['%'IDENT] <pattern> <assertion app> ']'
 <pattern> ::=
   | '_'
   | nil

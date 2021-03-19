@@ -1,14 +1,34 @@
-\chapter{Offline Design}\label{chap:offline}
-Implementing distributed assertion checking on Tezos requires some off-chain considerations and infrastructure. The previous chapter defined a formal set of logical formulae amenable for this approach and gave some in-depth examples. As was stated before, the proposed implementation in the following chapters is restricted to formulas of predicate logic using universal quantification.\\
-The goal of the offline infrastructure is to provide a syntax for stating an assertion that checks a logical formula. Furthermore, these assertions need to be transformed, s.t. they check for counterexamples, and compiled into Michelson code to extend the actual smart contract. This chapter describes a concrete syntax for writing these assertions, and shows how some of the previously given examples are expressed using it. The transformation of the original assertions to assertions that check for counterexamples or proofs is formalized in \secref{sec:transformation}. \todo{rest}
+\externaldocument{1-introduction}
+
+\chapter{Generic Offline Design}\label{chap:offline}
+The implementation of distributed assertion checking on any blockchain requires some off-chain considerations and infrastructure. The previous chapter defined a formal set of logical formulae amenable for this approach and gave some in-depth examples. As was stated before, the proposed implementation in the following chapters is, for the most part, restricted to formulas of predicate logic using universal quantification.\\
+The purpose of the offline infrastructure is to provide a syntax for stating assertions that check logical formulas, as well as a toolchain to compile these assertions into code that can be originated on the target blockchain. Depending on the individual solution for the respective blockchain, this can either be the original contract extended with the assertion code, or separate code that extends the contract in some other way. This chapter describes the generic part of the offline design, which corresponds to the front-end of the compilation pipeline shown in \figref{fig:pipeline_generic}. As a start, \secref{sec:syntax} describes the concrete syntax for writing assertions and shows how it expresses some of the previously given examples. The transformation of the original assertions to assertions that check for counterexamples is formalized in \secref{sec:transformation} \todo{how to handle proofs}. Lastly, \secref{sec:effectiveness} analyses the reliability of distributed assertion checking.
 
 \section{Assertion syntax}
+The assertion syntax is described in two versions by the EBNF grammars shown in appendix \ref{apx:grammar}. One version implements a prefix and the other one an infix notation. The pipeline currently supports the prefix notation with mandatory parentheses to avoid the need of handling operator precedences. To avoid context switches (at least for developers on Tezos), the assertion syntax references those of OCaml and Michelson.\\
+A file containing assertions (henceforth called `assertion contract') contains at least one assertion for some function or entrypoint of the original contract (henceforth called `parent contract'). An assertion begins with a signature consisting of an optional tag followed by a parameter type declaration. The tag can be used for documentation, but may sometimes be needed to indicate to which function of the parent contract the assertion is assigned. The body is an (optional) nesting of quantifiers and conditions around exactly one assertion. Conditionals can be used to restrict the quantification domains or for some other constraints. For completeness, the existential quantifier is already included in the grammar, however the current version of the pipeline will reject any assertions containing it.\\
+Consider a variation of the formula in predicate logic that checks whether a given list is sorted in ascending order:
+\begin{equation}\label{eq:sorted_v2}
+	(\forall n : int)(\forall m : int) (0 \leq n < m < |a|) \Rightarrow a[n] \leq a[m]
+\end{equation}
+A respective assertion that checks this property for the parent contract from \lstref{lst:sorted} could be expressed as follows:
+\begin{lstlisting}[language=Assertion]
+(entrypoint %find (a : (list int))
+  (forall (n : int)
+    (forall (m : int)
+      (if (le 0 n)
+        (if (lt n m)
+          (if (lt n (size a))
+            (assert (le (nth a n) (nth a m)))))))))
+\end{lstlisting}
 
-Argument against if/else conditions outside of assert():
-In order to take advantage of this, the assertion syntax would need to be able to create different generators for different conditions. Currently, we only allow \texttt{if-else} instructions inside an \texttt{assertion} expression; this use-case could be an argument to lift that restriction and allow contracts like this:
+\subsection{Extensions}
+% possible extensions: variables, user defined functions
+
+%Argument against if/else conditions outside of assert():
+%In order to take advantage of this, the assertion syntax would need to be able to create different generators for different conditions. Currently, we only allow \texttt{if-else} instructions inside an \texttt{assertion} expression; this use-case could be an argument to lift that restriction and allow contracts like this:
 %\lstinputlisting[caption=Assertion contract with conditional generators, label={lst:coprime}]{listings/coprime.tza}
-
-However, this will make the transformation more involved, as the bounds cannot simply be merged with the generator anymore.
+%However, this will make the transformation more involved, as the bounds cannot simply be merged with the generator anymore.
 
 \section{Transformation}\label{sec:transformation}
 Since the validators will check the input parameter for the negation of the formula, it has to be transformed before the compilation. Furthermore, the formula should explicitly state the domain for each quantifier, which will have to be translated into a set of bounds that belong to the respective random generator. These restrictions are important in order to avoid wasting resources through testing values out of the relevant (or legal) scope.
@@ -24,6 +44,8 @@ Consider a variation of the example given in \eqref{eq:sorted}, a formula checki
 \begin{equation}\label{eq:sorted_v2}
 	(\forall n : int)(\forall m : int) (0 \leq n \le m < |a|) \Rightarrow a[n] \leq a[m]
 \end{equation}
+\todo{variation given above. refer to that}
+
 The premise can be considered as a conjunction of the four constraints $0 \leq n$, $n < |a| $, $n \le m$ and $m < |a|$. Applying the rules given above after negating the formula, the constraints are assigned to the quantifiers as follows:
 \begin{equation}\label{eq:sorted_v2_bounds}
 	(\exists n : int, 0 \leq n \wedge n < |a|)(\exists m : int, m > n \wedge m < |a|) \text{ } a[n] > a[m]
@@ -47,19 +69,6 @@ In some cases, boundaries are given implicitly by data types. List indices, for 
 \begin{equation}\label{eq:sorted_v2_abbr}
 	(\forall n : nat)(\forall m : nat) (n \le m < |a|) \Rightarrow a[n] \leq a[m]
 \end{equation}
-
-\subsection{Interesting formulae}\label{sec:example_formulae}
-- paper
-
-
-- First of all some offline stuff to think about - formalize which formulas are amenable for this checking. Formalize what to do for which formulas (exists/forall/mixed) etc.
-- Grammar/language to express these formulas (still general, not protocol specific)
-	-> which operations do we need?
-	-> use the form of expose?
-	-> uses ocaml/michelson like syntax; used by other BC as well though
-- effectiveness
-- formalize the costs for checking these formulas
-
 
 
 New Section/chapter? %\section{Implementation}
