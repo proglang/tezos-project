@@ -1,7 +1,6 @@
 \chapter{Offline Design}\label{chap:offline}
-Implementing distributed assertion checking on Tezos requires some off-chain considerations and infrastructure. The previous chapter defined a formal set of logical formulae amenable for this approach and gave some in-depth examples. \todo{Allgemeine Beschreibung was das Ziel des Chapters ist -> wir müssen aus einer Formula nun einen Contract erstellen, der einen assertion check ausführen kann. -> Define a syntax and a compilation pipeline that outputs a Michelson sc that can be originated.}
-
-A concrete syntax for writing assertions on these formulae is described in the subsequent section. It will also show how some of the previously given examples are expressed in that syntax. The transformation of the original assertions to assertions that check for counterexamples or proofs is formalized in \secref{sec:transformation}. \todo{rest}
+Implementing distributed assertion checking on Tezos requires some off-chain considerations and infrastructure. The previous chapter defined a formal set of logical formulae amenable for this approach and gave some in-depth examples. As was stated before, the proposed implementation in the following chapters is restricted to formulas of predicate logic using universal quantification.\\
+The goal of the offline infrastructure is to provide a syntax for stating an assertion that checks a logical formula. Furthermore, these assertions need to be transformed, s.t. they check for counterexamples, and compiled into Michelson code to extend the actual smart contract. This chapter describes a concrete syntax for writing these assertions, and shows how some of the previously given examples are expressed using it. The transformation of the original assertions to assertions that check for counterexamples or proofs is formalized in \secref{sec:transformation}. \todo{rest}
 
 \section{Assertion syntax}
 
