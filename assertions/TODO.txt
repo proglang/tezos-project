@@ -4,3 +4,6 @@
 	* reject existentials?
 - Default ep <> root
 - replace mutez with generic unit
+- syntax: support comments?
+- Tezos backend: reject anything not supported in Tezos (pattern match)
+- update Example paper

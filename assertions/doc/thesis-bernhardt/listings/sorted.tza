@@ -1,0 +1,7 @@
+(entrypoint %find (a : (list int))
+  (forall (n : int)
+    (forall (m : int)
+      (if (le 0 n)
+        (if (lt n m)
+          (if (lt n (size a))
+            (assert (le (nth a n) (nth a m)))))))))

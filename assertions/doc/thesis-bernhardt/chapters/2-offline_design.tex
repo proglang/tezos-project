@@ -7,36 +7,31 @@ The purpose of the offline infrastructure is to provide a syntax for stating ass
 \section{Assertion syntax}
 The assertion syntax is described in two versions by the EBNF grammars shown in appendix \ref{apx:grammar}. One version implements a prefix and the other one an infix notation. The pipeline currently supports the prefix notation with mandatory parentheses to avoid the need of handling operator precedences. To avoid context switches (at least for developers on Tezos), the assertion syntax references those of OCaml and Michelson.\\
 A file containing assertions (henceforth called `assertion contract') contains at least one assertion for some function or entrypoint of the original contract (henceforth called `parent contract'). An assertion begins with a signature consisting of an optional tag followed by a parameter type declaration. The tag can be used for documentation, but may sometimes be needed to indicate to which function of the parent contract the assertion is assigned. The body is an (optional) nesting of quantifiers and conditions around exactly one assertion. Conditionals can be used to restrict the quantification domains or for some other constraints. For completeness, the existential quantifier is already included in the grammar, however the current version of the pipeline will reject any assertions containing it.\\
+In order to make the front-end generic, the assertion grammar constitutes a union of operations and types for the target languages. This also allows the transformation to be oblivious of the target platform and be identical for all backends. The current version of the grammar recognizes all types present in the Tezos VM and a subset of operations that Michelson provides. Responsible for rejecting any assertions containing unsupported types or operations are the respective backends.
+
+\subsection{Assertion example}
 Consider a variation of the formula in predicate logic that checks whether a given list is sorted in ascending order:
 \begin{equation}\label{eq:sorted_v2}
 	(\forall n : int)(\forall m : int) (0 \leq n < m < |a|) \Rightarrow a[n] \leq a[m]
 \end{equation}
 A respective assertion that checks this property for the parent contract from \lstref{lst:sorted} could be expressed as follows:
-\begin{lstlisting}[language=Assertion]
-(entrypoint %find (a : (list int))
-  (forall (n : int)
-    (forall (m : int)
-      (if (le 0 n)
-        (if (lt n m)
-          (if (lt n (size a))
-            (assert (le (nth a n) (nth a m)))))))))
-\end{lstlisting}
+\lstinputlisting[caption=Assertion checking if a list is sorted, language=Assertion, label={lst:sorted_assertion}]{listings/sorted.tza}
 
 \subsection{Extensions}
-% possible extensions: variables, user defined functions
-
-%Argument against if/else conditions outside of assert():
-%In order to take advantage of this, the assertion syntax would need to be able to create different generators for different conditions. Currently, we only allow \texttt{if-else} instructions inside an \texttt{assertion} expression; this use-case could be an argument to lift that restriction and allow contracts like this:
-%\lstinputlisting[caption=Assertion contract with conditional generators, label={lst:coprime}]{listings/coprime.tza}
-%However, this will make the transformation more involved, as the bounds cannot simply be merged with the generator anymore.
+In future iterations, the assertion syntax could be extended with some more features to improve usability and readability:
+\begin{itemize}
+\item \textbf{Local variables} to store, reuse and denominate computed values
+\item \textbf{User-defined functions} to extract whole routines that can be reused in a single or even many assertion contracts, if defined as a module.
+\item \textbf{if-else conditions} to modify the domains of quantification if certain conditions hold. The assertion that checks whether two numbers are relatively prime (discussed in \secref{sec:coprime}) is a good use-case for this feature in several ways. Firstly, the minimum of the given number has to be determined, however the \texttt{min}-function might not be supported as a built-in function by the target language (Tezos, for instance, does not support it). A solution for that could be to implement two branches in the program to handle each case. Secondly, if the greater of the two numbers is not evenly divided by the smaller one, the formula can be optimized by reducing the quantification domain by half to $(2 \le n \le \lfloor \frac{min(a,b)}{2} \rfloor)$, as a number cannot be evenly divided by any number between itself and its half \cite{bernhardt_veigel_2020}. With a syntax supporting a \texttt{if-else} control structure, the respective assertion could look as follows:
+\lstinputlisting[caption=Assertion syntax with if-else structures \cite{bernhardt_veigel_2020}, language=Assertion, label={lst:coprime}]{listings/coprime_ifelse.tza}
+This feature is not included in the current version, because conditional domain restrictions make the translation from quantifiers to random generators or loops more complex. Aside from that, without the feature of variables and user-defined functions, the code is inflated significantly, thus causing increased origination cost.
+\end{itemize}
 
 \section{Transformation}\label{sec:transformation}
-Since the validators will check the input parameter for the negation of the formula, it has to be transformed before the compilation. Furthermore, the formula should explicitly state the domain for each quantifier, which will have to be translated into a set of bounds that belong to the respective random generator. These restrictions are important in order to avoid wasting resources through testing values out of the relevant (or legal) scope.
+Since the validators will check the input parameter for the negation of the formula, it has to be transformed before compilation. Furthermore, the formula should explicitly state the domain for each quantifier, which will have to be translated into a set of bounds that belong to the respective random generator. These restrictions are important in order to avoid wasting resources through testing values out of the relevant (or legal) scope.
 
 \subsection{Negation}
-The formula is negated using the negation rules of second-order logic and applying De Morgan's laws until the negation is applied to the literals. Negating universal quantification is equivalent to an existential quantification of its negated body (and vice versa): $\neg \forall x P(x) \equiv \exists x \neg P(x)$. The domain restrictions are not affected by the negation - the domain of the statement remains the same. This is also reflected in the rules of predicate logic, if the domain restrictions are given as a premise in the logical formula: $\neg (p \Rightarrow q) \equiv p \Rightarrow \neg q $.
-
-% Nested forall -> exists and reverse: no negation?
+The formula is negated using the negation rules of second-order logic and applying De Morgan's laws until the negation is applied to the literals. Negating universal quantification is equivalent to an existential quantification of its negated body (and vice versa): $\neg \forall x P(x) \equiv \exists x \neg P(x)$ \cite{Sundstrom2020Quantifiers}. The domain restrictions are not affected by the negation - the domain of the statement remains the same. This is also reflected in the rules of predicate logic, if the domain restrictions are given as a premise in the logical formula: $\neg (p \Rightarrow q) \equiv p \Rightarrow \neg q $.
 
 \subsection{Defining the domain of random generators}
 In order to assign each explicit bound to the respective quantifier, the formula has be skimmed for atomic constraints that contain bound variables. They're then moved and assigned to the quantifier that bounds the variable. If the constraint contains more than one, it is assigned to the quantifier with the highest depth in the order of quantifiers. \\
@@ -70,18 +65,47 @@ In some cases, boundaries are given implicitly by data types. List indices, for 
 	(\forall n : nat)(\forall m : nat) (n \le m < |a|) \Rightarrow a[n] \leq a[m]
 \end{equation}
 
+\section{Accuracy of the approach}
+Since the proposed approach implements a probabilistic test, its accuracy as well as the costs incurred by guaranteeing a specified certainty threshold, remains to be analysed. The goal is to identify a formula that, given the domain of a formula in predicate logic, returns an estimate of a lower bound of samples necessary to find an existing counterexample with a probability $p$. From this analysis, it can be derived how effective a formula can be checked on a blockchain with $m$ validators. For the remainder of this chapter, the assumptions hold that the random generator picks elements independently from a uniform distribution and that there exists exactly one counterexample for the passed parameter.
+\todo{further measures for blockchains with small number of validators}
 
-New Section/chapter? %\section{Implementation}
-- grammar ? concrete syntax; examples from examples :D
-- Tezos specific: what does VM support? needed extensions?
-	-> compilation target -> what is the result supposed to look like?
-- Description of pipeline
-- 
+\subsection{Coupon Collector Problem Analysis}
+When checking properties with probabilistic testing, the result is either definitely not satisfied, or probably satisfied. Thus, errors only occur as false positives. In order to find an existing counterexample with $p = 1$, every element in the given domain $\mathcal{D}$ has to be checked by at least one validator. Deterministically, this is reachable with exactly $|\mathcal{D}|$ test runs. This is, however, invalid for the probabilistic approach, as some validators may generate duplicate random values and leave some elements of $\mathcal{D}$ unchecked. \\
+In probability theory, this is known as the Coupon Collector's Problem \cite{croucher_collecting_2006}. Given $n = |\mathcal{D}|$, the probability that no duplicate elements are generated is given by
+\begin{equation*}
+    p = \prod_{i=1}^{n} \frac{i}{n}
+\end{equation*}
+As an example, the probability that all validators generate a unique random value already drops to $0.036\%$ for $n = 10$. Let the random variable $T$ be number of test runs executed until every element in the domain has been checked. The goal is to identify its expectation $E(T)$. To this end, the geometric probability distribution is applied \cite{croucher_collecting_2006}:\\
+Each element is generated with a probability of $1/n$. Thus, the probability to generate the $i$th unique element is given by 
+\begin{equation}
+    p_i = \frac{n-i+1}{n}
+\end{equation}
+The expected value of a random variable $X$ is given by $E(X) = \frac{1}{p}$\cite{croucher_collecting_2006}, thus the expected number of test runs for $n$ is 
+\begin{equation}
+E(T) = n \sum_{i=1}^{n} \frac{1}{i}
+\end{equation}
+\tabref{tab:prob_outcomes} shows the expected number of test runs $E(T)$ and its standard deviation $\sigma$ for different $n$. In \cite{croucher_collecting_2006}, $E(T)$ and $\sigma$ and the application of the central limit theorem are used to calculate a 95\% confidence interval for $T$, which provides an upper and lower bound on the number of test runs. Rounded values for both bounds are also shown in \tabref{tab:prob_outcomes}.
+\begin{table}[h]
+    \centering
+    \begin{tabular}{lllll}\label{tab:prob_outcomes}
+        \thead{$n$} & \thead{$E(T)$} & \thead{$\sigma$} & \thead{lower bound} & \thead{upper bound}\\ \hline
+        5 & 11.4 & 2.53 & 6 & 16\\
+        10 & 29.3 & 4.32 & 21 & 38\\
+        20 & 72.0 & 7.21 & 58 & 86\\
+        30 & 119.8 & 9.48 & 101 & 138 \\
+        50 & 225.0 & 13.23 & 199 & 251 
+    \end{tabular}
+    \caption{Expectation, standard deviation and upper and lower bound of needed test runs for some $n$ \cite{croucher_collecting_2006}}
+    \label{tab:my_label}
+\end{table}
 
+The results show that checking random values is a very inefficient approach if false positives are not admissible. Even if the lower bound of $T$ is chosen as the number of test runs, it exceeds the size of the domain by far and increases the time complexity to $\mathcal{O}(n*log(n))$ for large $n$ \cite{xu_tang_2011}. Instead, the following section introduces a formula to calculate the number of test runs that detect counterexamples with a $p < 1$, for instances where false positives are tolerable.
+
+\subsection{Setting probability thresholds}
 
 
 effectiveness:
-smaller search spaces = less needed test runs
+smaller search spaces = less needed test runs 
 example sorted list -> generate 1 random number and check neighbor = many test runs to cover all of them
 partition search space \& generate 2 random numbers better? -> 2 smaller search spaces. would this improve anything?
 
