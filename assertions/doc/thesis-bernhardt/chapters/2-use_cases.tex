@@ -16,7 +16,7 @@ The following section formally defines a set of applicable logical formulas for 
     f &::= \text{operations (existing in the blockchain VM)}
 \end{align*}
 \begingroup\vspace*{-\baselineskip}
-\captionof{figure}{Set of logical formulas amenable to distributed assertion checking (extension of set given in \cite{thiemann_2020})}
+\captionof{figure}{Set of logical formulas amenable to distributed assertion checking (extension of set from \cite{thiemann_2020})}
 \vspace*{\baselineskip}\endgroup
 
 The sets of supported data types $t$ and operations $f$ depend on what is supported in the virtual machines of the blockchains. \secref{lala} goes into more detail about what is already supported in Michelson and how the language and VM have to be extended to facilitate the assertion examples given previously and in \secref{sec:example_formulae}.
@@ -52,18 +52,17 @@ The time complexity of checking if $a$ satisfies the heap property is $\mathcal{
   (\exists k : int) (1 \le k \le |a|) \land a[\lfloor(k-1)/2)\rfloor] > a[k]
 \end{equation}
 
-\section{Existential quantifier and proofs of validity}
-The examples given so far in this thesis used universal quantification and required a search for counterexamples in order to check if some assumption about an input parameter is true. However, the same cannot be applied to existential quantifiers. Consider a contract expecting a string $e$ and a list $l$ of strings that contains $e$ at least once. The assumption that \texttt{l} contains \texttt{e} can be expressed by
-\begin{equation}\label{eq:contains}
-	(\exists n : int) (0 \leq n < |l|) \Rightarrow l[n] = e
+\section{Existential quantifier and proofs of validity}\label{sec:existential}
+The examples given so far in this thesis used universal quantification and required a search for counterexamples in order to check if some assumption about an input parameter is true. However, the same cannot be applied to existential quantifiers. Consider a contract expecting two intersecting sets of integers, represented as arrays. This property can be checked in $\mathcal{O}(|u|*|v|)$. With $n = |u|+|v|$, the worst case for the run time occurs when both sets have the same size, i.e., $|u| = |v| = n/2$. This leads to a quadratic complexity $\mathcal{O}(n/2 * n/2) = \mathcal{O}(n^2/4) = \mathcal{O}(n^2)$.\\
+The assumption, that the intersection of the sets is not empty, i.e., $u \cap v \neq \emptyset$, can be expressed by
+\begin{equation}\label{eq:intersect}
+  (\exists i, \exists j) (0 \le i < |u|) \land (0 \le j < |v|) \Rightarrow u[i] = v[j]
 \end{equation}
-and its negation is 
-\begin{equation}\label{eq:contains_neg}
-	(\forall n : int) (0 \leq n < |l|) \Rightarrow l[n] \ne e
+and its negation is
+\begin{equation}\label{eq:intersect_neg}
+  (\forall i, \forall j) (0 \le i < |u|) \land (0 \le j < |v|) \land u[i] \neq v[j]
 \end{equation}
-
-If the assertion fails for a random value of $n$, it does not produce a counterexample, but rather it produces a proof for the validity of the assumption. In that case, the validator finding such a proof should publish an approval instead of a veto to the network and the normal execution of the contract can proceed. Hence, there must be two different modi of assertion checking that implement different
-types of assertions (proofs need assertions that don't abort the program).
+If the assertion `fails' for random values of $i,j$, it does not produce a counterexample, but it rather produces a proof for the validity of the assumption. In that case, the validator finding such a proof should publish an approval instead of a veto to the network and the normal execution of the contract can proceed. Hence, there must be two different modi of assertion checking that implement different types of assertions.
 \todo{Refer to a chapter where this is discussed further?}
 
 \section{Nested quantification}
@@ -148,5 +147,5 @@ The examples given in this chapter have shown that, depending on the type and or
 \todo{Refer to section where proofs are picked up again?}
 
 \section{Cost analysis} \todo{this}
-%diagram cost increase?
-%experiment: write Liquidity contract w. 1 loop and 1 single execution * loop size
+% diagram cost increase?
+% experiment: write Liquidity contract w. 1 loop and 1 single execution * loop size

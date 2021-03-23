@@ -66,8 +66,10 @@ In some cases, boundaries are given implicitly by data types. List indices, for 
 \end{equation}
 
 \section{Accuracy of the approach}
-Since the proposed approach implements a probabilistic test, its accuracy as well as the costs incurred by guaranteeing a specified certainty threshold, remains to be analysed. The goal is to identify a formula that, given the domain of a formula in predicate logic, returns an estimate of a lower bound of samples necessary to find an existing counterexample with a probability $p$. From this analysis, it can be derived how effective a formula can be checked on a blockchain with $m$ validators. For the remainder of this chapter, the assumptions hold that the random generator picks elements independently from a uniform distribution and that there exists exactly one counterexample for the passed parameter.
+Since the proposed approach implements a probabilistic test, its accuracy as well as the costs incurred by guaranteeing a specified certainty threshold, remains to be analysed. The goal is to identify a formula that, given the domain of a formula in predicate logic, returns an estimate of a lower bound of samples necessary to find an existing counterexample with a probability $p$. From this analysis, it can be derived how effective a formula can be checked on a blockchain with $m$ validators. For the remainder of this chapter, the assumptions hold that the random generator picks elements independently from a uniform distribution and that there exists exactly one counterexample for the passed parameter.\\
+The following two sections depict the findings from \cite{bernhardt_veigel_2020}.
 \todo{further measures for blockchains with small number of validators}
+\todo{Refer to our example paper}
 
 \subsection{Coupon Collector Problem Analysis}
 When checking properties with probabilistic testing, the result is either definitely not satisfied, or probably satisfied. Thus, errors only occur as false positives. In order to find an existing counterexample with $p = 1$, every element in the given domain $\mathcal{D}$ has to be checked by at least one validator. Deterministically, this is reachable with exactly $|\mathcal{D}|$ test runs. This is, however, invalid for the probabilistic approach, as some validators may generate duplicate random values and leave some elements of $\mathcal{D}$ unchecked. \\
@@ -102,18 +104,39 @@ E(T) = n \sum_{i=1}^{n} \frac{1}{i}
 The results show that checking random values is a very inefficient approach if false positives are not admissible. Even if the lower bound of $T$ is chosen as the number of test runs, it exceeds the size of the domain by far and increases the time complexity to $\mathcal{O}(n*log(n))$ for large $n$ \cite{xu_tang_2011}. Instead, the following section introduces a formula to calculate the number of test runs that detect counterexamples with a $p < 1$, for instances where false positives are tolerable.
 
 \subsection{Setting probability thresholds}
+The goal is to find a number $t$ of test runs, s.t. the probability $P_{c,t}$ of not finding the counterexample drops below a certain threshold $c$. A validator finds the counterexample in one test run with probability $\frac{1}{n}$, and misses it with probability $(1-\frac{1}{n})$. After $t$ tests runs, the probability that the counterexample has not been found is thus $(1-\frac{1}{n})^t$. Following the same approach as in \cite{mahl_schindel_2007} to retrieve a bound for $P_{c,t}$, we use
+\begin{equation}
+(1-\frac{1}{m})^m \leq \frac{1}{e}
+\end{equation}
+which holds for all $m > 0$. From this inequality, it follows that
+\begin{equation}
+(1-\frac{1}{n})^t = ((1-\frac{1}{n})^n)^{\frac{t}{n}} \le e^{-\frac{t}{n}}
+\end{equation}
+With this, the probability $P_{c,t}$ of not finding the counterexample with $t$ test runs can be defined as
+\begin{equation}
+P_{c,t} \le e^{-\frac{t}{n}}
+\end{equation}
+In order to retrieve the number of test runs $t$ necessary for $P_{c,t}$ to drop below a specified threshold $c$, the inequality is solved for $t$, which depends on the known parameter $n$ and an arbitrary value for $c$:
+\begin{align}
+    e^{-\frac{t}{n}} &\leq c && \text{with } c\le1 \nonumber\\
+    t &\geq -n\:\ln(c)
+\end{align}
+For $c = \frac{1}{e}$ ($\approx 36.79\:\%$) $t$ is bound by $n$, which means that for higher reliabilities the number of test runs needs to be greater than $n$. \figref{fig:graph_t_c} shows the lower bounds of $t$ as a function of the probability threshold and domain size. One can see that the increase in accuracy is approximately linear to the number of test runs below a threshold of $c=0.5$, but requires an exponential testing effort to reach higher thresholds.
+\begin{figure}[h]
+\includegraphics[width=0.95\linewidth]{figures/3-offline/graph_t_c}
+\label{fig:graph_t_c}
+\end{figure}
+For assertions with several quantifiers, which are translated to random generators, all domains have to be considered in the calculation. Revisiting the intersection of sets from \secref{sec:existential}, every element in set $u$ has to be compared to every element in set $v$. Thus, the lower bound of test runs needed to check they intersect with a certainty of 63.21\% is given by $t \leq t_1 * t_2$ with $t_1 \leq |u|$ and $t_2 \leq |v|$.
 
+\subsection{Validators vs. test runs}
+The last section derived a formula to calculate a lower bound for a number of test runs $t$ in order to reach a certain level of confidence. However, $t$ is not a parameter that can be adjusted to an arbitrary value on the blockchain, as the assertion is checked by the validators. Assuming a blockchain has $m$ validators, the actual lower bound of test runs is $m$. For cases where there are not enough validators to reach a threshold $c$, a mechanism is required to have each validator to check the property for multiple random values. Hence, the actually executed number of checks is always a multiple of $m$. 
 
-effectiveness:
-smaller search spaces = less needed test runs 
-example sorted list -> generate 1 random number and check neighbor = many test runs to cover all of them
-partition search space \& generate 2 random numbers better? -> 2 smaller search spaces. would this improve anything?
+\subsection{Alternatives to random testing}
+For applications where higher reliability is crucial, an alternative to checking elements randomly could be to coordinate a systematic iteration of the domain. The implementation of such a coordination is not trivial though; validators can't simply be passed an individual value as input. Instead, possible approaches could be to implement a central instance that allocates an element in the search space to each validator, or use some unique and intrinsic attribute, like an identification number, as input for a mapping.
 
+\subsubsection{Central instance assigning values}
+For this approach, the tool-chain would need to generate a separate contract that is called by the baker and validators as a proxy. This contract would then, for instance, generate a number using a modulo-n counter and pass this number as an additional parameter to the assertion code. The random generators would be omitted accordingly. However, this works only as expected if there are no simultaneous transactions calling the contract, otherwise it cannot be guaranteed that all elements have been assigned for each transaction. If and how this issue can be solved will not be discussed further in this thesis.
 
-
-\begin{lstlisting}[numbers=none, language=Assertion]
-(entrypoint (left (right (pair ( a : address) _)))
-  (forall (i : int)
-     (if (gt i 10)
-       (assert true))))
-\end{lstlisting}
+\subsubsection{Using unique attributes of a validator}\label{sec:alt_attributes}
+This approach strongly depends on whether the validators have a unique id or other attribute that can be accessed from within a contract.  If there is (or the language can be extended with such a feature), there needs to exist a non-injective surjective function that maps the respective attributes represented by type A to an element of the domain represented by type B. Furthermore, for cases where $t > m$, an offset needs to be added, s.t. a validator checks distinct elements for each test run. \\
+Implementing such an approach on Tezos does become even more challenging by the way endorsing rights are distributed in its proof-of-stake mechanism: for each block level, endorsing rights are assigned to the owner of a randomly selected roll, i.e., a set of tokens \cite{tezos_docs}. This means that the same endorser can be picked multiple times for endorsing one block and thus some elements in the domain may remain unchecked. \secref{lala} goes into more detail about this issue. \todo{Ref section}
