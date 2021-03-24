@@ -74,30 +74,27 @@ In some cases, boundaries are imposed implicitly by data types. List indices, fo
 \end{equation}
 
 \section{Accuracy of the approach}\label{sec:accuracy}
-Since the proposed approach implements a probabilistic test, its accuracy as well as the costs incurred by guaranteeing a specified certainty threshold, need to be examined closely. The goal is to identify a formula that, given the domain of a formula in predicate logic, returns an estimate of a lower bound of samples necessary to find an existing counterexample with a probability $p$. From this analysis, it can be derived how effective a formula can be checked on a blockchain with $m$ validators. For the remainder of this chapter, the assumptions hold that the random generator picks elements independently from a uniform distribution and that there exists exactly one counterexample for the passed parameter. 
+Since the proposed approach implements a probabilistic test, the accuracy as well as the costs incurred by guaranteeing a specified certainty threshold, need to be examined closely. The goal is to identify a formula that, given the domain of a formula in predicate logic, returns an estimate of a lower bound of samples necessary to find an existing counterexample with a probability $p$. From this analysis, it can be derived how effective a formula can be checked on a blockchain with $m$ validators. Sections \ref{sec:coupon} and \ref{sec:prob_threshold} depict the findings from \cite{bernhardt_veigel_2020} and are based on the assumptions that the random generator picks elements independently from a uniform distribution and that there exists exactly one counterexample for the passed parameter.
 
-
-The following two sections depict the findings from \cite{bernhardt_veigel_2020}.
-
-\subsection{Coupon Collector Problem Analysis}
-When checking properties with probabilistic testing, the result is either definitely not satisfied, or probably satisfied. Thus, errors only occur as false positives. In order to find an existing counterexample with $p = 1$, every element in the given domain $\mathcal{D}$ has to be checked by at least one validator. Deterministically, this is reachable with exactly $|\mathcal{D}|$ test runs. This is, however, invalid for the probabilistic approach, as some validators may generate duplicate random values and leave some elements of $\mathcal{D}$ unchecked. \\
-In probability theory, this is known as the Coupon Collector's Problem \cite{croucher_collecting_2006}. Given $n = |\mathcal{D}|$, the probability that no duplicate elements are generated is given by
+\subsection{Coupon Collector's Problem Analysis}\label{sec:coupon}
+When checking properties with probabilistic testing, the result is either definitely not satisfied, or probably satisfied. Thus, errors only occur as false positives. In order to find an existing counterexample with probability $p = 1$, every element in the given domain $\mathcal{D}$ has to be checked by at least one validator. Deterministically, this is reachable with exactly $|\mathcal{D}|$ test runs. This is, however, invalid for the probabilistic approach, as some validators may generate duplicate random values and leave some elements of $\mathcal{D}$ unchecked. \\
+In probability theory, this is known as the Coupon Collector's Problem \cite{croucher_collecting_2006}. Given $n = |\mathcal{D}|$, the probability that no duplicate elements are generated with $n$ picks is given by
 \begin{equation*}
     p = \prod_{i=1}^{n} \frac{i}{n}
 \end{equation*}
-As an example, the probability that all validators generate a unique random value already drops to $0.036\%$ for $n = 10$. Let the random variable $T$ be number of test runs executed until every element in the domain has been checked. The goal is to identify its expectation $E(T)$. To this end, the geometric probability distribution is applied \cite{croucher_collecting_2006}:\\
+As an example, the probability that all validators generate a unique random value already drops to $0.036\%$ for $n = 10$. Let the random variable $T$ be the number of test runs executed until every element in the domain has been generated. In order to obtain an estimation of how many test runs are needed to find the counterexample for certain, the goal is to identify its expectation $E(T)$. To this end, the geometric probability distribution is applied \cite{croucher_collecting_2006}:\\
 Each element is generated with a probability of $1/n$. Thus, the probability to generate the $i$th unique element is given by 
 \begin{equation}
     p_i = \frac{n-i+1}{n}
 \end{equation}
-The expected value of a random variable $X$ is given by $E(X) = \frac{1}{p}$\cite{croucher_collecting_2006}, thus the expected number of test runs for $n$ is 
+\cite{croucher_collecting_2006}. The expected value of a random variable $X$ is given by $E(X) = \frac{1}{p}$\cite{croucher_collecting_2006}, thus the expected number of test runs for $n$ is 
 \begin{equation}
 E(T) = n \sum_{i=1}^{n} \frac{1}{i}
 \end{equation}
-\tabref{tab:prob_outcomes} shows the expected number of test runs $E(T)$ and its standard deviation $\sigma$ for different $n$. In \cite{croucher_collecting_2006}, $E(T)$ and $\sigma$ and the application of the central limit theorem are used to calculate a 95\% confidence interval for $T$, which provides an upper and lower bound on the number of test runs. Rounded values for both bounds are also shown in \tabref{tab:prob_outcomes}.
+\tabref{tab:prob_outcomes} shows the expected number of test runs $E(T)$ and its standard deviation $\sigma$ for different $n$. Furthermore, $E(T)$ and $\sigma$ are used to calculate a 95\% confidence interval for $T$ by applying the central limit theorem, which provides an upper and lower bound on the number of test runs \cite{croucher_collecting_2006}. Rounded values for both bounds are also shown in \tabref{tab:prob_outcomes}.
 \begin{table}[h]
     \centering
-    \begin{tabular}{lllll}\label{tab:prob_outcomes}
+    \begin{tabular}{lllll}
         \thead{$n$} & \thead{$E(T)$} & \thead{$\sigma$} & \thead{lower bound} & \thead{upper bound}\\ \hline
         5 & 11.4 & 2.53 & 6 & 16\\
         10 & 29.3 & 4.32 & 21 & 38\\
@@ -106,13 +103,13 @@ E(T) = n \sum_{i=1}^{n} \frac{1}{i}
         50 & 225.0 & 13.23 & 199 & 251 
     \end{tabular}
     \caption{Expectation, standard deviation and upper and lower bound of needed test runs for some $n$ \cite{croucher_collecting_2006}}
-    \label{tab:my_label}
+    \label{tab:prob_outcomes}
 \end{table}
 
-The results show that checking random values is a very inefficient approach if false positives are not admissible. Even if the lower bound of $T$ is chosen as the number of test runs, it exceeds the size of the domain by far and increases the time complexity to $\mathcal{O}(n*log(n))$ for large $n$ \cite{xu_tang_2011}. Instead, the following section introduces a formula to calculate the number of test runs that detect counterexamples with a $p < 1$, for instances where false positives are tolerable.
+The results show that checking random values is a very inefficient approach if false positives are not admissible. Even if the lower bound of $T$ is chosen as the number of test runs, it exceeds the size of the domain by far and increases the time complexity to $\mathcal{O}(n*log(n))$ for large $n$ \cite{xu_tang_2011}. For instances where false positives are tolerable, the following section introduces a formula to calculate the number of test runs that detect counterexamples with a given probability threshold $p \leq 1$.
 
-\subsection{Setting probability thresholds}
-The goal is to find a number $t$ of test runs, s.t. the probability $P_{c,t}$ of not finding the counterexample drops below a certain threshold $c$. A validator finds the counterexample in one test run with probability $\frac{1}{n}$, and misses it with probability $(1-\frac{1}{n})$. After $t$ tests runs, the probability that the counterexample has not been found is thus $(1-\frac{1}{n})^t$. Following the same approach as in \cite{mahl_schindel_2007} to retrieve a bound for $P_{c,t}$, we use
+\subsection{Setting probability thresholds}\label{sec:prob_threshold}
+The goal is to find a number $t$ of test runs, s.t. the probability $P_{c,t}$ of not finding the counterexample drops below a certain threshold $c$. A validator finds the counterexample in one test run with probability $\frac{1}{n}$, and misses it with probability $(1-\frac{1}{n})$. After $t$ tests runs, the probability that the counterexample has not been found is thus $(1-\frac{1}{n})^t$. Following the same approach as in \cite{mahl_schindel_2007} to retrieve an upper bound for $P_{c,t}$, we use the following inequality
 \begin{equation}
 (1-\frac{1}{m})^m \leq \frac{1}{e}
 \end{equation}
@@ -124,27 +121,28 @@ With this, the probability $P_{c,t}$ of not finding the counterexample with $t$ 
 \begin{equation}
 P_{c,t} \le e^{-\frac{t}{n}}
 \end{equation}
-In order to retrieve the number of test runs $t$ necessary for $P_{c,t}$ to drop below a specified threshold $c$, the inequality is solved for $t$, which depends on the known parameter $n$ and an arbitrary value for $c$:
+In order to retrieve the number of test runs $t$ necessary for $P_{c,t}$ to drop below a specified threshold $c$, the inequality is solved for $t$, which is then dependent of the known parameter $n$ and an arbitrary value for $c$:
 \begin{align}
-    e^{-\frac{t}{n}} &\leq c && \text{with } c\le1 \nonumber\\
+    e^{-\frac{t}{n}} &\leq c && \text{with } 0 \leq c\le 1 \nonumber\\
     t &\geq -n\:\ln(c)
 \end{align}
-For $c = \frac{1}{e}$ ($\approx 36.79\:\%$) $t$ is bound by $n$, which means that for higher reliabilities the number of test runs needs to be greater than $n$. \figref{fig:graph_t_c} shows the lower bounds of $t$ as a function of the probability threshold and domain size. One can see that the increase in accuracy is approximately linear to the number of test runs below a threshold of $c=0.5$, but requires an exponential testing effort to reach higher thresholds.
+For $c = \frac{1}{e}$ ($\approx 36.79\:\%$) the lower bound of $t$ is exactly $n$, which means that for higher reliabilities the number of test runs needs to be greater than $n$. \figref{fig:graph_t_c} shows the lower bounds of $t$ as a function of the probability threshold and domain size. One can see that the increase in accuracy is approximately linear to the number of test runs below a threshold of $c=0.5$, but requires an exponential testing effort to reach higher thresholds.
 \begin{figure}[h]
 \includegraphics[width=0.95\linewidth]{figures/3-offline/graph_t_c}
+\caption{The number of required test runs as a function of the probability of false positives $c$ and size of the domain $n$}
 \label{fig:graph_t_c}
 \end{figure}
-For assertions with several quantifiers, which are translated to random generators, all domains have to be considered in the calculation. Revisiting the intersection of sets from \secref{sec:existential}, every element in set $u$ has to be compared to every element in set $v$. Thus, the lower bound of test runs needed to check they intersect with a certainty of 63.21\% is given by $t \leq t_1 * t_2$ with $t_1 \leq |u|$ and $t_2 \leq |v|$.
+For assertions with several quantifiers, which are translated to random generators, all domains have to be considered in the calculation. Revisiting the intersection of sets from \secref{sec:existential}, every element in set $U$ has to be compared to every element in set $V$. Thus, the lower bound of test runs needed to check whether they intersect with a certainty of 63.21\% is given by $t \leq t_1 * t_2$ with $t_1 \geq |U|$ and $t_2 \geq |V|$.
 
 \subsection{Validators vs. test runs}
-The last section derived a formula to calculate a lower bound for a number of test runs $t$ in order to reach a certain level of confidence. However, $t$ is not a parameter that can be adjusted to an arbitrary value on the blockchain, as the assertion is checked by the validators. Assuming a blockchain has $m$ validators, the actual lower bound of test runs is $m$. For cases where there are not enough validators to reach a threshold $c$, a mechanism is required to have each validator to check the property for multiple random values. Hence, the actually executed number of checks is always a multiple of $m$. 
+The last section derived a formula to calculate a lower bound for a number of test runs $t$ in order to reach a certain level of confidence. However, $t$ is not a parameter that can be adjusted to an arbitrary value on the blockchain, as the assertion is checked by the validators. Assuming a blockchain has $m$ validators, the actual lower bound of test runs is $m$. For cases where there are not enough validators to reach a threshold $c$, a mechanism is required to have each validator check the property for multiple random values. Hence, the actual executed number of checks is always a multiple of $m$. \secref{} goes into a bit more detail about this based on the Tezos blockchain. \todo{Refer to section}
 
 \subsection{Alternatives to random testing}
-For applications where higher reliability is crucial, an alternative to checking elements randomly could be to coordinate a systematic iteration of the domain. The implementation of such a coordination is not trivial though; validators can't simply be passed an individual value as input. Instead, possible approaches could be to implement a central instance that allocates an element in the search space to each validator, or use some unique and intrinsic attribute, like an identification number, as input for a mapping.
+For applications where higher reliability is crucial, an alternative to checking elements randomly could be to coordinate a systematic iteration of the domain. The implementation of such a coordination is not trivial though; validators can't simply be passed an individual value as input. Instead, possible approaches could be to implement a central instance that allocates an element in the search space to each validator, or use some unique and intrinsic attribute, like an identification number, as input for a mapping. The discussion if this approach would provide any advantages over a local validation of the property is left open \todo{Depends on cost analysis?}.
 
 \subsubsection{Central instance assigning values}
-For this approach, the tool-chain would need to generate a separate contract that is called by the baker and validators as a proxy. This contract would then, for instance, generate a number using a modulo-n counter and pass this number as an additional parameter to the assertion code. The random generators would be omitted accordingly. However, this works only as expected if there are no simultaneous transactions calling the contract, otherwise it cannot be guaranteed that all elements have been assigned for each transaction. If and how this issue can be solved will not be discussed further in this thesis.
+For this approach, the tool-chain would need to generate a separate contract that is called by the miners and validators as a proxy. This contract would then, for instance, generate a number using a modulo-n counter and pass this number as an additional parameter to the assertion code. The random generators would be omitted accordingly. However, this works only as expected if there are no simultaneous transactions calling the contract, otherwise it cannot be guaranteed that all elements have been checked for each of the transactions. If and how this issue can be solved will not be discussed further in this thesis.
 
 \subsubsection{Using unique attributes of a validator}\label{sec:alt_attributes}
-This approach strongly depends on whether the validators have a unique id or other attribute that can be accessed from within a contract.  If there is (or the language can be extended with such a feature), there needs to exist a non-injective surjective function that maps the respective attributes represented by type A to an element of the domain represented by type B. Furthermore, for cases where $t > m$, an offset needs to be added, s.t. a validator checks distinct elements for each test run. \\
-Implementing such an approach on Tezos does become even more challenging by the way endorsing rights are distributed in its proof-of-stake mechanism: for each block level, endorsing rights are assigned to the owner of a randomly selected roll, i.e., a set of tokens \cite{tezos_docs}. This means that the same endorser can be picked multiple times for endorsing one block and thus some elements in the domain may remain unchecked. \secref{lala} goes into more detail about this issue. \todo{Ref section}
+This approach strongly depends on whether the validators have a unique id or other attribute that can be accessed from within a contract.  If there is (or the language can be extended with such a feature), there needs to exist a non-injective surjective function that maps the respective attributes represented by type A to an element of the domain represented by type B, i.e. $f: X \rightarrow Y$. Furthermore, for cases where $t > m$, an offset needs to be added, s.t. a validator checks distinct elements for each test run. \\
+Implementing such an approach on Tezos becomes even more challenging due the way endorsing (i.e. validation) rights are distributed in its proof-of-stake mechanism: for each block level, endorsing rights are assigned to the owner of a randomly selected roll, i.e., a set of tokens \cite{tezos_docs}. This means that the same validator can be picked multiple times for endorsing one block and thus some elements in the domain may remain unchecked. \secref{} goes into more detail about this issue. \todo{Ref section}

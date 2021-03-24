@@ -1,10 +1,10 @@
-\chapter{Approach}\label{chap:approach}
+\chapter{Tezos-specific Offline Design}\label{chap:offline_tezos}
 
 
-- Vorschlag von HA: geht so nur für counterexamples.
-- Case Proof-modus: some approval message has to be send actively if no assertion failed.
-	-> check if transaction fails? würde so ein mechanismus gehen? call case contracts n times. nach n times wird contract aber nicht aufgerufen
-	-> oder: case contracts callen parent wenn property check successful; nicht möglich, da dann manager contract nichts davon weiß
+%- Vorschlag von HA: geht so nur für counterexamples.
+%- Case Proof-modus: some approval message has to be send actively if no assertion failed.%
+%	-> check if transaction fails? würde so ein mechanismus gehen? call case contracts n times. nach n times wird contract aber nicht aufgerufen
+%	-> oder: case contracts callen parent wenn property check successful; nicht möglich, da dann manager contract nichts davon weiß
 
-With the specifications all set, the implementation section of this chapter assesses which of the necessary operations Tezos' smart contract language already provides, which extensions are needed and how the assertions can be made executable by Tezos' virtual machine.
+%With the specifications all set, the implementation section of this chapter assesses which of the necessary operations Tezos' smart contract language already provides, which extensions are needed and how the assertions can be made executable by Tezos' virtual machine.
  
