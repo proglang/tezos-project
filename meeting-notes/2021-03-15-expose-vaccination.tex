@@ -20,9 +20,32 @@
 
 The world is racing towards containing the Corona virus and fighting the pandemic.
 One important step in this fight is to vaccinate as many people as possible.
-At some point, it is expected that certain activities (e.g., air travel, cruises, sports) are only open to vaccinated  persons. To this end, there must be a central registry for all vaccinations so that everyone can proof their vaccination status.
+At some point, it is expected that certain activities (e.g., air travel, cruises, sports) are open
+exclusively to vaccinated  persons. To this end, there must be a central registry for all
+vaccinations so that everyone can prove their vaccination status.
 
-The goal of the thesis is to investigate whether the blockchain is a suitable technical foundation for building such a registry. At first glance, this seems to be the case because the blockchain is a global decentralized database that can be maintained by mutually untrusting communities.
+Trust is a major issue in this registry. Only certified authorities should be able to enter
+vaccination records. It should not be possible to enter fake records. Each record should be linked
+to an individual but without subverting data protection and privacy. Everyone
+should be able to verify a vaccination given the identity of an individual within seconds.
+A certified authority should be able to obtain the full record (which vaccine, when vaccinated)
+within a reasonable time.
+
+Entering records or obtaining a full record may incur a reasonable cost. Verifying a vaccination
+should be as cheap as possible.
+
+Authorities should be structured hierarchically. For example, there is a small number of worldwide
+authorities; they vouch for national authorities, which in turn vouch for regional authorities and
+then local authorities (e.g., doctors or vaccination centers). Such a structure is the standard for
+certificates for webpages, emails, etc.
+
+The goal of the thesis is to investigate whether the blockchain is a suitable technical foundation
+for building such a registry. At first glance, this seems to be the case because the blockchain is a
+global decentralized database that can be maintained by mutually untrusting communities.
+
+The main concern is the cost to store the (huge) information on the blockchain and the cost and time
+to verify.  So the most important task is to find out how to store and then verify the
+vaccinations records with reasonable cost and time.
 
 \section{Outline}
 \label{sec:outline}

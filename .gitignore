@@ -9,4 +9,4 @@ auto
 *.rel
 *.merlin
 _build
-
+.DS_Store
