@@ -23,7 +23,7 @@ In order to find a counterexample to the assertion, the formula in \eqref{eq:pri
 	(\exists n) (2 \le n \le \sqrt{p}) \wedge (p \% n) = 0
 \end{equation}
 
-Each validator then checks the inverse property $(p \% n) = 0$ point-wise for some random $n$ within the given boundaries $2 \le n \le \sqrt{p}$. If a validator finds a counterexample, i.e., a value for $n$ where the reminder is $0$, it posts an objection to the network. For each involved validator, the constant cost of generating one random number and calculating one division have to be paid, which is independent from $p$. \todo{Change if not true} \\
+Each validator then checks the inverse property $(p \% n) = 0$ point-wise for some random $n$ within the given boundaries $2 \le n \le \sqrt{p}$. If a validator finds a counterexample, i.e., a value for $n$ where the reminder is $0$, it posts an objection to the network. For each involved validator, the constant cost of generating one random number and calculating one division have to be paid, which is independent from $p$. %\todo{Change if not true} \\
 However, distributed assertion checking is not only applicable for parameters or properties of dynamic size. Another example given in \cite{thiemann_2020} shows a contract that expects an array of integers sorted in ascending order: 
 
 \begin{lstlisting}[caption=Smart contract expecting a sorted array, numbers=none, language=Solidity, label=lst:sorted]

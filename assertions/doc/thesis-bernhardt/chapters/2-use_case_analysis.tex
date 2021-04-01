@@ -104,7 +104,7 @@ In opposition to the statement that modern SAT solvers expect $F$ to be in CNF, 
 \end{gather*}
 With single quantification, we so far considered the negation of the formula in order to identify counterexamples (or proofs). However, by checking some literal in some clause, the validator cannot make a statement about the validity of the property, as the clauses have to be examined as a whole in order to verify that the conjunction evaluates to true. Consequently, the distribution can only take place on the level of clauses, but not on the level of literals. Each validator thus has to check all literals of one random clause and produce a proof of validity if all of them satisfy the property. This implies that the formula does not have to be negated. \\
 Besides having a distinct transformation, this case also has to be handled differently during the compilation process; instead of translating both quantifiers into a random generator, the universal quantifier has to be translated into a loop, cf. \lstref{lst:rand_loop}.
-\begin{lstlisting}[label=lst:rand_loop, numbers=none]
+\begin{lstlisting}[label=lst:rand_loop, numbers=none, caption=Translation of an assertion for a DNF SAT problem in pseudo-code]
 i = random(0, size(F))
 for (j : [0..k)):
 	check(...)
@@ -120,7 +120,7 @@ Unfortunately, the same cannot be applied for the reverse quantification nesting
 \end{aligned}
 \end{gather*}
 Again, the validator has to check the whole clause in order to know whether it evaluates to true. Due to existential quantification, however, the literals in the clauses cannot be checked independent of each other. A single literal evaluating to false does not make the whole clause evaluating to false. Although technically possible, it requires a more sophisticated compiler that translates this nesting into the following code structure:
-\begin{lstlisting}[label=lst:rand_loop_dependent, numbers=none]
+\begin{lstlisting}[label=lst:rand_loop_dependent, numbers=none, caption=Translation of an assertion for a CNF SAT problem in pseudo-code]
 i = random(0, size(F))
 for (j : [0..k)):
 	if check(...):

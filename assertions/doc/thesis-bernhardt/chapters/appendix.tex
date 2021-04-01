@@ -28,3 +28,31 @@ The following two versions of the grammar implement the prefix and infix notatio
 				 numbers=none,
 				 language=,
 				 caption=Assertion grammar with infix notation]{../grammar/assertion_grammar_infix.txt}
+
+\chapter{List accessing in Michelson}\label{apx:nth}
+
+\lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
+				 backgroundcolor=\color{cverbbg},
+				 linewidth=14cm,
+				 xleftmargin=0.5cm,
+				 frame=lr,
+				 framesep=8pt,
+				 framerule=0pt,
+				 captionpos=b,
+				 numbers=none,
+				 language=,
+				 label=lst:nth_liq,
+				 caption=Possible implementation of \texttt{nth} in Liquidity]{listings/nth.liq}
+				 
+\lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
+				 backgroundcolor=\color{cverbbg},
+				 linewidth=14cm,
+				 xleftmargin=0.5cm,
+				 frame=lr,
+				 framesep=8pt,
+				 framerule=0pt,
+				 captionpos=b,
+				 numbers=none,
+				 language=,
+				 label=lst:nth_tz,
+				 caption=\lstref{lst:nth_liq} compiled to Michelson]{listings/nth.tz}

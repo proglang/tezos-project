@@ -2,13 +2,7 @@
 
 \chapter{Generic Offline Design}\label{chap:offline}
 The implementation of distributed assertion checking on any blockchain requires some off-chain considerations and infrastructure. The previous chapter defined a formal set of logical formulae amenable for this approach and gave some in-depth examples. As stated before, the proposed implementation in the following chapters is, for the most part, restricted to formulas of predicate logic using universal quantification.\\
-The purpose of the offline infrastructure is to provide a syntax for stating assertions that check logical formulas, as well as a toolchain to compile these assertions into code that can be originated on the target blockchain. Depending on the individual solution for the respective blockchain protocol, this can either be the original contract extended directly with the assertion code, or as a separate contract that extends the original contract in some other way. This chapter describes the generic part of the offline design, which corresponds to the front-end of the compilation pipeline shown in \figref{fig:pipeline_frontend}. As a start, \secref{sec:syntax} describes the concrete syntax for writing assertions and shows how it expresses some of the previously given examples. The transformation of the original assertions to assertions that check for counterexamples is formalized in \secref{sec:transformation}. Lastly, \secref{sec:accuracy} analyses the reliability of distributed assertion checking as proposed and the cost incurred by increasing it.
-
-\begin{figure}[h]
-\includegraphics[width=\linewidth]{figures/3-offline/pipeline_frontend}
-\caption{The stages of the generic frontend of the compilation pipeline}
-\label{fig:pipeline_frontend}
-\end{figure}
+The purpose of the offline infrastructure is to provide a syntax for stating assertions that check logical formulas, as well as a toolchain to compile these assertions into code that can be originated on the target blockchain. Depending on the individual solution for the respective blockchain protocol, this can either be the original contract extended directly with the assertion code, or as a separate contract that extends the original contract in some other way. This chapter describes the generic part of the offline design, which corresponds to the front-end of the compilation pipeline shown in \figref{fig:pipeline_frontend}. As a start, \secref{sec:syntax} describes the concrete syntax for writing assertions and shows how it expresses some of the previously given examples. The stages of the pipeline front-end, including parsing and transforming the original assertions to assertions that check for counterexamples, are described in \secref{sec:pipeline_front}. Lastly, \secref{sec:accuracy} analyses the reliability of distributed assertion checking as proposed and the cost incurred by increasing it.
 
 \section{Assertion syntax}\label{sec:syntax}
 The assertion syntax is described in two versions by the EBNF grammars shown in appendix \ref{apx:grammar}. One version implements a prefix and the other one an infix notation. The pipeline currently supports the prefix notation with mandatory parentheses to avoid the need of handling operator precedences. To avoid context switches (at least for developers on Tezos), the assertion syntax references those of OCaml and thereby also Michelson.\\
@@ -32,13 +26,26 @@ In future iterations, the assertion syntax could be extended with some more feat
 This feature is not included in the current version, because conditional domain restrictions make the translation from quantifiers to random generators or loops more complex. Aside from that, without the feature of variables and user-defined functions, the code is inflated significantly, thus causing increased origination cost.
 \end{itemize}
 
-\section{Transformation}\label{sec:transformation}
+\section{Front-end of the pipeline}\label{sec:pipeline_front}
+The front-end of the compilation pipeline comprises of a command-line interface (CLI), a parser and the transformation. These stages are generic and independent of the target platform and produce an abstract syntax tree (AST) of the assertion that is passed to the respective back-end through a public interface.
+\begin{figure}[h]
+\includegraphics[width=\linewidth]{figures/3-offline/pipeline_frontend}
+\caption{The stages of the generic frontend of the compilation pipeline}
+\label{fig:pipeline_frontend}
+\end{figure}
+OCaml was chosen as a programming language to implement the pipeline, given that it's also used to develop the Tezos blockchain refer to \secref{sec:tezos}). This avoids context switches within the Tezos eco-system and allows to build on top of the Tezos libraries. \chapref{chap:offline_tezos} goes into more details about this.
+
+\subsection{Parser}
+Assertions expressed in the syntax described above are passed as a simple text file to the pipeline. The file extension is irrelevant, but this thesis follows the convention of using the file extension \texttt{.tza} for assertion contracts (referring to the extension \texttt{.tz} for Michelson contracts). The file must contain at least one assertion, hence it is not admissible to create empty assertions for all functions (or entrypoints) of the parent contract. Furthermore, every syntax error will cause the pipeline to abort execution in order to ensure that no assertion is missing in the target code. Each of the contained assertions is, after parsing, represented as a separate abstract syntax tree (AST). The AST represents, like the syntax itself, a union of all target specific ASTs that contain the supported subsets of operations and types. \\
+Both lexer and parser have been generated using the OCaml tools \texttt{ocamllex} \cite{ocaml_docs} and \texttt{menhir} \cite{menhir_doc}.
+
+\subsection{Transformation}\label{sec:transformation}
 Since the validators will check the input parameter for the negation of the formula, it has to be transformed before compilation. Furthermore, the formula should explicitly state the domain for each quantifier, which will have to be translated into a set of bounds that refer to the respective random generator. Restricting the ranges of the random generators is important in order to avoid wasting resources through testing values out of the relevant (or legal) scope.
 
-\subsection{Negation}
+\subsubsection{Negation}
 The formula is negated using the negation rules of second-order logic and applying De Morgan's laws \cite{de_morgan} until the negation is applied to the literals. Negating universal quantification is equivalent to an existential quantification of its negated body (and vice versa): $\neg \forall x P(x) \equiv \exists x \neg P(x)$ \cite{Sundstrom2020Quantifiers}. The domain restrictions are not affected by the negation, which is also reflected in the rules of predicate logic if the domain is given as a premise in the logical formula: $\neg (p \Rightarrow q) \equiv p \Rightarrow \neg q $.
 
-\subsection{Building smart random generators}
+\subsubsection{Building smart random generators}
 In order to assign each explicit bound to its appropriate quantifier, the formula has be skimmed for atomic constraints that contain predicate (bound) variables. They're then moved and assigned to the quantifier that bounds the variable. If the constraint contains more than one bound variable, it is assigned to the quantifier with the highest depth in the order of quantifiers, as they depend on the generated value(s) of the other variable(s). \\
 Revisiting the formula from \eqref{eq:sorted_v2}, its premise can be considered as a conjunction of the four constraints
 \begin{itemize}
@@ -67,7 +74,7 @@ While conjunctions can be handled easily, other operators make it more difficult
 Constraint 1) complicates restricting the random generator in several ways. Firstly, it separates the domain into two disjoint sub-domains, which requires defining a random generator for each range and another one to decide which one is called. Secondly, the operands of a disjunction cannot be considered separately when more than one bound variable is involved. For the predicate variable whose random generator is executed first, the domain restriction is optional, while the generation of the following random values depend on the previous result. Similarly to 1), constraint 2) splits the domain into sub-domains. To keep it simple for the time being, restrictions formulated with these operators are kept as part of the assertion code rather than used as constraints for the generators. Consequently, some validators may generate irrelevant values when checking the assertion and, depending on the size of the gap between the sub-domains, this can significantly decrease the reliability of this kind of assertion checking. Thus, further developed iterations should handle and translate them accordingly.\\
 Constraint 3) effectively makes the quantifier, which binds $n$, obsolete. Adding this constraint to the respective generator will at least not affect the reliability, but a future improvement could be to optimize the assertion by replacing all occurrences of the bound variable with the assigned value and removing the quantification.
 
-\subsection{Implicit constraints}
+\subsubsection{Implicit constraints}
 In some cases, boundaries are imposed implicitly by data types. List indices, for instance, are always bound to the range $0.. size(list) - 1$ and could thus be derived from the formula without an explicit specification. As this deduction makes the transformation more complex, requiring a semantic analysis of the formula, a completely explicit formula in terms of the domain is required for now. Depending on the VM, the lower bound for indexing operations can be implicitly handled by the random generator of an appropriate predicate type. As an example, Michelson supports the data type \texttt{nat} representing the natural numbers, which categorically excludes all values below zero. Developers aware of this can exploit this and, for instance, abbreviate \eqref{eq:sorted_v2} with the following formula:
 \begin{equation}\label{eq:sorted_v2_abbr}
 	(\forall n : nat)(\forall m : nat) (n \le m < |a|) \Rightarrow a[n] \leq a[m]
