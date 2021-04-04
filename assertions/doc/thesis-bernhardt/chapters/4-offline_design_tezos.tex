@@ -1,15 +1,10 @@
 \chapter{Tezos-specific Offline Design}\label{chap:offline_tezos}
-After parsing an assertion contract and transforming it, the resulting AST is passed to the target-specific backend. For this thesis, the platform target is Tezos, with Michelson as the compilation target. This chapter continues to describe the pipeline stages implemented in the Tezos back end, which are shown in \figref{fig:pipeline_backend}. Furthermore, it states the necessary extensions to Michelson and its evaluator to facilitate useful assertions using random generators and assesses several orchestration strategies between the parent and assertion contract code. As a preliminary, the following section gives a short introduction to the Tezos blockchain, the Michelson language and some relevant tools in Tezos' ecosystem.
-\begin{figure}[h]
-\includegraphics[width=\linewidth]{figures/4-offline_tezos/pipeline_backend}
-\caption{The stages of Tezos-specific back end of the compilation pipeline}
-\label{fig:pipeline_backend}
-\end{figure}
+After parsing an assertion contract and transforming it, the resulting AST is passed to the target-specific backend. For this thesis, the platform target is Tezos, with Michelson as the compilation target. This chapter continues to describe the pipeline stages implemented in the Tezos backend, which are shown in \figref{fig:pipeline_backend}. Furthermore, it states the necessary extensions to Michelson and its evaluator to facilitate useful assertions using random generators and assesses several orchestration strategies between the parent and assertion contract code. As a preliminary, the following section gives a short introduction to the Tezos blockchain, the Michelson language and some relevant tools in Tezos' ecosystem.
 
 \section{Introduction to Tezos}\label{sec:tezos}
 The Tezos blockchain is presented in its whitepaper as a \enquote{generic and self-amending crypto-ledger} \cite{goodman_tezos_2014}. It uses a proof-of-stake consensus mechanism that is not only used to agree on the current state of its ledger, but also allows its stakeholders to come to a consensus about changes in the economic protocol by participating in a voting process. The changes included in a protocol upgrade, called amendment, can influence i.a. which transactions are valid on the blockchain, the payment system or even the voting process itself without risking a fork of the blockchain. Everyone owning the cryptocurrency of Tezos, called Tez, is considered a stakeholder and can participate in the consensus mechanism. The whitepaper compares the self-amending protocol of Tezos to a game created by Philosopher Peter Suber called ``Nomic'', whose set of rules are subjected to a democratic voting system \cite{nomic}. Similar concepts can also be found in modern pop culture, such as the virtual sports league ``Blaseball'' \cite{blaseball} that became popular during the COVID-19 pandemic.
 
-In addition to user accounts associated with a public key, Tezos supports smart contracts, which are written in the built-in language Michelson. Tezos' transaction fee system is similar to that of Ethereum \cite{wood_ethereum_2021} - it is gas-instrumented and besides a base fee, every operation and byte of storage during contract execution has to be paid for. However, Tezos imposes a hard cap on the amount of gas that can be consumed per transaction \cite{goodman_tezos_2014}, whereas Ethereum limits the gas quota only in respect to blocks \cite{wood_ethereum_2021}.\\
+In addition to user accounts associated with a public key, Tezos supports smart contracts, which are written in the built-in language Michelson. Tezos' transaction fee system is similar to that of Ethereum \cite{wood_ethereum_2021} - it is gas-instrumented and besides a base fee, every operation and byte of storage during contract execution has to be paid for. However, Tezos imposes a hard cap on the amount of gas that can be consumed per operation (including internal transactions) \cite{tezos_docs}\cite{morley_repo}, whereas Ethereum limits the gas quota only in respect to blocks \cite{wood_ethereum_2021}.\\
 Tezos is written in the multi-paradigm programming language OCaml \cite{ocaml_doc}. Compiling the its source code yields five essential binaries: the node, baker, endorser, accuser and client. The node is the entity that connects to the peer-to-peer network and keeps a copy of the chain. Bakers are responsible for producing new blocks, the endorsers for validating new blocks and the accusers to call out bakers or endorsers which double-sign or -endorse. The client provides a command line interface to interact with the local node through remote procedure calls (RPC).
 
 \subsection{Proof-of-stake in Tezos}
@@ -124,7 +119,135 @@ match (instruction, stack) with
 \end{lstlisting}
 \lstset{upquote=false}
 
-\section{Type check}
+\section{Orchestration of contract and assertions}
+So far, the assertion and parent contract have been considered separately. However, on the blockchain they have to be orchestrated, s.t. the bakers and validators execute the assertion before the actual contract code. The orchestration does not only include the linking of assertion and contract code, but also a mechanism to execute an assertion $n$ times depending on the domain space that needs to be checked. There are basically two approaches - the assertion and contract code can be assembled into a single monolithic contract, or they can be originated separately as standalone contracts. As the strategy has an impact on the compilation process and output, it has to be determined in advance which of the two should be implemented and how.
+
+\subsection{Approach 1: Monolithic contract}
+In the monolithic approach, a new contract is built using both the assertion and parent code as input. As is outlined in \figref{fig:monolithic_orchestration_basic}, the assertions can either be appended to the original contract as separate entrypoints or by prepending them to the code of the respective entrypoint. This tightly couples and unites the code in one self-contained unit.
+\begin{figure}[!htb]
+\subfloat[Appending assertions as separate entrypoints]{\includegraphics[width=0.5\textwidth]{figures/4-offline_tezos/monolithic_ep.jpg}}
+\quad
+\subfloat[Inserting the assertion code into the original entrypoint]{\includegraphics[width=0.5\textwidth]{figures/4-offline_tezos/monolithic_insert.jpg}}
+\caption{Approaches for assembling a monolithic contract}
+\label{fig:monolithic_orchestration_basic}
+\end{figure}
+While the link between assertion and contract code is already given in a), the entrypoint and assertions in b) still need to be coupled, as it is not inherent which entrypoint represents a normal and which the respective assertion. For this reason, assertion entrypoints need to have fixed name pattern, s.t. it is derivable from the original entrypoint. As a proposal, the tag of the assertion is the tag of its parent entrypoint suffixed with a \texttt{\_a}, e.g. \texttt{A\_a} for entrypoint \texttt{A}. The baker can then execute the contract normally by calling the original entrypoint and prompt the validators to execute the assertion separately. \\
+Both approaches, however, do not yet provide any means to have validators execute the assertions $n$ times. Since only the contract itself knows how to calculate $n$ (as per the range(s) of the random generator(s)), it cannot be passed to the validators as a parameter to the validation request. Instead, the contract itself needs a test run manager which handles this. A test run manager can either be implemented as another entrypoint, say \texttt{A\_m}, which then calls \texttt{A\_a} (or \texttt{A} in case of a)) $n$ times as an internal transaction. Another possibility is to create a separate manager contract that acts as a proxy, contains the manager code and internally calls the monolithic contract. This solution is a hybrid of the monolithic and modular approach. The section covering the modular approach describes in more detail how it is implemented.\\
+It's important to realize that neither baker nor validators can differentiate between entrypoints that have an associated assertion and those that do not. In order to avoid transaction failures caused by calling assertions that do not exist, the compiler has to add dummy managers for empty assertions that call the actual contract code immediately.\\
+% Description figures
+% -> txa special transaction type
+% managers use internal transactions to call contract n times
+% depending on protocol, validators use normal tx or another special tx type
+% req message needs to contain the derived name of the assertion ep -> derivation needs to be part of the "assertion mode". is this possible?
+% veto message: the txa op hash it refers to, an instance of a counterexample (not yet clear how this looks like)
+
+\begin{figure}[h]
+\centering
+  \includegraphics[width=0.7\textwidth]{figures/4-offline_tezos/interaction_monolithic.jpg}
+	\caption{Interaction with a monolithic contract}
+	\label{fig:interaction_monolithic}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+  \includegraphics[width=0.8\textwidth]{figures/4-offline_tezos/interaction_monolithic_managertz.jpg}
+	\caption{Interaction with a manager and monolithic contract}
+	\label{fig:interaction_monolithic_managertz}
+\end{figure}
+
+\subsubsection{Evaluation}
+Generell:
+- parent code has to be modified
+	+ show code example
+	+ decompilation necessary
+	+ compilation is more complex
+- doesn't work if the parent code is already originated
+- inflexible -> tightly coupled code
+	+ if the assertion code changes, the whole contract has to be reoriginated
+
+ep assert + ep manager
++ baker can call basic ep; validators call manager
+	-> cost efficient; contract is only executed once
+- only works with explicit ep -> parameter types!
+- complex compilation (1-2 eps per ep more)
+- readability
+
+no ep assert + ep manager
+- contract code is also executed n times
+- only works with explicit ep -> parameter types!
++ bypassing assertion not possible!
++ less eps more readable? (aber nur bisschen)
+
+ep assert + contract manager
++ less complex compilation -> just copy assertion code before the actual code (less entrypoint handling)
++ if manager also has eps A and A\_m, the code and assertions can also be called separately
++ modularity -> readability, a bit more flexibility (if manager code changes)
+- \^ even more eps -> 2-3 eps more
+- more boilerplate, more origination costs
+
+no ep assert + contract manager
+- contract code is also executed n times
++ bypassing assertion not possible!
++ less complex compilation -> just copy assertion code before the actual code (less entrypoint handling)
++ modularity
+
+
+what happens to calls to default?
+
+
+
+
+
+
+\begin{itemize}
+\item Assertions are appended to the parent as separate entry points
+\item Parent contract has to be modified (parameter type \& addendum)
+\item Problems/Drawbacks:
+	\begin{itemize}
+	\item entrypoint names necessary - otherwise no unambiguous assignment
+	\item parameter types of original ep \& assertion ep are different
+	\item e.g. \%A and \%A\_a cannot be called with the same parameter (if not called explicitly; ref. \ref{lst:mono_unnamed} line 24, 25.)
+	\item Possible solution:
+		\begin{itemize}
+		\item all eps in the parent and assertion contract need to have a \%name \verb|->| calling both eps explicitly allows using the same parameter (ASAIK) ; ref. \ref{lst:mono} line 24, 25.
+		\item Assign dummy names if none are given - effort?
+		\item what to do with calls to \%default?
+			\begin{itemize}
+			\item Baker would need to
+			\item 1) look up entrypoints of contract 
+			\item 2) check which type matches \& find out the ep name
+			\item 3) derive assertion ep name from that
+			\end{itemize}
+		\item how to assign entry points given without names in .tza to their respective parent eps? \ref{lst:mono_unnamed} line 10, 11.
+		\end{itemize}
+	\end{itemize}
+\item EP names of the assertion code need to have a fixed pattern, s.t. the bakers know how to call them
+\item Similarly to strategy 1, there probably needs to be "empty" assertion code for normal eps
+\end{itemize}
+
+%\ref{fig:separate_contract_v2}:
+%\begin{figure}[h]
+%	\centering
+%  \includegraphics[width=\textwidth]{assembly_monolith}
+%	\caption{Interaction with a monolithic contract}
+%	\label{fig:monolithic_contract}
+%\end{figure}
+
+%\lstinputlisting[label=lst:mono, caption=Monolithic assembly w/ ep names, numbers=left]{monolithic.tz}
+%\lstinputlisting[label=lst:mono_unnamed, caption=Monolithic assembly w/o ep names, numbers=left]{monolithic_unnamed.tz}
+
+\subsection{Approach 2: }
+
+
+\section{Backend of the pipeline}
+The Tezos backend of the pipeline comprises of the three stages semantic check, type check and compilation. During the semantic check, the common AST is cast to a Tezos-specific AST type. If the assertion contains any data types or operations not supported in Michelson, the assertion contract is rejected. Since the subsequent stages are less straight forward, they are explained in more detail in the following.
+\begin{figure}[h]
+\includegraphics[width=\linewidth]{figures/4-offline_tezos/pipeline_backend}
+\caption{The stages of Tezos-specific backend of the compilation pipeline}
+\label{fig:pipeline_backend}
+\end{figure}
+
+\subsection{Type check}
 The task of the type checker is to map the assertions from the given file to the respective entrypoints of the parent contract. To this end, the parameter types have to be compared and matched against each other in order to find a correct assignment. The type checker either reads the code of the parent contract from a given file or retrieves the code from a given address on the blockchain. It must be ensured that the created mapping is injective and unambiguous, i.e., each assertion matches exactly one entrypoint and no entrypoint is covered by more than one assertion.\\
 As explained in \secref{sec:tezos}, entrypoints can be selected by calling the default entrypoint and wrapping the parameter into the respective union constructors. Alternatively, they can be called explicitly using their tag and passing the parameter as raw value. The same applies for the assertions - by omitting the tag, the parameter type must be declared in respect to the default entrypoint type. If the assertion states an explicit tag, it may declare the raw parameter type. The tags do not necessarily have to be identical with the tags of the parent contract; in some cases, they may be chosen differently for documentation or for readability purposes. However, the tags can and should be used to resolve ambiguity in the mapping between assertions and entrypoints, that is if several entrypoints share the same input type. Ambiguity can also be caused by the fact that entrypoints can be sub-entrypoints of others, thus assertions overlap if a separate assertion is declared for both super- and sub-entrypoint. This is resolved by detecting overlapping assertions during the type check and rejecting assertion contracts where appropriate. \\
 As an exemplification, consider a Michelson contract with five entrypoints (including the default entrypoint):
@@ -140,7 +263,9 @@ The following assertion contract for the given PC contains some valid and some i
 \end{lstlisting}
 Due to its tag, the fist assertion can be assigned unambiguously to entrypoint A, whereas for the second it is not apparent whether it should be assigned to entrypoint B or C. Since the tag is omitted in the third assertion, the parameter type is given in respect to the default entrypoint and is assigned to B. The last assertion is invalid because it is overlapping with the previous assertion, which was already assigned to entrypoint B.
 
-\section{Compiler}
+\subsection{Compiler}
+The transformed and type checked assertion AST needs to be retargeted to Michelson code. 
+
 \draft{}
 \begin{itemize}
 \item Orchestration strategies
@@ -156,7 +281,7 @@ Due to its tag, the fist assertion can be assigned unambiguously to entrypoint A
 \section{Misc}
 \todo{Aspects/questions I don't know yet if or where to put it}
 \begin{itemize}
-\item Tezos specific costs analysis of chosen orchestration strategy
+\item Tezos specific costs analysis of chosen orchestration strategy -> PROBLEM: high n might reach operation gas limit?
 \item How can bakers differentiate between transactions to ”normal” SC and SCs with assertions?
 \item Representation of counterexamples; how to verify them?
 \item Basic approach for proofs?
@@ -169,5 +294,4 @@ Due to its tag, the fist assertion can be assigned unambiguously to entrypoint A
 %	-> check if transaction fails? würde so ein mechanismus gehen? call case contracts n times. nach n times wird contract aber nicht aufgerufen
 %	-> oder: case contracts callen parent wenn property check successful; nicht möglich, da dann manager contract nichts davon weiß
 
-%With the specifications all set, the implementation section of this chapter assesses which of the necessary operations Tezos' smart contract language already provides, which extensions are needed and how the assertions can be made executable by Tezos' virtual machine.
  
