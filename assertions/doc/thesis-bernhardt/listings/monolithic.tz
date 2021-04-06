@@ -1,0 +1,21 @@
+(* example.tz *)
+parameter (or (int %A) (int %B));
+code {
+...
+IF_LEFT { ... } (* %A*)
+        { ... } (* %B *)
+}
+
+(* example.tza *)
+(entrypoint %A (i: int) ...)
+(entrypoint %B (s : int) ...)
+
+(* example_monolithic.tz *)
+parameter (or (int %A) (or (int %B) (or (int %A_a) (int %B_a))));
+code {
+...
+IF_LEFT { ... }                     (* %A *)
+        { IF_LEFT { ... }           (* %B *)
+                  { IF_LEFT { ... } (* %A_a *)
+                            { ... } (* %B_a *)
+}}}
