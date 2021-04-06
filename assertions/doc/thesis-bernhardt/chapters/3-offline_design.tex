@@ -59,8 +59,8 @@ Applying the rules given above after negating the formula, the constraints are a
 \begin{equation}\label{eq:sorted_v2_bounds}
 	(\exists n : int, 0 \leq n \wedge n < |a|])(\exists m : int, m > n \wedge m < |a|) \text{ } a[n] > a[m]
 \end{equation}
-Ultimately, the quantifiers are then translated to the corresponding random generators as indicated in \lstref{lst:rand}.
-\begin{lstlisting}[label=lst:rand]
+Ultimately, the quantifiers are then translated to the corresponding random generators, drafted in pseudocode:
+\begin{lstlisting}[label=lst:rand, numbers=none]
 n = random(0, size(list))
 m = random(n, size(list))
 \end{lstlisting}
@@ -149,6 +149,7 @@ For applications where higher reliability is crucial, an alternative to checking
 
 \subsubsection{Central instance assigning values}
 For this approach, the tool-chain would need to generate a separate contract that is called by the miners and validators as a proxy. This contract would then, for instance, generate a number using a modulo-n counter and pass this number as an additional parameter to the assertion code. The random generators would be omitted accordingly. However, this works only as expected if there are no simultaneous transactions calling the contract, otherwise it cannot be guaranteed that all elements have been checked for each of the transactions. If and how this issue can be solved will not be discussed further in this thesis.
+\todo{Serializes tests -> see expose rejected ideas}
 
 \subsubsection{Using unique attributes of a validator}\label{sec:alt_attributes}
 This approach strongly depends on whether the validators have a unique id or other attribute that can be accessed from within a contract.  If there is (or the language can be extended with such a feature), there needs to exist a non-injective surjective function that maps the respective attributes represented by type A to an element of the domain represented by type B, i.e. $f: X \rightarrow Y$. Furthermore, for cases where $t > m$, an offset needs to be added, s.t. a validator checks distinct elements for each test run. \\
