@@ -121,6 +121,14 @@ match (instruction, stack) with
 \end{lstlisting}
 \lstset{upquote=false}
 
+\subsection{failwith 2.0}
+\draft{}
+- failwith returns a failure string
+- assertion execution -> random number is generated
+- if counterexample is found, the random number somehow has to be extracted from the contract execution, s.t. other validators can verify the counterexample
+- some special failure operation may be needed that returns the that value
+- as representation of a counterexample is still an open question, there are not specifics yet as to how this instruction is supposed to look like (or if it is needed at all)
+
 \section{Orchestration of contract and assertions}
 So far, the assertion and parent contract have been considered separately. However, on the blockchain they have to be orchestrated, s.t. the bakers and validators execute the assertion before the actual contract code. The orchestration does not only include the linking of assertion and contract code, but also a mechanism to execute an assertion $n$ times depending on the domain space that needs to be checked. There are basically two approaches - the assertion and contract code can be assembled into a single monolithic contract, or they can be originated separately as standalone contracts. As the strategy has an impact on the compilation process and output, it has to be determined in advance which of the two should be implemented and how.
 
@@ -134,7 +142,7 @@ In the monolithic approach, a new contract is built using both the assertion and
 \label{fig:monolithic_orchestration_basic}
 \end{figure}
 While the link between assertion and contract code is already given in a), the entrypoint and assertions in b) still need to be coupled, as it is not inherent which entrypoint represents a normal and which the respective assertion. For this reason, assertion entrypoints need to have fixed name pattern, s.t. it is derivable from the original entrypoint. As a proposal, the tag of the assertion is the tag of its parent entrypoint suffixed with a \texttt{\_a}, e.g. \texttt{A\_a} for entrypoint \texttt{A}. The baker can then execute the contract normally by calling the original entrypoint and prompt the validators to execute the assertion separately. \\
-Both approaches, however, do not yet provide any means to have validators execute the assertions $n$ times. Since only the contract itself knows how to calculate $n$ (as per the range(s) of the random generator(s)), it cannot be passed to the validators as a parameter to the validation request. Instead, the contract itself needs a test run manager which handles this. A test run manager can either be implemented as another entrypoint, say \texttt{A\_m}, which then calls \texttt{A\_a} (or \texttt{A} in case of a)) $n$ times as an internal operation. When extending the diagram for a) with the manager, the pipeline output thus look as shown in \figref{fig:monolithic_orchestration}. The output for b) is analogue.
+Both approaches, however, do not yet provide any means to have validators execute the assertions $n$ times. Since only the contract itself knows how to calculate $n$ (as per the range(s) of the random generator(s)), it cannot be passed to the validators as a parameter to the validation request. Instead, the contract itself needs a test run manager which handles this. A test run manager can either be implemented as another entrypoint, say \texttt{A\_m}, which then calls \texttt{A\_a} (or \texttt{A} in case of a)) $n$ times as an internal operation. Because transactions on Tezos guarantee either total success or total failure \cite{tezos_docs}, the execution is stopped as soon as one of the internal operation fails, i.e. detects a counterexample. When extending the diagram for a) with the manager, the pipeline output thus look as shown in \figref{fig:monolithic_orchestration}. The output for b) is analogue.
 \begin{figure}[h]
 \centering
   \includegraphics[width=0.5\textwidth]{figures/4-offline_tezos/pipeline_output_mono_ep.jpg}
@@ -142,25 +150,21 @@ Both approaches, however, do not yet provide any means to have validators execut
 	\label{fig:monolithic_orchestration}
 \end{figure}
 Another possibility is to create a separate manager contract that acts as a proxy, contains the manager code and internally calls the monolithic contract. This solution is a hybrid of the monolithic and modular approach. The section covering the modular approach describes in more detail how it is implemented.\\
-It's important to realize that neither baker nor validators can differentiate between entrypoints that have an associated assertion and those that do not. In order to avoid transaction failures caused by calling assertions that do not exist, the compiler has to add dummy managers for empty assertions that call the actual contract code immediately. \lstref{lst:manager} drafts the manager code for entrypoints with and without assertions in pseudocode. 
+It's important to realize that neither baker nor validators can differentiate between entrypoints that have an associated assertion and those that do not. In order to avoid transaction failures caused by calling assertions that do not exist, the compiler has to add dummy managers for empty assertions that call the actual contract code immediately. \lstref{lst:manager} drafts the manager code for entrypoints with and without assertions in pseudocode (assuming a purely monolithic implementation). 
 \begin{lstlisting}[label=lst:manager, caption=Implementation of the manager in pseudocode]
-%A (i : int) {
-	call(parent.A, i)
-}
+%A (i : int) { ... }
+
+%A_a (i : int) { .. assert (...) }
 
 %A_m (i : int) {
 	n = compute_n(i)
-	Do j = 1 to n:
-		call(parent.A_a, i)
+	Do m = 1 to n
+		call(self, A_a, i)
 }
 
-%B (i : int) {
-	call(parent.B, i)
-}
+%B (j : int) { ... }
 
-%B_m (i : int) {
-	call(parent.B, i)
-}
+%B_m (j : int) { call(self, B, j) }
 \end{lstlisting}
 
 \figref{fig:interaction_monolithic} and \ref{fig:interaction_monolithic_managertz} depict the interaction of the baker and validators with the resulting contracts on the blockchain for a variant using a single monolithic contract versus a hybrid solution. After calling a contract that includes an assertion, the baker has to keep the transaction in its mempool, a buffer where a node keeps prevalidated transactions not yet included in a block \todo{remove explanation if added to Tezos chapter}. Before it can be included, the transaction has to be kept there for a minimum amount of time, s.t. the validators have enough time to validate the assertion \todo{refer to blockchain protocol chapter if there is one}. The bakers therefore need to execute such transactions in a dedicated ``challenge'' mode, which could be signalled by using a special operation type to call such contracts. Operation types in Tezos are, i.a., transactions, originations or endorsements. By adding, for instance, a special transaction type (abbreviated by \texttt{txa} in the interaction diagrams), bakers can differentiate between normal transactions and those with assertions.
@@ -259,15 +263,31 @@ The distinct advantages and disadvantages of each combination of given implement
 With the modular approach, the assertion manager and each of the assertions are originated as separate contracts on the blockchain. The manager mirrors the interface of the parent contract, while each assertion each only has a single entrypoint which expects the raw parameter type. Due to the ``outsourcing'' of the assertion code, the parent contract remains pure and does not have to be modified. Similar to the hybrid solution from the last section, the manager calls the respective assertion contract $n$ times as an internal operation before calling the actual contract. In the case of empty assertions, it calls the parent contract immediately. Correspondingly, the pipeline outputs 1-$m$ contracts, where $m$ is the amount of entrypoints with an associated assertion, as depicted in \figref{fig:modular_assembly}.
 \begin{figure}[h]
 \centering
-  \includegraphics[width=0.9\textwidth]{figures/4-offline_tezos/pipeline_output_modular.jpg}
+  \includegraphics[width=0.6\textwidth]{figures/4-offline_tezos/pipeline_output_modular.jpg}
 	\caption{Modular assembly of assertion and manager code}
 	\label{fig:modular_assembly}
 \end{figure}
 
-In order to link the separate contracts to each other, the manager needs to know the addresses of the other contracts, which ultimately entails a fixed origination order. The independent assertion and parent contract(s) have been originated first, so that their addresses can be passed to the manager as initial storage values. If the storage is structured as a map from a unique identifier to an address, the entrypoints of the manager can then look up the address with its assigned identifier. The assignment of identifiers to entrypoints is hard-wired during the compilation.
+In order to link the separate contracts to each other, the manager needs to know the addresses of the other contracts, which ultimately entails a fixed origination order. The independent assertion and parent contract(s) have been originated first, so that their addresses can be passed to the manager as initial storage values. If the storage is structured as a map from a unique identifier to an address, the entrypoints of the manager can then look up the address with its assigned identifier. The assignment of identifiers to entrypoints is hard-wired during the compilation, as is shown in the pseudocode for the manager contract in \lstref{lst:manager_modular}. The corresponding initial storage for the given contract is the mapping \texttt{{0: <addr parent>; 1: <addr A\_a>; 2: <addr B\_a}}.
+\begin{lstlisting}[label=lst:manager_modular, caption=Implementation of the modular manager in pseudocode]
+storage (map int address);
 
-In the storage, the addresses could be stored in a mapping from a unique identifier
+%A (i : int) {
+	n = compute_n(i)
+	Do m = 1 to n:
+		call(storage.get(1), i)
+	call(storage.get(0), A, i)
+}
 
+%B (j : int) {
+	n = compute_n(j)
+	Do m = 1 to n:
+		call(storage.get(2), j)
+	call(storage.get(0), B, j)
+}
+\end{lstlisting}
+
+The interaction with the contracts in the modular approach is shown in \figref{fig:interaction_modular}. Even though the transactions shown in the diagram state an explicit entrypoint tag, contracts can, of course, also be called through \texttt{\%default}. In that case, the parameter passed with the internal operations to \texttt{A\_a.tz} is not equivalent, but the raw parameter value.
 \begin{figure}[h]
 \centering
   \includegraphics[width=0.9\textwidth]{figures/4-offline_tezos/interaction_modular.jpg}
@@ -276,32 +296,9 @@ In the storage, the addresses could be stored in a mapping from a unique identif
 \end{figure}
 
 \subsubsection{Evaluation of the modular approach}
-- fixes the problem of the monolithic approach, where calls to default cause problems -> mirrored interface can simply pass the parameter on as is to the parent and the extracted raw value to the assertion
-- parent code doesn't have to be touched -> works for originated contracts
-- flexibility -> case contracts independent of the rest; replace manager (with or without case contracts), parent with manager
-- assertions can be bypassed in any case -> big security issue
-
-\begin{itemize}
-\item The address of the assertion contract needs to be provided in some way
-	\begin{itemize}
-	\item [a)] Parent storage contains the address of its assertion contract
-		\begin{itemize}
-		\item Parent contract needs to be modified (storage declaration, every storage access \& return value)
-		\item Assertion contract must be originated first, so that address can be passed into initial storage of parent
-		\item Baker needs to retrieve address from contract storage (no obvious standard way to do this - storages can look differently)\\
-		 \verb|->| BigMap?
-		\end{itemize}
-	\item [b)] Address of the assertion contract is a parameter of the transaction
-		\begin{itemize}
-		\item Address must be known to the caller
-		\item Decouples parent and assertion contract %\sout{(if calling assertion from parent is not necessary)}
-		\item Safety issue: can be passed a contract with correct type that never returns a counterexample
-		\item Parent contract doesn't need to be touched
-		\end{itemize}
-	\end{itemize}
-\end{itemize}
-
-
+This approach fixes the two central problems of the monolithic approach: by mirroring the interface of the parent contract, the parameters passed to the manager contract can be forwarded directly to the parent contract, regardless of whether the default or an explicit entrypoint was called. As sum type parameters are stripped to the raw values inside the code block (ref. \lstref{lst:mono}), they can be passed to the assertion contract without further ado. Furthermore, the parent contract does not need to be modified, which leads to a much simpler compilation process and allows to extend already originated contracts with assertions. Due to its modularity, adaptions to either contract do not entail the recompilation and origination of all components. The manager is the only component with tight coupling, thus adaptions regarding the manager do not affect any other component. Adaptions to single assertions or the parent affect themselves plus the manager. In order to optimize this and break the tight coupling, one could be inclined to add a setter entrypoint to the manager (as a sort of dependency injection). This, however, would break the mirroring of the parent contract and is thus not possible without annulling one of the key strengths of the design.\\
+The approach essentially has to weaknesses: on the one hand, the assertion and the parent cannot be called separately, as they are linked together by the manager. As a result, both the baker and validators execute the assertion, as well as the parent contract, which increases the cost of the contract execution. On the other hand, it exposes a security vulnerability, given that assertions can be bypassed by calling the parent contract directly with unevaluated parameters. This iteration of the design 
+does not demand to close this vulnerability, hence possible solutions are not discussed in this thesis.
 
 \section{Backend of the pipeline}
 The Tezos backend of the pipeline comprises of the three stages semantic check, type check and compilation. During the semantic check, the common AST is cast to a Tezos-specific AST type. If the assertion contains any data types or operations not supported in Michelson, the assertion contract is rejected. Since the subsequent stages are less straight forward, they are explained in more detail in the following.
@@ -314,33 +311,72 @@ The Tezos backend of the pipeline comprises of the three stages semantic check, 
 \subsection{Type check}
 The task of the type checker is to map the assertions from the given file to the respective entrypoints of the parent contract. To this end, the parameter types have to be compared and matched against each other in order to find a correct assignment. The type checker either reads the code of the parent contract from a given file or retrieves the code from a given address on the blockchain. It must be ensured that the created mapping is injective and unambiguous, i.e., each assertion matches exactly one entrypoint and no entrypoint is covered by more than one assertion.\\
 As explained in \secref{sec:tezos}, entrypoints can be selected by calling the default entrypoint and wrapping the parameter into the respective union constructors. Alternatively, they can be called explicitly using their tag and passing the parameter as raw value. The same applies for the assertions - by omitting the tag, the parameter type must be declared in respect to the default entrypoint type. If the assertion states an explicit tag, it may declare the raw parameter type. The tags do not necessarily have to be identical with the tags of the parent contract; in some cases, they may be chosen differently for documentation or for readability purposes. However, the tags can and should be used to resolve ambiguity in the mapping between assertions and entrypoints, that is if several entrypoints share the same input type. Ambiguity can also be caused by the fact that entrypoints can be sub-entrypoints of others, thus assertions overlap if a separate assertion is declared for both super- and sub-entrypoint. This is resolved by detecting overlapping assertions during the type check and rejecting assertion contracts where appropriate. \\
-As an exemplification, consider a Michelson contract with five entrypoints (including the default entrypoint):
+As an exemplification, consider a Michelson contract with five entrypoints (including the \texttt{\%default}):
 \begin{lstlisting}[numbers=none, language=Michelson]
 parameter (or (int %A) (or %BC (int %B) (int %C)))
 \end{lstlisting}
 The following assertion contract for the given PC contains some valid and some invalid assertions:
 \begin{lstlisting}[language=Assertion]
-(assertion %A (i : int) ...)			 		  (* valid *)
-(assertion %D (i : int) ...)			 		  (* invalid *)
-(assertion (right (left (i : int)) ...)	(* valid *)
-(assertion %BC (x : (or int int)) ...)	(* invalid *)
+(assertion %A (i : int) ...)             (* valid *)
+(assertion %D (i : int) ...)             (* invalid *)
+(assertion (right (left (i : int)) ...)  (* valid *)
+(assertion %BC (x : (or int int)) ...)   (* invalid *)
 \end{lstlisting}
 Due to its tag, the fist assertion can be assigned unambiguously to entrypoint A, whereas for the second it is not apparent whether it should be assigned to entrypoint B or C. Since the tag is omitted in the third assertion, the parameter type is given in respect to the default entrypoint and is assigned to B. The last assertion is invalid because it is overlapping with the previous assertion, which was already assigned to entrypoint B.
 
 \subsection{Compiler}
-The transformed and type checked assertion AST needs to be retargeted to Michelson code. 
+The transformed and type checked assertion AST needs to be retargeted to Michelson code according to the orchestration scheme. Since the modular approach is less complex to implement and avoids having to decompile the parent code, this section describes a compiler that assembles the assertion and contract code according to \figref{fig:modular_assembly}. The target language of the compiler of the pipeline can either be Michelson directly, or another high-level language which supports Michelson as a target. \secref{sec:tezos} lists some examples of such languages. The chosen language then serves as an intermediate representation (IR) of the assertion and manager code, which is ultimately compiled to Michelson by the compiler of the language. The outline of the implementation, advantages and disadvantages, as well as the entailed modifications to the pipeline are described and discussed in the following for both approaches.
 
-\draft{}
-\begin{itemize}
-\item Orchestration strategies
-	\begin{itemize}
-	\item monolithic vs. modular
-	\item advantages/disadvantages
-	\item \# validators in Tezos \& how to have them run n test runs
-	\item security mechanism? (prevent ``dodging'' assertions)
-	\end{itemize}
-\item Compilation strategies (direct vs. IR)
-\end{itemize}
+%- compilation strategies (direct vs. IR)
+%- output the initial storage configuration for the manager
+%- input: confidence threshold for computation of n
+%- formel for calc n
+
+
+\subsubsection{Direct compilation}
+With the direct approach, the compiler generates Michelson code, i.e., code for a stack machine. Based on the simplicity of stack machines and the assumption that the compiler does not need to generate optimal code, its implementation is expected to be simple \cite{cs5641}\cite{ferr_compiler}\cite{stach_machine}. In addition to that, the resulting contracts contain repeating patterns for each input, which can be exploited by using template code during compilation. 
+
+\paragraph{Assertion contracts}
+Since the assertions are independent of each other and the manager code, each of them can be compiled in isolation to a separate Michelson program. The generated code of the assertion body and the parameter type can be plugged into a template that already contains the necessary boilerplate code for a contract. \lstref{lst:contract_templ} shows a possible template - the placeholder \texttt{<?>} marks the locations where the individual code is inserted. Lines 3-5 prepare the stack, s.t. the parameter and storage are the two top elements. The lines below the placeholder for the body clean up the stack and leaves it according to calling convention, i.e., the program returns an empty list of internal operations and the unit storage.
+\lstinputlisting[label=lst:contract_templ, language=Michelson, caption=Template of an assertion contract in Michelson, numbers=left]{listings/assertion_template.tz}
+
+\paragraph{Manager contract}
+Given that the manager contract mirrors the parent contract and assuming that the proposal for the storage type from \lstref{lst:manager_modular} is adopted, the \texttt{parameter} and \texttt{storage} primitives are already fixed. Algorithm \ref{alg:compile_manager} shows the outline of an algorithm that builds the \texttt{code} body recursively:
+\begin{algorithm}
+\caption{Recursive algorithm for building the manager contract during compilation}\label{alg:compile_manager}
+	\begin{algorithmic}[0]
+	\State global storage = \{0: parent\}
+	\State global i = 1
+	\Function{compile}{param\_ty}
+	\If{ty = Or(l,r)}
+	\State code\_left = "IF\_LEFT {" + compile(l) + "}"
+	\State code\_right = "{" + compile(r) + "}"
+	\State \Return code\_left + code\_right
+	\Else
+	\If{assertion exists for this entrypoint}
+	\State code = generate\_loop(ty, i)
+	\State storage.add(i++, entrypoint tag)
+	\Else
+	\State code = generate\_forward(ty)
+	\EndIf
+	\State \Return code
+	\EndIf
+	\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+% add comments to algorithm
+% some boilerplate before and after the branching is missing in the algorithm
+% generate_loop template; i is hardwired
+% generate_forward for empty assertion; template
+% example/template loop for sorted list; for calculating n, a threshold of c = 1/e assumed (ergo t = |list|) generated with Liquidity; liq source given in section for the IR approach
+
+advantage: all-in-one pipeline from parsing to Michelson code; other than tezos libs no dependencies to external tools
+disadvantages:
+testing -> a bit more complex, from Michelson it's not so easy to see whether it does the correct thing
+use type checker of the Tezos libs for sanity check; type checker is protocol dependent and thus introduces the need for versioning
+
+\subsubsection{Compiling to an IR}
 
 \section{Misc}
 \todo{Aspects/questions I don't know yet if or where to put it}
