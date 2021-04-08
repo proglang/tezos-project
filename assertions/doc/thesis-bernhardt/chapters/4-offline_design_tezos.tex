@@ -27,7 +27,7 @@ For documentation, readability and additional type constraints, Michelson and Mi
 
 \subsubsection{Entrypoints}
 Unlike the contracts shown so far, which were expressed with the syntax of Ethereum's contract language Solidity \cite{solidity_docs}, Michelson doesn't have a concept of named functions with individual input parameter types. Instead of named functions, Michelson programs can have separate entrypoints by taking a disjunctive type as input parameter and optionally tagging the type constructors with a "function" name. The disjunctive type is built by nesting the \texttt{or} type, which has the constructors \texttt{left} and \texttt{right}. Assume we want to implement the contract from \lstref{lst:prime} in Michelson and add another function to it, which expects a string parameter. Omitting the actual program, the contract type declaration looks as follows:
-\begin{lstlisting}[language=Michelson, numbers=none, caption=Michelson contract with two entrypoints]
+\begin{lstlisting}[language=Michelson, numbers=none, caption=Michelson contract with two entrypoints, label=lst:entrypoints]
 parameter (or (int %isPrime) (string %isUpper));
 storage unit;
 code {
@@ -85,7 +85,9 @@ In addition, there exists a typing rule for each syntax construct that restricts
 :: (type of stack before) -> (type of stack after) [rule-name]
    iff (premises)
 \end{lstlisting}
-The type notations, as well as syntax and stack patterns are listed in \cite{tezos_docs}.\\
+The type notations, as well as syntax and stack patterns are listed in \cite{tezos_docs}.
+
+Since Michelson is implemented in the protocol-specific part of the blockchain code, adding new instructions require a protocol update. The instruction must be added i.a. to the list of tokens, its computation to the interpreter and its typing rules to the type checker. As the computation of the new instruction must be paid for like any other instruction, the protocol must also specify a gas cost. Previous extensions to the Michelson language, such as \cite{tezos_michelson_ext}, can be used as a guideline for the implementation and the gas cost specification in \cite{tezos_repo_gas} as an orientation to how high the gas costs should be scheduled for comparable instructions.
 
 From the given formulas and assertion examples so far, one can derive a set of necessary instructions that need be be present in the target language. The following subsections list the instructions which have to be added to Michelson's instruction set, specify their selection and typing rules and describe how they can be implemented in the interpreter. These do not necessarily include high level instructions, like \texttt{sqrt} from \eqref{eq:prime}, that can be reproduced by using lower level instructions. For these purposes, a later iteration of the syntax will provide the feature of user-defined functions.
 
@@ -381,14 +383,14 @@ Besides the target code for the manager and assertion contracts, the compiler sh
 \texttt{(Elt 0 <addr parent>; Elt 1 <addr A\_a>; Elt 2 <addr B\_a>)}.
 
 \subsubsection{Direct compilation}\label{sec:direct}
-With the direct approach, the compiler generates Michelson code, i.e., code for a stack machine. Based on the simplicity of stack machines and the assumption that the compiler does not need to generate optimal code, its implementation is expected to be simple \cite{cs5641}\cite{ferr_compiler}\cite{wiki:stack_machine}. In addition to that, the resulting contracts contain repeating patterns for each input, which can be exploited by using template code during compilation. 
+With the direct approach, the compiler generates Michelson code and hence code for a stack machine. Based on the simplicity of stack machines and the assumption that it does not need to generate optimal code, the compiler is expected to be simple \cite{cs5641}\cite{ferr_compiler}\cite{wiki:stack_machine}. As already indicate in the general part, the resulting contracts contain repeating structures and patterns for each input, which can be exploited by using template code during compilation. After compilation, the Michelson programs can be sanity-checked by type checking them using the provided Tezos libraries.
 
 \paragraph{Assertion contracts}
-\lstref{lst:contract_templ} shows a possible template for an assertion contract - the placeholder \texttt{<?>} marks the locations where the individual code is inserted. Lines 3-5 prepare the stack, s.t. the parameter and storage are the two top elements. The lines below the placeholder for the body clean up the stack and leaves it according to calling convention, i.e., the program returns an empty list of internal operations and the unit storage.
-\lstinputlisting[label=lst:contract_templ, language=Michelson, caption=Template of an assertion contract in Michelson, numbers=left]{listings/assertion_template.tz}
+\lstref{lst:contract_templ} shows a possible template for an assertion contract - the placeholder \texttt{<?>} marks the locations where the individual code is inserted. Lines 3-5 prepare the stack, s.t. the parameter and storage are the two top elements. The lines below the placeholder for the body clean up the stack and leave it according to calling convention, i.e., the program returns an empty list of internal operations and the unit storage.
+\lstinputlisting[label=lst:contract_templ, language=Michelson, caption=Template code for assertion contracts in Michelson, numbers=left]{listings/assertion_template.tz}
 
 \paragraph{Manager contract}
-Given that the manager contract mirrors the parent contract and assuming that the proposal for the storage type from \lstref{lst:manager_modular} is adopted, the \texttt{parameter} and \texttt{storage} primitives are already fixed. \algref{alg:compile_manager_direct} shows the outline of an algorithm that builds the \texttt{code} body recursively:
+The generation of the \texttt{parameter} and \texttt{storage} primitives is trivial --- the parameter type can be carried over directly from the parent contract, whereas the storage type is a constant (\texttt{(map int address)}). Based on the algorithm given previously, the code body is generated by nesting \texttt{IF\_LEFT} instructions recursively (cf. \lstref{lst:entrypoints}). The adapted algorithm is given in Algorithm \ref{alg:compile_manager_direct}.
 \begin{algorithm}
 \caption{Modification of algorithm \ref{alg:compile_manager} for direct compilation}\label{alg:compile_manager_direct}
 	\begin{algorithmic}[0]
@@ -404,35 +406,40 @@ Given that the manager contract mirrors the parent contract and assuming that th
 	\end{algorithmic}
 \end{algorithm}
 
-As the algorithm generates the core code for each entrypoint only, another code sequence that prepares the stack similar to \lstref{lst:contract_templ} must be prepended.
+Owing to Michelson being a low-level language, the templates for the functions \texttt{generate\_loop} and \texttt{generate\_forward} go beyond the scope of this subsection. In order to provide an idea of how the generated code could look like, appendix \ref{apx:manager_michelson} contains two example contracts, one of which contains manager code for a non-empty and the other one for an empty assertion. The code was generated by the Liquidity compiler from two contracts written in Liquidity, as this provides a more compact and readable representation of the program logic. The corresponding source code can be found in \secref{sec:IR}.
 
-
-
-% generate_loop template; i is hardwired;  (works for contract w 1 entrypoint), last op first
-% generate_forward for empty assertion; template
-% example/template loop for sorted list; for calculating n, a threshold of c = 1/e assumed (ergo t = |list|) generated with Liquidity; liq source given in section for the IR approach
-
-advantage: all-in-one pipeline from parsing to Michelson code; other than tezos libs no dependencies to external tools
-disadvantages:
-testing -> a bit more complex, from Michelson it's not so easy to see whether it does the correct thing
-use type checker of the Tezos libs for sanity check; type checker is protocol dependent and thus introduces the need for versioning
+\paragraph{Evaluation}
+Compiling to Michelson directly is beneficial due of several reasons - the pipeline stays streamlined and outputs the final contracts ready for origination. It does not introduce dependencies to external tools and their support for new protocol versions of Tezos. Besides, the new instructions only have to be added to Tezos' protocol code, whereas using external tools and languages would need to be patched as well in order to support them. \\
+When it comes to verifying the compiler and integration testing of the pipeline, however, the low-level output causes more complexity than a high-level output. Due to the extend and restricted readability of non-trivial Michelson programs, their correctness is not always apparent in an instant. Tests can, on the one hand, compare the output with verified target contracts for a range of inputs, which requires a lot of Michelson code written by hand for each input. They, in turn, can also be prone to errors. On the other hand, the generated contracts can be tested as a black box using the test frameworks provided by Tezos, which use sandboxed networks to interact with contracts-under-test.
 
 \subsubsection{Compiling to an IR}\label{sec:IR}
+Instead of generating Michelson code directly, the compiler could also generate code in one of the high-level languages that provide a compiler with Michelson as a target. The output of the pipeline is then passed to this compiler in order to retrieve the final contracts. If the toolchain of the intermediate language doesn't provide a programmatic interface, the pipeline thus has to be extended with a separate step of procedure, as shown in \figref{fig:pipeline_liq}. This section demonstrates the implementation of this approach on the basis of Liquidity, hence the corresponding file extension \texttt{.liq}.
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{figures/4-offline_tezos/pipeline_liq}
+\caption{Pipeline with IR compilation and an external toolchain}
+\label{fig:pipeline_liq}
+\end{figure}
+
+\paragraph{Assertion contracts}
+\lstinputlisting[label=lst:contract_templ_liq, language=Michelson, caption=Template code for assertion contracts in Liquidity, numbers=left]{listings/assertion_template.liq}
+
+\paragraph{Manager contract}
+\lstinputlisting[label=lst:manager_templ_liq, language=Michelson, caption=Manager code in Liquidity for an entrypoint with a non-empty assertion, numbers=left]{listings/manager_loop.liq}
+
+\lstinputlisting[label=lst:manager_templ_liq, language=Michelson, caption=Manager code in Liquidity for an entrypoint with an empty assertion, numbers=left]{listings/manager_forward.liq}
+
+\paragraph{Evaluation}
++ optimization (Liq compiler)
++ testing: easier to verify correctness, as it reads like an ocaml program
+	+ compiler of hl language already tested -> only check if IR is correct
++ variable support -> variables in assertion easier to implement?
+
 
 \section{Misc}
 \todo{Aspects/questions I don't know yet if or where to put it}
 \begin{itemize}
 \item Tezos specific costs analysis of chosen orchestration strategy -> PROBLEM: high n might reach operation gas limit?
-\item How can bakers differentiate between transactions to ”normal” SC and SCs with assertions?
 \item Representation of counterexamples; how to verify them?
 \item Basic approach for proofs?
-\item Usage pipeline
-\end{itemize}
-
-
-%- Vorschlag von HA: geht so nur für counterexamples.
-%- Case Proof-modus: some approval message has to be send actively if no assertion failed.%
-%	-> check if transaction fails? würde so ein mechanismus gehen? call case contracts n times. nach n times wird contract aber nicht aufgerufen
-%	-> oder: case contracts callen parent wenn property check successful; nicht möglich, da dann manager contract nichts davon weiß
-
- 
+\end{itemize} 

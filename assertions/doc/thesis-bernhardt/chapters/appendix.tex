@@ -56,3 +56,30 @@ The following two versions of the grammar implement the prefix and infix notatio
 				 language=,
 				 label=lst:nth_tz,
 				 caption=\lstref{lst:nth_liq} compiled to Michelson]{listings/nth.tz}
+
+\chapter{Manager contract code in Michelson}\label{apx:manager_michelson}
+\lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
+				 backgroundcolor=\color{cverbbg},
+				 linewidth=14cm,
+				 xleftmargin=0.5cm,
+				 frame=lr,
+				 framesep=8pt,
+				 framerule=0pt,
+				 captionpos=b,
+				 numbers=none,
+				 language=Michelson,
+				 label=lst:manager_michelson_loop,
+				 caption=Manager code in Michelson for an entrypoint with a non-empty assertion (wrapped in contract boilerplate code)]{listings/manager_loop.tz}
+				 
+\lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
+				 backgroundcolor=\color{cverbbg},
+				 linewidth=14cm,
+				 xleftmargin=0.5cm,
+				 frame=lr,
+				 framesep=8pt,
+				 framerule=0pt,
+				 captionpos=b,
+				 numbers=none,
+				 language=Michelson,
+				 label=lst:manager_michelson_forward,
+				 caption=Manager code in Michelson for an entrypoint with an empty assertion (wrapped in contract boilerplate code)]{listings/manager_forward.tz}
