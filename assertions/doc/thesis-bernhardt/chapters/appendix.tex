@@ -1,4 +1,17 @@
 \appendix
+\chapter{Michelson contract used for cost analysis}
+\lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
+				 backgroundcolor=\color{cverbbg},
+				 linewidth=14cm,
+				 xleftmargin=0.5cm,
+				 frame=lr,
+				 framesep=8pt,
+				 framerule=0pt,
+				 captionpos=b,
+				 numbers=none,
+				 language=Michelson,
+				 caption=Foobar.tz]{listings/foobar.tz} \todo{Caption}
+
 \chapter{Assertion Grammar in EBNF}\label{apx:grammar}
 The following two versions of the grammar implement the prefix and infix notations for the assertion syntax. 
 \todo{Rename mutez}
@@ -56,6 +69,9 @@ The following two versions of the grammar implement the prefix and infix notatio
 				 language=,
 				 label=lst:nth_tz,
 				 caption=\lstref{lst:nth_liq} compiled to Michelson]{listings/nth.tz}
+
+\chapter{Manager contract code in Liquidity}\label{apx:manager_liq}
+\lstinputlisting[label=lst:manager_templ_liq, language=Michelson, caption=Manager code in Liquidity for an entrypoint with a non-empty assertion, numbers=left]{listings/manager_loop.liq}
 
 \chapter{Manager contract code in Michelson}\label{apx:manager_michelson}
 \lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,

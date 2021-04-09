@@ -141,6 +141,36 @@ In the first case, each validator picks a random clause from a random $F$ and ch
 The examples given in this chapter have shown that, depending on the type and order of quantification, not all properties can be checked in the same way and need different modi of assertion checking. This increases the complexity and requirements for a implementation of this approach; therefore, for a first iteration, this thesis focuses on providing the fundamentals and implementation for assertions using universal quantification only.
 
 \section{Cost analysis}
+In order to be able to evaluate whether distributed assertion checking can indeed lower the cost in comparison to a local verification, the cost of checking a formula on the blockchain needs to be formalized. Since this thesis describes an implementation of the approach on the Tezos blockchain, the following costs refer to that specific gas model, s.t. the results of the cost analyses are comparable. The gas model of Tezos is described briefly in \secref{sec:tezos}. \\
+According to the gas model, the total gas consumption of a transaction $T(src,\, dst=C,\, arg, \, ...)$ to an originated contract $C(storage, \, parameter\, type, \, code)$ is calculated by \eqref{eq:gas_transaction}:
+\begin{align}\label{eq:gas_transaction}
+\begin{split}
+GasConsumed_{transaction} = \quad &read(code) \\
++& \, gasRead(storage) \\
++& \, gasDeserialize(storage, \, arg) \\
++& \, gasParseType(parameter \, type, \, storage) \\
++& \, gasParseData(storage, \, arg) \\
++& \, gasParseCode(code) \\
++& \, gasInterpret(code, \, arg, \, storage) \\
++& \, gasUnparse(storage) \\
++& \, gasSerialize(storage) \\
++& \, gasWrite(storage)
+\end{split}
+\end{align}
+Assuming that the storage is never increased, the amount of gas returned by the cost functions independent of the argument, i.e., the parameter value, remain constant for each $T$. The cost functions for the deserialization, parsing and interpretation, however, are functions of $arg$ that grow strictly monotonic with increasing sizes of $arg$. \\
+Consider the following simple contract --- it does not do anything useful, but it can be used to approximate the amplification of the cost functions with regard to $arg$. Appendix \ref{apx:cost_analysis_contract} contains the respective Michelson contract. 
+\begin{lstlisting}
+contract Foo {
+	function bar (int a) public {
+		for (uint i = 0; i < a; i++) {
+			assert(a == a)
+		}
+		// ...
+	}
+}
+\end{lstlisting}
+
+
 \draft{Formalize the costs of checking a formula}
 \begin{itemize}
 \item Describe a general cost model for execution of a SC

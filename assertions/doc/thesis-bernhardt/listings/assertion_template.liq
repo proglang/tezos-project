@@ -1,7 +1,7 @@
 type storage = unit
 
 let%entry default
-      (parameter : int list)
+      (parameter : <?>)
       _ =
-  (* Assertion code *)
+  <?>
   ( [], () )
