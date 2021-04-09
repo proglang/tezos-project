@@ -159,7 +159,7 @@ GasConsumed_{transaction} = \quad &read(code) \\
 \end{align}
 Assuming that the storage is never increased, the amount of gas returned by the cost functions independent of the argument, i.e., the parameter value, remain constant for each $T$. The cost functions for the deserialization, parsing and interpretation, however, are functions of $arg$ that grow strictly monotonic with increasing sizes of $arg$. \\
 Consider the following simple contract --- it does not do anything useful, but it can be used to approximate the amplification of the cost functions with regard to $arg$. Appendix \ref{apx:cost_analysis_contract} contains the respective Michelson contract. 
-\begin{lstlisting}
+\begin{lstlisting}[numbers=none, language=Solidity]
 contract Foo {
 	function bar (int a) public {
 		for (uint i = 0; i < a; i++) {
@@ -170,6 +170,21 @@ contract Foo {
 }
 \end{lstlisting}
 
+\begin{lstlisting}[numbers=none, language=Solidity]
+contract Spam {
+	function ham (int [] b) public {
+		for (uint i = 0; i < b.length; i++) {
+			assert(b[i] < 10)
+		}
+		// ...
+	}
+}
+\end{lstlisting}
+
+second contract with more increasing deserialization and parsing costs -> list with the same elements * n; comparable operations
+both grow linear and the contract with the list way more due to the increasing deserialization and parsing costs
+check protocol version of node + which test network
+can we do better with distributed assertion checking?
 
 \draft{Formalize the costs of checking a formula}
 \begin{itemize}
