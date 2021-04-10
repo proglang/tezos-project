@@ -183,12 +183,11 @@ let%expect_test "skip <>/=" =
       └──Pattern: Id:b
         └──Type: Int_t
       └──Bounds:
-      └──Assertion: If
         └──Expr: Bin Op: Eq
           └──Expr: Id:a
-          └──Expr: Id:b 
-        └──Assertion: Assert
-          └──Expr: Bool:false
+          └──Expr: Id:b
+      └──Assertion: Assert
+        └──Expr: Bool:false
     AST
     └──Entrypoint: %default
       └──Pattern: Id:a
