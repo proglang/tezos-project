@@ -48,7 +48,7 @@ let rec eq_type (ty1: (int, prim) Micheline.node) (ty2: Ast.ty) =
        | T_int, `Int_t -> return_true
        | T_key, `Key_t -> return_true
        | T_key_hash, `KeyHash_t  -> return_true
-       | T_mutez, `Mutez_t -> return_true
+       | T_mutez, `Fmu_t -> return_true
        | T_nat, `Nat_t -> return_true
        | T_operation, `Operation_t -> return_true
        | T_signature, `Signature_t -> return_true

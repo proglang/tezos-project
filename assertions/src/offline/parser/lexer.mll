@@ -42,7 +42,7 @@ rule read =
   | "bool"        { BOOL_T }
   | "bytes"       { BYTES_T }
   | "string"      { STRING_T }
-  | "mutez"       { MUTEZ_T }
+  | "fmu"         { FMU_T }
   | "nat"         { NAT_T }
   | "address"     { ADDRESS_T }
   | "chain_id"    { CHAINID_T }

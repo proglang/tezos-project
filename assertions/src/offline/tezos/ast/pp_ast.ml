@@ -33,7 +33,7 @@ let str_of_ty = function
   | `Bool_t -> "Bool_t"
   | `Bytes_t -> "Byte_t"
   | `String_t -> "String_t"
-  | `Mutez_t -> "Mutez_t"
+  | `Fmu_t -> "Fmu_t"
   | `Nat_t -> "Nat_t"
   | `Address_t -> "Address_t"
   | `ChainID_t -> "ChainID_t"

@@ -39,7 +39,7 @@ let lex_token_test_cases =
       ("list", LIST_T); ("set", SET_T); ("option", OPTION_T);("pair", PAIR_T);
       ("lambda", LAMBDA_T); ("map", MAP_T); ("contract", CONTRACT_T);
       ("big_map", BIGMAP_T); ("cons", CONS); ("nil", NIL); ("some", SOME);
-      ("none", NONE); ("left", LEFT); ("right", RIGHT);
+      ("none", NONE); ("left", LEFT); ("right", RIGHT); ("fmu", FMU_T);
       ("entrypoint", ENTRYPOINT); ("forall", FORALL); ("exists", EXISTS);
       ("if", IF); ("assert", ASSERT); ("size", SIZE); ("abs", ABS);
       ("neg", NEG); ("not", NOT); ("nth", NTH); ("add", ADD); ("sub", SUB);

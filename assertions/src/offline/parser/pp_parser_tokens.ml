@@ -14,7 +14,7 @@ let pprint_tokens ppf = function
   | BOOL_T           -> Fmt.pf ppf "BOOL_T@."
   | BYTES_T          -> Fmt.pf ppf "BYTES_T@."
   | STRING_T         -> Fmt.pf ppf "STRING_T@."
-  | MUTEZ_T          -> Fmt.pf ppf "MUTEZ_T@."
+  | FMU_T            -> Fmt.pf ppf "FMU_T@."
   | NAT_T            -> Fmt.pf ppf "NAT_T@."
   | UNIT_T           -> Fmt.pf ppf "UNIT_T@."
   | ADDRESS_T        -> Fmt.pf ppf "ADDRESS_T@."

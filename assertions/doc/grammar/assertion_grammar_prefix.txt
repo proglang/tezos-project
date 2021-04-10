@@ -31,7 +31,7 @@
   | bool
   | bytes
   | string
-  | mutez
+  | fmu         ; fractional monetary unit
   | nat
   | address
   | chain_id

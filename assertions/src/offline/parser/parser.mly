@@ -4,7 +4,7 @@
 %token TRUE FALSE
 %token LPAREN RPAREN
 %token LBRACKET RBRACKET
-%token INT_T BOOL_T BYTES_T STRING_T MUTEZ_T NAT_T UNIT_T
+%token INT_T BOOL_T BYTES_T STRING_T FMU_T NAT_T UNIT_T
 %token ADDRESS_T CHAINID_T KEY_T KEYHASH_T OP_T SIG_T TIMESTAMP_T
 %token LIST_T SET_T OPTION_T PAIR_T LAMBDA_T MAP_T CONTRACT_T BIGMAP_T
 %token LEFT RIGHT SOME NONE CONS NIL
@@ -60,7 +60,7 @@ type_id:
   | BOOL_T      {`Bool_t}
   | BYTES_T     {`Bytes_t}
   | STRING_T    {`String_t}
-  | MUTEZ_T     {`Mutez_t}
+  | FMU_T       {`Fmu_t}
   | NAT_T       {`Nat_t}
   | UNIT_T      {`Unit_t}
   | ADDRESS_T   {`Address_t}

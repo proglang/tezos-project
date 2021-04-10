@@ -13,7 +13,7 @@ type ty = [
   | `Bool_t
   | `Bytes_t
   | `String_t
-  | `Mutez_t
+  | `Fmu_t
   | `Nat_t
   | `Address_t
   | `ChainID_t
