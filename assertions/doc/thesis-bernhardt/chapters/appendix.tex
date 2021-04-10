@@ -1,6 +1,6 @@
 \appendix
-\chapter{Michelson contracts used for cost analysis}\label{apx:cost_analysis_contract}
-
+\chapter{Michelson implementations of \texttt{Foo} and \texttt{Bar}}\label{apx:cost_analysis_contract}
+The following contracts are the Michelson equivalent of the dummy contracts given in \secref{sec:usecase_cost}.
 \section{Foo}
 \lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
 				 backgroundcolor=\color{cverbbg},
@@ -12,9 +12,9 @@
 				 captionpos=b,
 				 numbers=none,
 				 language=Michelson,
-				 caption=Foo.tz]{listings/foobar.tz} \todo{Caption}
+				 caption=Dummy Michelson contract executing a dynamic loop]{listings/foo.tz}
 				 
-\section{Spam}
+\section{Bar}
 \lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
 				 backgroundcolor=\color{cverbbg},
 				 linewidth=14cm,
@@ -25,7 +25,7 @@
 				 captionpos=b,
 				 numbers=none,
 				 language=Michelson,
-				 caption=Spam.tz]{listings/spamham.tz} \todo{Caption}
+				 caption=Dummy Michelson contract iterating over a dynamic list]{listings/bar.tz}
 
 \chapter{Assertion Grammar in EBNF}\label{apx:grammar}
 The following two versions of the grammar implement the prefix and infix notations for the assertion syntax. 
@@ -114,3 +114,82 @@ The following two versions of the grammar implement the prefix and infix notatio
 				 language=Michelson,
 				 label=lst:manager_michelson_forward,
 				 caption=Manager code in Michelson for an entrypoint with an empty assertion (wrapped in contract boilerplate code)]{listings/manager_forward.tz}
+				 
+\chapter{Distributed Michelson implementation of \texttt{Foo} and \texttt{Bar}}\label{apx:foobar_distributed}
+The following contracts are a restructuring of the contracts given in Appendix \ref{apx:cost_analysis_contract}, s.t. they implement the proposed orchestration strategy.
+
+\section{\texttt{Foo}}
+\lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
+				 backgroundcolor=\color{cverbbg},
+				 linewidth=14cm,
+				 xleftmargin=0.5cm,
+				 frame=lr,
+				 framesep=8pt,
+				 framerule=0pt,
+				 captionpos=b,
+				 numbers=none,
+				 language=Michelson,
+				 label=lst:foo_manager,
+				 caption=Manager contract of \texttt{Foo}]{listings/foo_manager.tz}
+\lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
+				 backgroundcolor=\color{cverbbg},
+				 linewidth=14cm,
+				 xleftmargin=0.5cm,
+				 frame=lr,
+				 framesep=8pt,
+				 framerule=0pt,
+				 captionpos=b,
+				 numbers=none,
+				 language=Michelson,
+				 label=lst:foo_manager,
+				 caption=Assertion contract of \texttt{Foo}]{listings/foo_assertion.tz}
+\lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
+				 backgroundcolor=\color{cverbbg},
+				 linewidth=14cm,
+				 xleftmargin=0.5cm,
+				 frame=lr,
+				 framesep=8pt,
+				 framerule=0pt,
+				 captionpos=b,
+				 numbers=none,
+				 language=Michelson,
+				 label=lst:foo_manager,
+				 caption=Parent contract of \texttt{Foo}]{listings/foo_parent.tz}
+
+\section{\texttt{Bar}}
+\lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
+				 backgroundcolor=\color{cverbbg},
+				 linewidth=14cm,
+				 xleftmargin=0.5cm,
+				 frame=lr,
+				 framesep=8pt,
+				 framerule=0pt,
+				 captionpos=b,
+				 numbers=none,
+				 language=Michelson,
+				 label=lst:bar_manager,
+				 caption=Manager contract of \texttt{Bar}]{listings/bar_manager.tz}
+\lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
+				 backgroundcolor=\color{cverbbg},
+				 linewidth=14cm,
+				 xleftmargin=0.5cm,
+				 frame=lr,
+				 framesep=8pt,
+				 framerule=0pt,
+				 captionpos=b,
+				 numbers=none,
+				 language=Michelson,
+				 label=lst:bar_manager,
+				 caption=Assertion contract of \texttt{Bar}]{listings/bar_assertion.tz}
+\lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
+				 backgroundcolor=\color{cverbbg},
+				 linewidth=14cm,
+				 xleftmargin=0.5cm,
+				 frame=lr,
+				 framesep=8pt,
+				 framerule=0pt,
+				 captionpos=b,
+				 numbers=none,
+				 language=Michelson,
+				 label=lst:bar_manager,
+				 caption=Parent contract of \texttt{Bar}]{listings/bar_parent.tz}

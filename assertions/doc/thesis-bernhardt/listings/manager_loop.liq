@@ -1,7 +1,7 @@
 type storage = (int, address) map
 
 let%entry entrypointA
-      (param : int list)
+      (parameter : int list)
       storage =
 
       (* Retrieve address of assertion from storage *)
@@ -15,8 +15,9 @@ let%entry entrypointA
         | Some a -> a
       in
       (* Calculate t assuming c = 1/e and thus t_total = n *)
-      let (t, _) = match (List.length parameter) / 32 with
-        | Some qr -> qr
+      let t = match (List.length parameter) / 32p with
+        | Some (q,r) -> if q = 0p then (if r <> 0p then 1p else 0p)
+                                  else (if r <> 0p then q + 1p else q)
         | None -> failwith "division by 0 should never happen"
       in
       (* Add operation t+1 first, so that it is last in the execution queue *)
@@ -34,7 +35,7 @@ let%entry entrypointA
             ~entry:default
             ~amount:0tz
             ~parameter in
-          ( x > t, (x+1, op :: ops))
-        ) (1, [op_tplus1])
+          ( x < t, (x + 1p, op :: ops))
+        ) (0p, [op_tplus1])
       in
       (internal_ops, storage)

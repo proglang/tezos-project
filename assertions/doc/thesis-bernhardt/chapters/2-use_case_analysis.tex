@@ -140,12 +140,13 @@ In the first case, each validator picks a random clause from a random $F$ and ch
 \subsection{Restriction of use-cases}\todo{Better title?}
 The examples given in this chapter have shown that, depending on the type and order of quantification, not all properties can be checked in the same way and need different modi of assertion checking. This increases the complexity and requirements for a implementation of this approach; therefore, for a first iteration, this thesis focuses on providing the fundamentals and implementation for assertions using universal quantification only.
 
-\section{Cost analysis}
-In order to be able to evaluate whether distributed assertion checking can indeed lower the cost in comparison to a local verification, the cost of checking a formula on the blockchain needs to be formalized. Since this thesis describes an implementation of the approach on the Tezos blockchain, the following costs refer to that specific gas model, s.t. the results of the cost analyses are comparable. The gas model of Tezos is described briefly in \secref{sec:tezos}. \\
-According to the gas model, the total gas consumption of a transaction $T(src,\, dst=C,\, arg, \, ...)$ to an originated contract $C(storage, \, parameter\, type, \, code)$ is calculated by \eqref{eq:gas_transaction}:
+\section{Cost analysis}\label{sec:usecase_cost}
+In order to be able to evaluate whether distributed assertion checking can indeed lower the cost in comparison to a local verification, the cost of checking a formula on the blockchain needs to be formalized. Since this thesis describes an implementation of the approach on the Tezos blockchain, the following costs refer to that specific gas model, s.t. the results of the cost analyses are comparable (Tezos and its gas model are described in more detail in \secref{sec:tezos}). \\
+According to the gas model, the total gas consumption of a transaction $T(src,\, dst=C,\, arg, \, ...)$ to an originated contract $C(storage, \, parameter\, type, \, code)$ is calculated by \eqref{eq:gas_transaction}, where $I$ is the set of internal operations:
 \begin{align}\label{eq:gas_transaction}
 \begin{split}
-GasConsumed_{transaction} = \quad &read(code) \\
+GasConsumed(T) = \quad &base \, amount \\
++& \, gasRead(code) \\
 +& \, gasRead(storage) \\
 +& \, gasDeserialize(storage, \, arg) \\
 +& \, gasParseType(parameter \, type, \, storage) \\
@@ -154,43 +155,39 @@ GasConsumed_{transaction} = \quad &read(code) \\
 +& \, gasInterpret(code, \, arg, \, storage) \\
 +& \, gasUnparse(storage) \\
 +& \, gasSerialize(storage) \\
-+& \, gasWrite(storage)
++& \, gasWrite(storage) \\
++& \, \sum_{i \in I} GasConsumed(i)
 \end{split}
 \end{align}
 Assuming that the storage is never increased, the amount of gas returned by the cost functions independent of the argument, i.e., the parameter value, remain constant for each $T$. The cost functions for the deserialization, parsing and interpretation, however, are functions of $arg$ that grow strictly monotonic with increasing sizes of $arg$. \\
-Consider the following simple contract --- it does not do anything useful, but it can be used to approximate the amplification of the cost functions with regard to $arg$. Appendix \ref{apx:cost_analysis_contract} contains the respective Michelson contract. 
-\begin{lstlisting}[numbers=none, language=Solidity]
+Consider the following simple contracts --- they do not do anything useful, but can be used to approximate the amplification of costs with regard to $arg$. Contract \texttt{Foo} takes an integer, whose byte sequence does not increase significantly with higher values, thus the increase in overall cost is mainly accounted for by interpretation cost. Contract \texttt{Bar}, on the other hand, executes similar operations but expects a list of integers, which causes noticeably higher deserialization and parsing costs with increasing input size. 
+\begin{lstlisting}[numbers=none, language=Solidity, caption=Simple dummy contract executing a loop]
 contract Foo {
-	function bar (int a) public {
-		for (uint i = 0; i < a; i++) {
-			assert(a == a)
-		}
-		// ...
+  function foo (int a) public {
+    for (uint i = 0; i < a; i++) {
+      assert(a == a)
 	}
+	// ...
+  }
+}
+\end{lstlisting}
+\begin{lstlisting}[numbers=none, language=Solidity, caption=Simple dummy contract iterating over a list]
+contract Bar {
+  function bar (int [] b) public {
+    for (uint i = 0; i < b.length; i++) {
+      assert(b[i] = b[i])
+	}
+	// ...
+  }
 }
 \end{lstlisting}
 
-\begin{lstlisting}[numbers=none, language=Solidity]
-contract Spam {
-	function ham (int [] b) public {
-		for (uint i = 0; i < b.length; i++) {
-			assert(b[i] < 10)
-		}
-		// ...
-	}
-}
-\end{lstlisting}
+\figref{fig:use_case_cost} shows the reported gas consumption of transactions calling the dummy contracts on the Delphinet test network running the protocol 007 Delphi \cite{tezos_docs}. As to be expected, the gradient of the cost function in the case of \texttt{Bar} is higher due to additional serialization and parsing costs, namely $\frac{dx}{dy} = 16$ compared to $\frac{dx}{dy} = 6$ for \texttt{Foo}.
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.9\linewidth]{figures/2-use_cases/cost_analysis}
+\caption{Gas consumption of transactions calling \texttt{Foo} and \texttt{Bar} for increasing input sizes}
+\label{fig:use_case_cost}
+\end{figure}
 
-second contract with more increasing deserialization and parsing costs -> list with the same elements * n; comparable operations
-both grow linear and the contract with the list way more due to the increasing deserialization and parsing costs
-check protocol version of node + which test network
-can we do better with distributed assertion checking?
-
-\draft{Formalize the costs of checking a formula}
-\begin{itemize}
-\item Describe a general cost model for execution of a SC
-\item Calculate costs for checking a formula locally (in a loop)
-\item Calculate costs for checking a single element
-\item Compare results -> how high is the ``boilerplate'' cost?
-\item When do the costs of distributed checking drop below local checking?
-\end{itemize}
+A repeated cost analysis is carried out in \secref{sec:cost_analysis_distributed} in order to assess whether, or how, distributed assertion checking, as described in the following chapters, can achieve a reduction of these costs.
