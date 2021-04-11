@@ -1,4 +1,14 @@
 \chapter{Conclusion and outlook}\label{chap:conclusion}
+In order to make use of off-chain computations in smart contracts, this thesis proposed an approach that engages the validators of the blockchain network in a distributed effort to check assertions over input parameters. It identified a set of properties, that can be checked in such a scheme, in form of logical formulas and demonstrated some use-cases and semantic differences among them. Based on this, a simple syntax was introduced to express assertions stating these formulas for a one or more entrypoints of a contract, followed by a formalization of their transformation that negates the formula and builds smart random generators. After analysing the accuracy of the approach and stating a formula to compute the minimum amount of random checks to reach a certain confidence level, the thesis explored several orchestration strategies of contract and assertion code, and, for a chosen strategy, discusses the necessary implementations within the off-chain infrastructure. In conclusion, it analysed the cost incurred by checking assertions as proposed and compared the results to a non-distributed approach. Based on these results, thesis discusses alternatives or possible modifications to solve some of the issues at hand. \\
+
+
+- high costs due to several reasons: random checking values require more test runs than size of iteration space. going below n checks does not provide a high certainty over validity. This approach is thus not suitable for safety or security critical applications. 
+- more effort in compilation returns a better cost-performance ratio if the manager contract and assertions are merged. Still, more base costs
+- depends on the protocol design, whether this approach is worth pursuing -> if the cost for validation can be eliminated by using rewards, it might be realisable.
+- quantifiers: other semantics for certain combinations/existentials --> proofs; here not considered, but would be interesting for future work on this topic
+
+\subsection{Outlook}
+
 \draft{}
 \begin{itemize}
 \item Summarize what has been implemented so far
