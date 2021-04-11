@@ -2,6 +2,9 @@
 
 open Ast
 
+(** Returns the string representation of a type *)
+val str_of_ty : ty -> string
+
 (** Print a Tezos AST *)
 val pp_ast : Format.formatter -> ast -> unit
 
