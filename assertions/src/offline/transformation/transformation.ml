@@ -58,31 +58,21 @@ let rec negate_expr = function
   | `Binop (`Ge, e1, e2) -> `Binop (`Lt, e1, e2)
 
 (* Negates and assertion *)
-let rec negate_assertion = function
+let rec negate = function
   (* Negate the body of an assert *)
   | `Assert expr ->
      let expr_transformed = negate_expr expr in
      `Assert expr_transformed
   (* Skip conditions *)
   | `If (cond, a) ->
-     let a_transformed = negate_assertion a in
+     let a_transformed = negate a in
      `If (cond, a_transformed)
   (* Forall -> Exists *)
   | `Forall (predicate, a, bs) ->
-     let a_transformed = negate_assertion a in
+     let a_transformed = negate a in
      `Exists (predicate, a_transformed, bs)
   (* Using distributed assertions to find proofs not supported yet *)
   | `Exists _ -> failwith "Existential quantifiers are not supported yet."
-
-(* Calls the negation function for the bodies of quantifiers *)
-let rec negate = function
-  (* Standalone asserts are kept as is *)
-  | `Assert _ as a -> a
-  (* Skip conditions *)
-  | `If (cond, a) -> `If (cond, negate a)
-  (* Quantifiers and their bodies must be negated *)
-  | `Forall _ as fa -> negate_assertion fa
-  | `Exists _ as ex -> negate_assertion ex
 
 (* Split conjunctions in if-conditions into separate if conditions *)
 let break_conjunctions ast =

@@ -64,27 +64,7 @@ let%expect_test "negation bools w/ quantifiers" =
       └──Assertion: Assert
         └──Expr: Bool:true|}]
 
-let%expect_test "negation bools w/o quantifiers" =
-  parse_contract
-    {|(entrypoint %e1 _
-        (assert true))
-      (entrypoint %e2 _
-          (assert false))|}
-  |> transform;
-  [%expect
-    {|
-    AST
-    └──Entrypoint: %e1
-      └──Pattern: Wildcard
-    └──Assertion: Assert
-      └──Expr: Bool:true
-    AST
-    └──Entrypoint: %e2
-      └──Pattern: Wildcard
-    └──Assertion: Assert
-      └──Expr: Bool:false|}]
-
-let%expect_test "negation logic operators w/ quantifiers" =
+let%expect_test "negation logic operators" =
   parse_contract
     {|(entrypoint (pair (a: bool) (b: bool))
         (forall (i:int)
@@ -111,30 +91,8 @@ let%expect_test "negation logic operators w/ quantifiers" =
               └──Expr: Id:b
           └──Expr: Un Op: Not
             └──Expr: Id:b|}]
-  
-let%expect_test "negation logic operators w/o quantifiers" =
-  parse_contract
-    {|(entrypoint (pair (a: bool) (b: bool))
-        (assert (and (or (not a) b) b)))|}
-  |> transform;
-  [%expect
-    {|
-    AST
-    └──Entrypoint: %default
-      └──Pattern: Pair
-        └──Pattern: Id:a
-          └──Type: Bool_t
-        └──Pattern: Id:b
-          └──Type: Bool_t 
-    └──Assertion: Assert
-      └──Expr: Bin Op: And
-        └──Expr: Bin Op: Or
-          └──Expr: Un Op: Not
-            └──Expr: Id:a
-          └──Expr: Id:b
-        └──Expr: Id:b|}]
 
-let%expect_test "negation xor w/ quantifiers" =
+let%expect_test "negation xor" =
   parse_contract
     {|(entrypoint (pair (a: bool) (b: bool))
         (forall (i:int)
@@ -169,29 +127,7 @@ let%expect_test "negation xor w/ quantifiers" =
                 └──Expr: Id:b
             └──Expr: Id:b|}]
 
-let%expect_test "negation xor w/o quantifiers" =
-  parse_contract
-    {|(entrypoint (pair (a: bool) (b: bool))
-        (assert (xor (and a b) (not b))))|}
-  |> transform;
-  [%expect
-    {|
-    AST
-    └──Entrypoint: %default
-      └──Pattern: Pair
-        └──Pattern: Id:a
-          └──Type: Bool_t
-        └──Pattern: Id:b
-          └──Type: Bool_t 
-    └──Assertion: Assert
-      └──Expr: Bin Op: Xor
-        └──Expr: Bin Op: And
-          └──Expr: Id:a
-          └──Expr: Id:b  
-        └──Expr: Un Op: Not
-          └──Expr: Id:b|}]
-
-let%expect_test "negation relation operators w/ quantifiers" =
+let%expect_test "negation relation operator" =
   parse_contract
     {|(entrypoint %eq_ (a: int)
         (forall (i:int)
@@ -292,78 +228,7 @@ let%expect_test "negation relation operators w/ quantifiers" =
           └──Expr: Id:a
           └──Expr: Int:10|}]
 
-let%expect_test "negation relation operators w/o quantifiers" =
-  parse_contract
-    {|(entrypoint %eq_ (a: int)
-        (assert (eq a 10)))
-
-      (entrypoint %neq_ (a: int)
-        (assert (neq a 10)))
-
-      (entrypoint %gt_ (a: int)
-        (assert (gt a 10)))
-
-      (entrypoint %lt_ (a: int)
-        (assert (lt a 10)))
-
-      (entrypoint %ge_ (a: int)
-        (assert (ge a 10)))
-
-      (entrypoint %le_ (a: int)
-        (assert (le a 10)))|}
-  |> transform;
-  [%expect
-    {|
-    AST
-    └──Entrypoint: %eq_
-      └──Pattern: Id:a
-        └──Type: Int_t
-    └──Assertion: Assert
-      └──Expr: Bin Op: Eq
-        └──Expr: Id:a
-        └──Expr: Int:10
-    AST
-    └──Entrypoint: %neq_
-      └──Pattern: Id:a
-        └──Type: Int_t
-    └──Assertion: Assert
-      └──Expr: Bin Op: Neq
-        └──Expr: Id:a
-        └──Expr: Int:10
-    AST
-    └──Entrypoint: %gt_
-      └──Pattern: Id:a
-        └──Type: Int_t
-    └──Assertion: Assert
-      └──Expr: Bin Op: Gt
-        └──Expr: Id:a
-        └──Expr: Int:10
-    AST
-    └──Entrypoint: %lt_
-      └──Pattern: Id:a
-        └──Type: Int_t
-    └──Assertion: Assert
-      └──Expr: Bin Op: Lt
-        └──Expr: Id:a
-        └──Expr: Int:10
-    AST
-    └──Entrypoint: %ge_
-      └──Pattern: Id:a
-        └──Type: Int_t
-    └──Assertion: Assert
-      └──Expr: Bin Op: Ge
-        └──Expr: Id:a
-        └──Expr: Int:10
-    AST
-    └──Entrypoint: %le_
-      └──Pattern: Id:a
-        └──Type: Int_t
-    └──Assertion: Assert
-      └──Expr: Bin Op: Le
-        └──Expr: Id:a
-        └──Expr: Int:10|}]
-
-let%expect_test "byte/string op w/ quantifiers" =
+let%expect_test "byte/string op" =
   parse_contract
     {|(entrypoint %slice_ (s: string)
         (forall (i : int)
@@ -401,4 +266,4 @@ let%expect_test "skip ifs" =
     └──Assertion: If
       └──Expr: Bool:true
       └──Assertion: Assert
-        └──Expr: Bool:true|}]
+        └──Expr: Bool:false|}]
