@@ -5,12 +5,10 @@ properties in smart contracts" at the chair of programming languages, Albert
 Ludwig University of Freiburg.
 
 ## Motivation - the short version
-TODO: add abstract
-
 This project provides a small language and a the basis of a compiler pipeline to allow you to
 write assertions for your (Michelson) smart contracts that are checked in a
 distributed fashion by the validators of the (Tezos) network. The code covers most of the off-chain
-part of the project - the theory and design of the on-chain part is also covered in the thesis.
+part of the project - the theory and design of the on-chain part is briefly discussed in the thesis.
 
 ## Getting started
 The frontend as well as the Tezos backend of the pipeline is written in OCaml and uses the `Dune` build system. You'll need OCamls package manager `opam` installed.
@@ -206,3 +204,18 @@ to tagless entrypoints of the contract and would cause wrong assignments in some
 
 Check out the unit tests in `test/offline/tezos/typecheck` for many examples of
 valid or invalid assertion matchups.
+
+## Technical debts and support gaps
+The pipeline does not yet support the full range of formulas that can be formulated
+with the grammar:
+* Supported types for the predicate variables are nat and int. They suffice for all
+use-cases given in the thesis and random generators for these types are easy to implement.
+* Existential quantifiers are rejected for now - checking for proofs require an own
+execution and make things more complicated
+
+### Tech debts
+The type checker currently does not consider parent contracts that explicitly set the default entrypoint
+to another entrypoint that is not the root. If an assertion is type checked for a
+parent that does not have the default at the root, the mapping between assertions and
+entrypoints is computed incorrectly. However, as this is normally not the case,
+this should not cause any issues.
