@@ -71,10 +71,8 @@ let rec negate_assertion = function
   | `Forall (predicate, a, bs) ->
      let a_transformed = negate_assertion a in
      `Exists (predicate, a_transformed, bs)
-  (* Exists -> Forall *)
-  | `Exists (predicate, a, bs) ->
-     let a_transformed = negate_assertion a in
-     `Forall (predicate, a_transformed, bs)
+  (* Using distributed assertions to find proofs not supported yet *)
+  | `Exists _ -> failwith "Existential quantifiers are not supported yet."
 
 (* Calls the negation function for the bodies of quantifiers *)
 let rec negate = function

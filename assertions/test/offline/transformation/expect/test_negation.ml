@@ -2,12 +2,11 @@ open Core
 open Parsing.Lex_and_parse
 open Transformer_wrapper
 
-let%expect_test "negation quantifiers" =
+let%expect_test "negation universal quantifier" =
   parse_contract
     {|(entrypoint _
         (forall (n : int)
-          (exists (m: int)
-            (assert true))))|}
+          (assert true)))|}
   |> transform;
   [%expect
     {|
@@ -18,12 +17,22 @@ let%expect_test "negation quantifiers" =
       └──Pattern: Id:n
         └──Type: Int_t
       └──Bounds:
-      └──Assertion: Forall
-        └──Pattern: Id:m
-          └──Type: Int_t
-        └──Bounds:
-        └──Assertion: Assert
-          └──Expr: Bool:false|}]
+      └──Assertion: Assert
+        └──Expr: Bool:false|}]
+
+let%expect_test "negation existential quantifier" =
+  (
+  try
+    parse_contract
+    {|(entrypoint _
+        (exists (m: int)
+          (assert true)))|}
+    |> transform
+  with
+  | Failure s -> Printf.eprintf "%s" s
+  | _ -> Printf.eprintf "Caught exception");
+  [%expect
+    {|Existential quantifiers are not supported yet.|}]
 
 let%expect_test "negation bools w/ quantifiers" =
   parse_contract

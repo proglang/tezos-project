@@ -1,0 +1,6 @@
+(test
+ (name test_cast)
+ (libraries alcotest core parsing tezos_backend)
+ (lint
+  (pps ppx_js_style -check-doc-comments -annotated-ignores -styler -pretty
+    -dated-deprecation)))

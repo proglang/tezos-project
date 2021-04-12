@@ -80,7 +80,7 @@ let rec cast_expr : Parsing.Assertion.expression -> Ast.expression = function
   | `IfThenElse (e1, e2, e3) ->
      `IfThenElse (cast_expr e1, cast_expr e2, cast_expr e3)
   | `Unop (op, e) -> `Unop (cast_unop op, cast_expr e)
-  | `Binop (op, e1, e2) -> `Binop (op, cast_expr e1, cast_expr e2)
+  | `Binop (op, e1, e2) -> `Binop (cast_binop op, cast_expr e1, cast_expr e2)
   | `Slice (e1, e2, e3) -> `Slice (cast_expr e1, cast_expr e2, cast_expr e3)
 
 let rec cast_assertion : Parsing.Assertion.assertion -> Ast.assertion = function
@@ -89,9 +89,12 @@ let rec cast_assertion : Parsing.Assertion.assertion -> Ast.assertion = function
      `Forall (v, cast_assertion a, bounds)
   | `Forall ((_, `Nat_t) as v, a, bounds) ->
      `Forall (v, cast_assertion a, bounds)
-  (* Using distributed assertions to find proofs not supported yet *)
-  | `Exists _ -> failwith @@ error_fmt "Existential quantifiers are not supported yet."
-  | `Forall ((_, ty), _, _ ) ->
+  | `Exists ((_, `Int_t) as v, a, bounds) ->
+     `Exists (v, cast_assertion a, bounds)
+  | `Exists ((_, `Nat_t) as v, a, bounds) ->
+     `Exists (v, cast_assertion a, bounds)
+  | `Forall ((_, ty), _, _ )
+    | `Exists ((_, ty), _, _ ) ->
      let ty_str = Parsing.Pp_ast.str_of_ty ty in
      let err_str = asprintf "Unsupported type for predicate variable: %s" ty_str in
      failwith @@ error_fmt err_str
