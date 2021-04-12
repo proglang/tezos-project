@@ -37,11 +37,11 @@ code {
 The input type declared in the primitive application \texttt{parameter} accepts input of either type \texttt{left int}, or \texttt{right string}. By adding the field annotations \texttt{isPrime} and \texttt{isUpper}, the entrypoints are given tags and can be called explicitly by an external transaction. In that case, parameters of type \texttt{int} or \texttt{string} are accepted and the value is automatically wrapped into the respective constructors. Furthermore, it's possible to declare a \texttt{default} entrypoint, which is called when no explicit tag is specified. By default, the default entrypoint is assigned to the root of the parameter type. \cite{tezos_docs}
 
 \subsubsection{Internal operations}
-Smart contracts are able to call other smart contracts by emitting internal operations. The return type of Michelson programs is a tuple of a list of internal operations and the updated storage. Thus, after the actual contract has been executed, the operations of the returned list are run in sequence. Since the internal operations may in turn also emit internal operations, they are put into a queue and are processed in order. As an example, \figref{fig:internal_ops} shows an execution order of two external transactions, i.e., transactions which have been initiated by a user account, and their internal operations.
+Smart contracts are able to call other smart contracts by emitting internal operations. The return type of Michelson programs is a tuple of a list of internal operations and the updated storage. Thus, after the actual contract has been executed, the operations of the returned list are run in sequence. Since the internal operations may in turn also emit internal operations, they are put into a queue and are processed in order. As an example, \figref{fig:internal_ops} shows an execution order of two external transactions in sequence, i.e., transactions which have been initiated by a user account, and their internal operations.
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.5\linewidth]{figures/4-offline_tezos/internal_ops}
-\caption{Execution order of two external operations and their internal operations; Source: \cite{tezos_docs}}
+\captionsource{Execution order of two external operations and their internal operations}{\cite{tezos_docs}}
 \label{fig:internal_ops}
 \end{figure}
 
