@@ -160,10 +160,10 @@ In the first case, each validator picks a random clause from a random $F$ and ch
 The examples given in this chapter have shown that, depending on the type and order of quantification, not all properties can be checked in the same way and need different modi of assertion checking, as well as a distinct translation to target code. This increases the complexity and requirements for an implementation of the off-chain infrastructure and protocol amendment; therefore, as a first iteration, this thesis focuses on providing a design and toolchain for assertions using universal quantification only.
 
 \section{Cost analysis}\label{sec:usecase_cost}
-For the purpose of having a benchmark for the evaluation of the distributed approach, this section analyses the cost of executing a contract on the blockchain that centrally checks a formula. Given that the target blockchain is Tezos, the computational and storage-related costs of a transaction are represented in units of gas. The following is thus based on the gas model of Tezos \cite{morley_gasmodel}\cite{tezos_repo}, which is described in more detail in \secref{sec:tezos}. According to this model, the total gas consumption of a transaction $T(source,\, destination=C,\, arg, \, ...)$ calling a smart contract $C(storage, \, parameter\, type, \, code)$ is calculated by \eqref{eq:gas_transaction}, where $I$ is the set of internal operations:
+For the purpose of having a benchmark for the evaluation of the distributed approach, this section analyses the cost of executing a contract on the blockchain that centrally checks a formula. Given that the target blockchain is Tezos, the computational and storage-related costs of a transaction are represented in units of gas. Although they are not paid directly in terms of fees, the actual fees paid to the miner (called bakers in Tezos) are based on the gas consumption \cite{tezos_docs}. The gas model of Tezos is described in more detail in \secref{sec:tezos}. According to this model, the total gas consumption of a transaction $T(source,\, destination=C,\, arg, \, ...)$ calling a smart contract $C(storage, \, parameter\, type, \, code)$ is calculated by \eqref{eq:gas_transaction}, where $I$ is the set of internal operations:
 \begin{align}\label{eq:gas_transaction}
 \begin{split}
-GasConsumed(T) = \quad &base \, amount \\
+GasConsumed(T) = \quad &base \, gas \, cost \\
 +& \, gasRead(code) \\
 +& \, gasRead(storage) \\
 +& \, gasDeserialize(storage, \, arg) \\
@@ -178,7 +178,7 @@ GasConsumed(T) = \quad &base \, amount \\
 \end{split}
 \end{align}
 Assuming that the storage of the contract is never increased, the amount of gas returned by the cost functions independent of the argument, i.e., the parameter value, remains constant for each $T$. The cost functions for the deserialization, parsing and interpretation, however, are functions of $arg$ that grow monotonically with increasing sizes of $arg$ \cite{morley_gasmodel}\cite{tezos_repo}. \\
-Consider the following simple contracts --- they do not do anything useful, but can be used to approximate the amplification of costs with regard to $arg$. Contract \texttt{Foo} takes an integer, whose byte sequence representation does not increase significantly with higher values. Thus, the increase in overall costs is mainly accounted for by the interpretation. Contract \texttt{Bar}, on the other hand, executes similar operations but expects a list of integers, which causes noticeably higher deserialization and parsing costs with increasing input sizes. 
+Consider the following simple contracts --- they do not do anything useful, but can be used to approximate the amplification of costs with regard to $arg$. Contract \texttt{Foo} takes an integer, whose byte sequence representation does not increase significantly with higher values. Thus, the increase in overall costs is mainly accounted for by the interpretation. Contract \texttt{Bar}, on the other hand, executes similar operations but expects a list of integers, which additionally causes higher deserialization and parsing costs with increasing input sizes. 
 \begin{lstlisting}[numbers=none, language=Solidity, caption=Simple dummy contract executing a loop]
 contract Foo {
   function foo (int a) public {
@@ -198,8 +198,7 @@ contract Bar {
 }
 \end{lstlisting}
 
-\figref{fig:use_case_cost} shows the reported gas consumption of transactions calling the dummy contracts on the Delphinet test network running the protocol 007 Delphi \cite{tezos_docs}. As to be expected, the gradient of the cost function in the case of \texttt{Bar} is higher due to additional serialization and parsing costs, namely $\frac{dx}{dy} = 16$ compared to $\frac{dx}{dy} = 6$ for \texttt{Foo}.
-
+\figref{fig:use_case_cost} shows the reported gas consumption of transactions calling corresponding dummy contracts in Michelson (cf. Appendix \ref{apx:cost_analysis_contract}) on the Delphinet test network, running the protocol 007 Delphi \cite{tezos_docs}. As to be expected, the gradient of the cost function in the case of \texttt{Bar} is higher due to additional serialization and parsing costs, namely $\frac{dx}{dy} = 16$ compared to $\frac{dx}{dy} = 6$ for \texttt{Foo}.
 \begin{figure}[p]
 \centering
 \includegraphics[width=0.9\linewidth]{figures/2-use_cases/cost_analysis}
@@ -207,5 +206,3 @@ contract Bar {
 \label{fig:use_case_cost}
 \vspace{128in}
 \end{figure}
-
-A repeated cost analysis is carried out in \secref{sec:cost_analysis_distributed} in order to assess whether, or how, distributed assertion checking, as described in the following chapters, can achieve a reduction of these costs.
