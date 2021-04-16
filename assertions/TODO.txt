@@ -1,9 +1,0 @@
-- Semantic check: unsupported data types in quantifiers
-- Transformation:
-	* negation not only inside of quantifiers
-	* reject existentials?
-- Default ep <> root
-- replace mutez with generic unit
-- syntax: support comments?
-- Tezos backend: reject anything not supported in Tezos (pattern match)
-- update Example paper

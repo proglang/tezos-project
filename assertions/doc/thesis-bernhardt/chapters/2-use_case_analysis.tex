@@ -1,9 +1,10 @@
 \chapter{Use-case analysis}\label{chap:use_cases}
-The introduction argued that validating properties on input parameters becomes expensive when a data structure (such as arrays), certain data types (such as byte sequences) or a range of values have to be iterated. It showed examples for such properties and identified logical formulas containing universal quantification as amenable for distributed assertion checking. As a matter of fact, the same is also valid for existential quantification, even though its negation has a different notion than that of its universal counterpart. The difference between the two is addressed later in this chapter. \\
-The following section formally defines a set of applicable logical formulas for the basic implementation of this approach. Given this set, section \secref{sec:examples} gives some more in-depth examples. The last section formalizes the cost incurred by checking formulas on Tezos locally. 
+The introduction argued that validating properties on input parameters becomes expensive when a data structure (such as arrays), certain data types (such as byte sequences) or a range of values have to be iterated. It showed examples for such properties and identified logical formulas containing universal quantification as amenable for distributed assertion checking. Through its domain of discourse, the quantification spans an iteration space whose elements can be checked independently by each validator. As a matter of fact, the same is also valid for existential quantification, even though its negation has a different notion than that of its universal counterpart. The difference between the two is addressed later in this chapter. \\
+The following section formally defines a set of applicable logical formulas for the basic implementation of this approach. Given this set, section \secref{sec:examples} gives some more in-depth examples of such formulas. As a benchmark for the distributed scheme, the last section formalizes the cost incurred by checking formulas on Tezos locally.
 
 \section{Definition of a set of logical formulas}\label{sec:formulae}
-Formulas with universal and existential quantification are suitable for distributed assertion checking, because they span an iteration space with their domain of discourse. Within this space validators can check independently and point-wise, whether the property holds. Each validator is thus capable of making a statement about the validity by looking at a single element only. Predicate variables are, for now, limited to the primitive data types supported by the respective virtual machines (VM). Besides the basic logical, numerical and relational operators of predicate logic, the formula may contain any operation that is built into the VM.
+The set of formulas that well-formed assertions can express is given in \figref{fig:formulas}. This corresponds, with some restrictions, to the language of second-order predicate logic. Besides universal and existential quantifiers with exactly one bound variable, the set definition contains logical connectives, relational symbols, constant values of a numerical, string or boolean type, variables and the basic functional symbols for basic arithmetic operations. This set of symbols is rather generic and should be valid for any target blockchain. Specific to the target blockchain are the sets of types $t$ and functional symbols $f$. These can only contain types and operations that can be translated to operation codes (opcodes) of the respective Smart Contract language and executed within the blockchain's virtual machine (VM). As an example, the primitive types in Michelson are \texttt{string}, \texttt{nat}, \texttt{int}, \texttt{bytes}, whereas Ethereum's Smart Contract language Solidity  \cite{solidity_docs} additionally supports an \texttt{enum} type and fixed-point numbers.
+
 \begin{align*}
     t &::= \text{primitive data types (existing in the blockchain VM)} \\
     \sigma &::= \forall \mid \exists \\
@@ -13,20 +14,19 @@ Formulas with universal and existential quantification are suitable for distribu
     \rho &::= < \mid > \mid \le \mid \ge \mid = \mid \ne \\
     M, N &::= x \mid c \mid M \odot N  \mid f (\overline M) \\
     \odot &::= +\mid -\mid * \mid / \mid \% \\
-    c &::= \text{constants: numbers, strings, } \top, \bot \\
+    c &::= \text{numerical value} \mid string \mid \top \mid \bot \\
     f &::= \text{operations (existing in the blockchain VM)}
 \end{align*}
 \begingroup\vspace*{-\baselineskip}
 \captionof{figure}{Set of logical formulas amenable to distributed assertion checking (based on \cite{thiemann_2020})}
+\label{fig:formulas}
 \vspace*{\baselineskip}\endgroup
-
-\secref{sec:syntax} and \secref{sec:ext} go into more detail about what this set comprises of concretely for assertions executed on Tezos, and which extensions to Michelson and the VM are necessary in order to facilitate the assertion examples given previously and in the following.
 
 \section{Interesting formulas and special cases}\label{sec:examples}
 This section contains a subset of use-cases that were collected in collaboration with Julian Veigl for an intermediate report \cite{bernhardt_veigel_2020}. The selection of examples covers different types and compositions of quantifiers, demonstrates different meanings of their negations, identifies special cases and discusses their implications for the implementation of distributed assertion checking.
 
 \subsection{Two numbers are coprime}\label{sec:coprime}
-The greatest common divisor ($gcd$) of two non-zero integers $a$ and $b$ is the largest integer that divides both evenly \cite{hardy2008introduction}. A more specific $gcd$-problem is finding two numbers which are coprime, meaning their greatest common divisor is one, i.e., $gcd(a, b) = 1$ \cite{hardy2008introduction}. In order to verify that two numbers are coprime, it has to be checked that there is no $gcd > 1$, hence the property of coprimeness can be expressed with the following formula in predicate logic:
+The greatest common divisor ($gcd$) of two non-zero integers $a$ and $b$ is the largest integer that divides both evenly \cite{hardy2008introduction}. A more specific $gcd$-problem is finding two numbers which are coprime, meaning their greatest common divisor is one, i.e., $gcd(a, b) = 1$. In order to verify that two numbers are coprime, it has to be checked that there is no $gcd > 1$, hence the property of coprimeness can be expressed with the following formula in predicate logic:
 \begin{equation}\label{eq:coprime-universial}
     (\forall n : int) (2 \le n \le \min(a,b)) \Rightarrow \neg((a \mathbin{\%} n) = 0 \land (b \mathbin{\%} n) = 0)
 \end{equation}
@@ -54,16 +54,17 @@ The time complexity of checking whether $a$ satisfies the heap property depends 
   (\exists k : int) (1 \le k \le |a|) \land a[\lfloor(k-1)/2)\rfloor] > a[k]
 \end{equation}
 
-\section{Existential quantifier and proofs of validity}\label{sec:existential}
-The examples given so far in this thesis used universal quantification, and required a search for counterexamples in order to check if some assumption about an input parameter is true. However, the same cannot be applied to existential quantifiers. Consider a contract expecting two intersecting sets of integers, represented as arrays. The assumption, that the intersection of the sets is not empty, i.e., $U \cap V \neq \emptyset$, can be expressed by
+\section{Existential quantification and proofs of validity}\label{sec:existential}
+So far, this thesis only considered formulas featuring universal quantification, for which the assertion scheme challenged the validators to find counterexamples. However, distributed assertion checking can not only be used to refute assumptions, but also to prove their validity. This is the case for formulas featuring existential quantification. As an example, consider the assumption that two sets $U$ and $V$ have a non-empty intersection, i.e., $U \cap V \neq \emptyset$. This assumption and its negation can be expressed in predicate logic by 
 \begin{equation}\label{eq:intersect}
   (\exists i, \exists j) (0 \le i < |u|) \land (0 \le j < |v|) \Rightarrow u[i] = v[j]
 \end{equation}
-Consider its negation:
+and
 \begin{equation}\label{eq:intersect_neg}
   (\forall i, \forall j) (0 \le i < |u|) \land (0 \le j < |v|) \land u[i] \neq v[j]
 \end{equation}
-If the condition is true for random values of $i,j$, it does not produce a counterexample --- it produces a proof for the validity of the assumption. In that case, the validator finding such a proof should publish an approval instead of a veto to the network, and the normal execution of the contract can proceed. Thus, the universal and existential quantification essentially represent two different modi of assertion checking that the protocol needs to handle explicitly.\\
+If the condition $u[i] \neq v[j]$ is false for random values of $i$ and $j$, it does not produce a counterexample --- it produces a proof for the validity of the assumption, because it identified an element that is present in both sets. In that case, the validator finding such a proof should publish an approval instead of a veto to the network. After an approval has been posted, and all validators have come to a consensus about the validity of the assumption, the transaction may be included in a block (assuming it doesn't fail due to other reasons). For the blockchain protocol, this implies that distributed refutation and validation have to be implemented as separate modi of assertion checking. \\
+
 Concerning the complexity of this assertion, the property can be checked in $\mathcal{O}(|u|*|v|)$. By considering the cardinality of their union $n = |u|+|v|$, one can derive that the worst case occurs when both sets have the same size, i.e., $|u| = |v| = n/2$. This leads to a quadratic complexity $\mathcal{O}(n/2 * n/2) = \mathcal{O}(n^2/4) = \mathcal{O}(n^2)$.
 
 \section{Nested quantification}
@@ -159,8 +160,8 @@ In the first case, each validator picks a random clause from a random $F$ and ch
 \section{Restriction of use-cases}\todo{Better title?}
 The examples given in this chapter have shown that, depending on the type and order of quantification, not all properties can be checked in the same way and need different modi of assertion checking, as well as a distinct translation to target code. This increases the complexity and requirements for an implementation of the off-chain infrastructure and protocol amendment; therefore, as a first iteration, this thesis focuses on providing a design and toolchain for assertions using universal quantification only.
 
-\section{Cost analysis}\label{sec:usecase_cost}
-For the purpose of having a benchmark for the evaluation of the distributed approach, this section analyses the cost of executing a contract on the blockchain that centrally checks a formula. Given that the target blockchain is Tezos, the computational and storage-related costs of a transaction are represented in units of gas. Although they are not paid directly in terms of fees, the actual fees paid to the miner (called bakers in Tezos) are based on the gas consumption \cite{tezos_docs}. The gas model of Tezos is described in more detail in \secref{sec:tezos}. According to this model, the total gas consumption of a transaction $T(source,\, destination=C,\, arg, \, ...)$ calling a smart contract $C(storage, \, parameter\, type, \, code)$ is calculated by \eqref{eq:gas_transaction}, where $I$ is the set of internal operations:
+\section{Cost analysis of a local approach}\label{sec:usecase_cost}
+For the purpose of having a benchmark for the evaluation of the distributed approach, this section analyses the cost of invoking a contract on the blockchain that locally checks a formula. Given that the target blockchain is Tezos, the computational and storage-related costs of a transaction are represented in units of gas. Although they are not paid directly in terms of fees, the actual fees paid to the miner (called bakers in Tezos) are based on the gas consumption. The gas model of Tezos is described in more detail in \secref{sec:tezos}. According to this model, the total gas consumption of a transaction $T(source,\, destination=C,\, arg, \, ...)$ calling a smart contract $C(storage, \, parameter\, type, \, code)$ is calculated by \eqref{eq:gas_transaction}, where $I$ is the set of internal operations:
 \begin{align}\label{eq:gas_transaction}
 \begin{split}
 GasConsumed(T) = \quad &base \, gas \, cost \\
@@ -178,7 +179,7 @@ GasConsumed(T) = \quad &base \, gas \, cost \\
 \end{split}
 \end{align}
 Assuming that the storage of the contract is never increased, the amount of gas returned by the cost functions independent of the argument, i.e., the parameter value, remains constant for each $T$. The cost functions for the deserialization, parsing and interpretation, however, are functions of $arg$ that grow monotonically with increasing sizes of $arg$ \cite{morley_gasmodel}\cite{tezos_repo}. \\
-Consider the following simple contracts --- they do not do anything useful, but can be used to approximate the amplification of costs with regard to $arg$. Contract \texttt{Foo} takes an integer, whose byte sequence representation does not increase significantly with higher values. Thus, the increase in overall costs is mainly accounted for by the interpretation. Contract \texttt{Bar}, on the other hand, executes similar operations but expects a list of integers, which additionally causes higher deserialization and parsing costs with increasing input sizes. 
+Consider the following simple contracts --- they do not do anything useful, but can be used to approximate the amplification of costs with regard to $arg$. Function \texttt{foo} of contract \texttt{Foo} takes an integer as input parameter, whose byte sequence representation does not increase significantly with higher values. Thus, the increase in overall costs is mainly accounted for by the interpretation cost. Contract \texttt{Bar}, on the other hand, executes similar operations in function \texttt{bar}, but expects a list of integers. The list data type additionally causes higher deserialization and parsing costs with increasing input sizes. 
 \begin{lstlisting}[numbers=none, language=Solidity, caption=Simple dummy contract executing a loop]
 contract Foo {
   function foo (int a) public {
@@ -198,7 +199,11 @@ contract Bar {
 }
 \end{lstlisting}
 
-\figref{fig:use_case_cost} shows the reported gas consumption of transactions calling corresponding dummy contracts in Michelson (cf. Appendix \ref{apx:cost_analysis_contract}) on the Delphinet test network, running the protocol 007 Delphi \cite{tezos_docs}. As to be expected, the gradient of the cost function in the case of \texttt{Bar} is higher due to additional serialization and parsing costs, namely $\frac{dx}{dy} = 16$ compared to $\frac{dx}{dy} = 6$ for \texttt{Foo}.
+\figref{fig:use_case_cost} shows the reported gas consumption of transactions calling corresponding dummy contracts in Michelson (cf. Appendix \ref{apx:cost_analysis_contract}) on the Delphinet test network \footnote{\url{https://tezos.gitlab.io/introduction/test_networks.html\#delphinet}}. As to be expected, the gradient of the cost function in the case of \texttt{Bar.bar} is higher due to additional serialization and parsing costs, namely $\frac{dx}{dy} = 16$ compared to $\frac{dx}{dy} = 6$ for \texttt{Foo.foo}.
+
+
+Besides inflicting higher transaction costs on the user with increasing parameter sizes, a local approach also causes a higher ``footprint'' on the blockchain network. The transaction has to be processed at every full node of the network, which do not get any rewards in return (except for the nodes that were assigned baking or endorsement rights for the current block \footnote{Tezos' Proof of Stake consensus mechanism is described in \secref{sec:tezos}}).
+
 \begin{figure}[p]
 \centering
 \includegraphics[width=0.9\linewidth]{figures/2-use_cases/cost_analysis}
