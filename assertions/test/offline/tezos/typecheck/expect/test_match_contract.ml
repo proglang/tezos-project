@@ -159,7 +159,7 @@ let%expect_test "untyped pattern - any" =
     {|
     LT:
     Entrypoint: %A
-    └──Pattern: Wildcard|}]
+    └──Pattern: Id:a|}]
 
 let%expect_test "untyped pattern - pair" =
   exec
@@ -227,5 +227,6 @@ let%expect_test "untyped pattern - cons" =
     LT:
     Entrypoint: %A
     └──Pattern: Cons
-      └──Pattern: Id:a
+      └──Pattern: Var:a
+        └──Type: Int_t
       └──Pattern: Id:as|}]
