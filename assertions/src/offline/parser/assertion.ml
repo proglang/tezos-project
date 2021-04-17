@@ -29,7 +29,8 @@ type var_decl = string * ty
 
 type pattern = [
   | `Wildcard
-  | `Ident of var_decl
+  | `Var of var_decl
+  | `IdentPat of string
   | `Pair of pattern * pattern
   | `Left of pattern
   | `Right of pattern

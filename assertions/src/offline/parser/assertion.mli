@@ -40,7 +40,8 @@ type var_decl = string * ty
 (** Patterns to match input parameters *)
 type pattern = [
   | `Wildcard (** Matches everything used in assertions as a 'don't care' *)
-  | `Ident of var_decl (** Gives an input parameter a name *)
+  | `Var of var_decl (** A variable of explicit type *)
+  | `IdentPat of string (** An identifier for a pattern component *)
   | `Pair of pattern * pattern (** Matches a pair (x,y) *)
   | `Left of pattern  (** Matches first type of a union *)
   | `Right of pattern  (** Matches second type of a union *)

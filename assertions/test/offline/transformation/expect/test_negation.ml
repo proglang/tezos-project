@@ -14,7 +14,7 @@ let%expect_test "negation universal quantifier" =
     └──Entrypoint: %default
       └──Pattern: Wildcard
     └──Assertion: Exists
-      └──Pattern: Id:n
+      └──Pattern: Var:n
         └──Type: Int_t
       └──Bounds:
       └──Assertion: Assert
@@ -49,7 +49,7 @@ let%expect_test "negation bools w/ quantifiers" =
     └──Entrypoint: %e1
       └──Pattern: Wildcard
     └──Assertion: Exists
-      └──Pattern: Id:i
+      └──Pattern: Var:i
         └──Type: Int_t
       └──Bounds:
       └──Assertion: Assert
@@ -58,7 +58,7 @@ let%expect_test "negation bools w/ quantifiers" =
     └──Entrypoint: %e2
       └──Pattern: Wildcard
     └──Assertion: Exists
-      └──Pattern: Id:i
+      └──Pattern: Var:i
         └──Type: Int_t
       └──Bounds:
       └──Assertion: Assert
@@ -75,12 +75,12 @@ let%expect_test "negation logic operators" =
     AST
     └──Entrypoint: %default
       └──Pattern: Pair
-        └──Pattern: Id:a
+        └──Pattern: Var:a
           └──Type: Bool_t
-        └──Pattern: Id:b
+        └──Pattern: Var:b
           └──Type: Bool_t
     └──Assertion: Exists
-      └──Pattern: Id:i
+      └──Pattern: Var:i
         └──Type: Int_t
       └──Bounds:
       └──Assertion: Assert
@@ -103,12 +103,12 @@ let%expect_test "negation xor" =
     AST
     └──Entrypoint: %default
       └──Pattern: Pair
-        └──Pattern: Id:a
+        └──Pattern: Var:a
           └──Type: Bool_t
-        └──Pattern: Id:b
+        └──Pattern: Var:b
           └──Type: Bool_t
     └──Assertion: Exists
-      └──Pattern: Id:i
+      └──Pattern: Var:i
         └──Type: Int_t
       └──Bounds:
       └──Assertion: Assert
@@ -157,10 +157,10 @@ let%expect_test "negation relation operator" =
     {|
     AST
     └──Entrypoint: %eq_
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
     └──Assertion: Exists
-      └──Pattern: Id:i
+      └──Pattern: Var:i
         └──Type: Int_t
       └──Bounds:
       └──Assertion: Assert
@@ -169,10 +169,10 @@ let%expect_test "negation relation operator" =
           └──Expr: Int:10
     AST
     └──Entrypoint: %neq_
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
     └──Assertion: Exists
-      └──Pattern: Id:i
+      └──Pattern: Var:i
         └──Type: Int_t
       └──Bounds:
       └──Assertion: Assert
@@ -181,10 +181,10 @@ let%expect_test "negation relation operator" =
           └──Expr: Int:10
     AST
     └──Entrypoint: %gt_
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
     └──Assertion: Exists
-      └──Pattern: Id:i
+      └──Pattern: Var:i
         └──Type: Int_t
       └──Bounds:
       └──Assertion: Assert
@@ -193,10 +193,10 @@ let%expect_test "negation relation operator" =
           └──Expr: Int:10
     AST
     └──Entrypoint: %lt_
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
     └──Assertion: Exists
-      └──Pattern: Id:i
+      └──Pattern: Var:i
         └──Type: Int_t
       └──Bounds:
       └──Assertion: Assert
@@ -205,10 +205,10 @@ let%expect_test "negation relation operator" =
           └──Expr: Int:10
     AST
     └──Entrypoint: %ge_
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
     └──Assertion: Exists
-      └──Pattern: Id:i
+      └──Pattern: Var:i
         └──Type: Int_t
       └──Bounds:
       └──Assertion: Assert
@@ -217,10 +217,10 @@ let%expect_test "negation relation operator" =
           └──Expr: Int:10
     AST
     └──Entrypoint: %le_
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
     └──Assertion: Exists
-      └──Pattern: Id:i
+      └──Pattern: Var:i
         └──Type: Int_t
       └──Bounds:
       └──Assertion: Assert
@@ -238,10 +238,10 @@ let%expect_test "byte/string op" =
     {|
     AST
     └──Entrypoint: %slice_
-      └──Pattern: Id:s
+      └──Pattern: Var:s
         └──Type: String_t
     └──Assertion: Exists
-      └──Pattern: Id:i
+      └──Pattern: Var:i
         └──Type: Int_t
       └──Bounds:
       └──Assertion: Assert

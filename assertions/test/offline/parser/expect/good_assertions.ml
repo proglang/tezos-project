@@ -39,7 +39,7 @@ let%expect_test "simple assert" =
     └──Entrypoint: %default
       └──Pattern: Wildcard
     └──Assertion: Forall
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
       └──Bounds:
       └──Assertion: Assert
@@ -56,7 +56,7 @@ let%expect_test "simple assert" =
     └──Entrypoint: %default
       └──Pattern: Wildcard
     └──Assertion: Exists
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
       └──Bounds:
       └──Assertion: Assert
@@ -71,7 +71,7 @@ let%expect_test "IfThenElse in assert" =
     {|
     AST
     └──Entrypoint: %default
-      └──Pattern: Id:b
+      └──Pattern: Var:b
         └──Type: Bool_t
     └──Assertion: Assert
       └──Expr: IfThenElse

@@ -15,7 +15,7 @@ let%expect_test "condition with single variable" =
     └──Entrypoint: %default
       └──Pattern: Wildcard
     └──Assertion: Exists
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
       └──Bounds:
         └──Expr: Bin Op: Gt
@@ -38,11 +38,11 @@ let%expect_test "condition with two variables" =
     └──Entrypoint: %default
       └──Pattern: Wildcard
     └──Assertion: Exists
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
       └──Bounds:
       └──Assertion: Exists
-        └──Pattern: Id:b
+        └──Pattern: Var:b
           └──Type: Int_t
         └──Bounds:
           └──Expr: Bin Op: Gt
@@ -62,10 +62,10 @@ let%expect_test "condition without generated variable" =
     {|
     AST
     └──Entrypoint: %default
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
     └──Assertion: Exists
-      └──Pattern: Id:b
+      └──Pattern: Var:b
         └──Type: Int_t
       └──Bounds:
       └──Assertion: If
@@ -88,7 +88,7 @@ let%expect_test "condition before generator" =
     └──Entrypoint: %default
       └──Pattern: Wildcard
     └──Assertion: Exists
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
       └──Bounds:
         └──Expr: Bin Op: Gt
@@ -107,7 +107,7 @@ let%expect_test "isolated condition" =
     {|
     AST
     └──Entrypoint: %default
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
     └──Assertion: If
       └──Expr: Bin Op: Gt
@@ -131,10 +131,10 @@ let%expect_test "skip or/xor" =
     {|
     AST
     └──Entrypoint: %default
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Bool_t
     └──Assertion: Exists
-      └──Pattern: Id:b
+      └──Pattern: Var:b
         └──Type: Int_t
       └──Bounds:
       └──Assertion: If
@@ -147,10 +147,10 @@ let%expect_test "skip or/xor" =
           └──Expr: Bool:false
     AST
     └──Entrypoint: %default
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Bool_t
     └──Assertion: Exists
-      └──Pattern: Id:b
+      └──Pattern: Var:b
         └──Type: Int_t
       └──Bounds:
       └──Assertion: If
@@ -177,10 +177,10 @@ let%expect_test "skip <>/=" =
     {|
     AST
     └──Entrypoint: %default
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
     └──Assertion: Exists
-      └──Pattern: Id:b
+      └──Pattern: Var:b
         └──Type: Int_t
       └──Bounds:
         └──Expr: Bin Op: Eq
@@ -190,10 +190,10 @@ let%expect_test "skip <>/=" =
         └──Expr: Bool:false
     AST
     └──Entrypoint: %default
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
     └──Assertion: Exists
-      └──Pattern: Id:b
+      └──Pattern: Var:b
         └──Type: Int_t
       └──Bounds:
       └──Assertion: If

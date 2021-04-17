@@ -122,9 +122,11 @@ let rec pp_pattern ppf ~indent pat =
   let new_indent = indent_space ^ indent in
   match pat with
   | `Wildcard -> print_pattern "Wildcard"
-  | `Ident (s,t) ->
-     print_pattern (Fmt.str "Id:%s" s);
+  | `Var (s,t) ->
+     print_pattern (Fmt.str "Var:%s" s);
      pp_type_expr ppf ~indent:new_indent t
+  | `IdentPat s ->
+     print_pattern (Fmt.str "Id:%s" s);
   | `Pair (p1, p2) ->
      print_pattern "Pair";
      pp_pattern ppf ~indent:new_indent p1 ;
@@ -158,14 +160,14 @@ let pp_bounds ppf ~indent bounds =
    let print_assertion = Fmt.pf ppf "%sAssertion: %s@." indent in
    let new_indent = indent_space ^ indent in
    match assertion with
-   | `Forall (id, body, bounds) ->
+   | `Forall (var, body, bounds) ->
       print_assertion "Forall" ;
-      pp_pattern ppf ~indent:new_indent (`Ident id) ;
+      pp_pattern ppf ~indent:new_indent (`Var var) ;
       pp_bounds ppf ~indent:new_indent bounds ;
       pp_assertion ppf ~indent:new_indent body
-   | `Exists (id, body, bounds) ->
+   | `Exists (var, body, bounds) ->
       print_assertion "Exists" ;
-      pp_pattern ppf ~indent:new_indent (`Ident id) ;
+      pp_pattern ppf ~indent:new_indent (`Var var) ;
       pp_bounds ppf ~indent:new_indent bounds ;
       pp_assertion ppf ~indent:new_indent body
    | `If (expr, body) ->

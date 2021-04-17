@@ -10,7 +10,7 @@ let%expect_test "different styles" =
     {|
     AST
     └──Entrypoint: %default
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
     └──Assertion: Assert
       └──Expr: Bin Op: Eq
@@ -43,7 +43,7 @@ let%expect_test "different styles inverted" =
     {|
     AST
     └──Entrypoint: %default
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
     └──Assertion: Assert
       └──Expr: Bin Op: Eq

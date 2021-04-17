@@ -126,10 +126,10 @@ let eq_type_pattern ep_pattern expr =
               >>=? fun eq_op2 ->
               return (eq_op1 && eq_op2)
             end
-         | _, `Ident (_, ty), _ ->
+         | _, `Var (_, ty), _ ->
             eq_type expr ty
-         | _, `Wildcard, _  ->
-            return_true
+         | _, `IdentPat _, _ -> return_true
+         | _, `Wildcard, _  -> return_true
          | _  -> return_false
        end
     | _ ->

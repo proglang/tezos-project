@@ -169,7 +169,8 @@ let () =
       ("Build path from assertion type pattern",
        [
          test_case "from wildcard" `Quick (fun () -> test_up_eq (T, Union_path.from_assertion_pattern `Wildcard));
-         test_case "from ident" `Quick (fun () -> test_up_eq (T, Union_path.from_assertion_pattern (`Ident ("i", `Int_t))));
+         test_case "from var" `Quick (fun () -> test_up_eq (T, Union_path.from_assertion_pattern (`Var ("i", `Int_t))));
+         test_case "from ident" `Quick (fun () -> test_up_eq (T, Union_path.from_assertion_pattern (`IdentPat "i")));
          test_case "from pair" `Quick (fun () -> test_up_eq (T, Union_path.from_assertion_pattern (`Pair (`Wildcard, `Wildcard))));
          test_case "from none" `Quick (fun () -> test_up_eq (T, Union_path.from_assertion_pattern `None));
          test_case "from some" `Quick (fun () -> test_up_eq (T, Union_path.from_assertion_pattern (`Some `Wildcard)));

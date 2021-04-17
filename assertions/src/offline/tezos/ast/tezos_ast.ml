@@ -33,8 +33,9 @@ let rec cast_ty : Parsing.Assertion.ty -> Ast.ty = function
 let rec cast_pattern : Parsing.Assertion.pattern -> Ast.pattern = function
   | `None
     | `Nil
-    | `Wildcard as p -> p
-  | `Ident (s,t) -> `Ident (s, cast_ty t)
+    | `Wildcard
+    | `IdentPat _ as p -> p
+  | `Var (s,t) -> `Var (s, cast_ty t)
   | `Pair (p1, p2) -> `Pair (cast_pattern p1, cast_pattern p2)
   | `Left p -> `Left (cast_pattern p)
   | `Right p -> `Right (cast_pattern p)

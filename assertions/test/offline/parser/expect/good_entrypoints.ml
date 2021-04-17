@@ -15,7 +15,7 @@ let%expect_test "with name" =
     └──Entrypoint: %someName
       └──Pattern: Wildcard
     └──Assertion: Forall
-      └──Pattern: Id:b
+      └──Pattern: Var:b
         └──Type: Bool_t
       └──Bounds:
       └──Assertion: Assert
@@ -34,7 +34,7 @@ let%expect_test "without name" =
     └──Entrypoint: %default
       └──Pattern: Wildcard
     └──Assertion: Forall
-      └──Pattern: Id:b
+      └──Pattern: Var:b
         └──Type: Bool_t
       └──Bounds:
       └──Assertion: Assert
@@ -53,7 +53,7 @@ let%expect_test "simple param type" =
     └──Entrypoint: %default
       └──Pattern: None
     └──Assertion: Forall
-      └──Pattern: Id:b
+      └──Pattern: Var:b
         └──Type: Bool_t
       └──Bounds:
       └──Assertion: Assert
@@ -73,11 +73,11 @@ let%expect_test "comp param type" =
       └──Pattern: Left
         └──Pattern: Pair
           └──Pattern: Wildcard
-          └──Pattern: Id:a
+          └──Pattern: Var:a
             └──Type: List_t
               └──Type: Int_t
     └──Assertion: Forall
-      └──Pattern: Id:b
+      └──Pattern: Var:b
         └──Type: Bool_t
       └──Bounds:
       └──Assertion: Assert
@@ -94,12 +94,12 @@ let%expect_test "typed comp pattern" =
     {|
     AST
     └──Entrypoint: %default
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Pair_t
           └──Type: Int_t
           └──Type: Bool_t
     └──Assertion: Forall
-      └──Pattern: Id:b
+      └──Pattern: Var:b
         └──Type: Bool_t
       └──Bounds:
       └──Assertion: Assert 

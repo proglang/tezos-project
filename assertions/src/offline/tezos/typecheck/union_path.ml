@@ -54,7 +54,8 @@ let from_micheline node =
 let from_assertion_pattern pattern =
   let rec build_path path = function
     | `Wildcard
-      | `Ident _
+      | `Var _
+      | `IdentPat _
       | `Pair _
       | `None
       | `Some _

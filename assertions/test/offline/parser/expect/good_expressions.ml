@@ -57,7 +57,7 @@ let%expect_test "identifier" =
     {|
     AST
     └──Entrypoint: %default
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Bool_t
     └──Assertion: Assert
       └──Expr: Id:a|}]
@@ -71,7 +71,7 @@ let%expect_test "if-then-else" =
     {|
     AST
     └──Entrypoint: %default
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Bool_t
     └──Assertion: Assert
       └──Expr: IfThenElse
@@ -88,7 +88,7 @@ let%expect_test "arithmetic operators" =
     {|
     AST
     └──Entrypoint: %default
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
     └──Assertion: Assert
       └──Expr: Un Op: Neg
@@ -114,7 +114,7 @@ let%expect_test "boolean operators" =
     {|
     AST
     └──Entrypoint: %default
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Bool_t
     └──Assertion: Assert
       └──Expr: Bin Op: And
@@ -134,7 +134,7 @@ let%expect_test "shift operators" =
   {|
    AST
    └──Entrypoint: %default
-     └──Pattern: Id:i
+     └──Pattern: Var:i
        └──Type: Int_t
    └──Assertion: Assert
      └──Expr: Bin Op: Lsl
@@ -152,7 +152,7 @@ let%expect_test "relation operators" =
     {|
     AST
     └──Entrypoint: %default
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t
     └──Assertion: Assert
       └──Expr: Bin Op: Eq
@@ -188,11 +188,11 @@ let%expect_test "list/string operators" =
     {|
     AST
     └──Entrypoint: %A
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: List_t
           └──Type: Int_t
     └──Assertion: Forall
-      └──Pattern: Id:i
+      └──Pattern: Var:i
         └──Type: Int_t
       └──Bounds:
       └──Assertion: If
@@ -208,7 +208,7 @@ let%expect_test "list/string operators" =
             └──Expr: Id:i
     AST
     └──Entrypoint: %B
-      └──Pattern: Id:s
+      └──Pattern: Var:s
         └──Type: String_t
     └──Assertion: Assert
       └──Expr: Bin Op: Eq
