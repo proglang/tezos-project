@@ -24,12 +24,12 @@ let%expect_test "Tz w/ tags; assertions w/o tags" =
     RT:
     Entrypoint: %default
     └──Pattern: Right
-      └──Pattern: Id:b
+      └──Pattern: Var:b
         └──Type: Bool_t
     LT:
     Entrypoint: %default
     └──Pattern: Left
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t|}]
 
  let%expect_test "Tz w/o tags; assertions w/ tags" =
@@ -41,11 +41,11 @@ let%expect_test "Tz w/ tags; assertions w/o tags" =
     {|
     RT:
     Entrypoint: %B
-    └──Pattern: Id:b
+    └──Pattern: Var:b
       └──Type: Bool_t
     LT:
     Entrypoint: %A
-    └──Pattern: Id:a
+    └──Pattern: Var:a
       └──Type: Int_t|}]
 
  let%expect_test "Tz w/o tags; assertions w/o tags" =
@@ -58,12 +58,12 @@ let%expect_test "Tz w/ tags; assertions w/o tags" =
     RT:
     Entrypoint: %default
     └──Pattern: Right
-      └──Pattern: Id:b
+      └──Pattern: Var:b
         └──Type: Bool_t
     LT:
     Entrypoint: %default
     └──Pattern: Left
-      └──Pattern: Id:a
+      └──Pattern: Var:a
         └──Type: Int_t|}]
 
  let%expect_test "Tz w/ tags; assertions w/ tags" =
@@ -75,11 +75,11 @@ let%expect_test "Tz w/ tags; assertions w/o tags" =
     {|
     RT:
     Entrypoint: %B
-    └──Pattern: Id:b
+    └──Pattern: Var:b
       └──Type: Bool_t
     LT:
     Entrypoint: %A
-    └──Pattern: Id:a
+    └──Pattern: Var:a
       └──Type: Int_t|}]
 
  let%expect_test "Mixed tags" =
@@ -92,11 +92,11 @@ let%expect_test "Tz w/ tags; assertions w/o tags" =
     RT:
     Entrypoint: %default
     └──Pattern: Right
-      └──Pattern: Id:b
+      └──Pattern: Var:b
         └──Type: Bool_t
     LT:
     Entrypoint: %A
-    └──Pattern: Id:a
+    └──Pattern: Var:a
       └──Type: Int_t|}]
 
  let%expect_test "Match default ep" =
@@ -118,11 +118,11 @@ let%expect_test "Tz w/ tags; assertions w/o tags" =
     {|
     RT:
     Entrypoint: %B
-    └──Pattern: Id:b
+    └──Pattern: Var:b
       └──Type: Int_t
     LT:
     Entrypoint: %A
-    └──Pattern: Id:a
+    └──Pattern: Var:a
       └──Type: Int_t|}]
 
 let%expect_test "Non-matching tags but unambiguous types" =
@@ -134,11 +134,11 @@ let%expect_test "Non-matching tags but unambiguous types" =
     {|
     RT:
     Entrypoint: %D
-    └──Pattern: Id:b
+    └──Pattern: Var:b
       └──Type: Bool_t
     LT:
     Entrypoint: %C
-    └──Pattern: Id:a
+    └──Pattern: Var:a
       └──Type: Int_t|}]
 
 let%expect_test "Wildcard" =
