@@ -1,0 +1,11 @@
+<pattern> ::=
+  | '_'
+  | nil
+  | none
+  | (IDENT : <type>)
+  | IDENT
+  | (pair <pattern> <pattern>)
+  | (left <pattern>)
+  | (right <pattern>)
+  | (cons <pattern> <pattern>)
+  | (some <pattern>)

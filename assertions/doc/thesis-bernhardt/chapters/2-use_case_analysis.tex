@@ -22,7 +22,7 @@ The set of formulas that well-formed assertions can express is given in \figref{
 \label{fig:formulas}
 \vspace*{\baselineskip}\endgroup
 
-\section{Interesting formulas and special cases}\label{sec:examples}
+\section{Examples and special cases}\label{sec:examples}
 This section contains a subset of use-cases that were collected in collaboration with Julian Veigl for an intermediate report \cite{bernhardt_veigel_2020}. The selection of examples covers different types and compositions of quantifiers, demonstrates different meanings of their negations, identifies special cases and discusses their implications for the implementation of distributed assertion checking.
 
 \subsection{Two numbers are coprime}\label{sec:coprime}
@@ -54,7 +54,7 @@ The time complexity of checking whether $a$ satisfies the heap property depends 
   (\exists k : int) (1 \le k \le |a|) \land a[\lfloor(k-1)/2)\rfloor] > a[k]
 \end{equation}
 
-\section{Existential quantification and proofs of validity}\label{sec:existential}
+\subsection{Existential quantification - intersection of sets}\label{sec:existential}
 So far, this thesis only considered formulas featuring universal quantification, for which the assertion scheme challenged the validators to find counterexamples. However, distributed assertion checking can not only be used to refute assumptions, but also to prove their validity. This is the case for formulas featuring existential quantification. As an example, consider the assumption that two sets $U$ and $V$ have a non-empty intersection, i.e., $U \cap V \neq \emptyset$. This assumption and its negation can be expressed in predicate logic by 
 \begin{equation}\label{eq:intersect}
   (\exists i, \exists j) (0 \le i < |u|) \land (0 \le j < |v|) \Rightarrow u[i] = v[j]
@@ -67,10 +67,9 @@ If the condition $u[i] \neq v[j]$ is false for random values of $i$ and $j$, it 
 
 Concerning the complexity of this assertion, the property can be checked in $\mathcal{O}(|u|*|v|)$. By considering the cardinality of their union $n = |u|+|v|$, one can derive that the worst case occurs when both sets have the same size, i.e., $|u| = |v| = n/2$. This leads to a quadratic complexity $\mathcal{O}(n/2 * n/2) = \mathcal{O}(n^2/4) = \mathcal{O}(n^2)$.
 
-\section{Nested quantification}
-The previous example showed that universal and existential quantification have to be handled differently. However, further special cases caused by nested quantification have to be considered as well. A nesting of the same type of quantifier, e.g. $\forall i \forall j$ can be considered as trivial. They can be handled by generating a random value for each predicate variable and checking for a counterexample or proof respectively. It becomes less trivial though, if the nesting contains both universal and existential quantifiers. This section examines the cases of $\forall i \exists j$ and $\exists i \forall j$ on the basis of a contract that expects a solution for a boolean satisfiability problem (SAT).
+\subsection{Nested quantification - SAT problems}
+The previous example showed that universal and existential quantification have to be handled differently. However, further special cases caused by nested quantification have to be considered as well. A nesting of the same type of quantifier, e.g. $\forall i \forall j$ can be considered as trivial. They can be handled by generating a random value for each predicate variable and checking for a counterexample or proof respectively. It becomes less trivial though, if the nesting contains both universal and existential quantifiers. This section examines the cases of $\forall i \exists j$ and $\exists i \forall j$ on the basis of a contract that expects a solution for a boolean satisfiability problem (SAT). \\
 
-\subsection{Boolean satisfiability problem}\label{sec:sat}
 Instances of SAT problems consist of a formula $F$ in propositional logic, and determine if there exists a variable assignment $\mathcal{A}$ to the values $true$ or $false$, s.t. the formula is satisfied ($\mathcal{A}(F) = 1$) \cite{Biere2009}. Modern SAT-solvers expect $F$ to be in conjunctive normal form (CNF), i.e., a conjunction of a set of clauses, where clauses are disjunctions of variables or their negations (called literals) \cite{cnf_math_encycl}. While finding an assignment $\mathcal{A}$ that satisfies $F$ is a NP-complete problem \cite{Biere2009}, verifying whether a given assignment satisfies the formula takes $\mathcal{O}(n*m)$, where $n$ is the number of clauses and $m$ the number of variables (in the worst case, every variable is present as a literal in each clause). In the case of k-SAT problems, where each clause contains at most k literals \cite{Biere2009}, the complexity is reduced to $\mathcal{O}(n)$.
 
 \subsubsection{Encoding of variables, literals and clauses}
@@ -96,7 +95,7 @@ Following the encoding of variables given above, the list of variables $v=[A,B,C
 \texttt{decode(y) = y >> 1}
 \end{align*}
 
-\subsection{Satisfiability in predicate logic - CNF}
+\subsubsection{Satisfiability in predicate logic - CNF}
 Consider a contract that expects a SAT problem in CNF and a proposed assignment, both encoded as described above. Assuming that $F$ is a k-SAT instance, the assumption that $\mathcal{A}$ satisfies $F$ can be expressed in predicate logic as follows:
 \begin{equation}\label{eq:cnf_sat}
 \begin{aligned}
@@ -137,7 +136,7 @@ return false
 
 Due to the loop, the cost incurred by one validator checking the assertion becomes, in the worst case, linear in the number of literals in the clause. An exception is the case of k-SAT instances, where the cost per validators remains constant, albeit with a factor $k$. 
 
-\subsection{Satisfiability in predicate logic - DNF}\label{sec:dnf}
+\subsubsection{Satisfiability in predicate logic - DNF}\label{sec:dnf}
 The same propositional formula with the reversed quantification nesting $\exists i \forall j$ describes the assertion for the assumption $\mathcal{A}(F) = 1$, where $F$ is given in disjunctive normal form (DNF), i.e., a disjunction of conjunctions \cite{dnf_math_encycl}:
 \begin{equation}\label{eq:dnf_sat}
 \begin{aligned}
@@ -157,8 +156,9 @@ To substantiate this argument, consider two variations of a contract that expect
 \end{itemize}
 In the first case, each validator picks a random clause from a random $F$ and checks if at least one literal evaluates to true. This translates to two random generators and a loop for the existential quantifier. In the second case, checking a random clause in isolation cannot prove the satisfiability, hence the validator has to check all clauses in a loop. This translates to one random generator and two loops. The same reasoning can be done for the reverse order, i.e. $\exists\exists\forall$ and $\forall\exists\forall$.
 
-\section{Restriction of use-cases}\todo{Better title?}
-The examples given in this chapter have shown that, depending on the type and order of quantification, not all properties can be checked in the same way and need different modi of assertion checking, as well as a distinct translation to target code. This increases the complexity and requirements for an implementation of the off-chain infrastructure and protocol amendment; therefore, as a first iteration, this thesis focuses on providing a design and toolchain for assertions using universal quantification only.
+\section{Restriction of use-cases}\label{sec:restrict}\todo{Better title? -> conclusion?}
+\todo{meh}
+The examples given in this chapter have shown that, depending on the type and order of quantification, not all properties can be checked in the same way and need different modi of assertion checking. Additionally,  as well as a distinct translation to target code. This increases the complexity and requirements for an implementation of the off-chain infrastructure and protocol amendment; therefore, as a first iteration, this thesis focuses on providing a design and toolchain for assertions using universal quantification only.
 
 \section{Cost analysis of a local approach}\label{sec:usecase_cost}
 For the purpose of having a benchmark for the evaluation of the distributed approach, this section analyses the cost of invoking a contract on the blockchain that locally checks a formula. Given that the target blockchain is Tezos, the computational and storage-related costs of a transaction are represented in units of gas. Although they are not paid directly in terms of fees, the actual fees paid to the miner (called bakers in Tezos) are based on the gas consumption. The gas model of Tezos is described in more detail in \secref{sec:tezos}. According to this model, the total gas consumption of a transaction $T(source,\, destination=C,\, arg, \, ...)$ calling a smart contract $C(storage, \, parameter\, type, \, code)$ is calculated by \eqref{eq:gas_transaction}, where $I$ is the set of internal operations:

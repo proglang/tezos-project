@@ -330,10 +330,10 @@ The Tezos backend of the pipeline comprises of the three stages semantic check, 
 \label{fig:pipeline_backend}
 \end{figure}
 
-\subsection{Type check}
+\subsection{Type check}\label{sec:typecheck}
 The task of the type checker is to map the assertions from the given file to the respective entrypoints of the parent contract. To this end, the parameter types have to be compared and matched against each other in order to find a correct assignment. The type checker either reads the code of the parent contract from a given file or retrieves the code from a given address on the blockchain. It must be ensured that the created mapping is injective and unambiguous, i.e., each assertion matches exactly one entrypoint and no entrypoint is covered by more than one assertion.\\
 As explained in \secref{sec:tezos}, entrypoints can be selected by calling the default entrypoint and wrapping the parameter into the respective union constructors. Alternatively, they can be called explicitly using their tag and passing the parameter as raw value. The same applies for the assertions - by omitting the tag, the parameter type must be declared in respect to the default entrypoint type. If the assertion states an explicit tag, it may declare the raw parameter type. The tags do not necessarily have to be identical with the tags of the parent contract; in some cases, they may be chosen differently for documentation or for readability purposes. However, the tags can and should be used to resolve ambiguity in the mapping between assertions and entrypoints, that is if several entrypoints share the same input type. Ambiguity can also be caused by the fact that entrypoints can be sub-entrypoints of others, thus assertions overlap if a separate assertion is declared for both super- and sub-entrypoint. This is resolved by detecting overlapping assertions during the type check and rejecting assertion contracts where appropriate. \\
-As an exemplification, consider a Michelson contract with five entrypoints (including the \texttt{\%default}):
+As an example, consider a Michelson contract with five entrypoints (including the \texttt{\%default}):
 \begin{lstlisting}[numbers=none, language=Michelson]
 parameter (or (int %A) (or %BC (int %B) (int %C)))
 \end{lstlisting}
@@ -346,11 +346,13 @@ The following assertion contract for the given PC contains some valid and some i
 \end{lstlisting}
 Due to its tag, the fist assertion can be assigned unambiguously to entrypoint A, whereas for the second it is not apparent whether it should be assigned to entrypoint B or C. Since the tag is omitted in the third assertion, the parameter type is given in respect to the default entrypoint and is assigned to B. The last assertion is invalid because it is overlapping with the previous assertion, which was already assigned to entrypoint B.
 
-\subsection{Compiler}
+\subsection{Compiler}\label{sec:compiler}
 The transformed and type checked assertion AST needs to be retargeted to Michelson code according to the orchestration scheme. Since the modular approach is less complex to implement and avoids having to decompile the parent code, this section describes a compiler that assembles the assertion and contract code according to \figref{fig:modular_assembly}. The target language of the compiler of the pipeline can either be Michelson directly, or another high-level language which supports Michelson as a target. \secref{sec:tezos} lists some examples of such languages. The chosen language then serves as an intermediate representation (IR) of the assertion and manager code, which is ultimately compiled to Michelson by the compiler of the language. After specifying the steps of the compilation in a general way, the compilation approaches are described and discussed in more detail in \secref{sec:direct} and \ref{sec:IR}.
 
 \subsubsection{Compilation of the assertion contracts}
 Since the assertions are independent of each other and the manager code, each of them can be compiled in isolation to a separate Michelson program. The generated code of the assertion body and the parameter type can be plugged into a template that already contains the necessary boilerplate code for a contract.
+% type inference from patterns
+% handling of patterns like cons
 
 \subsubsection{Compilation of the manager contract}
 Given that the manager contract mirrors the parent contract and assuming that the proposal for the storage type from \lstref{lst:manager_modular} is adopted, the type declarations can be translated directly to the target language. Algorithm \ref{alg:compile_manager} shows the outline of a simplified algorithm that builds the code body recursively. For simplicity, entrypoints that take a sum type as parameter (e.g. \texttt{(or \%AB int int)} are not considered in the algorithm. However, in the actual compiler implementation they need to be taken care of. 
