@@ -10,18 +10,7 @@ let%expect_test "missing name indicator" =
     {|
      Parsing the assertion failed.
      ---
-     :1:17: syntax error |}]
-
-let%expect_test "missing type notation" =
-  parse
-   "(entrypoint a
-      (forall (b:bool)
-        (assert b)))" ;
-  [%expect
-    {|
-     Parsing the assertion failed.
-     ---
-     :1:14: syntax error |}]
+     :1:19: syntax error |}]
 
 let%expect_test "incomplete pattern" =
   parse

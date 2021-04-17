@@ -64,20 +64,30 @@ let pattern_match_test_cases =
       ("(list int)", "(cons (x : int) nil)");
       ("(list int)", "(cons (x : int) _ )");
       ("(list int)", "(cons _ (xs : (list int)))");
+      ("(list int)", "(cons a as)");
+      ("(list int)", "(cons a _)");
+      ("(list int)", "(cons a nil)");
       ("(option bool)", "none");
       ("(option bool)", "_");
       ("(option bool)", "(some _)");
+      ("(option bool)", "(some x)");
       ("(option bool)", "(some (x : bool))");
       ("(or nat string)", "_");
       ("(or nat string)", "(left _)");
+      ("(or nat string)", "(left x)");
       ("(or nat string)", "(left (x : nat))");
       ("(or nat string)", "(right _)");
+      ("(or nat string)", "(right x)");
       ("(or nat string)", "(right (x : string))");
       ("(pair address bytes)", "_");
       ("(pair address bytes)", "(pair _ _)");
       ("(pair address bytes)", "(pair (x : address) _)");
       ("(pair address bytes)", "(pair _ (x : bytes))");
       ("(pair address bytes)", "(pair (x : address) (y : bytes))");
+      ("(pair address bytes)", "(pair a b)");
+      ("(pair address bytes)", "(pair a _)");
+      ("(pair address bytes)", "(pair _ b)");
+      ("(pair address bytes)", "(pair a (b: bytes))");
     ]
 
 let type_match_test_cases =

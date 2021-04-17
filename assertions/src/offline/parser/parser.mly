@@ -42,11 +42,11 @@ pattern:
   | p = in_parens(pattern_paren)  {p}
   | NONE                          {`None}
   | NIL                           {`Nil}
+  | id = IDENT                    {`IdentPat id}
   ;          
 
 pattern_paren:
   | v = var_declaration                  {`Var v}
-  | id = IDENT                           {`IdentPat id}
   | PAIR_T; p1 = pattern; p2 = pattern   {`Pair (p1, p2)}
   | CONS; p1 = pattern; p2 = pattern     {`Cons (p1, p2)}
   | SOME; p = pattern                    {`Some p}

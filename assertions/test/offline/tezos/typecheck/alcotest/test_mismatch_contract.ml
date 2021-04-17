@@ -144,6 +144,26 @@ let test_ambiguous_wildcard _ () =
       code
       script
 
+let test_ambiguous_typeless_pattern_any _ () =
+  let code =
+    {|(entrypoint a (assert true))|}
+  in
+  let script = generate_contract "(or (int %A) (int %B))" in
+  lwt_check_raises (Some (error_ambiguous_ep "default")) @@
+    typecheck
+      code
+      script
+
+let test_ambiguous_typeless_composite_pattern _ () =
+  let code =
+    {|(entrypoint (pair a b) (assert true))|}
+  in
+  let script = generate_contract "(or (pair %A int int) (pair %B int nat))" in
+  lwt_check_raises (Some (error_ambiguous_ep "default")) @@
+    typecheck
+      code
+      script
+
 let test_overlapping_assertions_w_tags _ () =
   let code =
     {|(entrypoint %A (a: int) (assert true))

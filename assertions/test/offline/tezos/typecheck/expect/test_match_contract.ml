@@ -150,3 +150,82 @@ let%expect_test "Wildcard" =
     LT:
     Entrypoint: %A
     └──Pattern: Wildcard|}]
+
+let%expect_test "untyped pattern - any" =
+  exec
+    (tz_code "(or (int %A) (bool %B))")
+    {|(entrypoint %A a (assert true))|};
+  [%expect
+    {|
+    LT:
+    Entrypoint: %A
+    └──Pattern: Wildcard|}]
+
+let%expect_test "untyped pattern - pair" =
+  exec
+    (tz_code "(or (pair %A int string) (bool %B))")
+    {|(entrypoint %A (pair a b) (assert true))|};
+  [%expect
+    {|
+    LT:
+    Entrypoint: %A
+    └──Pattern: Pair
+      └──Pattern: Id:a
+      └──Pattern: Id:b|}]
+
+let%expect_test "untyped pattern - left" =
+  exec
+    (tz_code "(or (int %A) (bool %B))")
+    {|(entrypoint (left a) (assert true))|};
+  [%expect
+    {|
+    LT:
+    Entrypoint: %default
+    └──Pattern: Left
+      └──Pattern: Id:a|}]
+
+let%expect_test "untyped pattern - right" =
+  exec
+    (tz_code "(or (int %A) (bool %B))")
+    {|(entrypoint (right a) (assert true))|};
+  [%expect
+    {|
+    RT:
+    Entrypoint: %default
+    └──Pattern: Right
+      └──Pattern: Id:a|}]
+
+let%expect_test "untyped pattern - some" =
+  exec
+    (tz_code "(or (option %A int) (bool %B))")
+    {|(entrypoint %A (some a) (assert true))|};
+  [%expect
+    {|
+    LT:
+    Entrypoint: %A
+    └──Pattern: Some
+      └──Pattern: Id:a|}]
+
+let%expect_test "untyped pattern - cons" =
+  exec
+    (tz_code "(or (list %A int) (bool %B))")
+    {|(entrypoint %A (cons a as) (assert true))|};
+  [%expect
+    {|
+    LT:
+    Entrypoint: %A
+    └──Pattern: Cons
+      └──Pattern: Id:a
+      └──Pattern: Id:as|}]
+
+ let%expect_test "untyped pattern by component" =
+  exec
+    (tz_code "(or (list %A int) (list %B nat))")
+    {|(entrypoint %A (cons (a: int) as) (assert true))|};
+  [%expect
+    {|
+    LT:
+    Entrypoint: %A
+    └──Pattern: Cons
+      └──Pattern: Id:a
+      └──Pattern: Id:as|}]

@@ -19,7 +19,7 @@ let%expect_test "missing pattern ()" =
       {|
        Parsing the assertion failed.
        ---
-       :1:14: syntax error |}]
+       :1:15: syntax error |}]
 
 let%expect_test "missing composite type ()" =
   parse
