@@ -1,17 +1,18 @@
 \externaldocument{1-introduction}
 
 \chapter{Toolchain Implementation - Frontend}\label{chap:offline}
-The purpose of the toolchain is to support the proposed model from specifying assertions for Smart Contracts, transforming them to their negation to generating assertion Smart Contracts that can be invoked by the validators. As determined in \secref{sec:restrict}, the current version of the toolchain only supports the processing of assertions featuring universal quantification. The code is available in a GitHub\footnote{\url{https://github.com/proglang/thesis-distributed-assertion-checking}\todo{commit}} repository of the Chair of Programming Languages.
+The purpose of the toolchain is to support the proposed model from specifying assertions for Smart Contracts, transforming them to their negation to generating assertion Smart Contracts that can be invoked by the validators. As determined in \secref{sec:restrict}, the current version of the toolchain only supports the processing of assertions featuring universal quantification. The toolchain was developed in the programming language OCaml \cite{ocaml_docs} --- the code is available in a GitHub\footnote{\url{https://github.com/proglang/thesis-distributed-assertion-checking}\todo{commit}} repository of the Chair of Programming Languages.
 
-As an overview, \figref{fig:pipeline_frontend} depicts all stages of the processing pipeline implemented by the toolchain. The colourized stages highlight the frontend, which was designed to be as generic as possible, s.t. it can be used (or extended) to support any target blockchain. For the target-specific processing, the intermediate result of the frontend is passed to the respective backends via a public interface. 
+As an overview, \figref{fig:pipeline_frontend} depicts all stages of the processing pipeline implemented by the toolchain. The colourized stages highlight the frontend, which was designed to be as generic as possible, s.t. it can be used (or extended) to support any target blockchain. For the target-specific processing, the intermediate result of the frontend is passed to the respective backends via a public interface.
+
+\begin{figure}[h]
+\includegraphics[width=\linewidth]{figures/3-offline/pipeline_frontend}
+\caption{The stages of the generic frontend of the compilation pipeline}
+\label{fig:pipeline_frontend}
+\end{figure}
 
 First, developers can specify assertions in a domain-specific language, which is described in \secref{sec:syntax}. The toolchain then parses the assertions into abstract syntax trees (ASTs), which are passed to the transformation stage. In this stage, the ASTs are transformed into ASTs that represent their negation. This is described further in \secref{sec:transformation}. The resulting ASTs are then passed to the backend, which is introduced in the subsequent chapter for the Tezos blockchain.
 %Lastly, \secref{sec:accuracy} analyses the reliability of distributed assertion checking as proposed and to what extent it affects the costs.
-
-% provide a high level language specifying complex computations that way  is  hard  and  inconvenient
-% 1) propose a model/approach to make use of off-chain computations that can be verified with explicit assertions
-% 2) contribute a toolchain that consists of a domain-specific language and a compilation pipeline that generates assertion smart contracts for the target blockchain Tezos. efforts were made to keep this as generic as possible, s.t. it can be extended for other target platforms as well
-% extend smart contracts and the VM with opcodes
 
 \section{Assertion syntax}\label{sec:syntax}
 Tezos' Smart Contract language Michelson is a low-level and stack-based language. Specifying assertions that way is complex and inconvenient, especially if the language is compiled to other targets as well. Therefore, this thesis defines a domain-specific high-level language to express assertions. 
@@ -39,14 +40,17 @@ In order to make the frontend generic, the sets of data types and operations sup
 
 The current version of the language contains all data types present in Tezos' VM and a subset of operations that Michelson provides (as of protocol version 007 Delphi). Besides the primitive types \texttt{int}, \texttt{nat} (natural numbers), \texttt{string}, \texttt{bool}, \texttt{bytes} and \texttt{unit}, this includes composite types like \texttt{list}, \texttt{pair}, \texttt{map} or the union type \texttt{or}. Domain specific data types, like \texttt{timestamp} or \texttt{address}, are supported as well. The data type \texttt{fmu} represents a generic fractional monetary unit, which is translated to the corresponding token type of the target platform\footnote{Mutez in Tezos, or Wei in Ethereum}.
 
+The grammar currently includes common arithmetic (e.g., \texttt{add}, \texttt{sub}, \texttt{abs}, \texttt{mod}), relational  (e.g., \texttt{eq}, \texttt{neq}, \texttt{lt}) and logic and bitwise operators (e.g., \texttt{and}, \texttt{or}, \texttt{lsr}, \texttt{lsl}). Some operations that operate on data structures (e.g., \texttt{nth} and \texttt{size}) are supported as well. Domain specific operations have not been included yet, but they may be added to the language if necessary. 
+
 \subsection{Example}
+The example given in \lstref{lst:sorted_assertion} implements an assertion, which checks whether a list is sorted in ascending order based on a variation of the formula stated in \eqref{eq:sorted} in the introduction:
+\begin{equation}\label{eq:sorted_v2}
+	(\forall n,m : int) (0 \leq n < m < |a|) \Rightarrow a[n] \leq a[m]
+\end{equation}
+In contrast to the previous variation, which translates to an assertion that compares a random element of the list with its direct neighbour, this translates to a comparison of two random elements (under the constraint $n < m$). \lstref{lst:sorted_assertion} shows how this formula can be expressed in the assertion language.
 \lstinputlisting[caption=Assertion contract for checking if a list is sorted, language=Assertion, label={lst:sorted_assertion}]{listings/sorted.tza}
 
-As an example, consider a variation of the formula given in \eqref{eq:sorted} that checks whether a given list is sorted in ascending order:
-\begin{equation}\label{eq:sorted_v2}
-	(\forall n : int)(\forall m : int) (0 \leq n < m < |a|) \Rightarrow a[n] \leq a[m]
-\end{equation}
-The respective assertion that checks this property for the parent contract, given in \lstref{lst:sorted}, is expressed in \lstref{lst:sorted_assertion}.
+In line 1, the signature of the assertion is declared with tag \textit{find} and a parameter \texttt{a} of type integer list. The body is a nesting of two universal quantifiers which declare the predicate variables $n$ and $m$ of type integer (lines 2 and 3), followed by a nesting of conditions to define the domains of the quantifiers (lines 4-6), corresponding to the premise of the formula. The body of the last condition (line 7) ultimately contains the keyword \texttt{assert} followed by the specification of the property to be checked, i.e.,  $a[n] \leq a[m]$.
 
 \subsection{Extensions}\label{sec:ext}
 In future iterations, the assertion syntax could be extended with some more features to improve usability and readability:
@@ -58,26 +62,57 @@ In future iterations, the assertion syntax could be extended with some more feat
 This feature is not included in the current version, because conditional domain restrictions make the translation from quantifiers to random generators or loops more complex. Aside from that, without the feature of variables and user-defined functions, the code is inflated significantly, thus causing increased origination cost.
 \end{itemize}
 
-\section{Frontend of the pipeline}\label{sec:pipeline_front}
-The frontend of the compilation pipeline comprises of a command-line interface (CLI), a parser and the transformation. These stages are generic and independent of the target platform, and produce an abstract syntax tree (AST) of the assertion. This AST	is then passed to the respective back-end through a public interface.
-\begin{figure}[h]
-\includegraphics[width=\linewidth]{figures/3-offline/pipeline_frontend}
-\caption{The stages of the generic frontend of the compilation pipeline}
-\label{fig:pipeline_frontend}
-\end{figure}
-OCaml was chosen as a programming language to implement the pipeline, given that it's also used to develop the Tezos blockchain. This avoids context switches within the Tezos eco-system and allows to build on top of the Tezos libraries (cf. \secref{sec:tezos}).
+\section{Parser}
+Assertions expressed in the syntax described above are passed as a simple text file to the pipeline. It is not admissible to generate empty assertions for all entrypoints of the parent contract, hence empty files are rejected. Furthermore, the parser guarantees total success or total failure of parsing the assertion by aborting execution immediately after encountering a syntax error. 
 
-\subsection{Parser}
-Assertions expressed in the syntax described above are passed as a simple text file to the pipeline. The file extension is irrelevant, but this thesis follows the convention of using the file extension \texttt{.tza} for assertion contracts (referring to the extension \texttt{.tz} for Michelson contracts). The file must contain at least one assertion, hence it is not admissible to create empty assertions for all functions (or entrypoints) of the parent contract. Furthermore, every syntax error will cause the pipeline to abort execution in order to ensure that no assertion is missing in the target code. Each of the contained assertions is, after parsing, represented as a separate abstract syntax tree (AST). The AST represents, like the syntax itself, a union of all target specific ASTs that contain the supported subsets of operations and types. \\
-Both lexer and parser have been generated using the OCaml tools \texttt{ocamllex} \cite{ocaml_docs} and \texttt{menhir} \cite{menhir_doc}.
+After successfully parsing all assertions, the parser returns a list of ASTs. On the toplevel, the AST type given in \lstref{lst:ast_type} is composed of an entrypoint specification and an assertion body. The parameter pattern and assertion body, in turn, are  subtrees representing their composition or the content of the assertion respectively.
+\begin{lstlisting}[label=lst:ast_type, language=, numbers=none, caption=Toplevel AST type definition in OCaml]
+type ast =
+  {entrypoint : string option * pattern; body : assertion}
+\end{lstlisting}
 
-\subsection{Transformation}\label{sec:transformation}
-Since the validators will check the input parameter for the negation of the formula, it has to be transformed before compilation. Furthermore, the formula should explicitly state the domain for each quantifier, which will have to be translated into a set of bounds that refer to the respective random generator. Restricting the ranges of the random generators is important in order to avoid wasting resources through testing values out of the relevant (or legal) scope.
+\begin{wrapfigure}{r}{0.45\textwidth}
+\vspace{-30pt}
+ \begin{center}
+  \includegraphics[width=0.4\textwidth]{figures/3-offline/ast_example_find}
+  \end{center}
+  \caption{Abstract syntax tree of the assertion given in \lstref{lst:sorted_assertion}}
+  \label{fig:ast_example}
+  \vspace{-30pt}
+\end{wrapfigure}
+
+\figref{fig:ast_example} shows the resulting AST after parsing the assertion given in \lstref{lst:sorted_assertion}. The subtype representing quantifiers contains a special field \textit{Bounds}, which is initially left empty by the parser. During the transformation, it is populated with a set of constraints concerning its predicate variable, cf. \secref{sec:transformation}.
+
+\section{Transformation}\label{sec:transformation}
+The assertion, as specified by a developer, is modified in two ways before the compiler translates it into target code: firstly, it has to be transformed into its negation. Secondly, quantifiers are converted to random generators, which generate values within a specified range (corresponding to the domains of discourse). In the assertion language, the ranges can be expressed using \texttt{if}-conditions. As a preliminary for the compilation, the transformation additionally analyses the condition nodes of the AST, identifies conditions that state a range constraint for a generator and assigns it to the respective quantification node (by adding it to the \textit{Bounds} field). Therefore, the transformation contains two consecutive steps:
+\begin{enumerate}
+\itemsep-0.5em
+\item Negation
+\item Domain constraint analysis and assignment
+\end{enumerate}
+Each step is described in more detail in the following subsections.
 
 \subsubsection{Negation}
-The formula is negated using the negation rules of second-order logic and applying De Morgan's laws \cite{de_morgan} until the negation is applied to the literals. Negating universal quantification is equivalent to an existential quantification of its negated body (and vice versa): $\neg \forall x P(x) \equiv \exists x \neg P(x)$ \cite{Sundstrom2020Quantifiers}. The domain restrictions are not affected by the negation, which is also reflected in the rules of predicate logic if the domain is given as a premise in the logical formula: $\neg (p \Rightarrow q) \equiv p \Rightarrow \neg q $.
+The formula is negated according to the negation rules of second-order predicate logic and by applying De Morgan's laws \cite{de_morgan} until the negation is applied to the literals. Negating universal quantification is equivalent to an existential quantification of its negated body (and vice versa): $\neg \forall x P(x) \equiv \exists x \neg P(x)$ \cite{Sundstrom2020Quantifiers}. The domain restrictions are not affected by the negation, which is also reflected in the rules of predicate logic if the domain is given as a premise in the logical formula: $\neg (p \Rightarrow q) \equiv p \Rightarrow \neg q $.
+
+Applied to an AST representation of the assertion, the negation recursively traverses the \texttt{assertion} subtree, replaces quantifier and expression nodes with the corresponding negations and skips condition nodes. The output is thus a modified AST. 
+
+Pursuing the example of the assertion for sorted lists, the negated version of the AST given in \figref{fig:ast_example} is shown in \figref{fig:ast_example_neg}.
+% point out negated expressions
+\begin{figure}
+\subfloat[Negated AST\label{fig:ast_example_neg}]{%
+  \includegraphics[width=0.45\textwidth]{figures/3-offline/ast_example_neg}
+}
+\hfill
+\subfloat[Fully transformed AST\label{fig:ast_example_transf}]{%
+  \includegraphics[width=0.4\textwidth]{figures/3-offline/ast_example_transf}
+}
+\caption{Transformation (intermediate) results of the sorted list assertion AST}
+\end{figure}
 
 \subsubsection{Building smart random generators}
+% Restricting the ranges of the random generators is important in order to avoid wasting resources through testing values out of the relevant (or legal) scope.
+%At this point, you can read off the invocation for the random generator. If any constraints remain, they’d have to be checked at run time. In the best case, things work out like in the example. Otherwise, each if-constaint that turns out to be false results in a useless test run.
 In order to assign each explicit bound to its appropriate quantifier, the formula has be skimmed for atomic constraints that contain predicate (bound) variables. They're then moved and assigned to the quantifier that bounds the variable. If the constraint contains more than one bound variable, it is assigned to the quantifier with the highest depth in the order of quantifiers, as they depend on the generated value(s) of the other variable(s). \\
 Revisiting the formula from \eqref{eq:sorted_v2}, its premise can be considered as a conjunction of the four constraints
 \begin{itemize}
@@ -175,7 +210,7 @@ For $c = \frac{1}{e}$ ($\approx 36.79\:\%$) the lower bound of $t$ is exactly $n
 For assertions with several quantifiers, which are translated to random generators, all domains have to be considered in the calculation. Revisiting the intersection of sets from \secref{sec:existential}, every element in set $U$ has to be compared to every element in set $V$. Thus, the lower bound of test runs needed to check whether they intersect with a certainty of 63.21\% is given by $t \leq t_1 * t_2$ with $t_1 \geq |U|$ and $t_2 \geq |V|$.
 
 \subsection{Validators vs. test runs}
-The last section derived a formula to calculate a lower bound for a number of test runs $t$ in order to reach a certain level of confidence. However, $t$ is not a parameter that can be adjusted to an arbitrary value on the blockchain, as the assertion is checked by the validators. Assuming a blockchain has $m$ validators, the actual lower bound of test runs is $m$. For cases where there are not enough validators to reach a threshold $c$, a mechanism is required to have each validator check the property for multiple random values. Hence, the actual executed number of checks is always a multiple of $m$. \secref{} goes into a bit more detail about this based on the Tezos blockchain. \todo{Refer to section}
+The last section derived a formula to calculate a lower bound for a number of test runs $t$ in order to reach a certain level of confidence. However, $t$ is not a parameter that can be adjusted to an arbitrary value on the blockchain, as the assertion is checked by the validators. Assuming a blockchain has $m$ validators, the actual lower bound of test runs is $m$. For cases where there are not enough validators to reach a threshold $c$, a mechanism is required to have each validator check the property for multiple random values. Hence, the actual executed number of checks is always a multiple of $m$. \secref{} goes into more detail about this based on the Tezos blockchain. \todo{Refer to section}
 
 \subsection{Alternatives to random testing}\label{sec:alt_random}
 For applications where higher reliability is crucial, an alternative to checking elements randomly could be to coordinate a systematic iteration of the domain. The implementation of such a coordination is not trivial though; validators can't simply be passed an individual value as input. Instead, possible approaches could be to implement a central instance that allocates an element in the search space to each validator, or use some unique and intrinsic attribute, like an identification number, as input for a mapping. The discussion if this approach would provide any advantages over a local validation of the property is left open \todo{Depends on cost analysis?}.

@@ -178,7 +178,8 @@ GasConsumed(T) = \quad &base \, gas \, cost \\
 +& \, \sum_{i \in I} GasConsumed(i)
 \end{split}
 \end{align}
-Assuming that the storage of the contract is never increased, the amount of gas returned by the cost functions independent of the argument, i.e., the parameter value, remains constant for each $T$. The cost functions for the deserialization, parsing and interpretation, however, are functions of $arg$ that grow monotonically with increasing sizes of $arg$ \cite{morley_gasmodel}\cite{tezos_repo}. \\
+Assuming that the storage of the contract is never increased, the amount of gas returned by the cost functions independent of the argument, i.e., the parameter value, remains constant for each $T$. The cost functions for the deserialization, parsing and interpretation, however, are functions of $arg$ that grow monotonically with increasing sizes of $arg$ \cite{morley_gasmodel}\cite{tezos_repo}.
+
 Consider the following simple contracts --- they do not do anything useful, but can be used to approximate the amplification of costs with regard to $arg$. Function \texttt{foo} of contract \texttt{Foo} takes an integer as input parameter, whose byte sequence representation does not increase significantly with higher values. Thus, the increase in overall costs is mainly accounted for by the interpretation cost. Contract \texttt{Bar}, on the other hand, executes similar operations in function \texttt{bar}, but expects a list of integers. The list data type additionally causes higher deserialization and parsing costs with increasing input sizes. 
 \begin{lstlisting}[numbers=none, language=Solidity, caption=Simple dummy contract executing a loop]
 contract Foo {
@@ -200,14 +201,13 @@ contract Bar {
 \end{lstlisting}
 
 \figref{fig:use_case_cost} shows the reported gas consumption of transactions calling corresponding dummy contracts in Michelson (cf. Appendix \ref{apx:cost_analysis_contract}) on the Delphinet test network \footnote{\url{https://tezos.gitlab.io/introduction/test_networks.html\#delphinet}}. As to be expected, the gradient of the cost function in the case of \texttt{Bar.bar} is higher due to additional serialization and parsing costs, namely $\frac{dx}{dy} = 16$ compared to $\frac{dx}{dy} = 6$ for \texttt{Foo.foo}.
-
-
-Besides inflicting higher transaction costs on the user with increasing parameter sizes, a local approach also causes a higher ``footprint'' on the blockchain network. The transaction has to be processed at every full node of the network, which do not get any rewards in return (except for the nodes that were assigned baking or endorsement rights for the current block \footnote{Tezos' Proof of Stake consensus mechanism is described in \secref{sec:tezos}}).
-
-\begin{figure}[p]
+\begin{figure}[h]
 \centering
 \includegraphics[width=0.9\linewidth]{figures/2-use_cases/cost_analysis}
 \caption{Gas consumption of transactions calling \texttt{Foo} and \texttt{Bar} for increasing input sizes}
 \label{fig:use_case_cost}
-\vspace{128in}
+%\vspace{128in}
 \end{figure}
+
+
+Besides inflicting higher transaction costs on the user with increasing parameter sizes, a local approach also causes a higher ``footprint'' on the blockchain network. The transaction has to be processed at every full node of the network, which do not get any rewards in return (except for the nodes that were assigned baking or endorsement rights for the current block\footnote{Tezos' Proof of Stake consensus mechanism is described in \secref{sec:tezos}}).
