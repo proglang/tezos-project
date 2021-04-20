@@ -1,5 +1,3 @@
-\externaldocument{1-introduction}
-
 \chapter{Toolchain Implementation - Frontend}\label{chap:offline}
 The purpose of the toolchain is to support the proposed model from specifying assertions for Smart Contracts, transforming them to their negation to generating assertion Smart Contracts that can be invoked by the validators. As determined in \secref{sec:restrict}, the current version of the toolchain only supports the processing of assertions featuring universal quantification. The toolchain was developed in the programming language OCaml \cite{ocaml_docs} --- the code is available in a GitHub\footnote{\url{https://github.com/proglang/thesis-distributed-assertion-checking}\todo{commit}} repository of the Chair of Programming Languages.
 
@@ -71,16 +69,6 @@ type ast =
   {entrypoint : string option * pattern; body : assertion}
 \end{lstlisting}
 
-\begin{wrapfigure}{r}{0.45\textwidth}
-\vspace{-30pt}
- \begin{center}
-  \includegraphics[width=0.4\textwidth]{figures/3-offline/ast_example_find}
-  \end{center}
-  \caption{Abstract syntax tree of the assertion given in \lstref{lst:sorted_assertion}}
-  \label{fig:ast_example}
-  \vspace{-30pt}
-\end{wrapfigure}
-
 \figref{fig:ast_example} shows the resulting AST after parsing the assertion given in \lstref{lst:sorted_assertion}. The subtype representing quantifiers contains a special field \textit{Bounds}, which is initially left empty by the parser. During the transformation, it is populated with a set of constraints concerning its predicate variable, cf. \secref{sec:transformation}.
 
 \section{Transformation}\label{sec:transformation}
@@ -92,57 +80,72 @@ The assertion, as specified by a developer, is modified in two ways before the c
 \end{enumerate}
 Each step is described in more detail in the following subsections.
 
-\subsubsection{Negation}
+\subsection{Negation}
 The formula is negated according to the negation rules of second-order predicate logic and by applying De Morgan's laws \cite{de_morgan} until the negation is applied to the literals. Negating universal quantification is equivalent to an existential quantification of its negated body (and vice versa): $\neg \forall x P(x) \equiv \exists x \neg P(x)$ \cite{Sundstrom2020Quantifiers}. The domain restrictions are not affected by the negation, which is also reflected in the rules of predicate logic if the domain is given as a premise in the logical formula: $\neg (p \Rightarrow q) \equiv p \Rightarrow \neg q $.
 
 Applied to an AST representation of the assertion, the negation recursively traverses the \texttt{assertion} subtree, replaces quantifier and expression nodes with the corresponding negations and skips condition nodes. The output is thus a modified AST. 
+Further pursuing the example of the assertion for sorted lists, the negated version of the AST given in \figref{fig:ast_example} is shown in \figref{fig:ast_example_neg}. The universal quantifiers have been transformed to existential quantifiers, and the asserted condition from $a[n] <= a[m]$ to $a[n] > a[m]$.
 
-Pursuing the example of the assertion for sorted lists, the negated version of the AST given in \figref{fig:ast_example} is shown in \figref{fig:ast_example_neg}.
-% point out negated expressions
-\begin{figure}
+\begin{figure}[t]
+\hfill
+\subfloat[AST after parsing\label{fig:ast_example}]{%
+  \includegraphics[width=0.33\textwidth]{figures/3-offline/ast_example_find}
+}
 \subfloat[Negated AST\label{fig:ast_example_neg}]{%
-  \includegraphics[width=0.45\textwidth]{figures/3-offline/ast_example_neg}
+  \includegraphics[width=0.33\textwidth]{figures/3-offline/ast_example_neg}
 }
 \hfill
 \subfloat[Fully transformed AST\label{fig:ast_example_transf}]{%
-  \includegraphics[width=0.4\textwidth]{figures/3-offline/ast_example_transf}
+  \includegraphics[width=0.3\textwidth]{figures/3-offline/ast_example_transf}
 }
-\caption{Transformation (intermediate) results of the sorted list assertion AST}
+\caption{Modifications to the sorted list assertion AST from parsing to completed transformation}
 \end{figure}
 
-\subsubsection{Building smart random generators}
-% Restricting the ranges of the random generators is important in order to avoid wasting resources through testing values out of the relevant (or legal) scope.
-%At this point, you can read off the invocation for the random generator. If any constraints remain, they’d have to be checked at run time. In the best case, things work out like in the example. Otherwise, each if-constaint that turns out to be false results in a useless test run.
-In order to assign each explicit bound to its appropriate quantifier, the formula has be skimmed for atomic constraints that contain predicate (bound) variables. They're then moved and assigned to the quantifier that bounds the variable. If the constraint contains more than one bound variable, it is assigned to the quantifier with the highest depth in the order of quantifiers, as they depend on the generated value(s) of the other variable(s). \\
-Revisiting the formula from \eqref{eq:sorted_v2}, its premise can be considered as a conjunction of the four constraints
-\begin{itemize}
+\subsection{Domain assignment}
+In order to obtain random generators which only generate values in the interesting range, i.e., within the domains of discourse, the second step of the transformation skims the condition nodes of the AST for atomic constraints that contain bound variables. These conditions are then moved to the \texttt{Bounds} field of the respective quantifier. If the constraint contains more than one bound variable, it is assigned to the quantifier with the highest depth in the quantifier nesting, as they depend on the generated values of the previous generators. \\
+Relating to the example of sorted lists, the premise in \eqref{eq:sorted_v2} can be considered as a conjunction of the four constraints
+\begin{enumerate}
 \itemsep-1em
 \item $0 \leq n$
 \item $n < |a| $
 \item $n \le m$ and
 \item $m < |a|$.
-\end{itemize}
-Applying the rules given above after negating the formula, the constraints are assigned to the quantifiers as follows:
-\begin{equation}\label{eq:sorted_v2_bounds}
-	(\exists n : int, 0 \leq n \wedge n < |a|])(\exists m : int, m > n \wedge m < |a|) \text{ } a[n] > a[m]
-\end{equation}
-Ultimately, the quantifiers are then translated to the corresponding random generators, drafted in pseudocode:
-\begin{lstlisting}[label=lst:rand, numbers=none]
-n = random(0, size(list))
-m = random(n, size(list))
+\end{enumerate}
+Constraint 1,2 and 4 only contain one bound variable ($n$ or $m$), thus they are assigned to the respective quantifier binding it. Constraint 3, on the other hand, features two bound variables -- this constraint is assigned to the quantifier last in the nesting, thus the quantifier binding $m$. The corresponding AST expressing this assignment is shown in \figref{fig:ast_example_transf}. 
+
+During compilation, the quantifiers, and their list of bounds, are then translated to target code that corresponds to the following pseudocode (\lstref{lst:rand}):
+\begin{lstlisting}[label=lst:rand, caption=Random generators for sorted list assertion, numbers=none]
+n = random(0, size(a))
+m = random(n + 1, size(a))
 \end{lstlisting}
-While conjunctions can be handled easily, other operators make it more difficult to derive efficient random generators. Consider the following constraints:
-\begin{itemize}
+
+However, if constraints contain certain operators, deriving efficient random generators is less straight-forward. Consider the following constraints:
+\begin{enumerate}
 \itemsep-0.7em
-\item[1)] $(\forall n : int) (n < 10 \lor n > 20) ...$
-\item[2)] $(\forall n : int) (n \ne 10) ...$
-\item[3)] $(\forall n : int) (n = 10) ...$
-\end{itemize}
-Constraint 1) complicates restricting the random generator in several ways. Firstly, it separates the domain into two disjoint sub-domains, which requires defining a random generator for each range and another one to decide which one is called. Secondly, the operands of a disjunction cannot be considered separately when more than one bound variable is involved. For the predicate variable whose random generator is executed first, the domain restriction is optional, while the generation of the following random values depend on the previous result. Similarly to 1), constraint 2) splits the domain into sub-domains. To keep it simple for the time being, restrictions formulated with these operators are kept as part of the assertion code rather than used as constraints for the generators. Consequently, some validators may generate irrelevant values when checking the assertion and, depending on the size of the gap between the sub-domains, this can significantly decrease the reliability of this kind of assertion checking. Thus, further developed iterations should handle and translate them accordingly.\\
-Constraint 3) effectively makes the quantifier, which binds $n$, obsolete. Adding this constraint to the respective generator will at least not affect the reliability, but a future improvement could be to optimize the assertion by replacing all occurrences of the bound variable with the assigned value and removing the quantification.
+\item $(\forall n : int) (n < 10 \lor n > 20) ...$
+\item $(\forall n : int) (n \ne 10) ...$
+\item $(\forall n : int) (n = 10) ...$
+\end{enumerate}
+Constraint 1 can complicate restricting the range of the random generator in two ways. Firstly, it separates the range into two disjoint sub-ranges, which translates to a random generator as shown in \lstref{lst:rand_disjoint}.
+\begin{lstlisting}[label=lst:rand_disjoint, caption=Random generator with two disjoint ranges, numbers=none]
+n = if random(0,2) == 0 then random(-MAX_INT, 10)
+                        else random(21, MAX_INT)
+\end{lstlisting}
+Secondly, the operands of a disjunction cannot be considered separately if they involve several bound variables. For the predicate variable whose random generator is executed first, the domain restriction is optional, while the generation of the following random values depend on the previous result. \lstref{lst:rand_disjoint_nm} shows the corresponding random generators for a variation of constraint 1 featuring two bound variables, i.e., $(\forall n,m) (n < 10 \lor m > 20)...$.
+\begin{lstlisting}[label=lst:rand_disjoint_nm, caption=Random generators with two disjoint ranges and two bound variables, numbers=none]
+n = if random(0,2) == 0 then random(-MAX_INT, 10)
+                        else random(-MAX_INT, MAX_INT)
+m = if n < 10 then random(-MAX_INT, MAX_INT)
+              else random(20, MAX_INT)
+\end{lstlisting}
+Similarly to 1, constraint 2 splits the domain into sub-domains. Constraint 3 effectively makes the quantifier binding $n$ obsolete and thus can be translated to a variable with a constant value.
+
+In the current implementation of the transformation, constraints featuring the logical or, exclusive or or inequality operator are kept as part of the assertion body. They are considered to be exceptional cases, but will increase the overall complexity of the compilation beyond the scope of a first iteration. In the case that constraints remain part of the assertion body, they are checked during runtime. As a consequence, an invocation of the assertion contract can result in a futile assertion check if such a condition is not met.
 
 \subsubsection{Implicit constraints}
-In some cases, boundaries are imposed implicitly by data types. List indices, for instance, are always bound to the range $0.. size(list) - 1$ and could thus be derived from the formula without an explicit specification. As this deduction makes the transformation more complex, requiring a semantic analysis of the formula, a completely explicit formula in terms of the domain is required for now. Depending on the VM, the lower bound for indexing operations can be implicitly handled by the random generator of an appropriate predicate type. As an example, Michelson supports the data type \texttt{nat} representing the natural numbers, which categorically excludes all values below zero. Developers aware of this can exploit this and, for instance, abbreviate \eqref{eq:sorted_v2} with the following formula:
+In some cases, boundaries are imposed to the random generators implicitly through the used data types. List indices, for instance, are always bound to the range $0.. size(list) - 1$ and could thus be derived from the formula without an explicit specification. As this requires a semantic analysis of the AST and thus a more complex transformation, the current implementation requires a completely explicit formula in terms of the domains. 
+
+Depending on the blockchain VM, the lower bound for generated values used in indexing operations can be implicitly handled by the random generator of an appropriate predicate variable type. As an example, Michelson supports the data type \texttt{nat} representing the natural numbers, which categorically excludes all values below zero. \eqref{eq:sorted_v2} can thus be abbreviated with the formula given in \eqref{eq:sorted_v2_abbr}.
 \begin{equation}\label{eq:sorted_v2_abbr}
 	(\forall n : nat)(\forall m : nat) (n \le m < |a|) \Rightarrow a[n] \leq a[m]
 \end{equation}

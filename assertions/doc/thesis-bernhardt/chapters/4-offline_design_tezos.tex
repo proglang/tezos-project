@@ -465,7 +465,6 @@ The results show that the cost incurred by a single validator checking $t$ value
 \todo{Cheaper for the network if not all validators have to execute the whole local check! however, placing these costs on the users will cause them to use the local approach -> users need incentives to use it too! -> blockchain protocol could/should solve this! (e.g. use rewards instead of costs)}
 \todo{Every transaction is processed at every node in the network,which limits throughput}
 
-
 \section{Representing counterexamples}
 There still remains an open question concerning the proposed implementation that could be answered in detail within the scope of this thesis - the representation and validation of a counterexamples. The interaction scheme in \figref{fig:interaction_modular} suggests, that validators publish an instance of a counterexample to the network if they found one. However, it has yet to be specified how the counterexample is represented and double-checked by the other validators. With the \texttt{failwith} instruction, the top element of the stack can be exposed \cite{tezos_docs}, providing a way to return an interpretable expression from the interpretation context \cite{tezos_repo}. Thus, as a first approximation, the counterexample could be represented as a tuple of assertion code and a list of randomly generated values. For instance, the counterexample for the assumption ``p is a prime'' (cf. \eqref{eq:prime}) is represented by \\
 \texttt{(n >= 2 \&\& n <= sqrt(p) \&\& p\%n = 0, <random value for n>)}. \\
