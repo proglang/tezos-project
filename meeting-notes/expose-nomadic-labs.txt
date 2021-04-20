@@ -1,0 +1,32 @@
+Nomadic Labs Research Seminar
+May 11, 16:00
+
+* who would be the speaker(s) - Name(s) and affiliation(s)
+
+Speaker: Peter Thiemann, University of Freiburg, Germany
+
+* a short bio of the speaker(s) (to be used by the moderator at the beginning of the presentation, and when advertising the video)
+
+Peter Thiemann is a full professor at the computer science department
+of the University of Freiburg where he leads the programming languages
+research group.  His research interests comprise theory and practice
+of modern programming languages, in particular typing, program
+analysis, and program transformation. The focus of his recent research
+is on gradual typing, advanced type systems for communication, and
+their application in the setting of blockchains.
+
+* title of the presentation
+
+The Power of Disagreement
+
+* a few lines of abstract (something that would urge the reader to attend or  watch ;-) )
+
+Distributed consensus is a fundamental technique to validate the next
+block in a blockchain network. Once consensus is reached, every
+network node can check the validity of every block.
+We turn this approach upside-down and study a technique to probabilistically
+validate an assertion by challenging the network to find a
+refutation. If a refutation is found, every node can check it. If no
+refutation is found, the network accepts the assertion as unrefuted.
+We explain the principles behind our technique and outline an
+implementation in the Tezos blockchain. 
