@@ -1,3 +1,5 @@
+\todo{Make clear that we only engage validators on Tezos (not all nodes)}
+\todo{What happens if a validator has multiple endorsing rights?}
 \chapter{Tezos-specific Offline Design}\label{chap:offline_tezos}
 After parsing an assertion contract and transforming it, the resulting AST is passed to the target-specific backend. For this thesis, the platform target is Tezos, with Michelson as the compilation target. This chapter continues to describe the pipeline stages implemented in the Tezos backend, which are shown in \figref{fig:pipeline_backend}. Furthermore, it states the necessary extensions to Michelson and its evaluator to facilitate useful assertions using random generators and assesses several orchestration strategies between the parent and assertion contract code. As a preliminary, the following section gives a short introduction to the Tezos blockchain, the Michelson language and some relevant tools in Tezos' ecosystem.
 
@@ -40,7 +42,7 @@ The input type declared in the primitive application \texttt{parameter} accepts 
 Smart contracts are able to call other smart contracts by emitting internal operations. The return type of Michelson programs is a tuple of a list of internal operations and the updated storage. Thus, after the actual contract has been executed, the operations of the returned list are run in sequence. Since the internal operations may in turn also emit internal operations, they are put into a queue and are processed in order. As an example, \figref{fig:internal_ops} shows an execution order of two external transactions in sequence, i.e., transactions which have been initiated by a user account, and their internal operations.
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.5\linewidth]{figures/4-offline_tezos/internal_ops}
+\includegraphics[width=0.5\linewidth]{figures/5-offline_tezos/internal_ops}
 \captionsource{Execution order of two external operations and their internal operations}{\cite{tezos_docs}}
 \label{fig:internal_ops}
 \end{figure}
@@ -157,9 +159,9 @@ So far, the assertion and parent contract have been considered separately. Howev
 \subsection{Approach 1: Monolithic contract}
 In the monolithic approach, a new contract is built using both the assertion and parent code as input. As is outlined in \figref{fig:monolithic_orchestration_basic}, the assertions can either be appended to the original contract as separate entrypoints or by prepending them to the code of the respective entrypoint. This tightly couples and unites the code in one self-contained unit.
 \begin{figure}[!htb]
-\subfloat[Appending assertions as separate entrypoints]{\includegraphics[width=0.5\textwidth]{figures/4-offline_tezos/pipeline_output_mono_ep_basic.jpg}}
+\subfloat[Appending assertions as separate entrypoints]{\includegraphics[width=0.5\textwidth]{figures/5-offline_tezos/pipeline_output_mono_ep_basic.jpg}}
 \quad
-\subfloat[Inserting the assertion code into the original entrypoint]{\includegraphics[width=0.5\textwidth]{figures/4-offline_tezos/pipeline_output_mono_basic.jpg}}
+\subfloat[Inserting the assertion code into the original entrypoint]{\includegraphics[width=0.5\textwidth]{figures/5-offline_tezos/pipeline_output_mono_basic.jpg}}
 \caption{Approaches for assembling a monolithic contract}
 \label{fig:monolithic_orchestration_basic}
 \end{figure}
@@ -167,7 +169,7 @@ While the link between assertion and contract code is already given in a), the e
 Both approaches, however, do not yet provide any means to have validators execute the assertions $t$ times. Since only the contract itself knows how to calculate $t$ (as per the range(s) of the random generator(s)), it cannot be passed to the validators as a parameter to the validation request. Instead, the contract itself needs a test run manager which handles this. A test run manager can either be implemented as another entrypoint, say \texttt{A\_m}, which then calls \texttt{A\_a} (or \texttt{A} in case of a)) $t$ times as an internal operation. Because transactions on Tezos guarantee either total success or total failure \cite{tezos_docs}, the execution is stopped as soon as one of the internal operation fails, i.e. detects a counterexample. When extending the diagram for a) with the manager, the pipeline output thus look as shown in \figref{fig:monolithic_orchestration}. The output for b) is analogue.
 \begin{figure}[h]
 \centering
-  \includegraphics[width=0.5\textwidth]{figures/4-offline_tezos/pipeline_output_mono_ep.jpg}
+  \includegraphics[width=0.5\textwidth]{figures/5-offline_tezos/pipeline_output_mono_ep.jpg}
 	\caption{Monolithic assembly with separate entrypoints for manager and assertion}
 	\label{fig:monolithic_orchestration}
 \end{figure}
@@ -192,14 +194,14 @@ It's important to realize that neither baker nor validators can differentiate be
 \figref{fig:interaction_monolithic} and \ref{fig:interaction_monolithic_managertz} depict the interaction of the baker and validators with the resulting contracts on the blockchain for a variant using a single monolithic contract versus a hybrid solution. After calling a contract that includes an assertion, the baker has to keep the transaction in its mempool, a buffer where a node keeps prevalidated transactions not yet included in a block \todo{remove explanation if added to Tezos chapter}. Before it can be included, the transaction has to be kept there for a minimum amount of time, s.t. the validators have enough time to validate the assertion \todo{refer to blockchain protocol chapter if there is one}. The bakers therefore need to execute such transactions in a dedicated ``challenge'' mode, which could be signalled by using a special operation type to call such contracts. Operation types in Tezos are, i.a., transactions, originations or endorsements. By adding, for instance, a special transaction type (abbreviated by \texttt{txa} in the interaction diagrams), bakers can differentiate between normal transactions and those with assertions.
 \begin{figure}[h]
 \centering
-  \includegraphics[width=0.7\textwidth]{figures/4-offline_tezos/interaction_monolithic.jpg}
+  \includegraphics[width=0.7\textwidth]{figures/5-offline_tezos/interaction_monolithic.jpg}
 	\caption{Interaction with a monolithic contract}
 	\label{fig:interaction_monolithic}
 \end{figure}
 
 \begin{figure}[h]
 \centering
-  \includegraphics[width=0.8\textwidth]{figures/4-offline_tezos/interaction_monolithic_managertz.jpg}
+  \includegraphics[width=0.8\textwidth]{figures/5-offline_tezos/interaction_monolithic_managertz.jpg}
 	\caption{Interaction with a manager and monolithic contract}
 	\label{fig:interaction_monolithic_managertz}
 \end{figure}
@@ -285,7 +287,7 @@ The distinct advantages and disadvantages of each combination of given implement
 With the modular approach, the assertion manager and each of the assertions are originated as separate contracts on the blockchain. The manager mirrors the interface of the parent contract, while each assertion each only has a single entrypoint which expects the raw parameter type. Due to the ``outsourcing'' of the assertion code, the parent contract remains pure and does not have to be modified. Similar to the hybrid solution from the last section, the manager calls the respective assertion contract $t$ times as an internal operation before calling the actual contract. In the case of empty assertions, it calls the parent contract immediately. Correspondingly, the pipeline outputs 1-$m$ contracts, where $m$ is the amount of entrypoints with an associated assertion, as depicted in \figref{fig:modular_assembly}.
 \begin{figure}[h]
 \centering
-  \includegraphics[width=0.6\textwidth]{figures/4-offline_tezos/pipeline_output_modular.jpg}
+  \includegraphics[width=0.6\textwidth]{figures/5-offline_tezos/pipeline_output_modular.jpg}
 	\caption{Modular assembly of assertion and manager code}
 	\label{fig:modular_assembly}
 \end{figure}
@@ -312,7 +314,7 @@ storage (map int address);
 The interaction with the contracts in the modular approach is shown in \figref{fig:interaction_modular}. Even though the transactions shown in the diagram state an explicit entrypoint tag, contracts can, of course, also be called through \texttt{\%default}. In that case, the parameter passed with the internal operations to \texttt{A\_a.tz} is not equivalent, but the raw parameter value.
 \begin{figure}[h]
 \centering
-  \includegraphics[width=0.9\textwidth]{figures/4-offline_tezos/interaction_modular.jpg}
+  \includegraphics[width=0.9\textwidth]{figures/5-offline_tezos/interaction_modular.jpg}
 	\caption{Interaction with a modular contract}
 	\label{fig:interaction_modular}
 \end{figure}
@@ -325,7 +327,7 @@ does not demand to close this vulnerability, hence possible solutions are not di
 \section{Backend of the pipeline}
 The Tezos backend of the pipeline comprises of the three stages semantic check, type check and compilation. During the semantic check, the common AST is cast to a Tezos-specific AST type. If the assertion contains any data types or operations not supported in Michelson, the assertion contract is rejected. Since the subsequent stages are less straight forward, they are explained in more detail in the following.
 \begin{figure}[h]
-\includegraphics[width=\linewidth]{figures/4-offline_tezos/pipeline_backend}
+\includegraphics[width=\linewidth]{figures/5-offline_tezos/pipeline_backend}
 \caption{The stages of Tezos-specific backend of the compilation pipeline}
 \label{fig:pipeline_backend}
 \end{figure}
@@ -388,7 +390,8 @@ The function \texttt{generate\_loop} generates code that does the following:
 \end{enumerate}
 % calculate size of search space? -> need to derive a formula from range constraints
 By passing the next id $i$ to the function, the access to the storage can be hard-wired into the generated code. The address of the parent contract is assumed to always be stored with the id 0. \secref{sec:prob_threshold} stated a formula for calculating $t_{total}$ with the parameters $n$, the size of the search space, and the probability threshold $c$. While $n$ can be calculated from the ranges of the random generator(s), $c$ must be given as parameter to the compiler through the CLI. After $t_{total}$ has been computed, the upper bound of the loop is calculated according to \eqref{eq:t_validator}. 
-\begin{equation}\label{eq:t_validator}
+% remove -> refer to equation in previous chapter
+\begin{equation}
 t = \lceil t_{total} / \#validators \rceil
 \end{equation}
 
@@ -432,7 +435,7 @@ When it comes to verifying the compiler and integration testing of the pipeline,
 Instead of generating Michelson code directly, the compiler could also generate code in one of the high-level languages that provide a compiler with Michelson as a target. The output of the pipeline is then passed to this compiler in order to retrieve the final contracts. If the toolchain of the intermediate language doesn't provide a programmatic interface, the pipeline thus has to be extended with a separate step of procedure, as shown in \figref{fig:pipeline_liq}. This section demonstrates the implementation of this approach on the basis of Liquidity, hence the corresponding file extension \texttt{.liq}.
 \begin{figure}[h]
 \centering
-\includegraphics[width=\linewidth]{figures/4-offline_tezos/pipeline_liq}
+\includegraphics[width=\linewidth]{figures/5-offline_tezos/pipeline_liq}
 \caption{Pipeline with IR compilation and an external toolchain}
 \label{fig:pipeline_liq}
 \end{figure}
@@ -457,7 +460,7 @@ What remains to be evaluated is the cost of checking a formula with the proposed
 The differential can be measured by implementing the orchestration scheme for the two dummy contracts given in \secref{sec:usecase_cost}. Appendix \ref{apx} contains the code of all three components for each of them. In order to measure the gas consumption for a comparable amount of executions as during the initial cost analysis, the probability threshold $c$ is set to $\frac{1}{e}$, s.t. that the necessary number of total test runs is $n$. However, it needs to be pointed out, that the actual number of test runs executed can only be a multiple of the number of validators (cf. \eqref{eq:t_validator}). \figref{fig:cost_distributed} shows the reported gas consumption per validator, i.e., a $32^{th}$ of the total cost for checking an assertion for the given threshold. Due to \eqref{eq:t_validator}, the cost function approximates a step function.
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.9\linewidth]{figures/4-offline_tezos/cost_analysis}
+\includegraphics[width=0.9\linewidth]{figures/5-offline_tezos/cost_analysis}
 \caption{Gas consumption per validator of transactions calling \texttt{Foo} and \texttt{Bar} for increasing input sizes}
 \label{fig:cost_distributed}
 \end{figure}

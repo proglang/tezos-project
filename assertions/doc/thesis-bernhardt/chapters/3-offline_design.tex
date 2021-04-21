@@ -96,7 +96,7 @@ Applied to an AST representation of the assertion, the negation recursively trav
 \caption{Modifications to the sorted list assertion AST from parsing to completed transformation}
 \end{figure}
 
-\subsection{Domain assignment}
+\subsection{Domain assignment}\label{sec:transf_domains}
 In order to obtain random generators which only generate values in the interesting range, i.e., within the domains of discourse, the second step of the transformation skims the condition nodes of the AST for atomic constraints containing bound variables. These conditions are then moved to the \texttt{Bounds} field of the respective quantifier binding that variable. If the constraint contains more than one bound variable, it is assigned to the quantifier with the highest depth in the quantifier nesting. When translating the quantifiers to random generators, their ranges can then be constructed based on the associated list of constraints. After merging a constraint with a quantifier node, it is removed from the assertion body, as checking these constraints during runtime becomes redundant. Constraints not involving bound variables have to be checked during runtime. 
 
 Relating to the example of sorted lists, the premise in \eqref{eq:sorted_v2} can be considered as a conjunction of the four constraints
