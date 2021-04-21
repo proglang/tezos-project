@@ -386,6 +386,7 @@ The function \texttt{generate\_loop} generates code that does the following:
 \item Build a list of $t$ internal operations that call the assertion contract
 \item Return the list of emitted operations and the unchanged storage
 \end{enumerate}
+% calculate size of search space? -> need to derive a formula from range constraints
 By passing the next id $i$ to the function, the access to the storage can be hard-wired into the generated code. The address of the parent contract is assumed to always be stored with the id 0. \secref{sec:prob_threshold} stated a formula for calculating $t_{total}$ with the parameters $n$, the size of the search space, and the probability threshold $c$. While $n$ can be calculated from the ranges of the random generator(s), $c$ must be given as parameter to the compiler through the CLI. After $t_{total}$ has been computed, the upper bound of the loop is calculated according to \eqref{eq:t_validator}. 
 \begin{equation}\label{eq:t_validator}
 t = \lceil t_{total} / \#validators \rceil
