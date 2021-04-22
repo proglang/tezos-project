@@ -1,4 +1,4 @@
-\chapter{Toolchain Implementation - Frontend}\label{chap:offline}
+\chapter{Toolchain Frontend}\label{chap:offline}
 The purpose of the toolchain is to support the process from specifying assertions to generating assertion Smart Contracts that can be invoked on-chain by the validators. As determined in \secref{sec:restrict}, the current version of the toolchain only supports the processing of assertions featuring universal quantification. The toolchain was developed in the programming language OCaml \cite{ocaml_docs} --- the code is available in a GitHub\footnote{\url{https://github.com/proglang/thesis-distributed-assertion-checking}\todo{commit}} repository of the Chair of Programming Languages.
 
 As an overview, \figref{fig:pipeline_frontend} depicts all stages of the processing pipeline implemented by the toolchain. The colourized stages highlight the frontend, which was designed to be as generic as possible, s.t. it can be used (or extended) to support any target blockchain. For the target-specific processing, the intermediate result of the frontend is passed to the respective backends via a public interface.

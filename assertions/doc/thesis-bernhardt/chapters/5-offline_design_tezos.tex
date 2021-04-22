@@ -1,7 +1,13 @@
-\todo{Make clear that we only engage validators on Tezos (not all nodes)}
-\todo{What happens if a validator has multiple endorsing rights?}
-\chapter{Tezos-specific Offline Design}\label{chap:offline_tezos}
-After parsing an assertion contract and transforming it, the resulting AST is passed to the target-specific backend. For this thesis, the platform target is Tezos, with Michelson as the compilation target. This chapter continues to describe the pipeline stages implemented in the Tezos backend, which are shown in \figref{fig:pipeline_backend}. Furthermore, it states the necessary extensions to Michelson and its evaluator to facilitate useful assertions using random generators and assesses several orchestration strategies between the parent and assertion contract code. As a preliminary, the following section gives a short introduction to the Tezos blockchain, the Michelson language and some relevant tools in Tezos' ecosystem.
+\chapter{Toolchain Backend}\label{chap:offline_tezos}
+After parsing and transforming a list of assertions, the resulting ASTs are passed to the target-specific backend. For this thesis, the platform target is Tezos, with Michelson as the compilation target. The pipeline stages of the backend comprise the ones colourized in \figref{fig:pipeline_backend}. First, the generic ASTs are subjected to a semantic check, which rejects any assertions containing unsupported types, operations or other invalid expressions. Valid ASTs are then cast to a target specific AST type and passed to the type checker. In this stage, the assertions are linked to the respective parent entrypoints based on the parameter patterns and tags. Given the list of target specific ASTs and a linking, the compiler finally generates target code. Each stage is described in more detail in \secref{sec:backend_impl}.
+
+As a preliminary for the compiler implementation, 
+% the chapter identifies/describes necessary amendments to Michelson and the VM -> part of protocol design, but also concerns the toolchain -> secref
+% furthermore, a scheme for the orchestration of assertion and parent code is required. the code somehow needs to collude -> explores some options; discusses advantages and disadvantages. picks a winner for the proof-of-concept impl.
+% for background/ as a basis for this chapter, section 1 gives an introduction to Tezos and Michelson
+
+
+ Furthermore, it states the necessary extensions to Michelson and its evaluator to facilitate useful assertions using random generators and assesses several orchestration strategies between the parent and assertion contract code. As a preliminary, the following section gives a short introduction to the Tezos blockchain, the Michelson language and some relevant tools in Tezos' ecosystem.
 
 \section{Introduction to Tezos}\label{sec:tezos}
 The Tezos blockchain is presented in its whitepaper as a \enquote{generic and self-amending crypto-ledger} \cite{goodman_tezos_2014}. It uses a proof-of-stake consensus mechanism that is not only used to agree on the current state of its ledger, but also allows its stakeholders to come to a consensus about changes in the economic protocol by participating in a voting process. The changes included in a protocol upgrade, called amendment, can influence i.a. which transactions are valid on the blockchain, the payment system or even the voting process itself without risking a fork of the blockchain. Everyone owning the cryptocurrency of Tezos, called Tez, is considered a stakeholder and can participate in the consensus mechanism. The whitepaper compares the self-amending protocol of Tezos to a game created by Philosopher Peter Suber called ``Nomic'', whose set of rules are subjected to a democratic voting system \cite{nomic}. Similar concepts can also be found in modern pop culture, such as the virtual sports league ``Blaseball'' \cite{blaseball} that became popular during the COVID-19 pandemic.
@@ -324,7 +330,8 @@ This approach fixes the two central problems of the monolithic approach: by mirr
 The approach essentially has to weaknesses: on the one hand, the assertion and the parent cannot be called separately, as they are linked together by the manager. As a result, both the baker and validators execute the assertion, as well as the parent contract, which increases the cost of the contract execution. On the other hand, it exposes a security vulnerability, given that assertions can be bypassed by calling the parent contract directly with unevaluated parameters. This iteration of the design 
 does not demand to close this vulnerability, hence possible solutions are not discussed in this thesis.
 
-\section{Backend of the pipeline}
+\section{Backend implementation}\label{sec:backend_impl}
+\todo{Shorten a bit - overview already given in chpt intro}
 The Tezos backend of the pipeline comprises of the three stages semantic check, type check and compilation. During the semantic check, the common AST is cast to a Tezos-specific AST type. If the assertion contains any data types or operations not supported in Michelson, the assertion contract is rejected. Since the subsequent stages are less straight forward, they are explained in more detail in the following.
 \begin{figure}[h]
 \includegraphics[width=\linewidth]{figures/5-offline_tezos/pipeline_backend}
@@ -474,3 +481,7 @@ There still remains an open question concerning the proposed implementation that
 \texttt{(n >= 2 \&\& n <= sqrt(p) \&\& p\%n = 0, <random value for n>)}. \\
 For validation of the counterexample, this tuple, together with the respective operation hash of the initial transaction this counterexample refers to, is published to the network. The other validators then interpret the given code with the respective value(s) and either confirm or object the counterexample. As Tezos transmits data as byte sequences, the counterexample needs to be unparsed and serialized, or deserialized and parsed respectively. If the cost for checking assertions is paid for be the user (in form of gas), then these costs have to be added to the total costs as well.\\
 In order to prevent denial-of-service attacks by spamming the network with false counterexamples, the protocol should implement penalties for such cases. Details about this and possible rewards for valid counterexamples should be considered in the protocol design.
+
+
+\todo{Make clear that we only engage validators on Tezos (not all nodes)}
+\todo{What happens if a validator has multiple endorsing rights?}
