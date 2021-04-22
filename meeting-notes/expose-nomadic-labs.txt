@@ -17,16 +17,13 @@ their application in the setting of blockchains.
 
 * title of the presentation
 
-The Power of Disagreement
+On Oracles and Contract Modules
 
 * a few lines of abstract (something that would urge the reader to attend or  watch ;-) )
 
-Distributed consensus is a fundamental technique to validate the next
-block in a blockchain network. Once consensus is reached, every
-network node can check the validity of every block.
-We turn this approach upside-down and study a technique to probabilistically
-validate an assertion by challenging the network to find a
-refutation. If a refutation is found, every node can check it. If no
-refutation is found, the network accepts the assertion as unrefuted.
-We explain the principles behind our technique and outline an
-implementation in the Tezos blockchain. 
+Oracles are a means of connecting the outside world with the
+blockchain. An oracle can provide a trusted reference to a real-world
+object or it can provide triggers for contracts on the blockchain.
+We study the means to provide high-quality oracles on the Tezos
+blockchain and offer two approaches: a type-safe contract API and
+contract modules.
