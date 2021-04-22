@@ -1,0 +1,11 @@
+The power of disagreement
+
+Distributed consensus is a fundamental technique to validate the next
+block in a blockchain network. Once consensus is reached, every
+network node can check the validity of every block.
+We turn this approach upside-down and study a technique to probabilistically
+validate an assertion by challenging the network to find a
+refutation. If a refutation is found, every node can check it. If no
+refutation is found, the network accepts the assertion as unrefuted.
+We explain the principles behind our technique and outline an
+implementation in the Tezos blockchain. 
