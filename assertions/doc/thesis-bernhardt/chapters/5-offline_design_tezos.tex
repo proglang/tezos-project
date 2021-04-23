@@ -165,56 +165,46 @@ match (instruction, stack) with
 As stated above, the indexing operation can also be translated to a sequence of already existing instructions. Michelson features instructions to execute a loop or iterate over a list, which can be used for such an implementation. An exemplary implementation of the operation \texttt{nth} for lists in the high-level language Liquidity is given by \lstref{lst:nth_liq} in appendix \ref{apx:nth}. The appendix also contains the corresponding Michelson code after compiling the source with the Liquidity compiler (\lstref{lst:nth_tz}).
 
 \section{Orchestration of contract and assertions}\label{sec:orchestration}
-So far, the assertion and parent contract have been considered separately. However, on the blockchain they have to be orchestrated, s.t. the bakers and validators execute the assertion before the actual contract code. The orchestration does not only include the linking of assertion and contract code, but also a mechanism to execute an assertion $t$ times depending on the domain space that needs to be checked. There are basically two approaches - the assertion and contract code can be assembled into a single monolithic contract, or they can be originated separately as standalone contracts. As the strategy has an impact on the compilation process and output, it has to be determined in advance which of the two should be implemented and how.
+So far, the assertion and parent contract have been considered separately. However, they have to be orchestrated on-chain, such that the assertion code is either invoked automatically before the parent code is executed, or the assertion code can be invoked directly by the validators. Furthermore, the orchestration should include a mechanism to determine and trigger the required number of test runs per validator. Depending on the orchestration strategy, the compiler then assembles the assertion and parent code into one or several Smart Contracts.
 
-\subsection{Approach 1: Monolithic contract}
-In the monolithic approach, a new contract is built using both the assertion and parent code as input. As is outlined in \figref{fig:monolithic_orchestration_basic}, the assertions can either be appended to the original contract as separate entrypoints or by prepending them to the code of the respective entrypoint. This tightly couples and unites the code in one self-contained unit.
+This section describes two possible approaches for an orchestration --- a monolithic and a modular approach. It also discusses, which of the given architecture is chosen for the implementation of distributed assertion checking, and why.
+
+\subsection{Monolithic orchestration}
+In the monolithic approach, the assertion an parent code are merged into a single Smart Contract. This tightly couples and unites the code in one self-contained unit. The assertion code can be merged into the parent contract in two different ways. As shown in \figref{fig:mono_eps}, the assertions can be appended to the original contract as separate entrypoints. Alternatively, the assertion code can by prepended to the code of the respective entrypoint and thus become an integral part of the program (as shown in \figref{fig:mono_insert}).
 \begin{figure}[!htb]
-\subfloat[Appending assertions as separate entrypoints]{\includegraphics[width=0.5\textwidth]{figures/5-offline_tezos/pipeline_output_mono_ep_basic.jpg}}
+\subfloat[Appending assertions as separate entrypoints\label{fig:mono_eps}]{\includegraphics[width=0.5\textwidth]{figures/5-offline_tezos/pipeline_output_mono_ep_basic.jpg}}
 \quad
-\subfloat[Inserting the assertion code into the original entrypoint]{\includegraphics[width=0.5\textwidth]{figures/5-offline_tezos/pipeline_output_mono_basic.jpg}}
-\caption{Approaches for assembling a monolithic contract}
+\subfloat[Inserting the assertion code into the original entrypoint\label{fig:mono_insert}]{\includegraphics[width=0.5\textwidth]{figures/5-offline_tezos/pipeline_output_mono_basic.jpg}}
+\caption{Approaches for the assembly of a monolithic contract}
 \label{fig:monolithic_orchestration_basic}
 \end{figure}
-While the link between assertion and contract code is already given in a), the entrypoint and assertions in b) still need to be coupled, as it is not inherent which entrypoint represents a normal and which the respective assertion. For this reason, assertion entrypoints need to have fixed name pattern, s.t. it is derivable from the original entrypoint. As a proposal, the tag of the assertion is the tag of its parent entrypoint suffixed with a \texttt{\_a}, e.g. \texttt{A\_a} for entrypoint \texttt{A}. The baker can then execute the contract normally by calling the original entrypoint and prompt the validators to execute the assertion separately. \\
-Both approaches, however, do not yet provide any means to have validators execute the assertions $t$ times. Since only the contract itself knows how to calculate $t$ (as per the range(s) of the random generator(s)), it cannot be passed to the validators as a parameter to the validation request. Instead, the contract itself needs a test run manager which handles this. A test run manager can either be implemented as another entrypoint, say \texttt{A\_m}, which then calls \texttt{A\_a} (or \texttt{A} in case of a)) $t$ times as an internal operation. Because transactions on Tezos guarantee either total success or total failure \cite{tezos_docs}, the execution is stopped as soon as one of the internal operation fails, i.e. detects a counterexample. When extending the diagram for a) with the manager, the pipeline output thus look as shown in \figref{fig:monolithic_orchestration}. The output for b) is analogue.
+
+In variation (b), the link between the parent code and the respective assertion code is already established --- the assertion is executed automatically when invoking the entrypoint. Variation (a), on the other hand, still has to establish a link between the parent and the assertion entrypoint. It should be apparent, which of the entrypoints contains the original, and which one its respective assertion code. This can be solved by using fixed tag patterns for assertion entrypoints, which can be derived from the original entrypoint tag. \figref{fig:mono_eps} proposes the tag suffix ``\texttt{\_a}''. When an external transaction invokes such a monolithic contract, the bakers thus execute the contract normally. After completion, the baker then requests the validators to invoke the assertion separately. External transactions, of course, should only invoke the original entrypoints.
+
+Both variations, however, do not yet provide any means to trigger several test runs per validator. Since only the contract itself knows how to calculate the required number of test runs $t$ (as per the range(s) of the random generator(s)), it cannot be passed to the validators as a parameter to the validation request. Instead, the contract itself needs to contain a controller to handle this. Similar to the assertion code, such a controller can be integrated into the parent entrypoint, or implemented as another separate entrypoint, as shown in \figref{fig:monolithic_orchestration}. Instead of invoking the assertion entrypoint (\texttt{A\_a}), the validators would then invoke the manager entrypoint (\texttt{A\_c}). This entryoint then determines $t$ and invokes the assertion entrypoint (\texttt{A\_a}) $t$ times as an internal operation. 
 \begin{figure}[h]
 \centering
   \includegraphics[width=0.5\textwidth]{figures/5-offline_tezos/pipeline_output_mono_ep.jpg}
 	\caption{Monolithic assembly with separate entrypoints for manager and assertion}
 	\label{fig:monolithic_orchestration}
 \end{figure}
-Another possibility is to create a separate manager contract that acts as a proxy, contains the manager code and internally calls the monolithic contract. This solution is a hybrid of the monolithic and modular approach. The section covering the modular approach describes in more detail how it is implemented.\\
-It's important to realize that neither baker nor validators can differentiate between entrypoints that have an associated assertion and those that do not. In order to avoid transaction failures caused by calling assertions that do not exist, the compiler has to add dummy managers for empty assertions that call the actual contract code immediately. \lstref{lst:manager} drafts the manager code for entrypoints with and without assertions in pseudocode (assuming a purely monolithic implementation). 
-\begin{lstlisting}[label=lst:manager, caption=Implementation of the manager in pseudocode]
-%A (i : int) { ... }
 
-%A_a (i : int) { .. assert (...) }
+As a hybrid solution between a monolithic and a modular approach, the controller can be implemented as a separate Smart Contract, which operates as a proxy. This contract is invoked in pace of the monolithic contract, which in turn invokes the original or assertion entrypoints as internal operations. The implementation of the modular part can be adopted from \secref{sec:modular}.
 
-%A_m (i : int) {
-	n = compute_n(i)
-	Do m = 1 to n
-		call(self, A_a, i)
-}
+If a developer did not specify an assertion for all entrypoints of the parent contract, invoking their non-existing controller entrypoints would cause a transaction failure. To avoid this and thus increase the robustness, the compiler should generate dummy controllers for empty assertions. If the monolithic contract is assembled according to \figref{fig:mono_eps}, the dummy controller simply returns unit (i.e, an empty list of internal operations and the unchanged storage). For the variation given in \figref{fig:mono_insert}, the controller invokes the original entrypoint exactly once.
 
-%B (j : int) { ... }
+\lstref{lst:mono_liq} implements a monolithic contract in the high-level language Liquidity. The contract contains the two parent entrypoints \texttt{A} (line 3) and \texttt{B} (line 21), and provides an assertion entrypoint \texttt{A\_a} (line 5) for \texttt{A}. Entrypoint \texttt{B} does not have an associated assertion. The compiler generated a controller entrypoint for both parent entrypoints, i.e., \texttt{A\_c} (line 7) and \texttt{B\_c} (line 23). Controller \texttt{A\_c} determines the number of test runs in line 8 (the implementation of the formula is omitted here) and creates as many internal operations invoking the assertion entrypoint with the same parameter (lines 9-17). These are then run in sequence afterwards. Controller \texttt{B\_c}, on the other hand, does not emit any operations and immediately returns. This can never fail and thus accepts any input value for the parameter \texttt{i}.
+\lstinputlisting[label=lst:mono_liq, caption=Implementation of a monolithic contract in Liquidity, numbers=left]{listings/monolithic.liq}
 
-%B_m (j : int) { call(self, B, j) }
-\end{lstlisting}
+For the variation of using separate entrypoints for the controllers and assertions, \figref{fig:interaction_monolithic} depicts the interactions of the nodes, validators and Smart Contracts on the blockchain. The execution model for distributed assertion checking requires a dedicated execution modus. A possible mechanism to activate this modus is using a special transaction type, which is denoted by \texttt{txa(destination, entrypoint, parameter)} in the graphic. When an operation, such as a transaction or origination, is injected into a node, it is normally propagated to the network after it has been validated. After the injection of a \texttt{txa(1, \%A, parameter)} operation, however, the node broadcasts its derivation \texttt{txa(1, \%A_c, parameter)} to the network, which invokes the controller entrypoint instead. If this operation finishes successfully for all validators, hence no counterexample is published on the network after a certain amount of block cycles, the node can finally broadcast the initial operation as a normal transaction to the network. In case of an assertion failure, the respective validator broadcasts the counterexample with the generated value to the network to be included in an upcoming block. The counterexample is thus validated like a normal transaction. As a consequence of the broadcast the counterexample, the initial operation \texttt{txa(1, \%A, parameter)} should be rejected. How a counterexample is represented and included on the chain is an unresolved question --- \secref{sec:counterexample} picks this topic up and gives some ideas regarding possible implementations. 
 
-\figref{fig:interaction_monolithic} and \ref{fig:interaction_monolithic_managertz} depict the interaction of the baker and validators with the resulting contracts on the blockchain for a variant using a single monolithic contract versus a hybrid solution. After calling a contract that includes an assertion, the baker has to keep the transaction in its mempool, a buffer where a node keeps prevalidated transactions not yet included in a block \todo{remove explanation if added to Tezos chapter}. Before it can be included, the transaction has to be kept there for a minimum amount of time, s.t. the validators have enough time to validate the assertion \todo{refer to blockchain protocol chapter if there is one}. The bakers therefore need to execute such transactions in a dedicated ``challenge'' mode, which could be signalled by using a special operation type to call such contracts. Operation types in Tezos are, i.a., transactions, originations or endorsements. By adding, for instance, a special transaction type (abbreviated by \texttt{txa} in the interaction diagrams), bakers can differentiate between normal transactions and those with assertions.
-\begin{figure}[h]
+% geht nur mit explicit eps. enforce by compiler and txa type
+% protocol design needs to address the execution mode, the handling of assertion failure and how to ensure that either counterexample or normal tx is recorded on the chain. 
+
 \centering
-  \includegraphics[width=0.7\textwidth]{figures/5-offline_tezos/interaction_monolithic.jpg}
+  \includegraphics[width=0.7\textwidth]{figures/5-offline_tezos/interaction_monolithic_2}
 	\caption{Interaction with a monolithic contract}
 	\label{fig:interaction_monolithic}
-\end{figure}
-
-\begin{figure}[h]
-\centering
-  \includegraphics[width=0.8\textwidth]{figures/5-offline_tezos/interaction_monolithic_managertz.jpg}
-	\caption{Interaction with a manager and monolithic contract}
-	\label{fig:interaction_monolithic_managertz}
 \end{figure}
 
 After prevalidating a transaction in the challenge mode, the baker then sends a request to the network to check the associated assertion. The request contains the address of the monolithic contract or manager, the operation hash (oph) of the prevalidated transaction, the derived entrypoint tag of the assertion and the parameter. The operation hash is used to relate a counterexample to the respective transaction. Upon receiving such a request, the validators call the assertion manager; what type of operation is used for is an open question for the protocol design. For efficiency, at most the test runs detecting a counterexample should be recorded on the blockchain, which would not be the case if validators use standard transactions. What has been left out so far in the offline design is the representation of a counterexample. \secref{} briefly discusses this as an open question and follow-up of this thesis \todo{secref}.
@@ -294,7 +284,7 @@ The distinct advantages and disadvantages of each combination of given implement
 	}
 \end{table}
 
-\subsection{Approach 2: Modular contracts}\label{sec:modular}
+\subsection{Modular orchestration}\label{sec:modular}
 With the modular approach, the assertion manager and each of the assertions are originated as separate contracts on the blockchain. The manager mirrors the interface of the parent contract, while each assertion each only has a single entrypoint which expects the raw parameter type. Due to the ``outsourcing'' of the assertion code, the parent contract remains pure and does not have to be modified. Similar to the hybrid solution from the last section, the manager calls the respective assertion contract $t$ times as an internal operation before calling the actual contract. In the case of empty assertions, it calls the parent contract immediately. Correspondingly, the pipeline outputs 1-$m$ contracts, where $m$ is the amount of entrypoints with an associated assertion, as depicted in \figref{fig:modular_assembly}.
 \begin{figure}[h]
 \centering
@@ -482,7 +472,9 @@ The results show that the cost incurred by a single validator checking $t$ value
 \todo{Cheaper for the network if not all validators have to execute the whole local check! however, placing these costs on the users will cause them to use the local approach -> users need incentives to use it too! -> blockchain protocol could/should solve this! (e.g. use rewards instead of costs)}
 \todo{Every transaction is processed at every node in the network,which limits throughput}
 
-\section{Representing counterexamples}\todo{Move or rename?}
+\section{Representing counterexamples}\label{sec:counterexample}
+\todo{Adapt -> counterexample as separate contract? failwith returns address and data and validator broadcasts normal tx to this contract? is included in block and validated as any other normal tx. how to reject C(x) if A(C, x,y) is on the chain?}
+
 There still remains an open question concerning the proposed implementation that could be answered in detail within the scope of this thesis - the representation and validation of a counterexamples. The interaction scheme in \figref{fig:interaction_modular} suggests, that validators publish an instance of a counterexample to the network if they found one. However, it has yet to be specified how the counterexample is represented and double-checked by the other validators. With the \texttt{failwith} instruction, the top element of the stack can be exposed \cite{tezos_docs}, providing a way to return an interpretable expression from the interpretation context \cite{tezos_repo}. Thus, as a first approximation, the counterexample could be represented as a tuple of assertion code and a list of randomly generated values. For instance, the counterexample for the assumption ``p is a prime'' (cf. \eqref{eq:prime}) is represented by \\
 \texttt{(n >= 2 \&\& n <= sqrt(p) \&\& p\%n = 0, <random value for n>)}. \\
 For validation of the counterexample, this tuple, together with the respective operation hash of the initial transaction this counterexample refers to, is published to the network. The other validators then interpret the given code with the respective value(s) and either confirm or object the counterexample. As Tezos transmits data as byte sequences, the counterexample needs to be unparsed and serialized, or deserialized and parsed respectively. If the cost for checking assertions is paid for be the user (in form of gas), then these costs have to be added to the total costs as well.\\
