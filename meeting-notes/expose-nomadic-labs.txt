@@ -26,4 +26,7 @@ blockchain. An oracle can provide a trusted reference to a real-world
 object or it can provide triggers for contracts on the blockchain.
 We study the means to provide high-quality oracles on the Tezos
 blockchain and offer two approaches: a type-safe contract API and
-contract modules.
+contract modules. To validate our API, we develop an execution model
+to study type-safety of the interaction between the oracle program and
+the blockchain. We provide an OCaml implementation of the API.
+
