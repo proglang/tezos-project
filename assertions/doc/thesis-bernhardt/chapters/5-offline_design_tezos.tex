@@ -1,27 +1,25 @@
 \chapter{Toolchain Backend}\label{chap:offline_tezos}
 After parsing and transforming a list of assertions, the resulting ASTs are passed to the target-specific backend. For this thesis, the platform target is Tezos, with Michelson as the compilation target. The pipeline stages of the backend comprise the ones colourized in \figref{fig:pipeline_backend}. First, the generic ASTs are subjected to a semantic check, which rejects any assertions containing unsupported types, operations or other invalid expressions. Valid ASTs are then cast to a target specific AST type and passed to the type checker. In this stage, the assertions are linked to the respective parent entrypoints based on the parameter patterns and tags. Given the list of target specific ASTs and a linking, the compiler finally generates target code. Each stage is described in more detail in \secref{sec:backend_impl}.
 
-As a preliminary for the compiler implementation, 
-% the chapter identifies/describes necessary amendments to Michelson and the VM -> part of protocol design, but also concerns the toolchain -> secref
-% furthermore, a scheme for the orchestration of assertion and parent code is required. the code somehow needs to collude -> explores some options; discusses advantages and disadvantages. picks a winner for the proof-of-concept impl.
-% for background/ as a basis for this chapter, section 1 gives an introduction to Tezos and Michelson
+As a preliminary for the compiler implementation, \secref{sec:ext_michelson} identifies necessary extensions to Michelson and Tezos' VM in order to facilitate the distributed assertion scheme. Although the extensions are formalized in this thesis, implementing the extension is part of the protocol amendment. Furthermore, the compiler needs to generate the target code according to an on-chain orchestration scheme between the assertion and parent contract. \secref{sec:orchestration} explores possible strategies for such a scheme, and discusses their strengths and weaknesses. Based on a resulting proposal for the orchestration, \secref{sec:cost_analysis_distributed} performs a cost analysis of the approach of distributed assertion checking and evaluates if, and under which conditions, it can solve the issue of scalability in blockchain applications.
 
+As a foundation for the other sections, \secref{sec:tezos} provides important background on the Tezos blockchain, its built-in Smart Contract language Michelson and some relevant tools and projects within its ecosystem.
 
- Furthermore, it states the necessary extensions to Michelson and its evaluator to facilitate useful assertions using random generators and assesses several orchestration strategies between the parent and assertion contract code. As a preliminary, the following section gives a short introduction to the Tezos blockchain, the Michelson language and some relevant tools in Tezos' ecosystem.
+\section{Tezos}\label{sec:tezos}
+The Tezos blockchain is presented in its whitepaper as a \enquote{generic and self-amending crypto-ledger} \cite{goodman_tezos_2014}. It uses a proof-of-stake consensus mechanism, which is not only used to agree on the current state of its ledger, but also allows its stakeholders to come to a consensus about changes in the economic protocol by participating in a voting process. The changes included in a protocol upgrade, called amendment, can influence i.a. which transactions are valid on the blockchain, the payment system or even the voting process itself. It does so without risking a fork of the blockchain. Everyone owning the cryptocurrency of Tezos, called Tez, is considered a stakeholder and can participate in the consensus mechanism. The whitepaper compares the self-amending protocol of Tezos to a game created by Philosopher Peter Suber called ``Nomic'', whose set of rules are subjected to a democratic voting system \cite{nomic}. Similar concepts can also be found in modern pop culture, such as the virtual sports league ``Blaseball'' \cite{blaseball}, which became popular during the COVID-19 pandemic.
 
-\section{Introduction to Tezos}\label{sec:tezos}
-The Tezos blockchain is presented in its whitepaper as a \enquote{generic and self-amending crypto-ledger} \cite{goodman_tezos_2014}. It uses a proof-of-stake consensus mechanism that is not only used to agree on the current state of its ledger, but also allows its stakeholders to come to a consensus about changes in the economic protocol by participating in a voting process. The changes included in a protocol upgrade, called amendment, can influence i.a. which transactions are valid on the blockchain, the payment system or even the voting process itself without risking a fork of the blockchain. Everyone owning the cryptocurrency of Tezos, called Tez, is considered a stakeholder and can participate in the consensus mechanism. The whitepaper compares the self-amending protocol of Tezos to a game created by Philosopher Peter Suber called ``Nomic'', whose set of rules are subjected to a democratic voting system \cite{nomic}. Similar concepts can also be found in modern pop culture, such as the virtual sports league ``Blaseball'' \cite{blaseball} that became popular during the COVID-19 pandemic.
-
-In addition to user accounts associated with a public key, Tezos supports smart contracts, which are written in the built-in language Michelson. Tezos' transaction fee system is similar to that of Ethereum \cite{wood_ethereum_2021} - it is gas-instrumented and besides a base fee, every operation and byte of storage during contract execution has to be paid for. However, Tezos imposes a hard cap on the amount of gas that can be consumed per operation (including internal transactions) \cite{tezos_docs}\cite{morley_repo}, whereas Ethereum limits the gas quota only in respect to blocks \cite{wood_ethereum_2021}.\\
-Tezos is written in the multi-paradigm programming language OCaml \cite{ocaml_doc}. Compiling the its source code yields five essential binaries: the node, baker, endorser, accuser and client. The node is the entity that connects to the peer-to-peer network and keeps a copy of the chain. Bakers are responsible for producing new blocks, the endorsers for validating new blocks and the accusers to call out bakers or endorsers which double-sign or -endorse. The client provides a command line interface to interact with the local node through remote procedure calls (RPC).
+In addition to user accounts associated with a public key, Tezos supports smart contracts, which are written in the built-in language Michelson. Tezos' transaction fee system is similar to that of Ethereum \cite{wood_ethereum_2021} - it is gas-instrumented and besides a base fee, every operation and byte of storage during contract execution has to be paid for by the user. However, Tezos imposes a hard cap on the amount of gas that can be consumed per operation (including internal transactions) \cite{tezos_docs}\cite{morley_repo}, whereas Ethereum limits the gas quota only in respect to blocks \cite{wood_ethereum_2021}.\\
+Tezos is written in the multi-paradigm programming language OCaml. Compiling its source code yields five essential binaries: the  node, baker, endorser, accuser and client. The node is the entity connecting to the peer-to-peer network and keeping a copy of the chain. Bakers are responsible for producing new blocks, the endorsers for validating and signing new blocks and the accusers to call out bakers or endorsers which double-sign or -endorse. The client provides a command line interface to interact with nodes through remote procedure calls (RPC).
 
 \subsection{Proof-of-stake in Tezos}
-In Tezos, contracts that staked a minimum amount of tokens, called a roll, can participate in the consensus mechanism and can either have the role of a baker or endorser. Contracts who don't own enough tokens or infrastructure to participate directly can delegate their baking and endorsing rights to other contracts. The rights are determined and assigned at the beginning of each cycle, which consists of a specified number of blocks. For baking, a random roll is selected for each block level and the rights are assigned to its owner. The block produced by that baker is endorsed by a fixed number of endorsers (currently 32 in protocol 008 Edo), which also have been assigned endorsing rights for this block level by a random selection of rolls. Since participants can stake more than one roll, an endorser may be assigned several endorsement slots at the same block level. \\
-As an incentive for active participation in the consensus algorithm, delegates (and also delegators) receive rewards in form of tokens. However, if accusers detect double-baking or -endorsement, the delegate is penalized by burning (i.e., destroying) their security deposit. \cite{tezos_docs}
+In Tezos, contracts which have staked a minimum amount of tokens, called a roll, can participate in the consensus mechanism. When participating, a contract has a chance to obtain the role of either a baker or an endorser. Contracts who don't own enough tokens, or infrastructure, to participate directly, can delegate their baking and endorsing rights to other contracts. The rights to bake or endorse are determined and assigned at the beginning of each cycle, which consists of a specified number of blocks. For baking, a random roll is selected for each block level and the rights are assigned to its owner. The block produced by that baker is signed by a fixed number of endorsers (32 as of protocol 007 Delphi), which also have been assigned endorsing rights for this block level by a random selection of rolls. Since participants can stake more than one roll, they may be assigned several endorsement slots at the same block level.
+
+As an incentive for active participation in the consensus algorithm, delegates (and also delegators) receive rewards in form of tokens. However, if accusers detect double-baking or -endorsement, the delegate is penalized by burning (i.e., destroying) their security deposit.
 
 \subsection{Michelson}
-Michelson is a lower-level, stack-based language with strict type-checking and supports primitive data types, like integers or strings, as well as high-level data structures such as list, maps and sum types \cite{tezos_docs}. The type system reduces the occurrence of runtime errors and ensures that only well-typed contracts are originated on the blockchain. \\
-The concrete syntax of Michelson is called Micheline. A program is represented in Micheline nodes, which can be one of the following constructs:
+Michelson is a lower-level, stack-based language with strict type-checking. It supports primitive data types, like integers or strings, as well as high-level data structures, such as list, maps and sum types. The type system reduces the occurrence of runtime errors and ensures that only well-typed contracts are originated on the blockchain.
+
+The concrete syntax of Michelson is called Micheline. A program is represented as Micheline nodes, which can be one of the following constructs:
 \begin{itemize}
 \item A constant of type integer (in decimal notation)
 \item A constant of type string
@@ -29,23 +27,25 @@ The concrete syntax of Michelson is called Micheline. A program is represented i
 \item An application of a language primitive to a sequence of nodes
 \item A sequence of nodes
 \end{itemize}
-For documentation, readability and additional type constraints, Michelson and Micheline also offer three types of annotations - type, variable and field or constructor annotations, which are labelled with a unique special character in Micheline. The toplevel structure of a smart contract consists of a sequence of the three primitives \texttt{parameter, storage} and \texttt{code}, declaring the type of the input parameter, the storage type and the actual program code. The full grammar of Micheline and Michelson can be found in the Tezos developer resources \cite{tezos_docs}.
+For documentation, readability and additional type constraints, Michelson and Micheline also offer three types of annotations - type, variable and field or constructor annotations, which are labelled with a unique special character in Micheline. The toplevel structure of a Smart Contract consists of a sequence of the three primitives \texttt{parameter, storage} and \texttt{code}. They declare the type of the input parameter, the storage type and the script, which is interpreted when the contract is invoked. The full grammar of Micheline and Michelson can be found in the Tezos developer resources \cite{tezos_docs}.
 
 \subsubsection{Entrypoints}
-Unlike the contracts shown so far, which were expressed with the syntax of Ethereum's contract language Solidity \cite{solidity_docs}, Michelson doesn't have a concept of named functions with individual input parameter types. Instead of named functions, Michelson programs can have separate entrypoints by taking a disjunctive type as input parameter and optionally tagging the type constructors with a "function" name. The disjunctive type is built by nesting the \texttt{or} type, which has the constructors \texttt{left} and \texttt{right}. Assume we want to implement the contract from \lstref{lst:prime} in Michelson and add another function to it, which expects a string parameter. Omitting the actual program, the contract type declaration looks as follows:
+Unlike Ethereum's contract language Solidity, Michelson doesn't have a concept of named functions with a dedicated parameter type. Instead of named functions, Michelson contracts models separate entrypoints by taking a sum type as an input parameter. The type constructors can optionally be tagged a field annotation, which can be considered an entrypoint name. The sum type is built by nesting the \texttt{or} type, which has the constructors \texttt{left} and \texttt{right}.
+
+As an example, the contract in \lstref{lst:entrypoints} has two entrypoints --- entrypoint \texttt{A}, which expects an integer wrapped in the \texttt{left} constructor, e.g. \texttt{left 1}, and entrypoint \texttt{B}, which expects a string wrapped in the \texttt{right} constructor, e.g. \texttt{right "hello world"}.
 \begin{lstlisting}[language=Michelson, numbers=none, caption=Michelson contract with two entrypoints, label=lst:entrypoints]
-parameter (or (int %isPrime) (string %isUpper));
+parameter (or (int %A) (string %B));
 storage unit;
 code {
   ...
-  IF_LEFT { ... (* then *)}
-          { ... (* else *)}
+  IF_LEFT { ... (* entrypoint A *)}
+          { ... (* entrypoint B *)}
 }
 \end{lstlisting}
-The input type declared in the primitive application \texttt{parameter} accepts input of either type \texttt{left int}, or \texttt{right string}. By adding the field annotations \texttt{isPrime} and \texttt{isUpper}, the entrypoints are given tags and can be called explicitly by an external transaction. In that case, parameters of type \texttt{int} or \texttt{string} are accepted and the value is automatically wrapped into the respective constructors. Furthermore, it's possible to declare a \texttt{default} entrypoint, which is called when no explicit tag is specified. By default, the default entrypoint is assigned to the root of the parameter type. \cite{tezos_docs}
+By adding the constructor annotations \texttt{A} and \texttt{B}, the entrypoints can be invoked explicitly. The passed parameter value is then wrapped automatically into the respective constructor. Furthermore, it's possible to declare a \texttt{default} entrypoint, which is invoked when no explicit tag is specified in the transaction. By default, the default entrypoint is assigned to the root of the parameter type.
 
 \subsubsection{Internal operations}
-Smart contracts are able to call other smart contracts by emitting internal operations. The return type of Michelson programs is a tuple of a list of internal operations and the updated storage. Thus, after the actual contract has been executed, the operations of the returned list are run in sequence. Since the internal operations may in turn also emit internal operations, they are put into a queue and are processed in order. As an example, \figref{fig:internal_ops} shows an execution order of two external transactions in sequence, i.e., transactions which have been initiated by a user account, and their internal operations.
+Smart Contracts are able to invoke other Smart Contracts by emitting internal operations. The return type of Michelson programs is a tuple of a list of internal operations and the updated storage. After a contract completes, the operations in the returned list are run in sequence. Since internal operations may in turn also emit internal operations, the interpreter puts all emitted operations into a queue, which is processed in order. As an example, \figref{fig:internal_ops} shows an execution order of two external transactions and their internal operations in sequence.
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.5\linewidth]{figures/5-offline_tezos/internal_ops}
@@ -53,99 +53,102 @@ Smart contracts are able to call other smart contracts by emitting internal oper
 \label{fig:internal_ops}
 \end{figure}
 
-Both external and internal operations can fail if the source does not have enough balance to spend the specified amount, a gas limit was reached or if a program fails when reaching a \texttt{FAILWITH} instruction. If a failure occurs, the whole sequence fails and all changes up to the point of failure are reverted.
+Both external and internal operations can fail, if the source contract does not have enough balance to spend the specified amount, a gas limit was reached, or if a program fails due to reaching a \texttt{FAILWITH} instruction. If a failure occurs, the whole sequence fails and all changes up to the point of failure are reverted.
 
 \subsection{Gas model}
-In Tezos data is stored and transmitted as byte sequences --- in order to obtain a typed representation of their value for interpretation, a byte sequence is first deserialised into Micheline and subsequently parsed \cite{tezos_repo}. Conversely, before transmitting or storing something on the blockchain, the typed representation is first unparsed and then serialised. The gas consumption of an operation, e.g. a transaction or an origination, is thus composed of the following positions on top of a base cost \cite{morley_gasmodel}\cite{tezos_repo}:
+Tezos stores and transmits data as byte sequences --- in order to obtain a typed representation of their value for interpretation, a byte sequence is first deserialised into Micheline and subsequently parsed into a typed AST. Conversely, before transmitting or storing something on the blockchain, the typed representation is first unparsed into Micheline and then serialised. Since these working steps also entail computational effort, they consume gas and thus account for some of the transaction fees. The gas consumption of an operation (e.g., a transaction or a contract origination) is thus composed of the following positions \cite{morley_gasmodel}\cite{tezos_repo} on top of a base gas fee:
 \begin{enumerate}
-\item \textbf{Reading costs} --- apply for reading contract code, storage or Big Maps from the internal database and, on top of the base cost, depend on the amount of bytes read
-\item \textbf{Deserialization costs} --- depend on the Micheline expression and their size
-\item \textbf{Parsing costs} --- are composed of three types of parsing costs:
+\item \textbf{Reading costs} --- apply for reading the contract code and storage from the blockchain and, on top of a base cost, depend on the amount of bytes read
+\item \textbf{Deserialization costs} --- depend on the Micheline expression and the size of the byte sequence
+\item \textbf{Parsing costs} --- are composed of three types of costs:
 	\begin{itemize}
-	\item type parsing --- apply when a Micheline node is converted into a valid type and are computed by a recursive formula; parametrized types therefore generate more cost than plain types
-	\item data parsing --- apply when a node is converted into the value of a known type and depend on the byte length for non-parametrized types, on the number of contained elements for container types and on the parameters for parametrized types
-	\item code parsing --- computes the return type of the code by sequentially applying instructions and type checking if the result matches the expectation.The cost thus increases in the number of instructions, while some instructions incur additional costs besides their base cost, such as \texttt{IF} (both branched need to be checked and compared) or \texttt{CREATE\_CONTRACT} (called contracts needs to be type checked)
+	\item type parsing --- apply when a Micheline node is converted into a valid type
+	\item data parsing --- apply when a node is converted into the value of a known type and depends on the size of the value
+	\item code parsing --- apply when the instructions of a program are type checked and depends on the number and types of instructions. Some instructions are expensive, such as \texttt{IF} (both branches need to be checked and compared) or \texttt{CREATE\_CONTRACT} (requires type check of invoked contract)
 	\end{itemize}
-\item \textbf{Type comparison costs} --- occur during parsing when types are checked for equality (e.g. when verifying that the branches of \texttt{IF} have the same type) or contract execution
-\item \textbf{Interpreter costs} --- apply for each executed instruction and are specified for each. Expensive instruction are, for instance, \texttt{CONTRACT} with a high base cost and additional cost for reading, deserializing and type checking of the target contract code. 
-\item \textbf{Unparsing costs} --- depend on the type of the data; parametrized types incur cost for unparsing its inner types as well
-\item \textbf{Serialization costs} --- depend, similar to deserialization, on the Micheline expression and their size
-\item \textbf{Writing costs} --- apply when writing to the internal database. Depend on the amount of bytes written, but with a higher base cost than reading. Additional cost is inflicted if the storage of the contract increased in size
+\item \textbf{Type comparison costs} --- apply when types are checked for equality (e.g. when type checking the branches of the \texttt{IF} instruction) or during contract interpretation
+\item \textbf{Interpretation costs} --- apply for each interpreted instruction and depend on their complexity.
+\item \textbf{Unparsing costs} --- apply when converting typed data to untyped Micheline nodes and depend on the data type and size
+\item \textbf{Serialization costs} --- apply when serializing Micheline nodes to byte sequences and depend on the expression and its size
+\item \textbf{Writing costs} --- apply when writing to the internal database and depend on the amount of bytes. A base fee applies for each additional byte of storage.
 \end{enumerate}
 If a transaction emits internal operations, their gas consumption is computed in the same way and are added to the total gas consumption of the external operation.
 
 \subsection{Developer tools in the Tezos ecosystem}
-This section describes some relevant tools and projects for developers that are part of Tezos' ecosystem.
+This section describes some tools and projects within Tezos' ecosystem, which are relevant to the development of the toolchain or the protocol amendment.
 
 \subsubsection{Tezos Libraries}
-Tezos' executables and libraries are developed in the programming language OCaml and are available on through OCaml's package manager \texttt{opam} \cite{tezos_opam}. The protocol libraries of every version are released separately, thus any projects can be built on the protocol of choice. Important libraries that were used in the development of the offline toolchain are the Micheline library providing the internal abstract syntax tree (AST) and parser of the Michelson language, as well as the protocol specific libraries containing i.a. the type checker. Additionally, the client libraries are used to retrieve any needed information from the node or blockchain via RPCs.
+Tezos' executables and libraries are available on OCaml's package manager \texttt{opam} \cite{tezos_opam}. The protocol libraries of every version are released separately, thus any projects can be built on the protocol of choice. Relevant libraries included in the backend of the toolchain are, i.a, the Micheline library containing the internal abstract syntax tree (AST) and parser of the Michelson language, the protocol libraries providing functions to type check code or data, and client libraries to retrieve any needed information from the node or blockchain via wrapped RPCs.
 
 \subsubsection{Testing tools}
-Before a new protocol is proposed to the Tezos network, it has to be thoroughly tested with system, integration and regression tests. This requires a sandboxed network to simulate the real peer-to-peer network, such that also interactions between the actors of the blockchain can be tested. Tezos' development environment provides two testing frameworks for this:
-\begin{itemize}
-\item[\textbf{Flextesa}] With Flextesa (Flexible network sandboxes)\cite{tezos_docs} one can configure and run a small, fully functional sandboxed test network including nodes, bakers, endorsers and accusers. Accounts can be instantiated and used to send or receive funds. Configurable are, for instance, the size of the network, the time between blocks or enabling generation of random network traffic. Networks may either be fully autonomous, baking blocks automatically, or require manual baking of blocks. It also supports interactive sessions, where the tester can interact with the blockchain using the Tezos client. Flextesa's typical use-cases are interactive testing scenarios like double-baking, the voting process or protocol amendments. The Tezos repository already provides ready-to-use scenarios for accusations. Besides testing shell or protocol code, Flextesa can also be used to test smart contracts.
-\item[\textbf{Tezt}] The Tezt framework \cite{tezos_docs} is newer than Flextesa and planned as its replacement. It launches the Tezos binaries as external processes to build a sandboxed test network of configurable size. Its main advantages over Flextesa are simplicity, better usability and extendibility and better performance due to the use of an event system instead of polling the node.
-\end{itemize}
+Before a new protocol is proposed to the Tezos network, it has to be thoroughly tested with system, integration and regression tests. This requires a sandboxed network to simulate the real peer-to-peer network. Tezos' development environment provides the two testing frameworks Flextesa (Flexible network sandboxes)\cite{tezos_docs} and its successor Tezt \cite{tezos_docs}. They allow to configure and run a small, fully functional sandboxed test network including nodes, bakers, endorsers and accusers. Besides testing new protocols, they can also be used to interactively test Smart Contracts.
 
 \subsubsection{High-level languages}
-Michelson is a compilation target for various high-level languages that provide a more user-friendly and intuitive way of writing smart contracts. Additionally, some of them come with development environments and testing or verification tools. The following list comprises of the three most prominent languages that compile to Michelson:
-\begin{itemize}
-\item[\textbf{Liquidity}] \cite{liquidity} is a language with an OCaml-like syntax, which allows using local variables instead of stack manipulations. Its module system can be used to write reusable contract code or libraries. Besides an optimizing compiler, the project also includes a decompiler to compile Michelson programs to Liquidity.
-\item[\textbf{SmartPy}] \cite{smartpy} is a language available through a Python library and lets developers write contracts and tests using Python syntax and structures (such as classes). Its developer suite includes i.a. a compiler, a simulation engine for testing contracts and an online editor.
-\item [\textbf{Ligo}] \cite{ligo} offers multiple syntax flavours that are close to Pascal, OCaml or Reason. Besides compilation, the toolchain allows to invoke or evaluate the generated code locally. The Ligo OCaml packages can be integrated into other OCaml projects, s.t. the compiler can be invoked from within third-party applications.
-\end{itemize}
+Michelson is a compilation target for various high-level languages that provide a more user-friendly and intuitive way of writing Smart Contracts. Additionally, some of them come with development environments, testing or verification tools. The following list introduces three prominent languages compiling to Michelson:
+\begin{description}
+\item[\textbf{Liquidity}] \cite{liquidity} is a language with an OCaml-like syntax, which allows using local variables instead of stack manipulations. Its module system can be used to write reusable contract code or libraries. Besides an optimizing compiler, the project also includes a decompiler to compile Michelson programs to Liquidity source code.
+\item[\textbf{SmartPy}] \cite{smartpy} is a language available through a Python library and lets developers write contracts and tests using Python syntax and structures (such as classes). Its developer suite includes, i.a., a compiler, a simulation engine for testing contracts and an online editor.
+\item [\textbf{Ligo}] \cite{ligo} offers multiple syntax flavours close to Pascal, OCaml or Reason. Besides compilation, the toolchain allows to invoke or evaluate the generated code locally. The project provides Ligo as OCaml packages, which can be integrated into other projects.
+\end{description}
 
-\section{Extensions to Michelson}
-The way Michelson is interpreted is purely functional; it takes the current stack and an operation and builds a return stack from the initial one, without causing any side effects \cite{tezos_docs}. The recursive Michelson interpreter is defined as as a list of rules comprising of all possible inputs, i.e. program and stack types, and the respective output stack type of the computation if a rule applies. Each rule is of the following form: 
-\begin{lstlisting}[caption=Rules form in the Michelson interpreter \cite{tezos_docs}, language=, numbers=none, label=lst:rules]
+\section{Extensions to Michelson}\label{sec:ext_michelson}
+For the assertion code to be executable by the VM of Tezos, Michelson and the VM have to be extended with new instructions. This includes an instruction to generate a random value of some primitive data type non-deterministically. The formalization and possible implementation of such an instruction is described in \secref{sec:random}. Aside from this, many useful use-cases involve checking random elements of lists, and possibly strings or bytes. For convenience, it is worth considering adding indexing operations for some data types to the VM. This is discussed in more detail in \secref{sec:nth}.
+
+As a foundation for the formalization of these new instructions, \secref{sec:michelson_semantics} gives a brief introduction to the Michelson interpreter and type system first.  
+
+\subsection{Language semantics and type system}\label{sec:michelson_semantics}
+The way Michelson is interpreted is purely functional; the interpreter takes the current stack and an operation and builds a return stack from the initial one, without causing any side effects. The definition of the recursive interpreter is given in the form of a list of rules, comprising of all possible inputs (i.e., program and stack types) and the respective output stack type of the computation. Each rule is of the following form: 
+\begin{lstlisting}[caption=Selection rules in the Michelson interpreter \cite{tezos_docs}, language=, numbers=none, label=lst:rules]
 > (syntax pattern) / (initial stack pattern)  =>  (result stack pattern)
     iff (conditions)
     where (recursions)
     and (more recursions)
 \end{lstlisting}
-For each valid program and initial stack exactly one rule matches (given that any extra conditions over values on the stack, stated after the \texttt{iff} keyword are true) \cite{tezos_docs}. If the result depends on the results of other program interpretations (given after the keywords \texttt{iff, where, and} in rule form), the rule only applies if these partial results also match the respective intermediate result stack patterns.\\
-In addition, there exists a typing rule for each syntax construct that restricts the valid input stacks. The typing rules use the meta variables \texttt{'a} for type and \texttt{'A} for stack type variables in order to express consistency within the program (not polymorphism). These rules are given in the following form:
+For each valid program and initial stack, exactly one rule matches. Following the keyword \texttt{iff}, the rule can add extra conditions over values on the stack. If the result depends on the results of other program interpretations, such as conditionals or function calls, the rule can contain \texttt{where} or \texttt{and} clauses. These clauses represent a recursive interpretation of an intermediate program. The rule thus only applies, if the interpretation of the intermediate result matches the expected pattern.
+
+The type system of Michelson consists of typing rules for each syntax construct, restricting the valid input stacks. The typing rules use the meta variables \texttt{'a} for type, and \texttt{'A} for stack type variables. Using these meta variables, the rules express consistency within the program. The typing rules are given in the form shown in \lstref{lst:type_rules}, where premises are additional typing requirements over values on the stack:
 \begin{lstlisting}[caption=Form of typing rules in Michelson's specification \cite{tezos_docs}, language=, numbers=none, label=lst:type_rules]
 (syntax pattern)
 :: (type of stack before) -> (type of stack after) [rule-name]
    iff (premises)
 \end{lstlisting}
-The type notations, as well as syntax and stack patterns are listed in \cite{tezos_docs}.
+The Tezos developer resources \cite{tezos_docs} provide a comprehensive list of type notations, syntax and stack patterns.
 
-Since Michelson is implemented in the protocol-specific part of the blockchain code, adding new instructions require a protocol update. The instruction must be added i.a. to the list of tokens, its computation to the interpreter and its typing rules to the type checker. As the computation of the new instruction must be paid for like any other instruction, the protocol must also specify a gas cost. Previous extensions to the Michelson language, such as \cite{tezos_michelson_ext}, can be used as a guideline for the implementation and the gas cost specification in \cite{tezos_repo_gas} as an orientation to how high the gas costs should be scheduled for comparable instructions.
+Since the Michelson language and interpreter are implemented in the protocol-specific libraries of Tezos, adding new instructions require a protocol update. This entails adding the new instruction to the list of tokens, adding one or several selection rules to the interpreter and typing rules to the type checker \cite{tezos_repo}. Furthermore, the protocol must specify the gas cost of its computation. Previous extensions to the Michelson language, such as the addition of the instruction ``\texttt{DIG n}'' in protocol 005 Babylon \cite{tezos_michelson_ext}, can be used as a guideline for the extension. The gas cost specification of existing instructions \cite{tezos_repo_gas} should be used as an orientation in specifying the costs of new instructions.
 
-From the given formulas and assertion examples so far, one can derive a set of necessary instructions that need be be present in the target language. The following subsections list the instructions which have to be added to Michelson's instruction set, specify their selection and typing rules and describe how they can be implemented in the interpreter. These do not necessarily include high level instructions, like \texttt{sqrt} from \eqref{eq:prime}, that can be reproduced by using lower level instructions. For these purposes, a later iteration of the syntax will provide the feature of user-defined functions.
+\subsection{random}\label{sec:random}
+Since Smart Contracts generally need to be deterministic, s.t. the network can reach a consensus about the state of the ledger \cite{chatterjee_probabilistic_2019}, the prevalent workarounds for generating pseudo-random numbers cannot be used to implement the random generators in assertion contracts. The scheme explicitly requires as many validators as possible to check distinct elements in the search space. Common schemes for obtaining random values, like oracles or using block attributes as seeds \cite{chatterjee_probabilistic_2019}, would provide the same values for all validators. Thus, the VM should provide an instruction to generate a ``real'' random value for assertion checking only. The instruction should not be available in the normal execution mode, in order to preserve the deterministic behaviour of normal Smart Contracts.
 
-\subsection{random}
-A vital instruction that cannot be expressed with Michelson's current instruction set (state of protocol 008 Edo \cite{tezos_docs}) is the generation of a random value of certain types. Since smart contracts need to be deterministic, s.t. the network can reach a consensus about the state of the ledger \cite{chatterjee_probabilistic_2019}, the prevalent workarounds for generating pseudo-random numbers cannot be used for assertion checking. Distributed assertion checking explicitly requires as many validators as possible to generate a unique value, whereas common schemes for randomness, like oracles or using block attributes as seeds \cite{chatterjee_probabilistic_2019}, will provide the same values for all validators.\\
-\lstref{lst:rand_type} specifies the selection and typing rule of a new instruction \texttt{rand}, which consumes an offset and a positive range from the stack and pushes a randomly generated integer to the top. This instruction, of course, can also be provided for other data types, such as \texttt{nat}, \texttt{string} or \texttt{mutez}.
+\lstref{lst:rand_type} specifies the typing and selection rule of a new instruction \texttt{random} for integers (such an instruction can also be provided for other data types, such as \texttt{nat}, \texttt{string} or \texttt{mutez}). It consumes an offset and a positive range from the stack and pushes a randomly generated integer to the top. The typing rule (line 1) specifies, that the offset should be of type \texttt{integer}, and the range of type \texttt{nat}.
 \lstset{upquote=true}
-\begin{lstlisting}[caption=Selection and typing rules of the integer \texttt{rand} instruction, language=, numbers=none, label=lst:rand_type]
+\begin{lstlisting}[caption=Typing and selection rules of the integer \texttt{random} instruction, language=, showlines=true, label=lst:rand_type]
 :: int : nat: 'A -> int : 'A
-> RAND/ offset : range : S  => int : S
+> RANDOM / offset : range : S  => int : S
 \end{lstlisting}
 
-Within the Michelson interpreter, the selection of rules is implemented as a huge match case \cite{tezos_repo}. If the rule for \texttt{rand} applies, the respective computation in OCaml could look as drafted in \lstref{lst:rand_impl}.
-\begin{lstlisting}[caption=Simplified evaluation of \texttt{rand} in the Michelson interpreter, language=, label=lst:rand_impl]
+Within the Michelson interpreter, the selection of rules is implemented as a huge match case \cite{tezos_repo}. If the rule for \texttt{random} applies, the instruction could be computed in OCaml as indicated in \lstref{lst:rand_impl}.
+\begin{lstlisting}[caption=Simplified evaluation of \texttt{random} in the Michelson interpreter, language=, label=lst:rand_impl]
 match (instruction, stack) with
 ...
-| (Rand (offset, (range, rest))) -> 
+| (Random (offset, (range, rest))) ->
    Random.self_init;
    let rand_int = offset + Random.int(range) in
-   return (rand_int, rest)  (* Resulting stack *)
+   return (rand_int, rest)  (* resulting stack *)
 \end{lstlisting}
 
-\subsection{nth}
-An exception for not adding higher level instructions may be the more fundamental operation \texttt{nth} for accessing list elements, as it is used (sometimes more than once, ref. \eqref{eq:sorted_v2}) in many use cases. Adding an own predefined primitive for this reduces the origination costs of the assertion contract, given that its equivalent in the current instruction set requires the compiler to generate a workaround using iteration, for instance a loop or list iterator. As a first approximation, appendix \ref{apx:nth} shows a potential implementation of \texttt{nth} in Liquidity (\lstref{lst:nth_liq}) using a loop, and how the respective Michelson code looks like after compiling the contract with the Liquidity compiler (\lstref{lst:nth_tz}). \\
-In case the \texttt{nth} is added as a predefined primitive to Michelson for the type \texttt{'a list}, its selection and typing rules are specified as follows:
+\subsection{nth}\label{sec:nth}
+Michelson currently does not provide any predefined indexed access operators for data types like lists, strings or bytes. Accessing a random element of a sequence can, of course, be implemented using low-level instructions. However, because such operations are used frequently in many of the given use-cases, adding it as a predefined primitive for some data types might be justifiable. This reduces the required code to express the indexing, and thus not only improves the readability of the contract code, but also lowers the costs of the contract origination and execution.
+
+\lstref{lst:nth_type} specifies the typing and selection rules of an instruction \texttt{nth} to access the $n^{th}$ element of a list. It consumes a list with elements of type \texttt{'a}, and an index of type \texttt{nat} from the top of the stack. After the computation, on top of the resulting stack is an optional value of the element type \texttt{'a}. A selection rule (line 2 and 3) is given for each of the two possible result stack patterns.
 \begin{lstlisting}[caption=Selection and type rule of the list \texttt{nth} instruction, language=, label=lst:nth_type]
 :: (list 'a) : nat : 'A -> option 'a : 'A
 > NTH / l : index : S  =>  Some 'a: S
      iff index is within bounds
 > NTH / l : index : S  =>  None 'a: S
-     iff index is out of  bounds
+     iff index is out of bounds
 \end{lstlisting}
-As Michelson lists are represented with OCamls list type within the VM \cite{tezos_repo}, the computation for \texttt{nth} could look as shown in \lstref{lst:nth_impl}.
+
+Within the VM, Michelson lists are represented with OCaml's list type --- the computation of \texttt{nth} thus simply calls the \texttt{nth} function of the List module, as indicated in \lstref{lst:nth_impl}.
 \begin{lstlisting}[caption=Simplified evaluation of \texttt{nth} in the Michelson interpreter, language=, label=lst:nth_impl]
 match (instruction, stack) with
 ...
@@ -159,7 +162,9 @@ match (instruction, stack) with
 \end{lstlisting}
 \lstset{upquote=false}
 
-\section{Orchestration of contract and assertions}
+As stated above, the indexing operation can also be translated to a sequence of already existing instructions. Michelson features instructions to execute a loop or iterate over a list, which can be used for such an implementation. An exemplary implementation of the operation \texttt{nth} for lists in the high-level language Liquidity is given by \lstref{lst:nth_liq} in appendix \ref{apx:nth}. The appendix also contains the corresponding Michelson code after compiling the source with the Liquidity compiler (\lstref{lst:nth_tz}).
+
+\section{Orchestration of contract and assertions}\label{sec:orchestration}
 So far, the assertion and parent contract have been considered separately. However, on the blockchain they have to be orchestrated, s.t. the bakers and validators execute the assertion before the actual contract code. The orchestration does not only include the linking of assertion and contract code, but also a mechanism to execute an assertion $t$ times depending on the domain space that needs to be checked. There are basically two approaches - the assertion and contract code can be assembled into a single monolithic contract, or they can be originated separately as standalone contracts. As the strategy has an impact on the compilation process and output, it has to be determined in advance which of the two should be implemented and how.
 
 \subsection{Approach 1: Monolithic contract}
@@ -436,10 +441,11 @@ Owing to Michelson being a low-level language, the templates for the functions \
 
 \paragraph{Evaluation}
 Compiling to Michelson directly is beneficial due of several reasons --- the pipeline stays streamlined and outputs the final contracts ready for origination. It does not introduce dependencies to external tools and their support for new protocol versions of Tezos. Besides, the new instructions only have to be added to Tezos' protocol code, whereas using external tools and languages would need to be patched as well in order to support them. \\
-When it comes to verifying the compiler and integration testing of the pipeline, however, the low-level output causes more complexity than a high-level output. Due to the extend and restricted readability of non-trivial Michelson programs, their correctness is not always apparent in an instant. Tests can, on the one hand, compare the output with verified target contracts for a range of inputs, which requires a lot of Michelson code written by hand for each input. They, in turn, can also be prone to errors. On the other hand, the generated contracts can be tested as a black box using the test frameworks provided by Tezos, which use sandboxed networks to interact with contracts-under-test.
+When it comes to verifying the compiler and integration testing of the pipeline, however, the low-level output causes more complexity than a high-level output. Due to the extend and restricted readability of non-trivial Michelson programs, their correctness is not always apparent in an instant. Tests can, on the one hand, compare the output with verified target contracts for a range of inputs, which requires a lot of Michelson code written by hand for each input. They, in turn, can also be prone to errors. \todo{remove?}On the other hand, the generated contracts can be tested as a black box using the test frameworks provided by Tezos, which use sandboxed networks to interact with contracts-under-test.
+
 
 \subsubsection{Compiling to an IR}\label{sec:IR}
-Instead of generating Michelson code directly, the compiler could also generate code in one of the high-level languages that provide a compiler with Michelson as a target. The output of the pipeline is then passed to this compiler in order to retrieve the final contracts. If the toolchain of the intermediate language doesn't provide a programmatic interface, the pipeline thus has to be extended with a separate step of procedure, as shown in \figref{fig:pipeline_liq}. This section demonstrates the implementation of this approach on the basis of Liquidity, hence the corresponding file extension \texttt{.liq}.
+Instead of generating Michelson code directly, the compiler could also generate code in one of the high-level languages that provide a compiler with Michelson as a target. The output of the pipeline is then passed to this compiler in order to retrieve the final contracts. If the toolchain of the intermediate language doesn't provide a programmatic interface, the pipeline thus has to be extended with a separate step of procedure, as shown in \figref{fig:pipeline_liq}. This section demonstrates the implementation of this approach on the basis of Liquidity, hence the corresponding file extension \texttt{.liq}. \todo{provide Ligo as alternative -> could be included as package}
 \begin{figure}[h]
 \centering
 \includegraphics[width=\linewidth]{figures/5-offline_tezos/pipeline_liq}
@@ -456,13 +462,13 @@ Liquidity contracts are a list of OCaml-like functions that take a parameter and
 Due to Algorithm \ref{alg:compile_manager} being left recursive, the output will automatically retain the correct order of entrypoints. In fact, the only adaptions necessary are the output of the two functions \texttt{generate\_loop} and \texttt{generate\_forward}, which should not only generate the code body, but return a coherent function. The function \texttt{entrypointA} in \lstref{lst:manager_templ_liq} is an example of such a function for an empty assertion. The non-empty version of the manager code can be found in appendix \ref{apx:apx:manager_liq}. As already noted, extracting a pure template for the code exceeds the scope of this section.
 \lstinputlisting[label=lst:manager_templ_liq, language=Michelson, caption=Manager code in Liquidity for an entrypoint with an empty assertion, numbers=left]{listings/manager_forward.liq}
 
-\paragraph{Evaluation}
+\paragraph{Evaluation}\todo{rename?}
 This approach takes advantage of the usually more sophisticated high-level language compiler; they may provide options for optimizing generated code and are already thoroughly tested \cite{liq_repo}\cite{ligo_repo}. In contract to low-level code, the output of the pipeline compiler is easier to be verified, as it can be read like, for instance, an OCaml program. Providing target contracts for integration tests can be done much more efficiently and more reliable. \\
 Besides the amenities of these compilers, this approach has a crucial disadvantage of introducing an external dependency. The compiler of the respective language has to be extended with the additional Michelson instructions as well, requiring a fork of the project. Furthermore one has to rely on continuous support of new protocol versions in the root project and integrate the updates into the own codebase. All things considered, the effort for extending both Michelson and the compiler of the IR, followed by a continuous effort of version management, may outweigh the benefits of this approach.
 
 When returning to the orchestration approach of generating a monolithic contract, using Liquidity as an IR would allow to decompile the parent contract using the decompiler of its toolchain. Since the Liquidity compiler handles the composition of the contract parameter type and the code nesting, the assertion function simply have to be appended to the parent code, which significantly decreases the compilation complexity.
 
-\section{Cost analysis}\label{sec:cost_analysis_distributed}
+\section{Cost analysis}\label{sec:cost_analysis_distributed}\todo{rename to evaluation and add some more stuff}
 What remains to be evaluated is the cost of checking a formula with the proposed approach, and how they relate to the costs for a local validation which were analysed in \secref{sec:usecase_cost}. The previous analysis defined \eqref{eq:gas_transaction} to calculate the gas consumption of a transaction, including the emitted operations. For each validator, the transaction calling the manager contract emits $t+1$ internal operations, whose gas consumptions are also dependent of the input parameter. Based on the $t+1$ additional base, as well as deserialization and parsing costs of the parameter alone, it can be concluded that the total gas consumption of $n$ total distributed test runs is higher than the cost of checking $n$ values locally. \\
 The differential can be measured by implementing the orchestration scheme for the two dummy contracts given in \secref{sec:usecase_cost}. Appendix \ref{apx} contains the code of all three components for each of them. In order to measure the gas consumption for a comparable amount of executions as during the initial cost analysis, the probability threshold $c$ is set to $\frac{1}{e}$, s.t. that the necessary number of total test runs is $n$. However, it needs to be pointed out, that the actual number of test runs executed can only be a multiple of the number of validators (cf. \eqref{eq:t_validator}). \figref{fig:cost_distributed} shows the reported gas consumption per validator, i.e., a $32^{th}$ of the total cost for checking an assertion for the given threshold. Due to \eqref{eq:t_validator}, the cost function approximates a step function.
 \begin{figure}[t]
@@ -476,7 +482,7 @@ The results show that the cost incurred by a single validator checking $t$ value
 \todo{Cheaper for the network if not all validators have to execute the whole local check! however, placing these costs on the users will cause them to use the local approach -> users need incentives to use it too! -> blockchain protocol could/should solve this! (e.g. use rewards instead of costs)}
 \todo{Every transaction is processed at every node in the network,which limits throughput}
 
-\section{Representing counterexamples}
+\section{Representing counterexamples}\todo{Move or rename?}
 There still remains an open question concerning the proposed implementation that could be answered in detail within the scope of this thesis - the representation and validation of a counterexamples. The interaction scheme in \figref{fig:interaction_modular} suggests, that validators publish an instance of a counterexample to the network if they found one. However, it has yet to be specified how the counterexample is represented and double-checked by the other validators. With the \texttt{failwith} instruction, the top element of the stack can be exposed \cite{tezos_docs}, providing a way to return an interpretable expression from the interpretation context \cite{tezos_repo}. Thus, as a first approximation, the counterexample could be represented as a tuple of assertion code and a list of randomly generated values. For instance, the counterexample for the assumption ``p is a prime'' (cf. \eqref{eq:prime}) is represented by \\
 \texttt{(n >= 2 \&\& n <= sqrt(p) \&\& p\%n = 0, <random value for n>)}. \\
 For validation of the counterexample, this tuple, together with the respective operation hash of the initial transaction this counterexample refers to, is published to the network. The other validators then interpret the given code with the respective value(s) and either confirm or object the counterexample. As Tezos transmits data as byte sequences, the counterexample needs to be unparsed and serialized, or deserialized and parsed respectively. If the cost for checking assertions is paid for be the user (in form of gas), then these costs have to be added to the total costs as well.\\
