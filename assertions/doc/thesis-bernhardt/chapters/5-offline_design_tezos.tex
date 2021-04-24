@@ -196,93 +196,30 @@ If a developer did not specify an assertion for all entrypoints of the parent co
 \lstref{lst:mono_liq} implements a monolithic contract in the high-level language Liquidity. The contract contains the two parent entrypoints \texttt{A} (line 3) and \texttt{B} (line 21), and provides an assertion entrypoint \texttt{A\_a} (line 5) for \texttt{A}. Entrypoint \texttt{B} does not have an associated assertion. The compiler generated a controller entrypoint for both parent entrypoints, i.e., \texttt{A\_c} (line 7) and \texttt{B\_c} (line 23). Controller \texttt{A\_c} determines the number of test runs in line 8 (the implementation of the formula is omitted here) and creates as many internal operations invoking the assertion entrypoint with the same parameter (lines 9-17). These are then run in sequence afterwards. Controller \texttt{B\_c}, on the other hand, does not emit any operations and immediately returns. This can never fail and thus accepts any input value for the parameter \texttt{i}.
 \lstinputlisting[label=lst:mono_liq, caption=Implementation of a monolithic contract in Liquidity, numbers=left]{listings/monolithic.liq}
 
-For the variation of using separate entrypoints for the controllers and assertions, \figref{fig:interaction_monolithic} depicts the interactions of the nodes, validators and Smart Contracts on the blockchain. The execution model for distributed assertion checking requires a dedicated execution modus. A possible mechanism to activate this modus is using a special transaction type, which is denoted by \texttt{txa(destination, entrypoint, parameter)} in the graphic. When an operation, such as a transaction or origination, is injected into a node, it is normally propagated to the network after it has been validated. After the injection of a \texttt{txa(1, \%A, parameter)} operation, however, the node broadcasts its derivation \texttt{txa(1, \%A_c, parameter)} to the network, which invokes the controller entrypoint instead. If this operation finishes successfully for all validators, hence no counterexample is published on the network after a certain amount of block cycles, the node can finally broadcast the initial operation as a normal transaction to the network. In case of an assertion failure, the respective validator broadcasts the counterexample with the generated value to the network to be included in an upcoming block. The counterexample is thus validated like a normal transaction. As a consequence of the broadcast the counterexample, the initial operation \texttt{txa(1, \%A, parameter)} should be rejected. How a counterexample is represented and included on the chain is an unresolved question --- \secref{sec:counterexample} picks this topic up and gives some ideas regarding possible implementations. 
+For the variation of using separate entrypoints for the controllers and assertions, \figref{fig:interaction_monolithic} depicts the interactions of the nodes, validators and Smart Contracts on the blockchain. The execution model for distributed assertion checking requires a dedicated execution modus. A possible mechanism to activate this modus is using a special transaction type, which is denoted by \texttt{txa(destination, entrypoint, parameter)} in the graphic. When an operation, such as a transaction or origination, is injected into a node, it is normally propagated to the network after it has been validated. After the injection of a \texttt{txa(1, \%A, parameter)} operation, however, the node broadcasts its derivation \texttt{txa(1, \%A\_c, parameter)} to the network, which invokes the controller entrypoint instead. If this operation finishes successfully for all validators, hence no counterexample is published on the network after a certain amount of block cycles, the node can finally broadcast the initial operation as a normal transaction to the network. In case of an assertion failure, the respective validator broadcasts the counterexample with the generated value to the network to be included in an upcoming block. The counterexample is thus validated like a normal transaction. As a consequence of the broadcast the counterexample, the initial operation \texttt{txa(1, \%A, parameter)} should be rejected. How a counterexample is represented and included on the chain is an unresolved question --- \secref{sec:counterexample} picks this topic up and gives some ideas regarding possible implementations. 
 
-% geht nur mit explicit eps. enforce by compiler and txa type
-% protocol design needs to address the execution mode, the handling of assertion failure and how to ensure that either counterexample or normal tx is recorded on the chain. 
-
+\begin{figure}
 \centering
   \includegraphics[width=0.7\textwidth]{figures/5-offline_tezos/interaction_monolithic_2}
 	\caption{Interaction with a monolithic contract}
 	\label{fig:interaction_monolithic}
 \end{figure}
 
-After prevalidating a transaction in the challenge mode, the baker then sends a request to the network to check the associated assertion. The request contains the address of the monolithic contract or manager, the operation hash (oph) of the prevalidated transaction, the derived entrypoint tag of the assertion and the parameter. The operation hash is used to relate a counterexample to the respective transaction. Upon receiving such a request, the validators call the assertion manager; what type of operation is used for is an open question for the protocol design. For efficiency, at most the test runs detecting a counterexample should be recorded on the blockchain, which would not be the case if validators use standard transactions. What has been left out so far in the offline design is the representation of a counterexample. \secref{} briefly discusses this as an open question and follow-up of this thesis \todo{secref}.
+This orchestration scheme only works as described when using explicit entrypoint tags for the contract invocations. On the one hand, calling entrypoints implicitly by wrapping the parameter in the respective sum type constructors causes a type mismatch for the controller and assertion entrypoints. \lstref{lst:mono} shows the parameter type of the Michelson implementation corresponding to the contract given in \lstref{lst:mono_liq} --- entrypoint \texttt{A} can be invoked implicitly with parameter value \texttt{Left 4}. The respective assertion entrypoint \texttt{A\_a} expects the value as \texttt{Right (Right (Left 4))} and the controller \texttt{A\_c} as \texttt{Right (Right (Right (Left 4)))}. \\
+On the other hand, the explicit tags encode the link between production, controller and assertion code --- omitting them would dissolve all references between them. Explicit entrypoints in the parameter type declaration of the contract can be enforced by the compiler. A specification of an explicit entrypoint in the contract invocation can be enforced by the \texttt{txa} operation type.
+\lstinputlisting[label=lst:mono, language=Michelson, caption=Skeleton of a monolithic contract in Michelson, numbers=left]{listings/monolithic.tz}
 
-\subsubsection{Evaluation of the monolithic approach}
-The presented implementations of the monolithic approach each have strengths and weaknesses. Generally, they all share a pivotal disadvantage - they require a modification of the parent contract. This not only complicates the compilation process by requiring a decompilation of the parent code and an interweaving of the assertion code, but it also restricts the integration of assertions to contracts that have not yet been originated on the blockchain. \lstref{lst:mono} shows the skeleton of a monolithic contract that results from the given parent and assertion contract; both the parameter type and the branching of the code body have to be adapted. Another problem are contract invocations using the default entrypoint: firstly, the derivation of the entrypoint for the assertion becomes considerably more complex, as no explicit tag is given. Secondly, the parameter cannot be passed unmodified to the assertion, because the parameter types in respect to the default entry point do not match. For instance, invoking the default entrypoint of \texttt{example\_monolithic.tz} (\lstref{lst:mono}) with parameter \texttt{Left 4} calls \texttt{A}, but the respective assertion \texttt{A\_a} expects the value as \texttt{Left (Left 4)}. \\
-Due to the tight coupling of parent and assertion code, this approach is also inflexible, since adaptions to either part require a recompilation and new origination of the whole code.
-\lstinputlisting[label=lst:mono, caption=Skeleton of a monolithic contract in Michelson, numbers=left]{listings/monolithic.tz}
+This thesis does not go into more detail about how the described execution model for a monolithic orchestration is designed and implemented in the blockchain protocol. What needs to be considered in the protocol design is the separate execution mode, possibly a dedicated transaction type as proposed above, the derivation of a transaction which attempts to find a counterexample, the handling of assertion failures and the exclusive acceptance of either the parameter (and thus the transaction) or a counterexample.
 
-The distinct advantages and disadvantages of each combination of given implementation approaches are described briefly in the following matrix in \tabref{tab:mono_eval}.
-\begin{table}[h]
-	\centering
-	\newcommand{\tabitem}{~~\llap{\textbullet}~~}
-	\caption{Advantages and disadvantages of monolithic implementations}
-	\label{tab:mono_eval}
-	\subfloat[Monolithic w/ manager and assertion entrypoints] {
-		\centering
-		\begin{tabular}{ | p{0.5\linewidth} | p{0.5\linewidth} |}
-		\hline
-		\thead{Advantages} & \thead{Disadvantages} \\ \hline
-		\begin{itemize}[leftmargin=*,noitemsep,topsep=0pt,parsep=0pt,partopsep=0pt]
-		\item Contract and assertion can be called separately $\rightarrow$ parent code is only executed once
-		\end{itemize} &
-		\begin{itemize}[leftmargin=*, noitemsep,topsep=0pt,parsep=0pt,partopsep=0pt]
-		\item More complex compilation; adds 1-2 entrypoints per native entrypoint
-		\item Less readability
-		\end{itemize} \\ \hline
-		\end{tabular}
-	}
+\subsubsection{Evaluation}
+The presented implementations of the monolithic approach each have strengths and weaknesses. Generally, they all share a pivotal disadvantage - they require a modification of the parent contract. This complicates the compilation process substantially and precludes the integration of assertions to contracts which have already been deployed to the blockchain. \lstref{lst:mono} shows how the parameter type and branching within the code body have to be adapted compared to the original parent contract in \lstref{lst:mono_parent}. Since the monolithic assembly result in deeper parameter and code nestings, the code becomes less readable overall.
+\lstinputlisting[label=lst:mono_parent, language=Michelson, caption=Skeleton of the parent contract in Michelson, numbers=left]{listings/monolithic_parent.tz}
 
-	\subfloat[Monolithic w/ manager entrypoints and prepended assertion] {
-		\centering
-		\begin{tabular}{ | p{0.5\linewidth} | p{0.5\linewidth} |}
-		\hline
-		\thead{Advantages} & \thead{Disadvantages} \\ \hline
-		\begin{itemize}[leftmargin=*, noitemsep,topsep=0pt,parsep=0pt,partopsep=0pt]
-		\item Bypassing the assertion is not possible
-		\end{itemize} &
-		\begin{itemize}[leftmargin=*, noitemsep,topsep=0pt,parsep=0pt,partopsep=0pt]
-		\item Cost inefficient - validators execute the assertion + code $t$ times
-		\item Also only works with explicit entrypoint tags
-		\end{itemize} \\ \hline
-		\end{tabular}
-	}
+Another shortcoming, which applies to the implementation using separate entrypoints for controller and assertion, is the missing support of implicit entrypoint invocations. Even though the previously mentioned safety measures can prevent transactions failures, this still poses a restriction in the interaction with Smart Contracts. 
 
-	\subfloat[Hybrid w/ manager and assertion entrypoints] {
-		\centering
-		\begin{tabular}{ | p{0.5\linewidth} | p{0.5\linewidth} |}
-		\hline
-		\thead{Advantages} & \thead{Disadvantages} \\ \hline
-		\begin{itemize}[leftmargin=*, noitemsep,topsep=0pt,parsep=0pt,partopsep=0pt]
-		\item Contract and assertion can be called separately
-		\item Modularity $\rightarrow$ manager contract can be adapted independently
-		\item Readability
-		\end{itemize} &
-		\begin{itemize}[leftmargin=*, noitemsep,topsep=0pt,parsep=0pt,partopsep=0pt]
-		\item Higher initial origination costs due to more boilerplate code
-		\end{itemize} \\ \hline
-		\end{tabular}
-	}
+Due to the tight coupling of parent and assertion code, this approach is also inflexible. Adaptions to either the assertion or the parent contract require a complete recompilation and origination of the monolithic contract. The hybrid solution breaks some of the tight coupling, as a new version of the controller contract can be originated independently of the monolithic contract.
 
-	\subfloat[Hybrid w/ manager entrypoints and prepended assertion] {
-		\centering
-		\begin{tabular}{ | p{0.5\linewidth} | p{0.5\linewidth} |}
-		\hline
-		\thead{Advantages} & \thead{Disadvantages} \\ \hline
-		\begin{itemize}[leftmargin=*, noitemsep,topsep=0pt,parsep=0pt,partopsep=0pt]
-		\item Bypassing the assertion is not possible
-		\item Modularity
-		\item Readability
-		\end{itemize} &
-		\begin{itemize}[leftmargin=*, noitemsep,topsep=0pt,parsep=0pt,partopsep=0pt]
-		\item Cost inefficient - validators execute the assertion + code $t$ times
-		\item Higher initial origination costs due to more boilerplate code
-		\end{itemize} \\ \hline
-		\end{tabular}
-	}
-\end{table}
+Besides these disadvantages, the monolithic approach has some distinct advantages. If controllers and assertions are implemented as separate entrypoints, they can be invoked independently --- this means, that the validators do not have to run the production code while checking the assertion. Conversely, the assertion code is not rerun if the parameter is valid and the transaction is broadcast to the network. This reduces the transaction cost for the user, as well as the overall footprint of the transaction on the network. If the assertion (and possibly controller) code is integrated into the parent entrypoint, this separation is not possible; however, the inseparableness the code in return avoids any bypassing of the assertion.
 
 \subsection{Modular orchestration}\label{sec:modular}
 With the modular approach, the assertion manager and each of the assertions are originated as separate contracts on the blockchain. The manager mirrors the interface of the parent contract, while each assertion each only has a single entrypoint which expects the raw parameter type. Due to the ``outsourcing'' of the assertion code, the parent contract remains pure and does not have to be modified. Similar to the hybrid solution from the last section, the manager calls the respective assertion contract $t$ times as an internal operation before calling the actual contract. In the case of empty assertions, it calls the parent contract immediately. Correspondingly, the pipeline outputs 1-$m$ contracts, where $m$ is the amount of entrypoints with an associated assertion, as depicted in \figref{fig:modular_assembly}.
