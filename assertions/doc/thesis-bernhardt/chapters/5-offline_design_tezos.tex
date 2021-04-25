@@ -53,7 +53,13 @@ Smart Contracts are able to invoke other Smart Contracts by emitting internal op
 \label{fig:internal_ops}
 \end{figure}
 
-Both external and internal operations can fail, if the source contract does not have enough balance to spend the specified amount, a gas limit was reached, or if a program fails due to reaching a \texttt{FAILWITH} instruction. If a failure occurs, the whole sequence fails and all changes up to the point of failure are reverted.
+Both external and internal operations can fail, if the source contract does not have enough balance to spend the specified amount, a gas limit was reached, or if a program fails due to reaching a \texttt{FAILWITH} instruction. If a failure occurs, the whole sequence fails and all changes up to the point of failure are reverted. Within a sequence, an operation can thus have one of the following result types:
+\begin{itemize}
+\item \textbf{Applied} --- the operation was successful
+\item \textbf{Failed} --- the operation failed
+\item \textbf{Skipped} --- the operation was in sequence after a failed operation
+\item \textbf{Backtracked} --- reverted operation due to a failed operation further along in the sequence
+\end{itemize}
 
 \subsection{Gas model}
 Tezos stores and transmits data as byte sequences --- in order to obtain a typed representation of their value for interpretation, a byte sequence is first deserialised into Micheline and subsequently parsed into a typed AST. Conversely, before transmitting or storing something on the blockchain, the typed representation is first unparsed into Micheline and then serialised. Since these working steps also entail computational effort, they consume gas and thus account for some of the transaction fees. The gas consumption of an operation (e.g., a transaction or a contract origination) is thus composed of the following positions \cite{morley_gasmodel}\cite{tezos_repo} on top of a base gas fee:
@@ -170,7 +176,7 @@ So far, the assertion and parent contract have been considered separately. Howev
 This section describes two possible approaches for an orchestration --- a monolithic and a modular approach. It also discusses, which of the given architecture is chosen for the implementation of distributed assertion checking, and why.
 
 \subsection{Monolithic orchestration}
-In the monolithic approach, the assertion an parent code are merged into a single Smart Contract. This tightly couples and unites the code in one self-contained unit. As shown in \figref{fig:mono_eps}, the assertions are appended to the original contract as separate entrypoints. Since the \texttt{random} instruction is only available in the execution mode for assertion checking, the assertion code cannot be directly prepended to the respective production code. Otherwise, transactions invoking such an entrypoint could not be included into blocks, as these are validated in the normal execution mode.
+In the monolithic approach, the assertion and parent code are merged into a single Smart Contract. This tightly couples and unites the code in one self-contained unit. As shown in \figref{fig:mono_eps}, the assertions are appended to the original contract as separate entrypoints. Since the \texttt{random} instruction is only available in the execution mode for assertion checking, the assertion code cannot be directly prepended to the respective production code. Otherwise, transactions invoking such an entrypoint could not be included into blocks, as these are validated in the normal execution mode.
 \begin{figure}[h]
 \centering
   \includegraphics[width=0.5\textwidth]{figures/5-offline_tezos/pipeline_output_mono_ep_basic.jpg}
@@ -178,24 +184,24 @@ In the monolithic approach, the assertion an parent code are merged into a singl
 	\label{fig:mono_eps}
 \end{figure}
 
-The interface of the contract should make apparent, which of the entrypoints contain production, and which contain their respective assertion code. This can be solved by using fixed tag patterns for assertion entrypoints, which can be derived from the production entrypoint tag. \figref{fig:mono_eps} proposes the tag suffix ``\texttt{\_a}''. When an external transaction invokes such a monolithic contract, the bakers thus execute the contract normally. After completion, the baker then requests the validators to invoke the assertion separately. External transactions, of course, should only invoke the production entrypoints.
+The interface of the contract should make apparent, which of the entrypoints contain production, and which contain their respective assertion code. This can be solved by using fixed tag patterns for assertion entrypoints, which can be derived from the parent entrypoint tag. \figref{fig:mono_eps} proposes the tag suffix ``\texttt{\_a}''. External transactions should only invoke the production entrypoints.
 
-The current version of the monolithic contract, however, do not yet provide any means to trigger several test runs per validator. Since the required number of test runs $t$ can only be determined at runtime, it cannot be passed to the validators as a parameter to the validation request. Instead, the contract itself should contain a controller to handle this. Similar to the assertion code, such a controller can be appended as another separate entrypoint, as shown in \figref{fig:monolithic_orchestration}. Instead of invoking the assertion entrypoint (\texttt{A\_a}), the validators would then invoke the controller entrypoint (\texttt{A\_c}), which determines $t$ and invokes (\texttt{A\_a}) $t$ times as an internal operation. 
+The monolithic contract in \figref{fig:mono_eps}, however, do not yet provide any means to trigger several test runs per validator. Since the required number of test runs $t$ can only be determined at runtime, it cannot be passed to the validators as a parameter to the validation request. Instead, the contract itself should contain a controller to handle this. Similar to the assertion code, such a controller can be appended as another separate entrypoint, as shown in \figref{fig:monolithic_orchestration}. Instead of invoking the assertion entrypoint (\texttt{A\_a}), the validators would then invoke the controller entrypoint (\texttt{A\_c}), which determines $t$ and invokes (\texttt{A\_a}) $t$ times as an internal operation. 
 \begin{figure}[h]
 \centering
   \includegraphics[width=0.5\textwidth]{figures/5-offline_tezos/pipeline_output_mono_ep}
-	\caption{Monolithic assembly with separate entrypoints for cotroller and assertion}
+	\caption{Monolithic assembly with separate entrypoints for controller and assertion}
 	\label{fig:monolithic_orchestration}
 \end{figure}
 
-As a hybrid solution between a monolithic and a modular approach, the controller can be implemented as a separate Smart Contract, which operates as a proxy. This contract is invoked in pace of the monolithic contract, which in turn invokes the original or assertion entrypoints as internal operations. The implementation of the modular part can be adopted from \secref{sec:modular}.
+As a hybrid solution between a monolithic and a modular approach, the controller can be implemented as a separate Smart Contract, which operates as a proxy. This contract is invoked in place of the monolithic contract, which in turn invokes the original or assertion entrypoints as internal operations. The implementation of the modular part can be adopted from \secref{sec:modular}.
 
 If a developer did not specify an assertion for all entrypoints of the parent contract, invoking their non-existing controller entrypoints would cause a transaction failure. In order to avoid this and increase the robustness, the compiler should generate dummy controllers for empty assertions, which simply return unit (i.e, an empty list of internal operations and the unchanged storage).
 
-\lstref{lst:mono_liq} implements a monolithic contract in the high-level language Liquidity. The contract contains the two parent entrypoints \texttt{A} (line 3) and \texttt{B} (line 21), and provides an assertion entrypoint \texttt{A\_a} (line 5) for \texttt{A}. Entrypoint \texttt{B} does not have an associated assertion. The compiler generated a controller entrypoint for both parent entrypoints, i.e., \texttt{A\_c} (line 7) and \texttt{B\_c} (line 23). Controller \texttt{A\_c} determines the number of test runs in line 8 (the implementation of the formula is omitted here) and creates as many internal operations invoking the assertion entrypoint with the same parameter (lines 9-17). These are then run in sequence afterwards. Controller \texttt{B\_c}, on the other hand, does not emit any operations and immediately returns. This can never fail and thus accepts any input value for the parameter \texttt{i}.
+\lstref{lst:mono_liq} implements a monolithic contract in the high-level language Liquidity. The contract contains the two parent entrypoints \texttt{A} (line 3) and \texttt{B} (line 21), and provides an assertion entrypoint \texttt{A\_a} (line 5) for \texttt{A}. Entrypoint \texttt{B} does not have an associated assertion. The compiler generated a controller entrypoint for both parent entrypoints, i.e., \texttt{A\_c} (line 7) and \texttt{B\_c} (line 23). Controller \texttt{A\_c} determines the number of test runs in line 8 (the implementation of the formula is omitted here) and creates $t$ internal operations, which invoke the assertion entrypoint with the same parameter (lines 9-17). These are then run in sequence afterwards. Controller \texttt{B\_c}, on the other hand, does not emit any operations and immediately returns. This code can never fail and thus accepts any input value for the parameter.
 \lstinputlisting[label=lst:mono_liq, caption=Implementation of a monolithic contract in Liquidity, numbers=left]{listings/monolithic.liq}
 
-\figref{fig:interaction_monolithic} depicts the resulting interactions of the nodes, validators and monolithic Smart Contracts on the blockchain. The execution model for distributed assertion checking requires a dedicated execution modus. A possible mechanism to activate this modus is using a special transaction type, which is denoted by \texttt{txa(destination, entrypoint, parameter)} in the graphic. When an operation, such as a transaction or origination, is injected into a node, it is normally propagated to the network after it has been validated. After the injection of a \texttt{txa(1, \%A, parameter)} operation, however, the node broadcasts its derivation \texttt{txa(1, \%A\_c, parameter)} to the network, which invokes the controller entrypoint instead. If this operation finishes successfully for all validators, hence no counterexample is published on the network after a certain amount of block cycles, the node can finally broadcast the initial operation as a normal transaction to the network. In case of an assertion failure, the respective validator broadcasts the counterexample with the generated value to the network to be included in an upcoming block. The counterexample is thus validated like a normal transaction. As a consequence of the broadcast the counterexample, the initial operation \texttt{txa(1, \%A, parameter)} should be rejected. How a counterexample is represented and included on the chain is an unresolved question --- \secref{sec:counterexample} picks this topic up and gives some ideas regarding possible implementations. 
+\figref{fig:interaction_monolithic} depicts the resulting interactions of the nodes, validators and monolithic Smart Contracts on the blockchain. The execution model for distributed assertion checking requires a dedicated execution modus. A possible mechanism to activate this modus is using a special transaction type, which is denoted by \texttt{txa(destination, entrypoint, parameter)} in the graphic. When an operation, such as a transaction or origination, is injected into a node, it is normally propagated to the network after it has been validated. After the injection of \texttt{txa(1, \%A, parameter)}, however, the node broadcasts its derivation \texttt{txa(1, \%A\_c, parameter)} to the network, which invokes the controller entrypoint instead. If this operation finishes successfully for all validators, hence no counterexample is published on the network after a certain amount of block cycles, the node can finally broadcast the initial operation as a normal transaction to the network. In case of an assertion failure, the respective validator broadcasts the counterexample with the generated value to the network to be included in an upcoming block. The counterexample is thus validated like a normal transaction. As a consequence of the broadcasted counterexample, the initial operation \texttt{txa(1, \%A, parameter)} should be rejected. How a counterexample is represented and included on the chain is an unresolved question --- \secref{sec:counterexample} picks this topic up and gives some ideas regarding possible implementations. 
 
 \begin{figure}
 \centering
@@ -204,87 +210,129 @@ If a developer did not specify an assertion for all entrypoints of the parent co
 	\label{fig:interaction_monolithic}
 \end{figure}
 
-This orchestration scheme only works as described when using explicit entrypoint tags for the contract invocations. On the one hand, calling entrypoints implicitly by wrapping the parameter in the respective sum type constructors causes a type mismatch for the controller and assertion entrypoints. \lstref{lst:mono} shows the parameter type of the Michelson implementation corresponding to the contract given in \lstref{lst:mono_liq} --- entrypoint \texttt{A} can be invoked implicitly with parameter value \texttt{Left 4}. The respective assertion entrypoint \texttt{A\_a} expects the value as \texttt{Right (Right (Left 4))} and the controller \texttt{A\_c} as \texttt{Right (Right (Right (Left 4)))}. \\
-On the other hand, the explicit tags encode the link between production, controller and assertion code --- omitting them would dissolve all references between them. Explicit entrypoints in the parameter type declaration of the contract can be enforced by the compiler. A specification of an explicit entrypoint in the contract invocation can be enforced by the \texttt{txa} operation type.
+This orchestration scheme only works as described when using explicit entrypoint tags for the contract invocations. On the one hand, calling entrypoints implicitly by wrapping the parameter in the respective sum type constructors causes a type mismatch for the controller and assertion entrypoints. \lstref{lst:mono} shows the parameter type of the Michelson implementation corresponding to the contract given in \lstref{lst:mono_liq} --- entrypoint \texttt{A} can be invoked implicitly with parameter value \texttt{Left 4}. The respective assertion entrypoint \texttt{A\_a} expects the value as \texttt{Right (Right (Left 4))} and the controller \texttt{A\_c} as \texttt{Right (Right (Right (Left 4)))}.\\
+On the other hand, the explicit tags encode the link between production, controller and assertion code --- omitting them would dissolve all references between them. Hence, implicit entrypoint invocation cannot be supported in the execution mode of assertions. Explicit entrypoints in the parameter type declaration of the contract can be enforced by the compiler. A specification of an explicit entrypoint in the contract invocation can be enforced by the \texttt{txa} operation type.
 \lstinputlisting[label=lst:mono, language=Michelson, caption=Skeleton of a monolithic contract in Michelson, numbers=left]{listings/monolithic.tz}
 
-This thesis does not go into more detail about how the described execution model for a monolithic orchestration is designed and implemented in the blockchain protocol. What needs to be considered in the protocol design is the separate execution mode, possibly a dedicated transaction type as proposed above, the derivation of a transaction which attempts to find a counterexample, the handling of assertion failures and the exclusive acceptance of either the parameter (and thus the transaction) or a counterexample.
+This thesis does not go into more detail about how the described execution model for a monolithic orchestration is designed and implemented in the blockchain protocol. What needs to be considered in future work concerning the protocol design is the separate execution mode, possibly a dedicated transaction type as proposed above, the derivation of a transaction which attempts to find a counterexample, the handling of assertion failures and the exclusive acceptance of either the parameter (and thus the transaction) or a counterexample.
 
 \subsubsection{Evaluation}
-The presented implementations of the monolithic approach each have strengths and weaknesses. Generally, they share a pivotal disadvantage - they require a modification of the parent contract. This complicates the compilation process substantially and precludes the integration of assertions to contracts which have already been deployed to the blockchain. \lstref{lst:mono} shows how the parameter type and branching within the code body have to be adapted compared to the original parent contract in \lstref{lst:mono_parent}. Since the monolithic assembly result in deeper parameter and code nestings, the code becomes less readable overall.
+The presented implementations of the monolithic approach each have strengths and weaknesses. Generally, they share a pivotal disadvantage - they require a modification of the parent contract. This complicates the compilation process substantially and precludes the integration of assertions to contracts which have already been deployed to the blockchain. \lstref{lst:mono} shows how the parameter type and branching within the code body have to be adapted compared to the original parent contract in \lstref{lst:mono_parent}. Since the monolithic assembly results in deeper parameter and code nestings, the code becomes less readable overall.
 \lstinputlisting[label=lst:mono_parent, language=Michelson, caption=Skeleton of the parent contract in Michelson, numbers=left]{listings/monolithic_parent.tz}
 
 Another shortcoming is the missing support of implicit entrypoint invocations. Even though the previously mentioned measures can prevent transactions failures, this still poses a restriction in the interaction with Smart Contracts. 
 
 Due to the tight coupling of parent and assertion code, this approach is also inflexible. Adaptions to either the assertion or the parent contract require a complete recompilation and origination of the monolithic contract. The hybrid solution breaks some of the tight coupling, as a new version of the controller contract can be originated independently of the monolithic contract.
 
-Besides these disadvantages, the monolithic approach has some distinct advantages. The production and controller entrypoints they can be invoked independently, which means that the validators do not have to run the production code while checking the assertion. Conversely, the assertion code is not rerun if the parameter is valid and the transaction is broadcast to the network. This reduces the transaction cost for the user, as well as the overall footprint of the transaction in the network.
+
+
+Besides these disadvantages, the monolithic approach has some distinct advantages. The production and controller entrypoints can be invoked independently, which means that the validators do not have to run the production code while checking the assertion. Conversely, the assertion code is not rerun if the parameter is valid and the transaction is broadcast to the network. This reduces the transaction cost for the user, as well as the overall footprint of the transaction in the network.
 
 \subsection{Modular orchestration}\label{sec:modular}
-With the modular approach, the assertion manager and each of the assertions are originated as separate contracts on the blockchain. The manager mirrors the interface of the parent contract, while each assertion each only has a single entrypoint which expects the raw parameter type. Due to the ``outsourcing'' of the assertion code, the parent contract remains pure and does not have to be modified. Similar to the hybrid solution from the last section, the manager calls the respective assertion contract $t$ times as an internal operation before calling the actual contract. In the case of empty assertions, it calls the parent contract immediately. Correspondingly, the pipeline outputs 1-$m$ contracts, where $m$ is the amount of entrypoints with an associated assertion, as depicted in \figref{fig:modular_assembly}.
+In the modular approach, the controller and each of the assertions are originated as separate contracts on the blockchain. The controller mirrors the interface of the parent contract, while each assertion has only a single entrypoint expecting the raw parameter type. By keeping the assertion code separate, the parent contract remains pure and does not have to be modified. Similar to the hybrid solution mentioned in the monolithic approach, the controller calls the respective assertion contract $t$ times as an internal operation, before invoking the parent contract with operation $t+1$. In the case of empty assertions, the parent contract is invoked immediately. Correspondingly, the toolchain returns $m + 1$ contracts, where $m$ is the number of assertions in the input. The assembly and output of the toolchain is outlined in \figref{fig:modular_assembly}.
 \begin{figure}[h]
 \centering
-  \includegraphics[width=0.6\textwidth]{figures/5-offline_tezos/pipeline_output_modular.jpg}
+  \includegraphics[width=0.6\textwidth]{figures/5-offline_tezos/pipeline_output_modular.png}
 	\caption{Modular assembly of assertion and manager code}
 	\label{fig:modular_assembly}
 \end{figure}
 
-In order to link the separate contracts to each other, the manager needs to know the addresses of the other contracts, which ultimately entails a fixed origination order. The independent assertion and parent contract(s) have been originated first, so that their addresses can be passed to the manager as initial storage values. If the storage is structured as a map from a unique identifier to an address, the entrypoints of the manager can then look up the address with its assigned identifier. The assignment of identifiers to entrypoints is hard-wired during the compilation, as is shown in the pseudocode for the manager contract in \lstref{lst:manager_modular}. The corresponding initial storage for the given contract is the mapping \texttt{{0: <addr parent>; 1: <addr A\_a>; 2: <addr B\_a}}.
-\begin{lstlisting}[label=lst:manager_modular, caption=Implementation of the modular manager in pseudocode]
-storage (map int address);
+In order to link the separate contracts to each other, the controller needs to know the addresses of the other contracts. As a result, the origination order is fixed ---- the assertion and parent contracts must be originated first, so that their addresses can be passed to the controller as initial storage values. A proposed structure of the storage is a map from a unique identifier to an address. The entrypoints of the controller can then look up the address with their assigned identifier. The assignment of identifiers to entrypoints is hard-wired during the compilation, as is demonstrated in the rudimentary and simplified Liquidity implementation of a controller contract in \lstref{lst:manager_modular}. The corresponding storage initiation is the map $\lbrace 0 \rightarrow \langle \text{addr parent} \rangle; 1 \rightarrow \langle \text{addr assertion} \rangle \rbrace$ . The hard-wired identifiers are used in lines 5 and 6 to retrieve the addresses from the storage.
+\lstinputlisting[label=lst:manager_modular, caption=Implementation of the modular controller in simplified Liquidity, language=Michelson, numbers=left]{listings/controller_basic.liq}
 
-%A (i : int) {
-	n = compute_n(i)
-	Do m = 1 to n:
-		call(storage.get(1), i)
-	call(storage.get(0), A, i)
-}
-
-%B (j : int) {
-	n = compute_n(j)
-	Do m = 1 to n:
-		call(storage.get(2), j)
-	call(storage.get(0), B, j)
-}
-\end{lstlisting}
-
-The interaction with the contracts in the modular approach is shown in \figref{fig:interaction_modular}. Even though the transactions shown in the diagram state an explicit entrypoint tag, contracts can, of course, also be called through \texttt{\%default}. In that case, the parameter passed with the internal operations to \texttt{A\_a.tz} is not equivalent, but the raw parameter value.
+The interaction with the modular contracts is shown in \figref{fig:interaction_modular}. Even though the transactions shown in the diagram state an explicit entrypoint tag, the scheme supports implicit entrypoint invocations. When invoking the assertion contract, the parameter is passed as the raw parameter value. The execution model is similar to the model for the monolithic approach. Because the controller mirrors the interface of the parent contract, the \texttt{txa} operation can be broadcast to the network directly --- a derivation to a distinct transaction to find the counterexamples is not necessary. If none of the validators publish a counterexample, the initial transaction is broadcasted to the network as a normal operation to be included in a block. Since this transaction will inevitably rerun the assertion code in the normal execution mode (as it invokes the controller), the VM needs to handle \texttt{random} instructions in normal transactions such that they do not cause the operation sequence to fail (e.g., by marking the internal operations as skipped, or by introducing a dedicated result type for this case). 
 \begin{figure}[h]
 \centering
-  \includegraphics[width=0.9\textwidth]{figures/5-offline_tezos/interaction_modular.jpg}
-	\caption{Interaction with a modular contract}
+  \includegraphics[width=0.9\textwidth]{figures/5-offline_tezos/interaction_modular.png}
+	\caption{Interaction with modular contracts}
 	\label{fig:interaction_modular}
 \end{figure}
 
-\subsubsection{Evaluation of the modular approach}
-This approach fixes the two central problems of the monolithic approach: by mirroring the interface of the parent contract, the parameters passed to the manager contract can be forwarded directly to the parent contract, regardless of whether the default or an explicit entrypoint was called. As sum type parameters are stripped to the raw values inside the code block (ref. \lstref{lst:mono}), they can be passed to the assertion contract without further ado. Furthermore, the parent contract does not need to be modified, which leads to a much simpler compilation process and allows to extend already originated contracts with assertions. Due to its modularity, adaptions to either contract do not entail the recompilation and origination of all components. The manager is the only component with tight coupling, thus adaptions regarding the manager do not affect any other component. Adaptions to single assertions or the parent affect themselves plus the manager. In order to optimize this and break the tight coupling, one could be inclined to add a setter entrypoint to the manager (as a sort of dependency injection). This, however, would break the mirroring of the parent contract and is thus not possible without annulling one of the key strengths of the design.\\
-The approach essentially has to weaknesses: on the one hand, the assertion and the parent cannot be called separately, as they are linked together by the manager. As a result, both the baker and validators execute the assertion, as well as the parent contract, which increases the cost of the contract execution. On the other hand, it exposes a security vulnerability, given that assertions can be bypassed by calling the parent contract directly with unevaluated parameters. This iteration of the design 
-does not demand to close this vulnerability, hence possible solutions are not discussed in this thesis.
+\subsubsection{Evaluation}
+This approach resolves the two crucial problems of the monolithic approach: by mirroring the interface of the parent contract, the parameters passed to the manager contract can be forwarded directly to the parent contract, regardless of whether the default or an explicit entrypoint was called. Furthermore, the parent contract does not need to be modified, which leads to a much simpler compilation process and allows to extend already originated contracts with assertions. Due to its modularity, adaptions to either contract do not necessarily require a recompilation and origination of all components, as the controller is the only component with tight coupling. In order to optimize this and break the tight coupling, one could be inclined to add a setter entrypoint to the controller (as a sort of dependency injection). This, however, would break the mirroring of the parent contract and is thus not possible without annulling one of the key strengths of the design.
+
+The approach essentially has two weaknesses: firstly, the assertion and the parent cannot be called separately. As a result, the production code is run by every validator while searching for counterexamples and when validating a block containing the accepted transaction. This increases the transaction cost for the user and requires a higher computational effort by the whole network. of the contract execution. Secondly, it exposes a security vulnerability, given that assertions can be bypassed by calling the parent contract directly. This iteration of the design does not demand to close this vulnerability, hence possible solutions are not discussed in this thesis. 
 
 \section{Backend implementation}\label{sec:backend_impl}
-\todo{Shorten a bit - overview already given in chpt intro}
-The Tezos backend of the pipeline comprises of the three stages semantic check, type check and compilation. During the semantic check, the common AST is cast to a Tezos-specific AST type. If the assertion contains any data types or operations not supported in Michelson, the assertion contract is rejected. Since the subsequent stages are less straight forward, they are explained in more detail in the following.
+The following sections describe the tasks and implementations of the pipeline stages of the toolchain backend.
 \begin{figure}[h]
 \includegraphics[width=\linewidth]{figures/5-offline_tezos/pipeline_backend}
 \caption{The stages of Tezos-specific backend of the compilation pipeline}
 \label{fig:pipeline_backend}
 \end{figure}
 
+\subsection{Interaction with Tezos nodes}
+Some stages of the backend have to interact with a Tezos node, e.g. to retrieve information from the blockchain. For this, the backend uses the Tezos client libraries. The command line interface of the toolchain provides options for configuring the host address and port of the RPC interface to connect to a specific node. This can be either a local or public node. By default, the toolchain tries to connect to a local node on the default port.
+
+\subsection{Semantic analysis}
+After the transformation, the frontend passes a list of ASTs to the backend. Because the frontend was designed to be generic, they may contain type, operations or expressions which are not supported by the target language. Therefore, the semantic check should reject any assertions which can not be translated to Michelson (more precisely, the whole assertion contract is rejected).
+
+As an additional restriction, quantifiers should only bind variables of primitive data types. As the majority of use-cases seem to require quantification over numerical values, the current implementation of the semantic check only accepts predicate variables of type \texttt{int} and \texttt{nat}. Future iterations of the toolchain and protocol may add support for other primitive types, such as \texttt{string} or \texttt{bytes}.
+
+Semantic rules imposed by Michelson do not have to be checked explicitly by the toolchain --- the RPC interface of Tezos nodes provides a function to parse and type check Michelson programs, which can be used to verify the correctness of the compilation result.
+
+If the semantic check was successful, the module returns the assertions as a list of Tezos-specific ASTs. \lstref{lst:tezos_ast_type} shows the toplevel definition of this AST type.
+\begin{lstlisting}[label=lst:tezos_ast_type, language=, numbers=none, caption=Toplevel Tezos-specific AST type definition in OCaml]
+type tezos_ast =
+  {entrypoint : string * pattern; body : assertion}
+\end{lstlisting}
+As Tezos is currently the only target, the type differs only slightly from the generic type. If the assertion does not specify an explicit entrypoint tag, the optional value is replaced with Tezos' notation for the default entrypoint. The subtree types for the parameter pattern and the assertion remain equivalent to the generic types.
+
 \subsection{Type check}\label{sec:typecheck}
-The task of the type checker is to map the assertions from the given file to the respective entrypoints of the parent contract. To this end, the parameter types have to be compared and matched against each other in order to find a correct assignment. The type checker either reads the code of the parent contract from a given file or retrieves the code from a given address on the blockchain. It must be ensured that the created mapping is injective and unambiguous, i.e., each assertion matches exactly one entrypoint and no entrypoint is covered by more than one assertion.\\
-As explained in \secref{sec:tezos}, entrypoints can be selected by calling the default entrypoint and wrapping the parameter into the respective union constructors. Alternatively, they can be called explicitly using their tag and passing the parameter as raw value. The same applies for the assertions - by omitting the tag, the parameter type must be declared in respect to the default entrypoint type. If the assertion states an explicit tag, it may declare the raw parameter type. The tags do not necessarily have to be identical with the tags of the parent contract; in some cases, they may be chosen differently for documentation or for readability purposes. However, the tags can and should be used to resolve ambiguity in the mapping between assertions and entrypoints, that is if several entrypoints share the same input type. Ambiguity can also be caused by the fact that entrypoints can be sub-entrypoints of others, thus assertions overlap if a separate assertion is declared for both super- and sub-entrypoint. This is resolved by detecting overlapping assertions during the type check and rejecting assertion contracts where appropriate. \\
-As an example, consider a Michelson contract with five entrypoints (including the \texttt{\%default}):
-\begin{lstlisting}[numbers=none, language=Michelson]
-parameter (or (int %A) (or %BC (int %B) (int %C)))
+Given a list of Tezos-specific ASTs, the task of the type checker is to link each AST to the respective entrypoint of the parent contract. This stage can thus be alternatively referred to as the linker. The linking is needed by the compiler for type inference and to correctly assemble the controller contract. As a simple example, the linker should correctly assign the ASTs of the first assertion in \texttt{Example.tza} (\lstref{lst:linker_assertion}) to entrypoint A, and the second assertion to entrypoint B of \texttt{Example.tz} ( \lstref{lst:linker_parent}).
+
+\vspace{\baselineskip}
+\noindent
+\begin{minipage}{.45\textwidth}
+\begin{lstlisting}[label=lst:linker_parent, numbers=none, language=Michelson, caption=Example.tz]
+parameter (or (int %A)
+              (string %B));
+...
 \end{lstlisting}
-The following assertion contract for the given PC contains some valid and some invalid assertions:
-\begin{lstlisting}[language=Assertion]
-(assertion %A (i : int) ...)             (* valid *)
-(assertion %D (i : int) ...)             (* invalid *)
-(assertion (right (left (i : int)) ...)  (* valid *)
-(assertion %BC (x : (or int int)) ...)   (* invalid *)
+\end{minipage}\hfill
+\begin{minipage}{.5\textwidth}
+\begin{lstlisting}[label=lst:linker_assertion, numbers=none, language=Assertion, caption=Example.tza]
+(entrypoint %A (i : int) ...)
+(entrypoint %B (s : string) ...)
 \end{lstlisting}
-Due to its tag, the fist assertion can be assigned unambiguously to entrypoint A, whereas for the second it is not apparent whether it should be assigned to entrypoint B or C. Since the tag is omitted in the third assertion, the parameter type is given in respect to the default entrypoint and is assigned to B. The last assertion is invalid because it is overlapping with the previous assertion, which was already assigned to entrypoint B.
+\end{minipage}
+\vspace{\baselineskip}
+
+Because explicit entrypoint tags are optional in Michelson contracts, the linking is primarily done by type matching between the declared parameter types in the parent and the assertions. Tags, if specified, are only considered if type matching does not result in an unambiguous assignment. The linking fails, if an assertion cannot be matched to any parent entrypoint or several assertions match the same entrypoint, i.e., if no injective, non-surjective mapping was found. 
+
+As a first step, the linker retrieves and parses the parameter type of the parent contract. The parent contract is provided by the user as a file, a blockchain address, or a raw string. In case the contract is given as an address, the code is retrieved (as a string) from the blockchain. Parsing and extracting the list of entrypoints with their parameter type from the typed Michelson AST is handled by the Tezos libraries. The parameter pattern of each assertion AST is then compared recursively to the entrypoint types, until a match has been found --- this entrypoint is then blocked for other assertions.
+
+As explained in \secref{sec:tezos}, entrypoints can be invoked implicitly by wrapping the parameter into the respective union type constructors. Alternatively, they can be called explicitly by stating an entrypoint tag and passing the raw parameter value. The same applies for the specification of assertions - when omitting the tag, the parameter pattern must be declared in respect to the default entrypoint. If the assertion states an explicit tag, it may declare a pattern of the raw parameter type. \lstref{lst:impl_expl} shows two valid assertion specifications for entrypoint A of \lstref{lst:linker_parent} --- the first uses an explicit and the second an implicit declaration of the parameter pattern. 
+\begin{lstlisting}[language=Assertion, numbers=none, caption=Explicit and implicit assertion specification, label=lst:impl_expl]
+(entrypoint %A (i : int) ...)
+(entrypoint (left (i : int)) ...)
+\end{lstlisting}
+
+The tags given in the assertion specification do not necessarily have to be identical with the tags of the parent contract (if the parent states explicit tags); in some cases, they may be chosen differently for documentation or for readability purposes. However, the tags can and should be used to resolve ambiguity in the mapping between assertions and entrypoints. \lstref{lst:ambiguity_assertion} provides four examples of assertions, which cannot be assigned unambiguously to an entrypoint of the contract given in \lstref{lst:ambiguity_parent}. The assertions in lines 1, 2 and 3 specify anonymous or named wildcards as parameter pattern, which matches any parameter type. Since none of them specify the explicit tag \texttt{A} or \texttt{B}, the linker cannot know to which entrypoint the assertions belong to. The assertion in line 4 specifies the parameter type, but as both entrypoints have the same raw parameter type and none of the tags match, this assertion is also not linkable. In all four cases, providing the tag \texttt{A} or \texttt{B} resolves the ambiguity.
+
+\vspace{\baselineskip}
+\noindent
+\begin{minipage}{.4\textwidth}
+\begin{lstlisting}[label=lst:ambiguity_parent, numbers=none, language=Michelson, caption=Example2.tz]
+parameter (or (int %A)
+              (int %B));
+...
+\end{lstlisting}
+\end{minipage}\hfill
+\begin{minipage}{.5\textwidth}
+\begin{lstlisting}[label=lst:ambiguity_assertion, language=Assertion, caption=Ambiguous assertions for Example2.tz]
+(entrypoint _ ...)
+(entrypoint %C _ ...)
+(entrypoint %D i ...)
+(entrypoint %E (i : int)
+\end{lstlisting}
+\end{minipage}
+\vspace{\baselineskip}
+
+Another type of ambiguity can be caused by the fact that entrypoints can be sub-entrypoints of others. As an example, consider the parameter type \texttt{(or (int \%A) (or \%BC (int \%B) (int \%C)))}. Entrypoints \texttt{B} and \texttt{C} are sub-entrypoints of \texttt{BC} --- invoking \texttt{BC} will inevitably result in an invocation of either \texttt{B} or \texttt{C}, depending on the parameter value. Thus, assertions may ``overlap'', if a separate assertion is declared for a super- and a sub-entrypoint and result in two assertion specifications for the same entrypoint. Hence, the linker needs to detect overlapping assertions and reject assertion contracts where appropriate.
+
+In summary, the linker rejects any assertion contracts containing ambiguous, duplicate, overlapping and mismatching assertions. In case of failure, the problem is pointed out user. If each assertion could be linked to exactly one entrypoint, the mapping from entrypoint to assertion is returned. As entrypoints can be anonymous, the mapping represents the entrypoints by the constructor nesting of their parameters. The resulting mapping for \texttt{Example.tz} and \texttt{Example.tza}, for instance, is \\
+\texttt{\{ Left \textrightarrow <AST assertion A>; Right \textrightarrow <AST assertion B>\} }.
 
 \subsection{Compiler}\label{sec:compiler}
 The transformed and type checked assertion AST needs to be retargeted to Michelson code according to the orchestration scheme. Since the modular approach is less complex to implement and avoids having to decompile the parent code, this section describes a compiler that assembles the assertion and contract code according to \figref{fig:modular_assembly}. The target language of the compiler of the pipeline can either be Michelson directly, or another high-level language which supports Michelson as a target. \secref{sec:tezos} lists some examples of such languages. The chosen language then serves as an intermediate representation (IR) of the assertion and manager code, which is ultimately compiled to Michelson by the compiler of the language. After specifying the steps of the compilation in a general way, the compilation approaches are described and discussed in more detail in \secref{sec:direct} and \ref{sec:IR}.
@@ -340,6 +388,7 @@ Besides the target code for the manager and assertion contracts, the compiler sh
 \texttt{(Elt 0 <addr parent>; Elt 1 <addr A\_a>; Elt 2 <addr B\_a>)}.
 
 \subsubsection{Direct compilation}\label{sec:direct}
+\todo{verification by local node -> type check}
 With the direct approach, the compiler generates Michelson code and hence code for a stack machine. Based on the simplicity of stack machines and the assumption that it does not need to generate optimal code, the compiler is expected to be simple \cite{cs5641}\cite{ferr_compiler}\cite{wiki:stack_machine}. As already indicate in the general part, the resulting contracts contain repeating structures and patterns for each input, which can be exploited by using template code during compilation. After compilation, the Michelson programs can be sanity-checked by type checking them using the provided Tezos libraries.
 
 \paragraph{Assertion contracts}
@@ -418,4 +467,4 @@ In order to prevent denial-of-service attacks by spamming the network with false
 
 
 \todo{Make clear that we only engage validators on Tezos (not all nodes)}
-\todo{What happens if a validator has multiple endorsing rights?}
+\todo{What happens if a validator has multiple endorsing rights? -> open issues section?}

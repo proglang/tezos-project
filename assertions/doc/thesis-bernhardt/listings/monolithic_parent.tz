@@ -1,0 +1,7 @@
+storage unit;
+parameter (or (int %A) (int %B));
+code {
+...
+IF_LEFT { ... } (* %A*)
+        { ... } (* %B *)
+}

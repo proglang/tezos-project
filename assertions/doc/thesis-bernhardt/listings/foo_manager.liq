@@ -19,7 +19,7 @@ let%entry default
   let op_tplus1 = Contract.call
       ~dest:parent_addr
       ~entry:default
-      ~amount:0tz
+      ~amount:Current.amount ()
       ~parameter:a
   in
   let (_, emitted) = Loop.loop (fun (x, ops) ->
