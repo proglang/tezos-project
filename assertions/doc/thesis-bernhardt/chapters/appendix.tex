@@ -84,10 +84,10 @@ The following two versions of the grammar implement the prefix and infix notatio
 				 label=lst:nth_tz,
 				 caption=Implementation of \texttt{nth} for lists in Michelson]{listings/nth.tz}
 
-\chapter{Manager contract code in Liquidity}\label{apx:manager_liq}
-\lstinputlisting[label=lst:manager_templ_liq, language=Michelson, caption=Manager code in Liquidity for an entrypoint with a non-empty assertion, numbers=left]{listings/manager_loop.liq}
+\chapter{Controller contract code in Liquidity}\label{apx:controller_liq}
+\lstinputlisting[label=lst:manager_templ_liq, language=Michelson, caption=Controller code in Liquidity]{listings/controller.liq}
 
-\chapter{Manager contract code in Michelson}\label{apx:manager_michelson}
+\chapter{Controller contract code in Michelson}\label{apx:controller_michelson}
 \lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
 				 backgroundcolor=\color{cverbbg},
 				 linewidth=14cm,
@@ -98,21 +98,8 @@ The following two versions of the grammar implement the prefix and infix notatio
 				 captionpos=b,
 				 numbers=none,
 				 language=Michelson,
-				 label=lst:manager_michelson_loop,
-				 caption=Manager code in Michelson for an entrypoint with a non-empty assertion (wrapped in contract boilerplate code)]{listings/manager_loop.tz}
-				 
-\lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
-				 backgroundcolor=\color{cverbbg},
-				 linewidth=14cm,
-				 xleftmargin=0.5cm,
-				 frame=lr,
-				 framesep=8pt,
-				 framerule=0pt,
-				 captionpos=b,
-				 numbers=none,
-				 language=Michelson,
-				 label=lst:manager_michelson_forward,
-				 caption=Manager code in Michelson for an entrypoint with an empty assertion (wrapped in contract boilerplate code)]{listings/manager_forward.tz}
+				 label=lst:controller_michelson,
+				 caption=Controller code in Michelson]{listings/controller.tz}
 				 
 \chapter{Distributed Michelson implementation of \texttt{Foo} and \texttt{Bar}}\label{apx:foobar_distributed}
 The following contracts are a restructuring of the contracts given in Appendix \ref{apx:cost_analysis_contract}, s.t. they implement the proposed orchestration strategy.
