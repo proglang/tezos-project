@@ -1,2 +1,15 @@
 \chapter*{Abstract}
-\todo{}
+Modern blockchains provide a platform for building applications with Smart Contracts. Because transactions are processed at every node in the network, the quantity and complexity of computation, which can be performed by Smart Contracts, is limited. Furthermore, complex contracts can generate high transaction costs for the user. To overcome this limitation and increase cost efficiency, blockchain-based applications could move computations to an off-chain component and only process the result on the blockchain.
+This thesis proposes a processing model, which engages the validators of the network in a distributed effort to verify a submitted off-chain computation. Based on a specification of properties, the validators are challenged to find a counterexample by asserting these properties for independent subsets of the result. This reduces the computational effort on the blockchain to the verification of the result, instead of the computation of the result itself. Due to the distributed scheme, the computations per node are decreased even further. As a further contribution, this thesis defines a domain-specific language to express explicit assertions for off-chain computations. It describes the model and a proof-of-concept implementation of a processing pipeline, which transforms and compiles these assertions into Smart Contracts for the target platform Tezos. These contracts conduct a point-wise search for a counterexample and are called during the verification process.
+
+%Modern blockchains support building own applications with Smart Contracts.
+%because transactions are processed by every node, the amount and complexity of computation which can be performed by such SC is limited. %Furthermore, complex SC can cause high transaction costs for the user.
+%To overcome this limitation and increase efficiency, applications could move computations to an off-chain component and submit the results to the blockchain. 
+%This thesis proposes a processing model which engages the validators of the network to a distributed validation of such a submitted result. It challenges them to find counterexamples by performing an assertion check for independent subsets of the submitted result.
+% This reduces the computational efforts on the chain to the verification of the result instead of computing the result itself.
+% due to the distributed approach, the computation per validator and node is reduced even further
+
+% Furthermore, this thesis defines a domain-specific language to express explicit assertions over off-chain computations. It also provides a pipeline description for a toolchain, which transforms and compiles these assertions into SC searching for counterexamples. These contracts are then used in the distributed effort to validate the result.
+% this toolchain was partially implemented and provided with this thesis.
+
+% Tezos!
