@@ -1,46 +1,12 @@
 \chapter{Conclusion and outlook}\label{chap:conclusion}
-In order to make use of off-chain computations in smart contracts, this thesis proposed an approach that engages the validators of the blockchain network in a distributed effort to check assertions over input parameters. It covered the partially generic off-chain component of the design and implementation of this approach, while also providing some projections and considerations for the Tezos specific protocol design.
+Complex blockchain-based applications suffer from high computation costs and limited scalability. A consequential measure to address this issue, is to move computations off the chain and only verify the correctness of submitted results on the blockchain. This thesis  proposed assertions for distributed refutation as a probabilistic implementation of this verification. In the processing model of this approach, the validators of the system are challenged to assert specified properties for a random subset of the off-chain computation. If an assertion fails, the respective validator generates a counterexample and publishes it to the network. When the system acknowledges the counterexample, the off-chain computation is rejected. Suitable use-cases for this approach are computations, whose properties can be specified with formulas in predicate logic featuring universal quantification. To support this model on the target platform Tezos, a toolchain was developed to allow developers to specify explicit assertions and generate corresponding Smart Contracts. These contracts check the property point-wise within the quantification domain and identify counterexamples when executed by the validators. For the specification of assertions, a simple domain-specific language was defined.
 
-As a first step, it identified properties that can be checked with the proposed scheme, represented by a set of formulas in propositional logic using quantification. By means of some practical use-cases, the semantic differences between universal and existential quantification in relation to assertion checking were highlighted, namely that existential quantification requires the validators to find proofs instead of counterexamples. Even though the thesis focused on distributed refutation, distributed verification is a meaningful extension of future work on this topic.
+For the proposed architecture, the conducted costs analysis shows high transaction fees for the submission of off-chain computations,  due to high verification costs. Although the verification might still be more efficient than the execution itself, it can be assumed that the cost reductions are narrowed, or even equalised in cases of moderate complexity of off-chain computations. Inter-contract communication was identified as a main driving factor. To lower these costs and approach usability on production systems, the thesis provided possible improvements and modifications of the architecture.
 
-Based on the set of formulas, the generic off-chain design introduced a simple syntax to express assertions for one or more entrypoints of a contract, followed by a formalization of their transformation which comprises the negation of the formula and translation of quantifiers to efficient random generators. After exploring several orchestration strategies of contract and assertion code, the Tezos specific off-chain design proposed to originate the assertion and manager code modularly and discussed the necessary implementations within the off-chain infrastructure and, partially, the protocol design. This off-chain infrastructure was implemented in OCaml in form of a toolchain, which translates a file of assertions to executable smart contracts for the target platform.\\
+If it is possible to make the verification more efficient, this approach provides a simple solution for increasing of scalability of blockchain-based applications. Assertions can be specified in an expressive and familiar way and the processing model only requires moderate adaptions to the blockchain protocol.
 
+Based on either the proposed or a modification of the architecture, subsequent tasks include the implementation of the compiler in order to conclude the toolchain. As addressed in the introduction, the implementation of distributed assertions on blockchains also requires a design and implementation of a protocol amendment. Many of the aspects that need to be considered by the protocol design have already been pointed out by this work. This includes, i.a., the extensions to Michelson and Tezos' VM to support random value generation, the implementation of a dedicated execution mode, the withholding of the transaction submitting an off-chain computation until it has been verified, and the rejection of this transaction as a consequence of a verified counterexample. 
 
-% paragraph evaluation
+Besides the completion of the proof-of-concept implementation, the assertion language can be extended with features, such as variables and user-defined functions, to improve (re-)usability. Furthermore, an interesting extension is the support for properties formulated with existential quantification, as this allows to verify off-chain computations through distributed validation instead of refutation. 
 
-%In conclusion, it analysed the cost incurred by checking assertions as proposed and compared the results to a non-distributed approach. Based on these results, thesis discusses alternatives or possible modifications to solve some of the issues at hand. \\
-
-%contains a compilation pipeline written in OCaml that
-
-
-%An analysis of the general accuracy of the proposed scheme showed that 
-% and stating a formula to compute the minimum amount of random checks to reach a certain confidence level,
-%- high costs due to several reasons: random checking values require more test runs than size of iteration space. going below n checks does not provide a high certainty over validity. This approach is thus not suitable for safety or security critical applications. 
-%- more effort in compilation returns a better cost-performance ratio if the manager contract and assertions are merged. Still, more base costs
-%- depends on the protocol design, whether this approach is worth pursuing -> if the cost for validation can be eliminated by using rewards, it might be realisable.
-%- quantifiers: other semantics for certain combinations/existentials --> proofs; here not considered, but would be interesting for future work on this topic
-
-\subsection{Outlook}
-
-\draft{}
-\begin{itemize}
-\item Summarize what has been implemented so far
-\item Next steps
-	\begin{itemize}
-	\item extending VM \& Michelson
-	\item compiler
-	\item list open questions
-	\item Protocol-design
-		\begin{itemize}
-		\item implement extensions -> rand instruction only available during assertion checking
-		\item Do endorsers validate or extra validators?
-		\item How to differentiate between SC w/ and w/o assertions?
-		\item How to implement the waiting?
-		\item Which transactions/messages can be reused or need to be introduced
-		\item Representing counterexamples and verifying them
-		\item Penalty for incorrect counterexamples
-		\end{itemize}
-% role of the blockchain protocol
-%Another idea worth exploring is the adaption of the blockchain protocol to avoid user costs for assertion checking, similar to the regular validation of blocks \cite{tezos_docs}. Instead of being paid by the user in gas, validators could be given a reward for checking an assertion, or a particularly high one for finding a counterexample. 
-	\end{itemize}
-\end{itemize}
+Current work at the chair of programming languages includes another thesis to develop a model and an implementation of distributed assertion checking targeting the blockchain Ethereum. The groundwork provided in this thesis, such as the use-case analysis, the domain-specific language and frontend of the toolchain, is by design compatible for both targets.
