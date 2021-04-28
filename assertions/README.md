@@ -139,13 +139,23 @@ of the smart contract.
 ### Using pattern matching
 It's also possible to use pattern matching when declaring the entrypoint type:
 
+#### Named components
+Assignes a name to a structure component of any type (basically a variable without
+  a type notation):
+```
+parameter (pair int address)
+
+(entrypoint (pair i a)
+  (assert (gt i 0)))
+```
+
 #### Wildcards
 Assertions may only be interested in checking a part of the input parameter.
 Use wildcards to make this explicit and simplify the code:  
 ```
 parameter (pair int address)
 
-(entrypoint (pair (i: int) _)
+(entrypoint (pair (i : int) _)
   (assert (gt i 0)))
 ```
 
@@ -162,7 +172,20 @@ parameter (or int string)
 ```
 
 #### List/Option
-?? TODO
+Match type constructors of lists and option types, i.e. `cons x xs`, (non-empty list)
+`Nil` (empty list), `Some x` (any value) or `None` (undefined). Using these patterns
+automatically excludes input values which don't match the pattern from the assertion check
+(i.e. the assertion never fails in these cases).
+
+```
+parameter (or (list %A int) (option %B bool))
+
+
+(entrypoint %A (cons x xs)
+  (assert (gt x 10))
+(entrypoint %B (some b)
+  (assert b))
+```
 
 ### Defining assertions for several entrypoints
 A contract may have several entrypoints - for each of them, a __single__ assertion can be
