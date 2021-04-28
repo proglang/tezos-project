@@ -141,7 +141,7 @@ To substantiate this argument, consider two variations of a contract that expect
 \end{enumerate}
 In the first case, each validator picks a random clause from a random $F$, and checks if at least one literal evaluates to true. This translates to two random generators and a loop for the existential quantifier. In the second case, checking a random clause in isolation cannot prove the satisfiability, hence the validator has to check all clauses in a loop. This translates to one random generator and two loops. The same reasoning can be done for the reverse order, i.e. $\exists\exists\forall$ and $\forall\exists\forall$.
 
-\section{Restriction of use-cases}\label{sec:restrict}\todo{Better title? -> conclusion?}
+\section{Restriction of use-cases}\label{sec:restrict}\todo{Better title?}
 The examples given in this chapter have shown that, depending on the type and order of quantification, not all properties can be checked in the same way and need different modi of assertion checking. Additionally, they require a distinct translation to target code. This increases the complexity and requirements for an implementation of the toolchain and protocol amendment; therefore, as a first iteration, this thesis focuses on providing a design and toolchain for assertions using universal quantification only.
 
 \section{Cost analysis of a local approach}\label{sec:usecase_cost}
@@ -188,7 +188,7 @@ contract Bar {
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.9\linewidth]{figures/2-use_cases/cost_analysis}
-\caption{Gas consumption of transactions calling \texttt{Foo} and \texttt{Bar} for increasing input sizes}
+\caption{Gas consumption of contracts \texttt{Foo} and \texttt{Bar} for increasing inputs}
 \label{fig:use_case_cost}
 %\vspace{128in}
 \end{figure}
