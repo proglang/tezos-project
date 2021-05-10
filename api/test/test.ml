@@ -48,7 +48,7 @@ let str_of_status st = match st with
   | Api.Unprocessed -> "Unprocessed"
 
 let run_puk_from_alias () =
-  Api.get_puk_from_alias "tamara"
+  Api.get_puk_from_alias "testuser"
    >>= function
   | Ok _ -> print_endline "Ok" ; Lwt.return_ok ()
   | Error err -> Lwt.return_error err
@@ -60,22 +60,22 @@ let run_puk_from_hash () =
   | Error err -> Lwt.return_error err
 
 let run_pukh_from_alias () =
-  Api.get_pukh_from_alias "tamara"
+  Api.get_pukh_from_alias "testuser"
   >>= function
   | Ok _ -> print_endline "Ok"; Lwt.return_ok ()
   | Error err -> Lwt.return_error err
 
 let run_get_contract () =
-  Api.get_contract "tamara"
+  Api.get_contract "testuser"
   (* Api.get_contract "tz1XGXdyCAeAsZ8Qo4BFQVkLCnfQ4ZyLgJ1S" alternatively *)
   >>= function
   | Ok _ -> print_endline "Ok" ; Lwt.return_ok ()
   | Error err -> Lwt.return_error err
 
 let run_transfer () =
-  Api.get_pukh_from_alias "tamara"
+  Api.get_pukh_from_alias "testuser"
   >>=? fun pukh ->
-  Api.get_contract "tamara"
+  Api.get_contract "testuser"
   >>=? fun contr ->
   let amount = Api.Tez_t.tez 10.0 in
   let fees = Api.Tez_t.tez 0.0001 in
@@ -84,18 +84,20 @@ let run_transfer () =
     | Ok _ -> print_endline "Ok" ; Lwt.return_ok ()
     | Error err -> Lwt.return_error err
 
-(*
 let run_query () =
-  let oph = Operation_hash.of_b58check "opFVcseqXgajPVLzXisws6912Sxy8ifpr9y3xFYNp6KjEG6Nj8u" in
-  match oph with
-  | Ok oph -> (
-    Api.query oph
-    >>= function
-    | Ok st -> print_endline @@ str_of_status st; Lwt.return 1
-    | Error err -> print_endline @@ str_of_err err; Lwt.return 0
-  )
-  | Error errs -> Format.fprintf std_formatter "%a\n" Error_monad.pp @@ List.hd errs; Lwt.return 0
- *)
+ Api.get_pukh_from_alias "testuser"
+ >>=? fun pukh ->
+ Api.get_contract "auction"
+ >>=? fun contr ->
+ let amount = Api.Tez_t.tez 10.0 in
+ let fees = Api.Tez_t.tez 0.0001 in
+ Api.call_contract amount pukh contr fees
+ >>=? fun oph ->
+ Unix.sleep 2;
+ Api.query oph
+ >>= function
+   | Ok _ -> print_endline "Ok"; Lwt.return_ok ()
+   | Error err -> Lwt.return_error err
 
 let run_tez () =
   let eq_classes = [1.0; 0.000001; 0.0000001] in
@@ -104,7 +106,7 @@ let run_tez () =
   Lwt.return_ok ()
 
 let run_get_balance () =
-  Api.get_contract "tamara"
+  Api.get_contract "testuser"
   >>=? fun contr ->
   Api.get_balance contr
   >>= function
@@ -112,9 +114,9 @@ let run_get_balance () =
     | Error err -> Lwt.return_error err
 
 let run_call_contract () =
-  Api.get_pukh_from_alias "tamara"
+  Api.get_pukh_from_alias "testuser"
   >>=? fun pukh ->
-  Api.get_contract "tamara"
+  Api.get_contract "auction"
   >>=? fun contr ->
   let amount = Api.Tez_t.tez 10.0 in
   let fees = Api.Tez_t.tez 0.0001 in
@@ -132,8 +134,9 @@ let run_get_code () =
   | Error err -> Lwt.return_error err
 
 let run_parse_top () =
-  let src = let open Core in
-            In_channel.read_all "/home/bernhard/tezos-project/sandbox/test.tz"
+  let src = {|parameter (or (pair %A (list int) address) (int %B));
+              storage unit;
+              code {UNIT ; NIL operation ; PAIR }|}
   in
   Api.parse_script src
   >>= function
@@ -170,6 +173,9 @@ let main =
     >>=? fun _ ->
     print_endline "Test get_contract";
     run_get_contract ()
+    >>=? fun _ ->
+    print_endline "Test query";
+    run_query ()
     >>=? fun _ ->
     print_endline "Test tez";
     run_tez ()
