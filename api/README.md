@@ -27,6 +27,7 @@ Once you have the Tezos libraries installed, you can easily build the Tezos_Api 
 |   +-- Api_context.ml
 |   +-- Api_error.mli
 |   +-- Api_error.ml
+|   +-- test/
 ```
 
 Inside your projects root dune file, include the Tezos_api and the following dependencies:
@@ -114,3 +115,13 @@ end
 | Error (Rejection Insufficient_fee) -> ...
 | ....
 ```
+
+## Running the quick tests
+Inside the ```test/``` directory you can find an executable to quick test all functions of the API. For most of the tests, it needs to establish a connection to a local node and needs the following setup:
+- Activate a faucet account ```testuser``` and adapt the public key hash in the test file accordingly
+- Originate a dummy contract ```auction``` (or use another name and adapt the test file)
+
+Build the test file within the ```test/``` directory:
+```dune build ./test.exe```
+Run the tests:
+```dune exec --- ./test.exe -d <tezos client directory> -p <rpc port of the node>```
