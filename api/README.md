@@ -19,12 +19,14 @@ Once you have the Tezos libraries installed, you can easily build the Tezos_Api 
 +-- ...
 +-- lib
 |   +-- dune
-|   +-- SyncAPIV0.mli
-|   +-- SyncAPIV0.ml
-|   +-- SyncAPIV0_context.mli
-|   +-- SyncAPIV0_context.ml
-|   +-- SyncAPIV0_error.mli
-|   +-- SyncAPIV0_error.ml
+|   +-- SyncAPIV1.mli
+|   +-- SyncAPIV1.ml
+|   +-- Api.mli
+|   +-- Api.ml
+|   +-- Api_context.mli
+|   +-- Api_context.ml
+|   +-- Api_error.mli
+|   +-- Api_error.ml
 ```
 
 Inside your projects root dune file, include the Tezos_api and the following dependencies:
