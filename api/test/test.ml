@@ -100,7 +100,7 @@ let run_query () =
    | Error err -> Lwt.return_error err
 
 let run_tez () =
-  let eq_classes = [1.0; 0.000001; 0.0000001] in
+  let eq_classes = [1.0; 0.000001; 1000.0] in
   let f = (fun tz -> print_endline @@ string_of_float tz; Api.Tez_t.tez tz) in
   let _ = List.map f eq_classes in
   Lwt.return_ok ()
