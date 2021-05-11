@@ -5,6 +5,7 @@
 \usepackage{xcolor}
 \PassOptionsToPackage{hyphens}{url}\usepackage{hyperref} % for url command
 \usepackage{amsmath}
+\usepackage{amsfonts}
 \usepackage{xfrac}
 \usepackage{listings}
 
@@ -13,6 +14,9 @@
 \newcounter{todos}
 \setcounter{todos}{0}
 \newcommand{\todo}[1]{\textbf{\textcolor{red}{(TODO: #1)}}\refstepcounter{todos}\label{todo \thetodos}}
+\renewcommand{\vec}[1]{\mathbf{#1}}
+\newcommand{\mat}[1]{\mathbf{#1}}
+\usepackage{makecell}
 
 \input{solidity-highlighting}
 
@@ -45,7 +49,7 @@ The following list includes our whole collection of interesting formulas for dis
         \end{itemize}
         \item One number is the least common multiple of two other numbers
     \end{itemize}
-\item \textbf{Arrays}
+    \item \textbf{Arrays}
     \begin{itemize}
         \item Array is sorted
         \item Fulfills (balanced) binary search tree property, i.e., the left elements of subtree are smaller, right elements of subtree are greater than parent
@@ -70,6 +74,14 @@ The following list includes our whole collection of interesting formulas for dis
     \begin{itemize}
         \item Set property is fulfilled: no element occurs twice (if set is represented as an array)
         \item \textcolor{olive}{Two sets are disjoint}
+    \end{itemize}
+    \item \textbf{Matrices}
+    \begin{itemize}
+        \item Identity matrix $\mathbb{I}$: square matrix with only diagonal ones, else zeros
+        \item Logical matrix (only one or zero entries), matrix of ones (only one entries), zero matrix, ...
+        \item Symmetric matrix: $\mat{A} = \mat{A}^T$
+        \item Orthogonal matrix: $\mat{A}\mat{A}^T = \mathbb{I}$
+        \item Correct calculation result, e.g. matrix multiplication, multiplication with a constant, addition, ... (which might be more involved and mostly need all terms for verification, which is memory consuming)
     \end{itemize}
 \end{itemize}
 
@@ -110,7 +122,7 @@ Looking up the variable of a literal is done by dividing the encoded literal by 
 
 \subsubsection{Formulation in predicate logic}
 Given that $F$ and $\mathcal{A}$ are encoded like this, the assumption that $\mathcal{A}$ satisfies $F$ can be expressed in predicate logic as follows:
-\begin{gather*}\label{eq:cnf_sat_formal}
+\begin{gather*}\label{eq:cnf_sat_formal_1}
 \begin{aligned}
 (\forall i, \exists j) (0 \leq i < |F|) \wedge (0 \leq j < |F[i]|) &\Rightarrow ((isPos(F[i][j]) \wedge \mathcal{A}[decode(F[i][j])]) \\
 &\vee (\neg isPos(F[i][j]) \wedge \neg \mathcal{A}[decode(F[i][j])])))
@@ -118,7 +130,7 @@ Given that $F$ and $\mathcal{A}$ are encoded like this, the assumption that $\ma
 \end{gather*}
 
 The transformed formula to check for any counterexamples is then:
-\begin{gather*}\label{eq:cnf_sat_formal}
+\begin{gather*}\label{eq:cnf_sat_formal_2}
 \begin{aligned}
 (\exists i, \forall j) (0 \leq i < |F|) \wedge (0 \leq j < |F[i]|) &\wedge ((isPos(F[i][j]) \wedge \neg \mathcal{A}[decode(F[i][j])]) \\
 &\vee (\neg isPos(F[i][j]) \wedge \mathcal{A}[decode(F[i][j])])))
@@ -195,13 +207,13 @@ proof(n: int, m: int) ...
 \subsection{Two numbers are coprime}\label{subsec:coprime}
 The greatest common divisor ($gcd$) of two non zero integers is the largest integer that divides both evenly \cite{knuthtaocp02}. A more specific $gcd$-problem is to find two numbers which are coprime, also called relative prime. Coprime expresses the relation between two integers a and b, where the greatest common divisor between those two is one \cite{coprimewiki}, i.e., $gcd(a, b) = 1$. To check if two numbers are coprime it has to be ensured that there is no greater $gcd$ than one, which can be stated in a propositional formula.
 \begin{equation}\label{eq:coprime-universial}
-    (a < b): (\forall n) (2 \le n \le a) \Rightarrow \neg((a \mathbin{\%} n) = 0 \land (b \mathbin{\%} n) = 0)
+    (\forall n) (2 \le n \le \min(a,b)) \Rightarrow \neg((a \mathbin{\%} n) = 0 \land (b \mathbin{\%} n) = 0)
 \end{equation}
 To check this it would take $\mathcal{O}(a)$, means linear time complexity. To find a contradiction to this condition we can formulate:
 \begin{equation}\label{eq:coprime-existential}
-    (a < b): (\exists n) (2 \le n \le a) \land ((a \mathbin{\%} n) = 0 \land (b \mathbin{\%} n) = 0)
+    (\exists n) (2 \le n \le \min(a,b)) \land (a \mathbin{\%} n) = 0 \land (b \mathbin{\%} n) = 0
 \end{equation}
-When it is ensured that the greater number is not evenly divided by the smaller one ($b\mathbin{\%}a=0$), the search space can reduced by half to $(2 \le n \le \lfloor \frac{a}{2} \rfloor)$, because in the upper half of the lower number no integer can evenly divide this number.
+When it is ensured that the greater number is not evenly divided by the smaller one ($\max(a,b)\mathbin{\%}\min(a,b)=0$), which automatically would then be a counterexample, the search space can reduced by half to $(2 \le n \le \lfloor \frac{a}{2} \rfloor)$, because in the upper half of the lower number no integer can evenly divide this number.
 
 In order to take advantage of this, the assertion syntax would need to be able to create different generators for different conditions. Currently, we only allow \texttt{if-else} instructions inside an \texttt{assertion} expression; this use-case could be an argument to lift that restriction and allow contracts like this:
 \lstinputlisting[caption=Assertion contract with conditional generators, label={lst:coprime}]{listings/coprime.tza}
@@ -211,7 +223,7 @@ However, this will make the transformation more involved, as the bounds cannot s
 \subsubsection{Least common multiple}
 A similar problem would be to check the least common multiple ($lcm$) of two numbers. There the space between the greater number and the stated $lcm$ has to be checked for a smaller one. This search space can be significantly reduced by only selecting numbers, which are multiples of the greater number and check if the smaller number can divide this number without remainder.
 \begin{equation}\label{eq:lcm-existential}
-    (a < b): (\exists n) (2 \le n < \frac{lcm}{b}) \land ((b*n) \mathbin{\%} a = 0)
+    (\exists n) (2 \le n < \frac{lcm}{\max(a,b)}) \land ((\max(a,b)*n) \mathbin{\%} \min(a,b) = 0)
 \end{equation}
 
 %----------------------------------------------------------------------------------------
@@ -226,15 +238,15 @@ heap_array[(k*2)+1] // Get left child of actual node k
 heap_array[(k*2)+2] // Get right child of actual node k
 \end{lstlisting}
 So to check if an array $a$ fulfills the min heap property, we can formulate it in the following predicate logic:
-\begin{equation}\label{eq:heap-unversial}
+\begin{equation}\label{eq:heap-unversial_1}
   (\forall k) (1 \le k < |a|) \Rightarrow a[\lfloor(k-1)/2)\rfloor] \le a[k]
 \end{equation}
 This equation checks the direction from the child to the parent node. (Following the Exposé) The direction could also be turned around and every parent node could be checked against its child nodes, which does not change the number of comparisons.
-\begin{equation}\label{eq:heap-unversial}
+\begin{equation}\label{eq:heap-unversial_2}
   (\forall k) (0 \le k \le \lfloor |a|/2 \rfloor) \Rightarrow a[k] \le a[2k+1] \land (2k+2 < |a| \Rightarrow a[k] \le a[2k+2])
 \end{equation}
 This test would need $\mathcal{O}(|a|)$, i.e., linear time complexity. To find a contradiction this can be formulated to
-\begin{equation}\label{eq:heap-unversial}
+\begin{equation}\label{eq:heap-unversial_3}
   (\exists k) (1 \le k \le |a|) \land a[\lfloor(k-1)/2)\rfloor] > a[k]
 \end{equation}
 This example is similar to the example for checking if an array is sorted. Further such examples could be:
