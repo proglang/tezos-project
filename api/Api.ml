@@ -1,14 +1,14 @@
 open Client_keys
-open Tezos_client_006_PsCARTHA
-open Tezos_client_006_PsCARTHA.Protocol_client_context
-open Tezos_client_006_PsCARTHA.Injection
-open Tezos_client_006_PsCARTHA.Client_proto_contracts
-open Tezos_protocol_006_PsCARTHA.Protocol.Alpha_context
-open Tezos_raw_protocol_006_PsCARTHA
-open Tezos_protocol_environment_006_PsCARTHA
+open Tezos_client_007_PsDELPH1
+open Tezos_client_007_PsDELPH1.Protocol_client_context
+open Tezos_client_007_PsDELPH1.Injection
+open Tezos_client_007_PsDELPH1.Client_proto_contracts
+open Tezos_protocol_007_PsDELPH1.Protocol.Alpha_context
+open Tezos_raw_protocol_007_PsDELPH1
+open Tezos_protocol_environment_007_PsDELPH1
 open Apply_results
-open SyncAPIV0_error
-open SyncAPIV0_context
+open Api_error
+open Api_context
 open Format
 open Base
 open Int64
@@ -18,6 +18,9 @@ type pukh = Signature.public_key_hash
 type contract = Contract.t
 type oph = Operation_hash.t
 type blockh = Block_hash.t
+type parsed_michelson = Michelson_v1_parser.parsed
+type expression_michelson = Script.expr
+type tag = string
 
 module Tez_t : sig
   type t = Tez.t
@@ -133,12 +136,15 @@ let make_context () =
 let ctxt = ref (make_context ())
 let catch_error_f err = if !(current_config.debug_mode) then catch_trace err
                         else catch_last_error err
+let catch_error_env_f err errs s = if !(current_config.debug_mode) then
+                                     catch_trace_env err errs s
+                                   else catch_last_env_error err s
 
 let make_fee_parameter () =
   let fp : fee_parameter = {
     minimal_fees = !(current_fee_config.minimal_fees);
-    minimal_nanotez_per_byte = Z.of_int !(current_fee_config.minimal_nanotez_per_byte);
-    minimal_nanotez_per_gas_unit = Z.of_int !(current_fee_config.minimal_nanotez_per_gas_unit);
+    minimal_nanotez_per_byte = Q.of_int !(current_fee_config.minimal_nanotez_per_byte);
+    minimal_nanotez_per_gas_unit = Q.of_int !(current_fee_config.minimal_nanotez_per_gas_unit);
     force_low_fee = !(current_fee_config.force_low_fee);
     fee_cap = !(current_fee_config.fee_cap);
     burn_cap = !(current_fee_config.burn_cap);
@@ -197,11 +203,10 @@ let get_contract s =
   | Error err -> (
     match Contract.of_b58check s with
     | Ok v -> Answer.return v
-    | Error _ as err2 -> (
-       let wrapped = Environment.wrap_error err2 in
-       match wrapped with
-       | Error e -> catch_error_f (e @ err)
-       | Ok _ -> catch_error_f err))
+    | Error _ as err2 -> catch_error_env_f
+                           err2
+                           err
+                           "B58 check of address failed")
 
 let set_port p =
   (current_config.port) := p;
@@ -310,7 +315,7 @@ let get_result ((op, res) : 'kind contents_list * 'kind contents_result_list) (b
     | Single_and_result (Manager_operation _,
                          Manager_operation_result {operation_result;_}) ->
        begin
-         let open Tezos_protocol_006_PsCARTHA.Protocol.Contract_storage in
+         let open Tezos_protocol_007_PsDELPH1.Protocol.Contract_storage in
          match operation_result with
            | Failed (_, errs) -> (
              match errs with
@@ -322,11 +327,14 @@ let get_result ((op, res) : 'kind contents_list * 'kind contents_result_list) (b
              | _ -> Answer.return (Rejected (Unknown_reason "Empty trace")))
            | Applied (Transaction_result r) ->
               begin
+                let consumed = Int.of_string
+                               @@ asprintf "%a" Gas.Arith.pp r.consumed_gas
+                in
                 let res : op_result = {
                     block_hash = b;
                     rpc_position = (i,j);
                     balance_updates = r.balance_updates;
-                    consumed_gas = Z.to_int r.consumed_gas;
+                    consumed_gas = consumed;
                     storage = r.storage;
                     originated_contracts = r.originated_contracts;
                     storage_size = Z.to_int r.storage_size;
@@ -430,4 +438,56 @@ let get_balance c =
     c
   >>= function
   | Ok amount -> Answer.return amount
+  | Error err -> catch_error_f err
+
+let get_contract_code c =
+  let ctxt_proto = new wrap_full !ctxt in
+  Client_proto_context.get_script
+    ctxt_proto
+    ~chain:ctxt_proto#chain
+    ~block:ctxt_proto#block
+    c
+  >>= function
+  | Ok None -> Answer.fail Not_callable
+  | Ok (Some {code; storage = _}) ->
+     begin
+       match Script_repr.force_decode code with
+       | Error _ as err2 ->
+          catch_error_env_f err2 [] "Error while decoding contract code"
+       | Ok (code, _) ->
+          Answer.return @@ Michelson_v1_printer.unparse_toplevel code
+     end
+  | Error errs -> catch_error_f errs
+
+let parse_script s =
+  Lwt.catch
+    (fun () ->
+      let parsed = Michelson_v1_parser.parse_toplevel s in
+      Lwt.return @@ Micheline_parser.no_parsing_error parsed
+    )
+    exception_handler
+  >>= function
+  | Ok parsed -> Answer.return parsed
+  | Error err -> catch_error_f err
+
+let parse_expression s =
+   Lwt.catch
+    (fun () ->
+      let parsed = Michelson_v1_parser.parse_expression s in
+      Lwt.return @@ Micheline_parser.no_parsing_error parsed
+    )
+    exception_handler
+   >>= function
+   | Ok parsed -> Answer.return parsed
+   | Error err -> catch_error_f err
+
+let list_entrypoints (s : Michelson_v1_parser.parsed)  =
+  let ctxt_proto = new wrap_full !ctxt in
+  Michelson_v1_entrypoints.list_entrypoints
+    ctxt_proto
+    ~chain:Client_config.default_chain
+    ~block:Client_config.default_block
+    s.expanded
+  >>= function
+  | Ok eps -> Answer.return eps
   | Error err -> catch_error_f err
