@@ -4,4 +4,5 @@
       (if (le 0 n)
         (if (lt n m)
           (if (lt n (size a))
-            (assert (le (nth a n) (nth a m)))))))))
+            (if (lt m (size a))
+              (assert (le (nth a n) (nth a m))))))))))
