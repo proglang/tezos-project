@@ -7,6 +7,7 @@ auto
 *.synctex.gz
 *.pdf
 *.rel
+*.vtc
 *.merlin
 _build
 .DS_Store
