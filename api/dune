@@ -1,5 +1,5 @@
 (library
- (name tezos_api)
+ (name SyncAPIV1)
  (libraries tezos-base
             tezos-base.unix
             tezos-rpc-http-client
@@ -7,11 +7,12 @@
             tezos-shell-services
             tezos-client-base
             tezos-client-commands
-	    str
+            tezos-micheline
+            str
 
-	    (select void_for_linking-006-PsCARTHA from
-              (tezos-client-006-PsCARTHA-commands.registration -> void_for_linking)
-              (-> void_for_linking))
+	    (select void_for_linking-007-PsDELPH1 from
+              (tezos-client-007-PsDELPH1-commands-registration -> void_for_linking-007-PsDELPH1.empty)
+              (-> void_for_linking-007-PsDELPH1.empty))
 
 	    tezos-stdlib-unix
             tezos-client-base-unix)
@@ -23,5 +24,6 @@
                    -open Tezos_client_base
                    -open Tezos_client_commands
                    -open Tezos_client_base_unix
+                   -open Tezos_micheline
                    -linkall))
 )
