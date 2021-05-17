@@ -1,0 +1,6 @@
+(executables
+ (names test)
+ (libraries SyncAPIV1
+            core)
+  (flags (:standard -open Tezos_base__TzPervasives
+                    -linkall)))

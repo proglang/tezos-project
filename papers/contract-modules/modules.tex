@@ -11,13 +11,13 @@
 
 \lstset{
   language=caml,
-  morekeywords={contract,entrypoint,module,hash,paid,raises,sig,val},
+  morekeywords={requires,sender,amount,balance,storage,contract,entrypoint,module,hash,paid,raises,sig,val},
   % predefined types
   classoffset=1,
   morekeywords={nat,int,unit,string,pukh,status,tz},
   keywordstyle=\color{blue},
   classoffset=2,
-  morekeywords={Left,Right},
+  morekeywords={Pair,Left,Right},
   keywordstyle=\color{magenta},
   backgroundcolor=\color{brown!20},
   captionpos=b,
@@ -50,19 +50,25 @@
 \maketitle
 \pagestyle{plain}
 
-\section{Motivation}
+\section{A simple example}
 \label{sec:motivation}
 
 
-Consider this Michelson code fragment:
+Consider this Michelson code fragment for implementing an auction contract:
 \begin{lstlisting}[language=michelson,caption={Michelson code example},label={lst:code-example}]
-parameter (or (int %bid_for_auction)
-              (unit %close_auction));
-storage address;
+parameter (or (unit %close)
+              (unit %bid));
+storage (pair bool (pair address address));
 code { DUP; CAR; 
        IF_LEFT {
-       # %bid_for_auction
-        DUP; PUSH int 10000; SUB; LE;
+       # %close
+         DROP; CDR; CAR; SENDER; EQ;
+         IF {} { PUSH string "not owner"; FAILWITH; }
+         # ...
+       }
+       {
+       # %bid
+        DROP; AMOUNT; PUSH mutez 10000; COMPARE; LE;
         IF { FAILWITH; } {} # fails with argument value
         # ...
         { PUSH string "closed"; FAILWITH; }
@@ -72,25 +78,20 @@ code { DUP; CAR;
         { PUSH int 42; FAILWITH; }
         # ...
        }
-       {
-       # %close_auction
-         DROP; CDR; SENDER; EQ;
-         IF {} { PUSH string "not owner"; FAILWITH; }
-         # ...
-       }
      }
 \end{lstlisting}
 
-Here is a \textbf{contract module} that describes / specifies the above Michelson code.
+Here is a simple \textbf{contract module} that describes / specifies
+the above Michelson code. 
 \begin{lstlisting}[caption={Contract module example},label={lst:contract-module-example}]
 contract type MyContract = sig
-  paid entrypoint %bid_for_auction (v : int) 
+  paid entrypoint %bid () 
   raises "closed"                 (** auction closed*)
        | "bid too low" as too_low (** bid received is too low *)
        | 42 as the_answer         (** failwith received argument 42 *)
        | (_ : int) as failedwith  (** failwith received an integer arg *)
 
-  entrypoint %close_auction (_ : unit)
+  entrypoint %close ()
   raises "not owner"         (** caller cannot close the auction *)
 end
 \end{lstlisting}
@@ -104,30 +105,104 @@ A contract module gets compiled to an \texttt{.mli} file which contains a
 valid OCaml signature and the corresponding \texttt{.ml} file
 implementing the signature. 
 
-Each \lstinline/entrypoint/ is mapped to a function. The variables
-used in the pattern may be a wildcard \lstinline/_/ or an OCaml identifier, which
-is used in generating the implementation. For \lstinline/_/ a standard
-name will be generated.
+Each \lstinline/entrypoint/ is mapped to a function. The entrypoint's
+parameter is described by a pattern.  Variables (OCaml identifier) or
+wildcards \lstinline/_/ in the pattern will be used as formal
+parameters in generating the implementation. For \lstinline/_/ a
+standard name will be generated. Each variable or wildcard needs a
+type annotation. Constructors in the pattern will be
+omitted from the interface, but automatically inserted in the contract
+invocation. 
 
 A \lstinline/paid/ entrypoint requires the caller to specify an amount of tokens to
-accompany the contract invocation. Accordingly, the generated function has an extra
-argument. Otherwise, the entrypoint is unpaid. 
+accompany the contract invocation. Accordingly, the generated function
+has a mandatory argument to specify this amount. Otherwise, the entrypoint is unpaid. 
 
-The \lstinline/raises/ clauses specify values that the contract might
-pass to the \texttt{FAILWITH} instruction. The \lstinline/as/ clause
+The \lstinline/raises/ clause specifies values that the contract might
+pass to the \texttt{FAILWITH} instruction. The translation generates
+an error type from the clause that describes all possible
+failures. The \lstinline/as/ clause 
 maps the matched value to an OCaml identifier, which is used to
 generate the corresponding case in the error type. There is a standard
 translation (to be specified) that maps a value without an
 \lstinline/as/ clause to an identifier.
 
-Alternatively and equivalently, the contracts can be specified using
+The \lstinline/raises/ clause must be exhaustive. Any failure arising
+during execution of the contract must be captured by one of the
+specified cases. If in doubt, include a catchall default case.
+
+Alternatively and equivalently, contracts can be specified using
 patterns on the default entrypoint.
 
 \begin{lstlisting}[caption={Alternative syntax for entrypoints},label={lst:alternative-syntax}]
-  paid entrypoint bid_for_auction (Left (_ : int))
+  paid entrypoint bid (Right ())
 ...
-  entrypoint close_auction (Right (_ : unit))
+  entrypoint close (Left ())
 \end{lstlisting}
+
+The specification does not have to be exhaustive. The contract may
+have further entrypoints that are not described by the module.
+
+\clearpage{}
+\section{A safer example}
+\label{sec:safe-example}
+
+Alternatively, one may specify preconditions that are checked before
+the contract is deployed to the blockchain. 
+
+\begin{lstlisting}[caption={Safer contract module},label={lst:safer-contract-module}]
+contract type SaferContract = sig
+  storage (Pair (bidding : bool) 
+                (Pair (owner : address) 
+                      (highest_bidder : address)))
+
+  entrypoint %close ()
+  requires (sender = owner) raises "not owner"
+
+  paid entrypoint %bid () 
+  requires bidding raises "closed" (** auction closed*)
+  requires (amount > balance)
+  requires (amount > 10000)
+  raises "bid too low" as too_low (** bid received is too low *)
+       | 42 as the_answer         (** failwith received argument 42 *)
+end
+\end{lstlisting}
+The \lstinline/storage/ clause defines a typed pattern to match the
+current storage of the contract. Moreover, it generates a suitably
+typed getter function (also named \lstinline/storage/) 
+to access the current storage from OCaml. 
+
+The \lstinline/%close/ entrypoint comes with a \lstinline/requires/
+clause that specifies a precondition for invoking the contract. This
+precondition is checked in the OCaml interface \emph{before} invoking
+the contract. The entrypoint does not have a \lstinline/raises/
+clause anymore, which means that this precondition implies that no
+failures can occur.
+
+\textbf{For this reasoning to be true, we need to know that the owner
+  component of the storage is constant through all contract executions.}
+
+For the \lstinline/%bid/ entrypoint, the \lstinline/bidding/ component
+must be true. However, we cannot guarantee that there is nobody
+closing the contract between accessing the storage and the
+actual contract invocvation. Hence, the corresponding
+\lstinline/raises/ clause must remain in place.
+
+\textbf{To safely reject when \lstinline/bidding/ is false, we need to know
+  that there is no contract execution that can make it true, again.}
+
+Analogous reasoning applies to the condition
+\lstinline/amount > balance/. Here, we also need to know that the
+balance cannot decrease, which is non-trivial. However, we can accurately check that
+\lstinline/amount > 10000/ before the contract invocation, which rules
+out the unspecific integer failure.
+
+The interface of the generated functions remains the same, but some of
+the errors are generated without involving the blockchain.
+
+\section{Generated code}
+\label{sec:generated-code}
+
 
 The contract module is compiled to an OCaml module which provides a typed API to the
 contract. It includes the documentation comments from the contract
@@ -137,24 +212,22 @@ by us.
 \begin{lstlisting}[caption={Generated signature},label={lst:generated-signature}]
 module type MyContract =
 sig
-  type bid_for_auction_errors = 
+  type bid_errors = 
      | closed       (** auction closed*)
      | too_low      (** bid received is too low *)
      | the_answer   (** failwith received argument 42 *)
      | failedwith of int (** failwith received an integer arg *)
 
-  val bid_for_auction
+  val bid
     : Tezos.pukh -> ?fee:Tezos.tz -> amount:Tezos.tz
-    -> int
-    -> (Tezos.status, bid_for_auction_errors) Tezos.monad
+    -> (Tezos.status, bid_errors) Tezos.monad
 
-  type close_auction_errors = 
+  type close_errors = 
      | not_owner    (** caller cannot close the auction *)
 
-  val close_auction
+  val close
     : Tezos.pukh -> ?fee:Tezos.tz -> ?amount:Tezos.tz
-    -> unit
-    -> (Tezos.status, close_auction_errors) Tezos.monad
+    -> (Tezos.status, close_errors) Tezos.monad
 end
 \end{lstlisting}
 
@@ -173,13 +246,15 @@ end
 \item The type \lstinline/Tezos.monad/ is defined by the underlying
   API. The untyped API uses a type \lstinline/Answer.t/. The exact
   relationship is TBD.
+\item In this example, there are no parameters that are passed to the
+  entrypoints because their type is \lstinline/Unit/.
 \item Error reporting assumes that the monad returns a sum type. But
   things could be handled differently (for the
-  \lstinline/close_auction/entrypoint): by an error continuation of
-  type \lstinline/close_auction_errors -> Answer.t/ or by
+  \lstinline/close/ entrypoint): by an error continuation of
+  type \lstinline/close_errors -> Answer.t/ or by
   raising an exception that encapsulates the error type:
 \begin{lstlisting}
-exception Close_Auction_Exn of close_auction_errors
+exception Close_Exn of close_errors
 \end{lstlisting}
 \end{itemize}
 
@@ -216,13 +291,13 @@ let contract_addr =
   get_contract "KT1ThEdxfUcWUwqsdergy..." >>=? 
   fun ca -> ???
 
-type bid_for_auction_errors = 
+type bid_errors = 
    | closed       (** auction closed*)
    | too_low      (** bid received is too low *)
    | the_answer   (** failwith received argument 42 *)
    | failedwith of int (** failwith received an integer arg *)
 
-let big_for_auction_errors_map =
+let big_errors_map =
   let open Base in
   Base.Map.of_alist_exn (module String)
     [
@@ -236,7 +311,7 @@ let big_for_auction_errors_map =
    * should just generate code instead of using a map*)
   
 
-let bid_for_auction destination ?(fee=100.0) amount v =
+let bid destination ?(fee=100.0) amount v =
   ...
   begin
     SyncAPIV0.call_contract
@@ -257,10 +332,10 @@ let bid_for_auction destination ?(fee=100.0) amount v =
     (*throw exception if no match *)
     ...
 
-type close_auction_errors = 
+type close_errors = 
    | not_owner    (** caller cannot close the auction *)
 
-let close_auction destination ?(fee=50.0) ?(amount=0.0) v =
+let close destination ?(fee=50.0) ?(amount=0.0) v =
   ...
   SyncAPIV0.call_contract
     amount
@@ -292,10 +367,11 @@ The checker should warn about unhandled failures (both checked and unchecked).
 
 The recommended technology for the type checker is symbolic
 execution. In this framework, it would also 
-be possible to specify further invariants about the inputs and place them into the contract
-module. Essentially, every formula that an SMT solver can deal with
-should be fine, although a first version of the symbolic executor
-could work without using SMT.
+be possible to specify further invariants (like the
+\lstinline/require/ clauses) about the inputs and place
+them into the contract module. Essentially, every formula that an SMT
+solver can deal with should be fine, although a first version of the
+symbolic executor could work without using SMT.
 
 The checker should also make sure that unpaid entrypoints do not
 depend on a non-zero amount being passed to the contract
@@ -342,7 +418,7 @@ restricted to a disjunction of equations, e.g., $x=1 \vee x=2$.
  The stack is initialized with a symbolic value corresponding to a pair
 of the storage type and the parameter type. The latter is concretized
 according to the path to the specified entrypoint. That is, to
-investigate the entrypoint \lstinline/bid_for_auction/ in
+investigate the entrypoint \lstinline/bid/ in
 Listing~\ref{lst:code-example}, symbolic execution would start with a
 one-element stack that contains
 \begin{lstlisting}[language=michelson]
