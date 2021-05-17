@@ -21,17 +21,22 @@
 
 % \titlerunning{Dummy short title} %TODO optional, please use if title is longer than one line
 
-\author{Thi Thu Ha Doan}{University of Freiburg, Germany}{doanha@cs.uni-freiburg.de}{https://orcid.org/0000-0002-1825-0097}{(Optional) author-specific funding acknowledgements}%TODO mandatory, please use full name; only 1 author per \author macro; first two parameters are mandatory, other parameters can be empty. Please provide at least the name of the affiliation and the country. The full address is optional
+\author{Thi Thu Ha Doan}{University of Freiburg,
+  Germany}{doanha@cs.uni-freiburg.de}{https://orcid.org/0000-0002-1825-0097}{supported
+by a grant from the Tezos foundation}%TODO mandatory, please use full name; only 1 author per \author macro; first two parameters are mandatory, other parameters can be empty. Please provide at least the name of the affiliation and the country. The full address is optional
 
-\author{Peter Thiemann}{University of Freiburg, Germany}{thiemann@acm.org}{[orcid]}{[funding]}
+\author{Peter Thiemann}{University of Freiburg, Germany}{thiemann@acm.org}{https://orcid.org/0000-0002-9000-1239}{}
 
 \authorrunning{T.T.H Doan and P. Thiemann} %TODO mandatory. First: Use abbreviated first/middle names. Second (only in severe cases): Use first author plus 'et al.'
 
 \Copyright{Thi Thu Ha Doan and Peter Thiemann} %TODO mandatory, please use full first names. OASIcs license is "CC-BY";  http://creativecommons.org/licenses/by/3.0/
 
-\ccsdesc[100]{\textcolor{red}{Replace ccsdesc macro with valid one}} %TODO mandatory: Please choose ACM 2012 classifications from https://dl.acm.org/ccs/ccs_flat.cfm 
+%\ccsdesc[100]{\textcolor{red}{Replace ccsdesc macro with valid one}}
+%%TODO mandatory: Please choose ACM 2012 classifications from
+%%https://dl.acm.org/ccs/ccs_flat.cfm
+\ccsdesc[100]{}
 
-\keywords{Dummy keyword} %TODO mandatory; please add comma-separated list of keywords
+\keywords{contract API, modules, static checking} %TODO mandatory; please add comma-separated list of keywords
 
 \category{} %optional, e.g. invited paper
 
@@ -43,7 +48,7 @@
 
 %\funding{(Optional) general funding statement \dots}%optional, to capture a funding statement, which applies to all authors. Please enter author specific funding statements as fifth argument of the \author macro.
 
-\acknowledgements{I want to thank \dots}%optional
+% \acknowledgements{I want to thank \dots}%optional
 
 %\nolinenumbers %uncomment to disable line numbering
 
@@ -62,6 +67,8 @@
 \SeriesVolume{42}
 \ArticleNo{23}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\input{macros}
 
 \begin{document}
 
@@ -87,6 +94,87 @@
 \section{Introduction}
 \label{sec:introduction}
 
+Contracts on the blockchain rarely run in isolation. To be useful
+beyond shuffling tokens between user accounts, they need to interact
+with the outside world. On the other hand, the outside world also
+needs to interact by initiating transactions and starting contracts
+that feed information into the blockchain. One direction is addressed
+by oracles that watch certain events on the blockchain, create a
+response by calculation or gathering data, and then invoke a callback
+contract to inject this response into the chain. Trust is an essential
+aspect for an oracle.
+
+The other direction is about automatizing certain processes in
+connection with the blockchain. For example, opening or closing an
+auction according to a schedule, programming a strategy for an
+auction, or creating an NFT. To this end, an interface is needed to
+invoke contracts safely. Existing interfaces are lacking because they
+are essentially untyped (string-based or JSON-based) and often low
+level because they require dealing directly with RPC interfaces. Trust
+is not needed because the process runs on behalf of a certain user.
+
+Contract modules provide a clean, language-integrated way to interact
+with a blockchain. They abstract over underlying string-based
+interfaces and details like fee handling. They provide a high-level
+typed interface which reduces a contract invocation to a function call
+in the language.
+
+Contract modules do not provide a fixed API, but
+rather generate a specialized interface for each contract. This
+interface is statically checked against the contract implementation to
+ensure type safety and exception safety (every failure condition
+arising is handled by proper error reporting).
+
+Our work is situated in the context of the Tezos blockchain, which
+supports Michelson as its low-level contract language, and the
+language OCaml, which supports a powerful module concept that we
+enhance with contract modules. 
+
+\section{Context}
+\label{sec:context}
+
+Tezos is a third generation, account-based, self amendable
+blockchain \cite{tezos-whitepaper}. It employs a proof-of-stake consensus protocol, which
+includes ways to evolve the protocol itself. The consensus protocol is
+executed by so-called bakers and their proposed blocks are checked by
+validators. They receive some compensation in the form of
+tokens (Tezzies) for their work.
+
+Each Tezos contract owns an account as well as some storage. Contracts
+are pure functions of type parameter $\times$ storage $\to$ operation
+list $\times$ storage. When a contract is invoked with a parameter,
+the blockchain provides the current storage and updates it with the
+second, storage component of its return value. The first component is
+a list of blockchain operations (contract deployments, token
+transfers, contract invocations) that are executed transactionally
+after the first invocation terminates. Each invocation may be
+accompanied with an amount of tokens that are added to the current
+account balance of the contract.
+
+Contracts are implemented in the Michelson language, a fully typed
+stack-based language. Each contract has fixed types for its parameter
+and for its storage. The storage is initialized when the contract is
+deployed. Besides primitive types like unit, int, bool, address, and string,
+there are pairs, sums, functions, lists, and maps (and many more) that
+can serve as types for storage and parameters.
+
+\section{An auction contract}
+\label{sec:an-auction-contract}
+
+As a concrete example, we consider an auction contract. 
+\begin{lstlisting}[language=michelson,numbers=none,emph={close,bid},emphstyle=\underbar]
+parameter (or (unit %close) (unit %bid));
+storage (pair bool          # bidding allowed
+         (pair address      #  contract owner
+          address           # highest bidder's address
+        ));
+\end{lstlisting}
+This contract has two entrypoints, \lstinline/close/ and \lstinline/bid/,
+expressed by giving the single parameter a sum type. To call the
+entrypoint \lstinline/close/ we use the parameter \lstinline/Left ()/
+otherwise we use \lstinline/Right ()/, where \lstinline/()/ is the sole
+value of type \lstinline/unit/. Its storage is a nested pair which
+contains a boolean flag and two addresses. 
 
 %%
 %% Bibliography

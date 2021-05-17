@@ -1,0 +1,39 @@
+\usepackage{graphics}
+\usepackage{listings}
+
+\lstdefinelanguage{michelson}{
+%  basicstyle=\ttfamily,
+  backgroundcolor=\color{pink!20}, 
+  classoffset=0,
+  morekeywords={parameter,storage,code},
+  keywordstyle=\bfseries, 
+  % predefined types
+  classoffset=1,
+  morekeywords={nat,int,unit,string,or,pair,option,address,mutez,bool},
+  keywordstyle=\color{blue},
+  classoffset=2,
+  morekeywords={CAR,CDR,CONS,DUP,EQ,FAILWITH,IF,IF_LEFT,LE,LEFT,NIL,DROP,PUSH,RIGHT,SENDER,SUB},
+  keywordstyle=\color{magenta},
+  sensitive=false,
+  morecomment=[l]{\#},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+}
+
+\definecolor{pypypy}{rgb}{0.4,0.85,0.7}
+
+\lstset{
+  language=Caml,
+  basicstyle=\ttfamily,
+  backgroundcolor=\color{pypypy},
+  morekeywords={module,contract,sig,val,paid,entrypoint,raises},
+  classoffset=1,
+  morekeywords={nat,int,unit,string,or,pair,option,address,bool},
+  morekeywords={Tezos,pukh,tz,status,monad},
+  keywordstyle=\color{blue},
+}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "fmbc-main"
+%%% End:
