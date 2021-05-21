@@ -127,7 +127,8 @@ arising is handled by proper error reporting).
 
 Our work is situated in the context of the Tezos blockchain, which
 supports Michelson as its low-level contract language, and the
-language OCaml, which supports a powerful module concept that we
+language OCaml, which comes with an expressive polymorphic type system
+as well as a powerful module system that we
 enhance with contract modules. 
 
 \section{Context}
@@ -138,7 +139,9 @@ blockchain \cite{tezos-whitepaper}. It employs a proof-of-stake consensus protoc
 includes ways to evolve the protocol itself. The consensus protocol is
 executed by so-called bakers and their proposed blocks are checked by
 validators. They receive some compensation in the form of
-tokens (Tezzies) for their work.
+tokens (Tezzies) for their work. According to proof-of-stake,
+bakers and validators are just nodes elected by the Tezos network
+according to their token balance. 
 
 Each Tezos contract owns an account as well as some storage. Contracts
 are pure functions of type parameter $\times$ storage $\to$ operation
@@ -151,7 +154,7 @@ after the first invocation terminates. Each invocation may be
 accompanied with an amount of tokens that are added to the current
 account balance of the contract.
 
-Contracts are implemented in the Michelson language, a fully typed
+Contracts are implemented in the language Michelson, a fully typed
 stack-based language. Each contract has fixed types for its parameter
 and for its storage. The storage is initialized when the contract is
 deployed. Besides primitive types like unit, int, bool, address, and string,
@@ -160,21 +163,200 @@ can serve as types for storage and parameters.
 
 \section{An auction contract}
 \label{sec:an-auction-contract}
-
-As a concrete example, we consider an auction contract. 
-\begin{lstlisting}[language=michelson,numbers=none,emph={close,bid},emphstyle=\underbar]
+\begin{lstlisting}[float,caption={Simple auction contract (auction.tz)},captionpos=b,label={lst:auction-header},language=michelson,numbers=none,emph={close,bid},emphstyle=\underbar]
 parameter (or (unit %close) (unit %bid));
 storage (pair bool          # bidding allowed
          (pair address      #  contract owner
           address           # highest bidder's address
         ));
 \end{lstlisting}
+
+As a concrete example, we consider a simple auction contract with the
+header shown in Listing~\ref{lst:auction-header}. 
 This contract has two entrypoints, \lstinline/close/ and \lstinline/bid/,
 expressed by giving the single parameter a sum type. To call the
-entrypoint \lstinline/close/ we use the parameter \lstinline/Left ()/
+entrypoint \lstinline/close/ we invoke the contract with parameter \lstinline/Left ()/
 otherwise we use \lstinline/Right ()/, where \lstinline/()/ is the sole
-value of type \lstinline/unit/. Its storage is a nested pair which
-contains a boolean flag and two addresses. 
+value of type \lstinline/unit/. The contract's storage is a nested pair which
+contains a boolean flag and two addresses.
+
+The contract works as follows. It is deployed with storage
+\lstinline/(true,(owner,owner))/ which indicates that bidding is
+allowed and the contract owner is currently also the highest
+bidder. On deployment the owner also deposits an initial balance to indicate the
+minimum bid. Closing the contract transfers the balance to the
+owner. It is restricted to the owner. Bidding fails if the contract is
+closed. If bidding is open and the amount of tokens with the bid exceeds the
+current highest bid, the current bidder replaces the previous highest
+bidder and the previous highest bidder is reimbursed. Otherwise,
+bidding fails, too.
+
+To invoke this contract from an OCaml program, we'd like to generate an
+OCaml module, say \lstinline/Auction/, from a specification of the
+contract. This module contains two functions
+\lstinline/close/ and \lstinline/bid/ corresponding to the
+entrypoints. The type of these entrypoints reflects further properties
+of these entrypoints as well as the ways in which an entrypoint might
+fail.
+
+Besides the obvious, technology induced ways that a contract invocation might fail
+(insufficient gas price offered, insufficient gas to complete, timeout
+due to lack of connectivity, etc) a Michelson contract can fail due to
+a programmer induced condition. To this end, there is a Michelson
+instruction \lstinline/FAILWITH/ that terminates contract execution
+with an error message which is reported back to the caller. This error
+message includes a rendering of the top value on the stack.
+
+We consider the technological failures like Java's unchecked
+exceptions, but we wish to deal with the explicit failures like
+checked exceptions.
+Our generated code handles failures in a suitable
+error monad that makes the failures explicit in a custom
+datatype.\footnote{Alternatively, this could be done using OCaml
+  exceptions, but we chose to stay within the monadic framework that
+  is already used by existing Tezos APIs.}
+
+\begin{lstlisting}[float,captionpos=b,caption={Contract module example},label={lst:contract-module-example}]
+contract type Auction = sig
+  paid entrypoint bid () 
+  raises "closed"               (** auction closed *)
+       | "too low"              (** bid too low    *)
+
+  entrypoint close ()
+  raises "not owner"            (** caller cannot close *)
+end
+\end{lstlisting}
+Listing~\ref{lst:contract-module-example} shows a contract module for
+the auction contract.  It declares the entrypoint \lstinline/bid/ as
+\lstinline/paid/, which means that it needs to be invoked with a
+non-zero amount of tokens, it gives the pattern \lstinline/()/ for the
+input value of type \lstinline/unit/, and it specifies two possible
+failure messages that we wish to deal with programmatically.
+The \lstinline/close/ entrypoint is similar, but requires no tokens.
+
+\begin{lstlisting}[float,captionpos=b,caption={Generated signature},label={lst:generated-signature}]
+module type MyContract = sig
+  type bid_errors = 
+     | closed       (** auction closed*)
+     | too_low      (** bid received is too low *)
+
+  val bid
+    : Tezos.pukh -> ?fee:Tezos.tz -> amount:Tezos.tz
+    -> (Tezos.status, bid_errors) Tezos.monad
+
+  type close_errors = 
+     | not_owner    (** caller cannot close the auction *)
+
+  val close
+    : Tezos.pukh -> ?fee:Tezos.tz -> ?amount:Tezos.tz
+    -> (Tezos.status, close_errors) Tezos.monad
+end
+\end{lstlisting}
+Listing~\ref{lst:generated-signature} contains an OCaml module
+signature as it could be generated from the contract module. The
+module \lstinline/Tezos/ supposedly contains types and other low-level
+Tezos-specific definitions. Specifically, the type \lstinline/pukh/ for public
+key hashes identifies contracts, the type \lstinline/tz/ stands for
+Tezos tokens, the type \lstinline/status/ reflects the internal return
+status, and \lstinline/monad/ is an internal monad type. The signature
+declares a function and an error type for each entrypoint.
+
+The error types mirror the raises clauses. The first argument of each
+function is the address of the contract, then an optional argument for
+the transaction fee, an argument for passing an amount of tokens
+(optional for an unpaid entrypoint), the next argument would be for
+the parameter; it is omitted here because its type is
+\lstinline/unit/. The return type refers to the specific error type.
+
+\section{Simple Checking}
+\label{sec:check-contr-against}
+
+We plan to check the contract by symbolic execution against its
+specification in the contract module. Here are some examples of
+checkable properties.
+
+For each entrypoint, we collect the set of reachable instructions.
+For example, the  \lstinline/AMOUNT/ instruction obtains the amount of
+tokens sent with a contract invocation.
+It should not be possible to reach that instruction from an unpaid
+entrypoint  like \lstinline/close/.
+
+For the \lstinline/FAILWITH/ instructions, we also collect their
+arguments. The symbolic interpreter needs to retain concrete values as
+much as possible to obtain precise results at this point. Each
+argument to \lstinline/FAILWITH/ should be accounted for by one
+\lstinline/raises/ clause.
+
+\section{Advanced Checking}
+\label{sec:advanced-checking}
+\begin{lstlisting}[float,captionpos=b,caption={Safer contract module},label={lst:safer-contract-module}]
+contract type SaferAuction = sig
+  storage (Pair (bidding : bool) 
+                (Pair (owner : address) (hi_bidder : address)))
+
+  entrypoint close ()
+  requires (sender = owner) raises "not owner"
+
+  paid entrypoint bid () 
+  requires bidding raises "closed" (** auction closed*)
+  requires (amount > balance)
+  raises "too low" as too_low      (** bid too low *)
+end
+\end{lstlisting}
+
+As it is expensive to invoke a contract just to find out that it
+fails, we propose to extend entrypoint specifications with
+preconditions as shown in Listing~\ref{lst:safer-contract-module}. The
+idea is that the generated OCaml module tries to check the
+preconditions off-chain before invoking the contract. To this end, the
+code needs to obtain properties like balance, storage etc of the
+contract, but this information is available from the Tezos node without a fee!
+We discuss two of the preconditions to highlight the properties that 
+need to be analyzed. 
+
+The precondition \lstinline/sender = owner/ of \lstinline/close/ can
+be checked off-chain because the owner's address is part of the
+storage. However, it is in general unsound to perform such a test
+off-chain because the owner's address could change if an entrypoint
+changes that component of the storage. To safely check this
+precondition, the analysis must determine that the owner component of
+the storage remains the same across all possible execution paths of
+the contract.
+
+Moreover, the gathering of instructions must build path predicates,
+such that each \lstinline/FAILWITH/ instruction comes with a predicate
+that must be true to reach the instruction. In contract
+implementation, the path predicate is \lstinline/sender != owner/. As
+the conjunction of path predicate and precondition is unsatisfiable
+and because the \lstinline/owner/ component is constant, an off-chain
+test for \lstinline/sender = owner/ precisely predicts whether the
+failure condition arises.
+
+The situation is slightly more complex at the \lstinline/bid/
+entrypoint. The failure \lstinline/"closed"/ is guarded by
+\lstinline/bidding/. As the \lstinline/bidding/ component of the state can change,
+precise prediction is not possible. A closer look reveals some
+subtlety. If \lstinline/bidding/ is true, then the flag may have
+changed by some interleaved call to \lstinline/close/. However, if
+\lstinline/bidding/ is false, then there is no point in invoking the
+contract because \lstinline/bidding/ will never be reset to true.
+
+Hence the analysis should also record value transitions in the
+storage for non-failing executions. For \lstinline/bidding/
+\lstinline/bid/ transitions from true to true and \lstinline/close/
+transitions from true to false. Thus, if the off-chain check finds
+\lstinline/bidding/ $=$ false, then we can precisely predict that
+\lstinline/bid/ would fail and trigger the corresponding error without
+invoking the contract proper.
+
+For the failure \lstinline/"to low"/, the analysis is very similar:
+we need to know that there is no successful execution of
+\lstinline/bid/ after an execution of \lstinline/close/. Moreover,
+each invocation of \lstinline/bid/ raises the balance of the contract
+monotonically. Thus, if the off-chain check
+\lstinline/amount > balance/ fails, we can be sure that the contract
+invocation will also fail; either because some closed the auction or
+because the balance is at least as high as in the off-chain sample. 
 
 %%
 %% Bibliography
