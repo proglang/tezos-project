@@ -1,6 +1,6 @@
 \appendix
 \chapter{Michelson Implementations of \texttt{Foo} and \texttt{Bar}}\label{apx:cost_analysis_contract}
-The following contracts are the Michelson equivalent of the dummy contracts given in \secref{sec:usecase_cost}.
+The following contracts are the Michelson implementations of the dummy contracts given in \secref{sec:usecase_cost}.
 \section{Foo}
 \lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
 				 backgroundcolor=\color{cverbbg},
@@ -12,7 +12,7 @@ The following contracts are the Michelson equivalent of the dummy contracts give
 				 captionpos=b,
 				 numbers=none,
 				 language=Michelson,
-				 caption=Dummy Michelson contract executing a dynamic loop]{listings/foo.tz}
+				 caption=Dummy Michelson contract executing a dynamic loop (\texttt{Foo.tz})]{listings/foo.tz}
 				 
 \section{Bar}
 \lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
@@ -25,10 +25,10 @@ The following contracts are the Michelson equivalent of the dummy contracts give
 				 captionpos=b,
 				 numbers=none,
 				 language=Michelson,
-				 caption=Dummy Michelson contract iterating over a dynamic list]{listings/bar.tz}
+				 caption=Dummy Michelson contract iterating over a dynamic list (\texttt{Bar.tz})]{listings/bar.tz}
 
 \chapter{Assertion Grammar in EBNF}\label{apx:grammar}
-The following two versions of the grammar implement the prefix and infix notations for the assertion syntax. 
+The following two versions of a grammar in extended Backus-Naur form (EBNF) implement the prefix and infix notations for the assertion syntax. 
 
 \section{Prefix Notation}
 \lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
@@ -58,6 +58,8 @@ The following two versions of the grammar implement the prefix and infix notatio
 
 \chapter{List Accessing in Michelson}\label{apx:nth}
 
+The following listings show the implementation of the list accessing operator \texttt{nth} using the pre-defined loop instruction. \lstref{lst:nth_liq} shows a readable implementation in Liquidity; it contains necessary boilerplate code to make it compilable. The compilation result (including the boilerplate code) is given in \lstref{lst:nth_liq}.
+
 \lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
 				 backgroundcolor=\color{cverbbg},
 				 linewidth=14cm,
@@ -84,7 +86,7 @@ The following two versions of the grammar implement the prefix and infix notatio
 				 label=lst:nth_tz,
 				 caption=Implementation of \texttt{nth} for lists in Michelson]{listings/nth.tz}
 
-\chapter{Controller Contract Code in Liquidity}\label{apx:controller_liq}
+\chapter{Controller Contract Code in \\ \mbox{Liquidity}}\label{apx:controller_liq}
 \lstinputlisting[label=lst:manager_templ_liq, language=Michelson, caption=Controller code in Liquidity]{listings/controller.liq}
 
 \chapter{Controller Contract Code in Michelson}\label{apx:controller_michelson}
@@ -99,12 +101,12 @@ The following two versions of the grammar implement the prefix and infix notatio
 				 numbers=none,
 				 language=Michelson,
 				 label=lst:controller_michelson,
-				 caption=Controller code in Michelson]{listings/controller.tz}
+				 caption=Controller code in Michelson featuring one gateway and one assertion entrypoint]{listings/controller.tz}
 				 
 \chapter{Distributed Michelson Implementation of \texttt{Foo} and \texttt{Bar}}\label{apx:foobar_distributed}
-The following contracts are a restructuring of the contracts given in Appendix \ref{apx:cost_analysis_contract}, s.t. they implement the proposed orchestration strategy.
+The following contracts are a restructuring of the contracts given in Appendix \ref{apx:cost_analysis_contract}, s.t. they implement the modular orchestration scheme.
 
-\section{Foo}
+\section{Contract Foo}
 \lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
 				 backgroundcolor=\color{cverbbg},
 				 linewidth=14cm,
@@ -116,7 +118,7 @@ The following contracts are a restructuring of the contracts given in Appendix \
 				 numbers=none,
 				 language=Michelson,
 				 label=lst:foo_manager,
-				 caption=Controller contract of \texttt{Foo}]{listings/foo_manager.tz}
+				 caption=Controller contract for \texttt{Foo.tz}]{listings/foo_manager.tz}
 \lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
 				 backgroundcolor=\color{cverbbg},
 				 linewidth=14cm,
@@ -128,7 +130,7 @@ The following contracts are a restructuring of the contracts given in Appendix \
 				 numbers=none,
 				 language=Michelson,
 				 label=lst:foo_assertion,
-				 caption=Assertion contract of \texttt{Foo}]{listings/foo_assertion.tz}
+				 caption=Assertion contract for \texttt{Foo.tz}]{listings/foo_assertion.tz}
 \lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
 				 backgroundcolor=\color{cverbbg},
 				 linewidth=14cm,
@@ -140,9 +142,9 @@ The following contracts are a restructuring of the contracts given in Appendix \
 				 numbers=none,
 				 language=Michelson,
 				 label=lst:foo_parent,
-				 caption=Parent contract of \texttt{Foo}]{listings/foo_parent.tz}
+				 caption=Parent contract (\texttt{Foo.tz})]{listings/foo_parent.tz}
 
-\section{Bar}
+\section{Contract Bar}
 \lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
 				 backgroundcolor=\color{cverbbg},
 				 linewidth=14cm,
@@ -154,7 +156,7 @@ The following contracts are a restructuring of the contracts given in Appendix \
 				 numbers=none,
 				 language=Michelson,
 				 label=lst:bar_manager,
-				 caption=Controller contract of \texttt{Bar}]{listings/bar_manager.tz}
+				 caption=Controller contract for \texttt{Bar.tz}]{listings/bar_manager.tz}
 \lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
 				 backgroundcolor=\color{cverbbg},
 				 linewidth=14cm,
@@ -166,7 +168,7 @@ The following contracts are a restructuring of the contracts given in Appendix \
 				 numbers=none,
 				 language=Michelson,
 				 label=lst:bar_assertion,
-				 caption=Assertion contract of \texttt{Bar}]{listings/bar_assertion.tz}
+				 caption=Assertion contract for \texttt{Bar.tz}]{listings/bar_assertion.tz}
 \lstinputlisting[basicstyle=\linespread{1.0}\fontfamily{lmr}\selectfont\small,
 				 backgroundcolor=\color{cverbbg},
 				 linewidth=14cm,
@@ -178,4 +180,4 @@ The following contracts are a restructuring of the contracts given in Appendix \
 				 numbers=none,
 				 language=Michelson,
 				 label=lst:bar_parent,
-				 caption=Parent contract of \texttt{Bar}]{listings/bar_parent.tz}
+				 caption=Parent contract (\texttt{Bar.tz})]{listings/bar_parent.tz}
