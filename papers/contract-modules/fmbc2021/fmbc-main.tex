@@ -357,6 +357,21 @@ monotonically. Thus, if the off-chain check
 \lstinline/amount > balance/ fails, we can be sure that the contract
 invocation will also fail; either because some closed the auction or
 because the balance is at least as high as in the off-chain sample. 
+\section{Related work}
+\label{sec:related-work}
+RPC APIs, often provided by current blockchains such as Ethereum \cite{eth-whitepaper} and Tezos \cite{tezos-whitepaper}, use loosely structured data, such as a JSON-based format, which is difficult for a programmatic program to handle. As a result, there is increasing work on providing better programmatic interfaces to the blockchains. Web3.js \cite{web3.js} provides an Ethereum JavaScript API and offers Java Script users a convenient interface to interact with the Etherum blockchain. Later, Web3.py \cite{web3.py}, derived from Web3.js, is developed to provide a Python library for interacting with Ethereum. Tezos prove a PRC API that utilizes JSON format for both input and output data, which is neither convenient nor programmatic.
+
+Smart contract-based applications often require interaction between a smart contract on the blockchain and the outside world. However, smart contracts cannot connect to external sources on their own. This is where Oracles \cite{oracle-patterns,call-action-oracle,oracles-study} come into play. Oracles act as a bridge between smart contracts and external sources. Namely, they collect and verify external information and make it available to smart contracts on the blockchain. Oracles may need to observe the state of the chain to determine what information to send. Several research works have been conducted to provide oracle solutions for the Blockchain. Adler et al.\cite{blockchain-oracles} proposed a framework to provide developers with a guide for incorporating oracles into Blockchain-based applications. Practically, Ellis et al. \cite{chainlink-whitepaper} proposed the decentralized oracle network Chainlink to provide reliable, tamper-proof input for smart contracts on any blockchain. ChainLink securely provides data to APIs on behalf of a smart contract.
+
+An oracle responds to an event by 
+transmitting information to a smart contract through a smart contract invocation. In addition. the original smart contract must inherit an additional smart contract from Oracle in order to interact with external data sources. Deployment costs are increased when using Ethereum smart contracts with Oracle as the data carrier. To deal with this problem, the paper \cite{LIU2019590} proposes a low-cost data carrier architecture for a blockchain-enabled IoT environment.
+
+
+
+\section{Conclusion}
+\label{sec:conclusion}
+Current blockchains often provide low-level interfaces to interact with smart contracts. These interfaces work with loosely structured data that is impractical for programs to handle. This paper presents outgoing research on programmatic interaction with a smart contract on the Tezos blockchain that could benefit developers of smart contract applications and Oracles. The approach does not provide a general API, but targets each typical smart contract by generating a specialized contract module that provides a typed high-level interface from a smart contract implementation. In doing so, errors in contract calls are explicitly specified in a user-defined data type. A contract call is treated as a function call that grants a typed safe of data in the Ocaml language. In addition, the module can check preconditions before the actual call to reduce the waste of a failed call. As future work, we combine the contract module with our typed API designed to provide a general type-safe programmatic API for the Tezos blockchain.
+
 
 %%
 %% Bibliography
