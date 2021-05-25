@@ -371,7 +371,23 @@ transmitting information to a smart contract through a smart contract invocation
 \section{Conclusion}
 \label{sec:conclusion}
 
-Current blockchains often provide low-level interfaces to interact with smart contracts. These interfaces work with loosely structured data that is impractical for programs to handle. This paper presents outgoing research on programmatic interaction with a smart contract on the Tezos blockchain that could benefit developers of smart contract applications and Oracles. The approach does not provide a general API, but targets each typical smart contract by generating a specialized contract module that provides a typed high-level interface from a smart contract implementation. In doing so, errors in contract calls are explicitly specified in a user-defined data type. A contract call is treated as a function call that grants a typed safe of data in the Ocaml language. In addition, the module can check preconditions before the actual call to reduce the waste of a failed call. As future work, we combine the contract module with our typed API designed to provide a general type-safe programmatic API for the Tezos blockchain.
+Current blockchains often provide low-level interfaces to interact
+with smart contracts. These interfaces work with loosely structured
+without static guarantees. This paper presents ongoing research on the
+programmatic interaction with smart contracts on the Tezos blockchain
+that could benefit developers of mixed applications and
+oracles comprised of on-chain and off-chain parts. The approach does
+not provide a general API, but targets each 
+individual smart contract by generating a specialized contract module
+that provides a typed high-level interface from a contract
+specification. In doing so, errors from contract calls are explicitly
+specified in a user-defined data type. A contract call is wrapped in a
+fully typed and integrated OCaml function. In addition, the wrapper can check preconditions before the 
+actual call to reduce the waste of gas of a failed call.
+% As future work, we
+% combine the contract module with our typed API designed to provide a
+% general type-safe programmatic API for the Tezos blockchain.
+
 
 
 %%
