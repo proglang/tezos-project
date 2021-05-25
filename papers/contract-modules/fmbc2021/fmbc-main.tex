@@ -248,7 +248,7 @@ module type MyContract = sig
      | not_owner    (** caller cannot close the auction *)
 
   val close
-    : Tezos.pukh -> ?fee:Tezos.tz -> ?amount:Tezos.tz
+    : Tezos.pukh -> ?fee:Tezos.tz
     -> (Tezos.status, close_errors) Tezos.monad
 end
 \end{lstlisting}
@@ -264,7 +264,7 @@ declares a function and an error type for each entrypoint.
 The error types mirror the raises clauses. The first argument of each
 function is the address of the contract, then an optional argument for
 the transaction fee, an argument for passing an amount of tokens
-(optional for an unpaid entrypoint), the next argument would be for
+(only for a paid entrypoint), the next argument would be for
 the parameter; it is omitted here because its type is
 \lstinline/unit/. The return type refers to the specific error type.
 
@@ -300,7 +300,7 @@ contract type SaferAuction = sig
   paid entrypoint bid () 
   requires bidding raises "closed" (** auction closed*)
   requires (amount > balance)
-  raises "too low" as too_low      (** bid too low *)
+  raises "too low"                 (** bid too low *)
 end
 \end{lstlisting}
 
@@ -370,6 +370,7 @@ transmitting information to a smart contract through a smart contract invocation
 
 \section{Conclusion}
 \label{sec:conclusion}
+
 Current blockchains often provide low-level interfaces to interact with smart contracts. These interfaces work with loosely structured data that is impractical for programs to handle. This paper presents outgoing research on programmatic interaction with a smart contract on the Tezos blockchain that could benefit developers of smart contract applications and Oracles. The approach does not provide a general API, but targets each typical smart contract by generating a specialized contract module that provides a typed high-level interface from a smart contract implementation. In doing so, errors in contract calls are explicitly specified in a user-defined data type. A contract call is treated as a function call that grants a typed safe of data in the Ocaml language. In addition, the module can check preconditions before the actual call to reduce the waste of a failed call. As future work, we combine the contract module with our typed API designed to provide a general type-safe programmatic API for the Tezos blockchain.
 
 
