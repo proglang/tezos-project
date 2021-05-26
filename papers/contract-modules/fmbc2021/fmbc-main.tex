@@ -367,7 +367,26 @@ Smart contract-based applications often require interaction between a smart cont
 
 %An oracle responds to an event by  transmitting information to a smart contract through a smart contract invocation. In addition. the original smart contract must inherit an additional smart contract from Oracle in order to interact with external data sources. Deployment costs are increased when using Ethereum smart contracts with Oracle as the data carrier. To deal with this problem, the paper \cite{LIU2019590} proposes a low-cost data carrier architecture for a blockchain-enabled IoT environment.
 
-The basic idea of our advanced checking, namely precondition checking, is derived from the Java modeling language (JML)\cite{Leavens2006DesignBC, 101007}, in which the behavior of program components is described as an executable contract between Java program and its clients. This executable contract specifies preconditions that must be satisfied by clients and postconditions that are guaranteed by the program. A precondition supplied with a client call must be verified  before a function defined by the program is called, and the program guarantees that the postconditions are satisfied in return after the call. The original use of such preconditions and postconditions dades back to Hoare's paper on formal verification \cite{101145}. The executable contracts are written as program code in the programming language. In our approach, the safe contract module in the Ocaml language plays a role as an executable contract. Several applications are based on JML \cite{Tran2017, keY}. Ahrendt et al. \cite{keY} propose a framework called The KeY for deductive software verification. 
+The basic idea of our advanced checking, namely precondition checking,
+is inspired by JML, the Java modeling
+language~\cite{Leavens2006DesignBC, 101007}, in which the behavior of 
+program components is described as a contract between Java
+program and its clients. This contract specifies
+preconditions that must be satisfied by clients and postconditions
+that are guaranteed by the program. A precondition supplied with a
+client call must be verified before a function defined by the program
+is called, and the program guarantees that the postconditions are
+satisfied in return after the call. The original idea of using
+preconditions and postconditions dates back to Hoare's paper
+\cite{101145}. Software contracts have also been proposed for
+blockchain \cite{DBLP:journals/fbloc/Bartoletti20}.
+% The executable contracts are written as program code in
+% the programming language.
+In our approach, the safe contract module in the Ocaml language comes
+close to contracts in this sense. Several
+applications are based on JML \cite{Tran2017}. Ahrendt et
+al. \cite{keY} propose the KeY framework for deductive software
+verification.  
 
 Our contract module specifies preconditions and then off-chain checks whether a user call satisfies those preconditions. Symbolic execution plays an important role in the preconditions checking in our method. A smart contract is verified against its specification in the contract module by symbolic execution. In a paper on symbolic execution \cite{Hentschel}, Hentschel et al. proposed the symbolic execution debugger (SED) platform, which is based on the KeY framework. The platform SED has a static symbolic execution engine for sequential programs.
 
