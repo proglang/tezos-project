@@ -229,7 +229,7 @@ let rec interpret (il : instr list) (stack : sval list) =
   | (PUSH s :: inss) ->
     interpret inss (s :: stack)
   | (COND (n, ins_tru, ins_fls) :: inss) ->
-    interpretC (n, ins_tru, ins_fls) stack
+    interpret inss (interpretC (n, ins_tru, ins_fls) stack)
   | (T (n, t) :: inss) ->
     interpret inss (interpretT n t stack)
   | DIP (i, il) :: inss ->
@@ -334,8 +334,11 @@ let auction = [
   COND ("IF_LEFT", auction_close, auction_bid);
 ]
 
-(* script *)
+(* experiments with the example program *)
 let auction_entrypoints = entrypoints auction_parameter
 let auction_stacks = List.map (fun ep -> initial_stack_from_entrypoint ep auction_storage) auction_entrypoints
 let [stack_close; stack_bid] = auction_stacks
     
+let final_close = interpret auction stack_close
+let final_bid = interpret auction stack_bid
+
