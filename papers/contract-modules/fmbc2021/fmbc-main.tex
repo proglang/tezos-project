@@ -183,10 +183,11 @@ contains a boolean flag and two addresses.
 The contract works as follows. It is deployed with storage
 \lstinline/(true,(owner,owner))/ which indicates that bidding is
 allowed and the contract owner is currently also the highest
-bidder. On deployment the owner also deposits an initial balance to indicate the
+bidder. On deployment the owner deposits an initial balance to indicate the
 minimum bid. Closing the contract transfers the balance to the
-owner. It is restricted to the owner. Bidding fails if the contract is
-closed. If bidding is open and the amount of tokens with the bid exceeds the
+owner. It is restricted to the owner. Closing as well as bidding fails
+if the auction is
+closed. If bidding is open and the amount of tokens accompanying the bid exceeds the
 current highest bid, the current bidder replaces the previous highest
 bidder and the previous highest bidder is reimbursed. Otherwise,
 bidding fails, too.
@@ -202,61 +203,63 @@ fail.
 Besides the obvious, technology induced ways that a contract invocation might fail
 (insufficient gas price offered, insufficient gas to complete, timeout
 due to lack of connectivity, etc) a Michelson contract can fail due to
-a programmer induced condition. To this end, there is a Michelson
-instruction \lstinline/FAILWITH/ that terminates contract execution
+a programmer induced condition caused by the
+instruction \lstinline/FAILWITH/. It terminates contract execution
 with an error message which is reported back to the caller. This error
-message includes a rendering of the top value on the stack.
+message includes the top value on the stack.
 
 We consider the technological failures like Java's unchecked
 exceptions, but we wish to deal with the explicit failures like
-checked exceptions.
+checked exceptions~\cite{DBLP:conf/oopsla/AnconaLZ01}.
 Our generated code handles failures in a suitable
 error monad that makes the failures explicit in a custom
 datatype.\footnote{Alternatively, this could be done using OCaml
   exceptions, but we chose to stay within the monadic framework that
   is already used by existing Tezos APIs.}
 
-\begin{lstlisting}[float,captionpos=b,caption={Contract module example},label={lst:contract-module-example}]
+\begin{lstlisting}[float,captionpos=b,caption={Example contract module},label={lst:contract-module-example}]
 contract type Auction = sig
   paid entrypoint bid () 
   raises "closed"               (** auction closed *)
        | "too low"              (** bid too low    *)
 
   entrypoint close ()
-  raises "not owner"            (** caller cannot close *)
+  raises "closed"               (** auction closed *)
+       | "not owner"            (** caller cannot close *)
 end
 \end{lstlisting}
 Listing~\ref{lst:contract-module-example} shows a contract module for
 the auction contract.  It declares the entrypoint \lstinline/bid/ as
-\lstinline/paid/, which means that it needs to be invoked with a
+\lstinline/paid/, i.e., it needs to be invoked with a
 non-zero amount of tokens, it gives the pattern \lstinline/()/ for the
 input value of type \lstinline/unit/, and it specifies two possible
 failure messages that we wish to deal with programmatically.
 The \lstinline/close/ entrypoint is similar, but requires no tokens.
 
+% module type MyContract = sig 
 \begin{lstlisting}[float,captionpos=b,caption={Generated signature},label={lst:generated-signature}]
-module type MyContract = sig
   type bid_errors = 
-     | closed       (** auction closed*)
-     | too_low      (** bid received is too low *)
+     | bid_closed      (** auction closed*)
+     | bid_too_low     (** bid received is too low *)
 
   val bid
-    : Tezos.pukh -> ?fee:Tezos.tz -> amount:Tezos.tz
+    : Tezos.pukh -> ?fee:Tezos.mutez -> amount:Tezos.mutez
     -> (Tezos.status, bid_errors) Tezos.monad
 
   type close_errors = 
-     | not_owner    (** caller cannot close the auction *)
+     | close_closed    (** auction closed *)
+     | close_not_owner (** caller cannot close the auction *)
 
   val close
-    : Tezos.pukh -> ?fee:Tezos.tz
+    : Tezos.pukh -> ?fee:Tezos.mutez
     -> (Tezos.status, close_errors) Tezos.monad
-end
 \end{lstlisting}
+% end 
 Listing~\ref{lst:generated-signature} contains an OCaml module
 signature as it could be generated from the contract module. The
 module \lstinline/Tezos/ supposedly contains types and other low-level
-Tezos-specific definitions. Specifically, the type \lstinline/pukh/ for public
-key hashes identifies contracts, the type \lstinline/tz/ stands for
+Tezos-specific definitions. The type \lstinline/pukh/ for public
+key hashes identifies contracts, the type \lstinline/mutez/ stands for
 Tezos tokens, the type \lstinline/status/ reflects the internal return
 status, and \lstinline/monad/ is an internal monad type. The signature
 declares a function and an error type for each entrypoint.
@@ -289,18 +292,23 @@ argument to \lstinline/FAILWITH/ should be accounted for by one
 
 \section{Advanced Checking}
 \label{sec:advanced-checking}
-\begin{lstlisting}[float,captionpos=b,caption={Safer contract module},label={lst:safer-contract-module}]
+\begin{lstlisting}[float,captionpos=b,caption={Enhanced contract module},label={lst:safer-contract-module}]
 contract type SaferAuction = sig
   storage (Pair (bidding : bool) 
                 (Pair (owner : address) (hi_bidder : address)))
 
   entrypoint close ()
+  requires bidding raises "closed" (** auction closed*)
+  ensures not bidding
   requires (sender = owner) raises "not owner"
 
   paid entrypoint bid () 
   requires bidding raises "closed" (** auction closed*)
-  requires (amount > balance)
+  ensures bidding
+  requires (amount > old.balance)
   raises "too low"                 (** bid too low *)
+  ensures (balance >= old.balance)
+  ensures (owner = old.owner)
 end
 \end{lstlisting}
 
@@ -309,7 +317,7 @@ fails, we propose to extend entrypoint specifications with
 preconditions as shown in Listing~\ref{lst:safer-contract-module}. The
 idea is that the generated OCaml module tries to check the
 preconditions off-chain before invoking the contract. To this end, the
-code needs to obtain properties like balance, storage etc of the
+off-chain code needs to obtain properties like balance, storage etc of the
 contract, but this information is available from the Tezos node without a fee!
 We discuss two of the preconditions to highlight the properties that 
 need to be analyzed. 
@@ -382,7 +390,7 @@ preconditions and postconditions dates back to Hoare's paper
 blockchain \cite{DBLP:journals/fbloc/Bartoletti20}.
 % The executable contracts are written as program code in
 % the programming language.
-In our approach, the safe contract module in the Ocaml language comes
+In our approach, the safe contract module in the OCaml language comes
 close to contracts in this sense. Several
 applications are based on JML \cite{Tran2017}. Ahrendt et
 al. \cite{keY} propose the KeY framework for deductive software
@@ -406,6 +414,8 @@ specification. In doing so, errors from contract calls are explicitly
 specified in a user-defined data type. A contract call is wrapped in a
 fully typed and integrated OCaml function. In addition, the wrapper can check preconditions before the 
 actual call to reduce the waste of gas of a failed call.
+
+Status: we are currently working on a prototype of the symbolic interpreter.
 % As future work, we
 % combine the contract module with our typed API designed to provide a
 % general type-safe programmatic API for the Tezos blockchain.
