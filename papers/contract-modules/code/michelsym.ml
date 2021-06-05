@@ -1,3 +1,18 @@
+module Store = struct
+  (* type ('a, 's) store = 's -> 'a * 's *)
+  let map f m = fun s -> let (a, s') = m s in (f a, s')
+
+  let bind f m = fun s -> let (a, s') = m s in f a s'
+
+end
+
+open Store
+
+let (let*) x f = bind x f
+let return x = fun s -> (x, s)
+
+(* parameterize interpretation of SENDER, SOURCE, AMOUNT, BALANCE, ... *)
+
 (* types and symbolic values *)
 type ty =
   | TAddress
@@ -101,9 +116,9 @@ let merge_stack = List.map2 merge_sval
 (* the constraint store *)
 
 type constraints = {
-  true_values: sval list;
-  false_values: sval list;
-  failure_values: (sval list * sval list * sval) list
+  true_values: sval list;       (* symbolic values that must be true to reach this *)
+  false_values: sval list;      (* symbolic values that must be false to reach this *)
+  failure_values: (sval list * sval list * sval) list (* path condition and value of a failure *)
 }
 
 let register_failure arg {true_values; false_values; failure_values} =
@@ -115,6 +130,26 @@ let register_failure arg {true_values; false_values; failure_values} =
    failure_values}
 
 (* instructions *)
+
+let rec comparable_type t =
+  match t with
+  | TAddress
+  | TBool
+  | TInt
+  | TNat
+  | TMutez
+  | TString
+  | TUnit -> true
+  | TOr (t1, t2)
+  | TPair (t1, t2) -> comparable_type t1 && comparable_type t2
+  | _ -> false
+
+let compare_bool a b =
+  match (a, b) with
+  | false, false
+  | true, true -> 0
+  | false, true -> -1
+  | true, false -> 1
 
 let multype t1 t2 =
   match (t1, t2) with
@@ -151,48 +186,74 @@ let interpretI ins (stack : sval list) =
   | ("ADD", (VNat (x) :: VInt (y) :: st))
   | ("ADD", (VInt (x) :: VNat (y) :: st))
     -> VInt (x+y) :: st
-  | ("ADD", (VNat (x) :: VNat (y) :: st)) -> VNat (x+y) :: st
-  | ("ADD", (x :: y :: st)) when addtype (typeof x) (typeof y) = Some TInt ->
+  | ("ADD", (VNat (x) :: VNat (y) :: st))
+    -> VNat (x+y) :: st
+  | ("ADD", (VMutez (x) :: VMutez (y) :: st))
+    -> VMutez (x+y) :: st
+  | ("ADD", (x :: y :: st))
+    when addtype (typeof x) (typeof y) = Some TInt ->
     VSymbolic (Op ("ADD", [x; y]), TInt) :: st
-  | ("ADD", (x :: y :: st)) when addtype (typeof x) (typeof y) = Some TNat ->
+  | ("ADD", (x :: y :: st))
+    when addtype (typeof x) (typeof y) = Some TNat ->
     VSymbolic (Op ("ADD", [x; y]), TNat) :: st
-  | ("ADD", (x :: y :: st)) when addtype (typeof x) (typeof y) = Some TMutez ->
+  | ("ADD", (x :: y :: st))
+    when addtype (typeof x) (typeof y) = Some TMutez ->
     VSymbolic (Op ("ADD", [x; y]), TMutez) :: st
   | ("SUB", (VInt x :: VInt y :: st))
   | ("SUB", (VNat x :: VInt y :: st))
   | ("SUB", (VInt x :: VNat y :: st))
   | ("SUB", (VNat x :: VNat y :: st))
     -> VInt (x-y) :: st
-  | ("SUB", (VMutez x :: VMutez y :: st)) -> VMutez (x-y) :: st
-  | ("SUB", (x :: y :: st)) when subtype (typeof x) (typeof y) = Some TInt ->
+  | ("SUB", (VMutez x :: VMutez y :: st))
+    -> VMutez (x-y) :: st
+  | ("SUB", (x :: y :: st))
+    when subtype (typeof x) (typeof y) = Some TInt ->
     VSymbolic (Op ("SUB", [x; y]), TInt) :: st
-  | ("SUB", (x :: y :: st)) when subtype (typeof x) (typeof y) = Some TMutez ->
+  | ("SUB", (x :: y :: st))
+    when subtype (typeof x) (typeof y) = Some TMutez ->
     VSymbolic (Op ("SUB", [x; y]), TMutez) :: st
-  | ("MUL", (VInt x :: VInt y :: st)) -> VInt (x*y) :: st
-  | ("MUL", (VNat x :: VNat y :: st)) -> VNat (x*y) :: st
-  | ("MUL", (VMutez x :: VNat y :: st)) -> VMutez (x*y) :: st
-  | ("MUL", (VNat x :: VMutez y :: st)) -> VMutez (x*y) :: st
-  | ("MUL", (x :: y :: st)) when multype (typeof x) (typeof y) = Some TInt ->
+  | ("MUL", (VInt x :: VInt y :: st))
+  | ("MUL", (VNat x :: VInt y :: st))
+  | ("MUL", (VInt x :: VNat y :: st))
+    -> VInt (x*y) :: st
+  | ("MUL", (VNat x :: VNat y :: st))
+    -> VNat (x*y) :: st
+  | ("MUL", (VMutez x :: VNat y :: st))
+  | ("MUL", (VNat x :: VMutez y :: st))
+    -> VMutez (x*y) :: st
+  | ("MUL", (x :: y :: st))
+    when multype (typeof x) (typeof y) = Some TInt ->
     VSymbolic (Op ("MUL", [x; y]), TInt) :: st
-  | ("MUL", (x :: y :: st)) when multype (typeof x) (typeof y) = Some TNat ->
+  | ("MUL", (x :: y :: st))
+    when multype (typeof x) (typeof y) = Some TNat ->
     VSymbolic (Op ("MUL", [x; y]), TNat) :: st
-  | ("MUL", (x :: y :: st)) when multype (typeof x) (typeof y) = Some TMutez ->
+  | ("MUL", (x :: y :: st))
+    when multype (typeof x) (typeof y) = Some TMutez ->
     VSymbolic (Op ("MUL", [x; y]), TMutez) :: st
   | ("CAR", (VPair (s1, s2) :: st)) -> s1 :: st
-  | ("CAR", (VSymbolic (d, TPair (t1, t2)) as x :: st)) -> VSymbolic (Op ("CAR", [x]), t1) :: st
+  | ("CAR", (VSymbolic (d, TPair (t1, t2)) as x :: st))
+    -> VSymbolic (Op ("CAR", [x]), t1) :: st
   | ("CDR", (VPair (s1, s2) :: st)) -> s2 :: st
-  | ("CDR", (VSymbolic (d, TPair (t1, t2)) as x :: st)) -> VSymbolic (Op ("CDR", [x]), t2) :: st
+  | ("CDR", (VSymbolic (d, TPair (t1, t2)) as x :: st))
+    -> VSymbolic (Op ("CDR", [x]), t2) :: st
   | ("UNPAIR", (VPair (s1, s2) :: st)) -> s1 :: s2 :: st
-  | ("UNPAIR", (VSymbolic (d, TPair (t1, t2)) as x :: st)) -> VSymbolic (Op ("CAR", [x]), t1) :: VSymbolic (Op ("CDR", [x]), t2) :: st
+  | ("UNPAIR", (VSymbolic (d, TPair (t1, t2)) as x :: st))
+    -> VSymbolic (Op ("CAR", [x]), t1) :: VSymbolic (Op ("CDR", [x]), t2) :: st
   | ("PAIR", s1 :: s2 :: st) -> VPair (s1, s2) :: st
-  | ("CONS", s1 :: s2 :: st) -> VCons (s1, s2) :: st (* check types *)
+  | ("CONS", s1 :: s2 :: st) -> VCons (s1, s2) :: st (* check types? *)
   | ("DUP", (x :: st)) -> x :: x :: st
   | ("SWAP", (x :: y :: st)) -> y :: x :: st
   | ("DROP", (x :: st)) -> st
   | "COMPARE", VMutez a :: VMutez b :: st -> VInt (a-b) :: st
   | "COMPARE", VInt a :: VInt b :: st -> VInt (a-b) :: st
   | "COMPARE", VNat a :: VNat b :: st -> VInt (a-b) :: st
-  | "COMPARE", x :: y :: st when typeof x = typeof y -> VSymbolic (Op ("COMPARE", [x; y]), TInt) :: st
+  | "COMPARE", VBool a :: VBool b :: st -> VInt (compare_bool a b) :: st
+  | "COMPARE", x :: y :: st
+    when typeof x = TUnit && typeof y = TUnit
+    -> VInt 0 :: st
+  | "COMPARE", x :: y :: st
+    when typeof x = typeof y && comparable_type (typeof x)
+    -> VSymbolic (Op ("COMPARE", [x; y]), TInt) :: st
   | "LE", VInt a :: st -> VBool (a <= 0) :: st
   | "LE", x :: st when typeof x = TInt -> VSymbolic (Op ("LE", [x]), TBool) :: st
   | "EQ", VInt a :: st -> VBool (a = 0) :: st
