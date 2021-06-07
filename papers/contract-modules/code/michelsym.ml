@@ -2,7 +2,7 @@ module Store = struct
   (* type ('a, 's) store = 's -> 'a * 's *)
   let map f m = fun s -> let (a, s') = m s in (f a, s')
 
-  let bind f m = fun s -> let (a, s') = m s in f a s'
+  let bind m f = fun s -> let (a, s') = m s in f a s'
 
 end
 
@@ -121,13 +121,25 @@ type constraints = {
   failure_values: (sval list * sval list * sval) list (* path condition and value of a failure *)
 }
 
+let initial_constraints = {
+  true_values = [];
+  false_values = [];
+  failure_values = []
+}
+
+let register_true arg r =
+  (), {r with true_values = arg :: r.true_values}
+
+let register_false arg r =
+  (), {r with false_values = arg :: r.false_values}
+
 let register_failure arg {true_values; false_values; failure_values} =
   let failure_values =
     (true_values, false_values, arg) ::
     failure_values in
-  {true_values;
-   false_values;
-   failure_values}
+  (), {true_values;
+       false_values;
+       failure_values}
 
 (* instructions *)
 
@@ -184,94 +196,121 @@ let interpretI ins (stack : sval list) =
   match (ins, stack) with
   | ("ADD", (VInt (x) :: VInt (y) :: st))
   | ("ADD", (VNat (x) :: VInt (y) :: st))
-  | ("ADD", (VInt (x) :: VNat (y) :: st))
-    -> VInt (x+y) :: st
-  | ("ADD", (VNat (x) :: VNat (y) :: st))
-    -> VNat (x+y) :: st
-  | ("ADD", (VMutez (x) :: VMutez (y) :: st))
-    -> VMutez (x+y) :: st
+  | ("ADD", (VInt (x) :: VNat (y) :: st)) ->
+    return (VInt (x+y) :: st)
+  | ("ADD", (VNat (x) :: VNat (y) :: st)) ->
+    return (VNat (x+y) :: st)
+  | ("ADD", (VMutez (x) :: VMutez (y) :: st)) ->
+    return (VMutez (x+y) :: st)
   | ("ADD", (x :: y :: st))
     when addtype (typeof x) (typeof y) = Some TInt ->
-    VSymbolic (Op ("ADD", [x; y]), TInt) :: st
+    return (VSymbolic (Op ("ADD", [x; y]), TInt) :: st)
   | ("ADD", (x :: y :: st))
     when addtype (typeof x) (typeof y) = Some TNat ->
-    VSymbolic (Op ("ADD", [x; y]), TNat) :: st
+    return (VSymbolic (Op ("ADD", [x; y]), TNat) :: st)
   | ("ADD", (x :: y :: st))
     when addtype (typeof x) (typeof y) = Some TMutez ->
-    VSymbolic (Op ("ADD", [x; y]), TMutez) :: st
+    return (VSymbolic (Op ("ADD", [x; y]), TMutez) :: st)
   | ("SUB", (VInt x :: VInt y :: st))
   | ("SUB", (VNat x :: VInt y :: st))
   | ("SUB", (VInt x :: VNat y :: st))
-  | ("SUB", (VNat x :: VNat y :: st))
-    -> VInt (x-y) :: st
-  | ("SUB", (VMutez x :: VMutez y :: st))
-    -> VMutez (x-y) :: st
+  | ("SUB", (VNat x :: VNat y :: st)) ->
+    return (VInt (x-y) :: st)
+  | ("SUB", (VMutez x :: VMutez y :: st)) ->
+    return (VMutez (x-y) :: st)
   | ("SUB", (x :: y :: st))
     when subtype (typeof x) (typeof y) = Some TInt ->
-    VSymbolic (Op ("SUB", [x; y]), TInt) :: st
+    return (VSymbolic (Op ("SUB", [x; y]), TInt) :: st)
   | ("SUB", (x :: y :: st))
     when subtype (typeof x) (typeof y) = Some TMutez ->
-    VSymbolic (Op ("SUB", [x; y]), TMutez) :: st
+    return (VSymbolic (Op ("SUB", [x; y]), TMutez) :: st)
   | ("MUL", (VInt x :: VInt y :: st))
   | ("MUL", (VNat x :: VInt y :: st))
-  | ("MUL", (VInt x :: VNat y :: st))
-    -> VInt (x*y) :: st
-  | ("MUL", (VNat x :: VNat y :: st))
-    -> VNat (x*y) :: st
+  | ("MUL", (VInt x :: VNat y :: st)) ->
+    return (VInt (x*y) :: st)
+  | ("MUL", (VNat x :: VNat y :: st)) ->
+    return (VNat (x*y) :: st)
   | ("MUL", (VMutez x :: VNat y :: st))
-  | ("MUL", (VNat x :: VMutez y :: st))
-    -> VMutez (x*y) :: st
+  | ("MUL", (VNat x :: VMutez y :: st)) ->
+    return (VMutez (x*y) :: st)
   | ("MUL", (x :: y :: st))
     when multype (typeof x) (typeof y) = Some TInt ->
-    VSymbolic (Op ("MUL", [x; y]), TInt) :: st
+    return (VSymbolic (Op ("MUL", [x; y]), TInt) :: st)
   | ("MUL", (x :: y :: st))
     when multype (typeof x) (typeof y) = Some TNat ->
-    VSymbolic (Op ("MUL", [x; y]), TNat) :: st
+    return (VSymbolic (Op ("MUL", [x; y]), TNat) :: st)
   | ("MUL", (x :: y :: st))
     when multype (typeof x) (typeof y) = Some TMutez ->
-    VSymbolic (Op ("MUL", [x; y]), TMutez) :: st
-  | ("CAR", (VPair (s1, s2) :: st)) -> s1 :: st
-  | ("CAR", (VSymbolic (d, TPair (t1, t2)) as x :: st))
-    -> VSymbolic (Op ("CAR", [x]), t1) :: st
-  | ("CDR", (VPair (s1, s2) :: st)) -> s2 :: st
-  | ("CDR", (VSymbolic (d, TPair (t1, t2)) as x :: st))
-    -> VSymbolic (Op ("CDR", [x]), t2) :: st
-  | ("UNPAIR", (VPair (s1, s2) :: st)) -> s1 :: s2 :: st
-  | ("UNPAIR", (VSymbolic (d, TPair (t1, t2)) as x :: st))
-    -> VSymbolic (Op ("CAR", [x]), t1) :: VSymbolic (Op ("CDR", [x]), t2) :: st
-  | ("PAIR", s1 :: s2 :: st) -> VPair (s1, s2) :: st
-  | ("CONS", s1 :: s2 :: st) -> VCons (s1, s2) :: st (* check types? *)
-  | ("DUP", (x :: st)) -> x :: x :: st
-  | ("SWAP", (x :: y :: st)) -> y :: x :: st
-  | ("DROP", (x :: st)) -> st
-  | "COMPARE", VMutez a :: VMutez b :: st -> VInt (a-b) :: st
-  | "COMPARE", VInt a :: VInt b :: st -> VInt (a-b) :: st
-  | "COMPARE", VNat a :: VNat b :: st -> VInt (a-b) :: st
-  | "COMPARE", VBool a :: VBool b :: st -> VInt (compare_bool a b) :: st
+    return (VSymbolic (Op ("MUL", [x; y]), TMutez) :: st)
+  | ("CAR", (VPair (s1, s2) :: st)) ->
+    return (s1 :: st)
+  | ("CAR", (VSymbolic (d, TPair (t1, t2)) as x :: st)) ->
+    return (VSymbolic (Op ("CAR", [x]), t1) :: st)
+  | ("CDR", (VPair (s1, s2) :: st)) ->
+    return (s2 :: st)
+  | ("CDR", (VSymbolic (d, TPair (t1, t2)) as x :: st)) ->
+    return (VSymbolic (Op ("CDR", [x]), t2) :: st)
+  | ("UNPAIR", (VPair (s1, s2) :: st)) ->
+    return (s1 :: s2 :: st)
+  | ("UNPAIR", (VSymbolic (d, TPair (t1, t2)) as x :: st)) ->
+    return (VSymbolic (Op ("CAR", [x]), t1) :: VSymbolic (Op ("CDR", [x]), t2) :: st)
+  | ("PAIR", s1 :: s2 :: st) ->
+    return (VPair (s1, s2) :: st)
+  | ("CONS", s1 :: s2 :: st) ->
+    return (VCons (s1, s2) :: st) (* check types? *)
+  | ("DUP", (x :: st)) ->
+    return (x :: x :: st)
+  | ("SWAP", (x :: y :: st)) ->
+    return (y :: x :: st)
+  | ("DROP", (x :: st)) ->
+    return (st)
+  | "COMPARE", VMutez a :: VMutez b :: st
+  | "COMPARE", VInt a :: VInt b :: st
+  | "COMPARE", VNat a :: VNat b :: st ->
+    return (VInt (a-b) :: st)
+  | "COMPARE", VBool a :: VBool b :: st ->
+    return (VInt (compare_bool a b) :: st)
   | "COMPARE", x :: y :: st
-    when typeof x = TUnit && typeof y = TUnit
-    -> VInt 0 :: st
+    when typeof x = TUnit && typeof y = TUnit ->
+    return (VInt 0 :: st)
   | "COMPARE", x :: y :: st
-    when typeof x = typeof y && comparable_type (typeof x)
-    -> VSymbolic (Op ("COMPARE", [x; y]), TInt) :: st
-  | "LE", VInt a :: st -> VBool (a <= 0) :: st
-  | "LE", x :: st when typeof x = TInt -> VSymbolic (Op ("LE", [x]), TBool) :: st
-  | "EQ", VInt a :: st -> VBool (a = 0) :: st
-  | "EQ", x :: st when typeof x = TInt -> VSymbolic (Op ("EQ", [x]), TBool) :: st
-  | ("SENDER", st) -> VSymbolic (Op ("SENDER", []), TAddress) :: st
-  | ("SOURCE", st) -> VSymbolic (Op ("SOURCE", []), TAddress) :: st
-  | ("AMOUNT", st) -> VSymbolic (Op ("AMOUNT", []), TMutez) :: st
-  | ("BALANCE", st) -> VSymbolic (Op ("BALANCE", []), TMutez) :: st
-  | ("TRANSFER_TOKENS", arg :: amt :: contract :: st) -> VSymbolic (Op ("TRANSFER_TOKENS", [arg; amt; contract]), TOperation) :: st
-  | "FAILWITH", x :: st -> st   (* but need to remember x *)
+    when typeof x = typeof y && comparable_type (typeof x) ->
+    return (VSymbolic (Op ("COMPARE", [x; y]), TInt) :: st)
+  | "LE", VInt a :: st ->
+    return (VBool (a <= 0) :: st)
+  | "LE", x :: st
+    when typeof x = TInt ->
+    return (VSymbolic (Op ("LE", [x]), TBool) :: st)
+  | "EQ", VInt a :: st ->
+    return (VBool (a = 0) :: st)
+  | "EQ", x :: st
+    when typeof x = TInt ->
+    return (VSymbolic (Op ("EQ", [x]), TBool) :: st)
+  | ("SENDER", st) ->
+    return (VSymbolic (Op ("SENDER", []), TAddress) :: st)
+  | ("SOURCE", st) ->
+    return (VSymbolic (Op ("SOURCE", []), TAddress) :: st)
+  | ("AMOUNT", st) ->
+    return (VSymbolic (Op ("AMOUNT", []), TMutez) :: st)
+  | ("BALANCE", st) ->
+    return (VSymbolic (Op ("BALANCE", []), TMutez) :: st)
+  | ("TRANSFER_TOKENS", arg :: amt :: contract :: st) ->
+    return (VSymbolic (Op ("TRANSFER_TOKENS", [arg; amt; contract]), TOperation) :: st)
+  | "FAILWITH", x :: st ->
+    let* () = register_failure x in
+    return st   (* but need to remember x *)
   | n, _ -> raise (StackType ("unprocessed op " ^ n, stack))
 
 let interpretT ins t stack =
   match (ins, stack) with
-  | ("CONTRACT", VAddress a :: st) -> VContract (a, t) :: st
-  | ("CONTRACT", VSymbolic (d, TAddress) :: st) -> VSymbolic (d, TContract t) :: st
-  | "NIL", st -> VNil t :: st
-  | _ -> raise (StackType ("unprocessed TOperation " ^ ins, stack))
+  | ("CONTRACT", VAddress a :: st) ->
+    return (VContract (a, t) :: st)
+  | ("CONTRACT", VSymbolic (d, TAddress) :: st) ->
+    return (VSymbolic (d, TContract t) :: st)
+  | "NIL", st ->
+    return (VNil t :: st)
+  | _ ->
+    raise (StackType ("unprocessed TOperation " ^ ins, stack))
   
 let rec segment i stack =
   if i <= 0 then ([], stack) else
@@ -284,18 +323,21 @@ let rec segment i stack =
 
 let rec interpret (il : instr list) (stack : sval list) =
   match il with
-  | [] -> stack
+  | [] -> return stack
   | (I n :: inss) ->
-    interpret inss (interpretI n stack)
+    let* st = interpretI n stack in
+    interpret inss st
   | (PUSH s :: inss) ->
     interpret inss (s :: stack)
   | (COND (n, ins_tru, ins_fls) :: inss) ->
-    interpret inss (interpretC (n, ins_tru, ins_fls) stack)
+    let* st = interpretC (n, ins_tru, ins_fls) stack in
+    interpret inss st
   | (T (n, t) :: inss) ->
-    interpret inss (interpretT n t stack)
+    let* st = interpretT n t stack in
+    interpret inss st
   | DIP (i, il) :: inss ->
     let seg, rest = segment i stack in
-    let rest_after = interpret il rest in
+    let* rest_after = interpret il rest in
     interpret inss (seg @ rest_after)
 
 and interpretC (ins, ins_tru, ins_fls) stack =
@@ -307,13 +349,13 @@ and interpretC (ins, ins_tru, ins_fls) stack =
   | "IF_LEFT", VOr (R, s, t) :: st ->
     interpret ins_fls (s :: st)
   | "IF", VSymbolic (d, TBool) :: st ->
-    let st_tru = interpret ins_tru st in
-    let st_fls = interpret ins_fls st in
-    merge_stack st_tru st_fls
+    let* st_tru = interpret ins_tru st in
+    let* st_fls = interpret ins_fls st in
+    return (merge_stack st_tru st_fls)
   | "IF_LEFT", VSymbolic (d, TOr (t1, t2)) :: st ->
-    let st_tru = interpret ins_tru (VSymbolic (Step (SLeft, d), t1) :: st) in
-    let st_fls = interpret ins_fls (VSymbolic (Step (SRight, d), t2) :: st) in
-    merge_stack st_tru st_fls
+    let* st_tru = interpret ins_tru (VSymbolic (Step (SLeft, d), t1) :: st) in
+    let* st_fls = interpret ins_fls (VSymbolic (Step (SRight, d), t2) :: st) in
+    return (merge_stack st_tru st_fls)
   | n, _ -> raise (StackType ("unprocessed conditional "^n, stack))
 
 let rec symof (d : desc) (t : ty) =
@@ -403,3 +445,6 @@ let [stack_close; stack_bid] = auction_stacks
 let final_close = interpret auction stack_close
 let final_bid = interpret auction stack_bid
 
+(* execute *)
+let analysis_close = final_close initial_constraints
+let analysis_bid   = final_bid   initial_constraints
