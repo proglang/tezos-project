@@ -54,7 +54,7 @@ Peter Thiemann\orcidID{0000-0002-9000-1239}}
 \maketitle              % typeset the header of the contribution
 %
 \begin{abstract}
-  Smart contract applications on the block chain can only reach their full potential if
+  Smart contract applications on the blockchain can only reach their full potential if
   they can be integrated with traditional software systems. Invoking
   contracts and observing the state of the blockchain requires a
   programmatic interface. We propose a typed API for this
@@ -116,7 +116,7 @@ because they aim to provide a generic service.
 \begin{itemize}
 \item An operational semantics for functional programs running
   alongside smart contracts in a blockchain. 
-\item Established various properties of the combined system withs
+\item Established various properties of the combined system with
   proofs in upcoming techreport.
 \item An implementation of a low-level OCaml-API to the Tezos
   blockchain, which corresponds to the operational semantics.\footnote{%
@@ -127,7 +127,7 @@ because they aim to provide a generic service.
 \label{sec:motivation}
 
 Suppose you want to run an auction on the blockchain using a smart
-contract. Once to the contract is deployed, the
+contract. Once the contract is deployed, the
 auction is open for bidding, but it should be closed after 48 hours. Such a timeout is a typical task for an oracle. Rather than
 trusting a generic oracle, you prefer to roll your own mechanism that reliably closes the auction
 after 48 hours have passed. So you want to write a program to do so. 
