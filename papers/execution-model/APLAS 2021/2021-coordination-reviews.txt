@@ -1,0 +1,188 @@
+SUBMISSION: 24
+TITLE: A Typed Programmatic Interface to Contracts on the Blockchain
+
+
+----------------------- REVIEW 1 ---------------------
+SUBMISSION: 24
+TITLE: A Typed Programmatic Interface to Contracts on the Blockchain
+AUTHORS: Ha Doan Thi Thu and Peter Thiemann
+
+----------- Overall evaluation -----------
+SCORE: 1 (weak accept)
+----- TEXT:
+* Summary
+
+Smart-contracts are programs running on a blockchain. By essence,
+these programs cannot interact with the outside world because they are
+executed many times at different times by the nodes of the
+blockchain. Hence, when it comes to react to external events,
+programmers develop oracles, off-chain programs that serve as proxies
+between the outside world and the smart-contract. A typical oracle
+reacts to an event by transmitting some information to a
+smart-contract through a smart-contract call. To determine which piece
+of information to send, the oracle may need to observe the state of
+the contract or more generally, the state of the chain.
+
+This paper presents ongoing work to define a well-specified typed
+programming interface for Tezos smart-contracts to program oracles
+interacting with the Tezos blockchain. This programming interface
+takes the form of a typed programming language formalized through a
+small-step operational semantics and a type system. There are several
+specificities in that formalization:
+
+- The langage is stratified to distinguish the operations occurring in
+ the local node and the operations occurring on the chain. This is
+ important to programmatically determine the status of an operation
+ with respect to the blockchain (is it pending, rejected, accepted,
+ etc?)
+
+- The semantics integrates domain specific concepts like
+ public and private keys, timestamp, implicit contracts, etc.
+
+Thanks to this formalization, the authors are able to prove a property
+about the blockchain state transitions, namely that running a program
+that starts with valid references does not get corrupted by a
+transition in the blockchain. The authors also show the
+metatheoretical results about the type systems: a well-typed
+blockchain cannot go wrong and the well-typedness cannot be broken
+through the API.
+
+The paper is organised as follows. After the introduction, the authors
+describe a motivated example, an oracle for an auction, and show the
+specificities of oracle programming, especially the importance of the
+blockchain state in the logic of the oracle. In Section 3, the authors
+provide an execution model for the Tezos blockchain: this execution
+model describes the components of a local node and the components
+of the global structures that constitute the blockchain. Section 4
+describes the dynamical aspects of the system, the transitions of
+the local nodes and of the blockchain. Section 5 describes the
+properties proved based on the previous definitions. Section 6
+gives related work and Section 7 concludes.
+
+* Evaluation
+
+** Conclusion
+
+Even though this is an ongoing work to formalize the interactions with
+the Tezos blockchain through a typed API, this paper already provides
+a clear, precise, and adequate formalization of the system so that a
+programmer can build a valid mental model on which programs can
+be devised. Such a model did not exist until this work, and I
+believe that is a sufficient reason to accept this paper.
+
+In addition, the paper is well-written and gives a precise enough
+taste of the specification. The absence of the technical report
+is disappointing, though.
+
+** General remarks
+
+*** About the code
+I was not able to compile the code found on github:
+```
+Œª /tmp/Tezos-Ocaml-API/ main* dune build
+File "dune", line 13, characters 66-82:
+13 |               (tezos-client-006-PsCARTHA-commands.registration -> void_for_linking)
+                                                                      ^^^^^^^^^^^^^^^^
+Error: The format for files in this select branch must be
+void_for_linking-006-PsCARTHA.{name}
+```
+
+*** About the motivated example
+The motivated example is a bit oversimplified. For instance, it is
+perfectly possible to have a smart-contract to automatically close
+after some deadline. (It suffices to use the NOW instruction of
+Michelson to do so.) However, it is not difficult to generalize the
+specification to justify the usage of the oracle. For example, an
+oracle could be use to automate the fact that an auction contract
+can only be used during specific periods of time during the day.
+
+*** About the properties
+The properties are already really helpful to better understand the
+system. Would it be possible to validate them experimentally to get
+more confidence into the model proposed by the authors? It is a bit
+disappointing not to have the technical report to have a look at the
+proofs.
+
+
+** Details
+
+p2: The sentence just before the contributions is really hard to
+grasp. Why "oracles are intrisically untyped because they aim to
+provide a generic service"?
+
+p3: There are extra spaces before and after "initial_store".
+
+p4: "programmable account" -> "programmable accounts"
+
+p9: Bal and Cnt are undefined, right?
+
+
+
+----------------------- REVIEW 2 ---------------------
+SUBMISSION: 24
+TITLE: A Typed Programmatic Interface to Contracts on the Blockchain
+AUTHORS: Ha Doan Thi Thu and Peter Thiemann
+
+----------- Overall evaluation -----------
+SCORE: -2 (reject)
+----- TEXT:
+This paper describes a language for interacting with the Tezos blockchain platform. The language supports transfer/invoke operations, which move funds and optionally invoke smart contract code, as well as origination operations, which install smart contracts on the blockchain. Preservation, progress, and consistency lemmas are stated (the proofs are not included or available for review at the moment).
+
+The strengths of the paper include the formal definition of the language and the safety properties as given in lemmas, as well as the clear relationship between the language and the global blockchain state.
+
+I don't normally think of an API as including an expression language; usually an API describes an interface for typed values, not for typed expressions. Then much of the concern might be with marshaling and unmarshaling the values. I think of this paper more in terms of presenting a programming language for interacting with blockchain programs, which is a bit different from an API. Here, the paper assumes that all values can be marshaled into strings of appropriate type for the smart contract code, and that the types used by the smart contract are identical to the types in this API. So I feel like the paper skirts an important problem encountered in real-world smart contracts, where the clients and contracts have different type systems. Given the assumption that (a) clients will write in a bespoke language, not a commonly-used one, and (b) the two languages have matching type systems, why not have the clients write in the same language in which the smart contracts are writte!
+n?
+
+If I think of this paper as presenting an API language, then I find various aspects confusing. Why does the API take arbitrary expressions rather than values? Why does the language (which runs locally, not in a distributed fashion) concern itself with the global state of the blockchain? But if, instead of viewing the contribution of the paper as an API language, I view it as a language for smart contract clients that interact with Tezos contracts (which I assume have exactly the right type system and in which I assume marshaling already works), then the rest of the paper makes sense. Because of this discrepancy, I have difficulty with the paper as is. 
+
+I'm also not sure what is generalizable from this work. The details are very specific to Tezos, whereas the expression language itself is relatively standard. To what extent might this work generalize to other blockchains or other kinds of distributed systems (perhaps specifically client/server systems, since the consensus mechanism is out of scope here)? A revised version could clarify this point and argue for other contexts in which these results might be applicable.
+
+Here are some low-level comments:
+
+"Moreover, the entire data as well as all transactions are public." — true for Ethereum but not true for every blockchain (e.g. Hyperledger Fabric).
+
+"Such triggers require trusted intermediaries that provide so-called oracles." Oracles allow smart contracts to invoke off-blockchain code, not the other way around. It doesn't seem like this point is relevant, since this paper is about invoking smart contracts from outside. Of course, oracles DO invoke smart contracts in the callback, but I don't see how a typed API avoids the need to trust a third party.
+
+"Closing requires to schedule" -> "Closing requires scheduling"; same for "Bidding requires…"
+
+"The %bid entrypoint considers the transferred tokens as the bid." — do I assume correctly that bids are essentially implicit parameters with all invocations, as with Ethereum? If so, perhaps this point should be made explicit here (it is later in section 3.1).
+
+Polling is problematic in terms of scalability, performance, and energy consumption. Why not use an event-based system to avoid polling?
+
+"baker" — this term is not introduced. I assume it is like a miner, but it would be good to add a definition.
+
+"safe-safe way" — I'm not sure what this means.
+
+I was surprised that the invoke is a special case of transfer. Perhaps I should not have been, since it is this way on Ethereum, but the naming does make this confusing.
+
+It would be helpful to emphasize in 3.1 that argument p is an arbitrary expression. This leads to an interesting design decision to have a separate language on the client for arguments than the "code" language in contracts, which is explicitly left unspecified. It would be informative to discuss this tradeoff. In particular, most APIs specify that the parameters are values, which get serialized for transport, rather than allowing them to be arbitrary programs.
+
+
+
+----------------------- REVIEW 3 ---------------------
+SUBMISSION: 24
+TITLE: A Typed Programmatic Interface to Contracts on the Blockchain
+AUTHORS: Ha Doan Thi Thu and Peter Thiemann
+
+----------- Overall evaluation -----------
+SCORE: -1 (weak reject)
+----- TEXT:
+The paper proposes a typed API for invoking smart contracts that are deployed on the Tezos blockchain.  The authors study operational semantics for functional programs that run alongside and invoke smart contracts and establish properties on the interaction between such functional programs and smart contracts.
+
+The idea behind the presented work is (potentially) very interesting but at its current form  the paper seems to be at a rather preliminary state. There are several typos and incomprehensive sentences. 
+
+Just to give some examples: 
+Page 1, Abstract: block chain
+Page 2, Contributions: withs
+Page 2, Motivation: Once to the contract
+Page 2: after 48 hours, say
+
+Additionally, there are no proofs for the listed properties. The authors mention that these will be included in an incoming report(?)
+
+The expressions listed in Figure 1 are not explained in the paper.
+
+In page 3, it is unclear what the authors mean by strategic bidding and why this cannot be implemented in a smart contract.
+
+I do not understand what the authors mean by the following sentence: “Pattern matching is the only means to decompose values” in page 7
+
+Another question that arises is why the authors specifically focus on the Tezos blockchain. The problem can be studied in a more general context: how to define  a set of common operations (a generic API) that allow programs to invoke and monitor smart contracts of heterogeneous (e.g., permissioned or permisionless) blockchains.
