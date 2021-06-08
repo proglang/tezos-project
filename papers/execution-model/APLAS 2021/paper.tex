@@ -22,14 +22,7 @@
 }
 \lstset{language=Caml}
 \input{macros}
-%
-\usepackage{graphicx}
-% Used for displaying a sample figure. If possible, figure files should
-% be included in EPS format.
-%
-% If you use the hyperref package, please uncomment the following line
-% to display URLs in blue roman font according to Springer's eBook style:
-% \renewcommand\UrlFont{\color{blue}\rmfamily}
+
 
 \begin{document}
 %
@@ -150,12 +143,12 @@ header of an auction contract in Michelson \cite{michelson}. The
 type. It is a sum type (indicated by \lstinline/or/) and each
 alternative constitutes an entrypoint, named \lstinline/%close/ and
 \lstinline/%bid/. The caller selects the entrypoint by injecting the argument into the
-\lstinline/left/ or \lstinline/right/ summand. Both entrypoints take a \lstinline{unit}
+\lstinline/left/ or \lstinline/right/ summand. Both entrypoints take a \lstinline/unit/
 parameter. The \lstinline/%bid/ entrypoint considers the transferred
 tokens as the bid.
 The \lstinline/storage/ clause declares the state of the contract,
 which is a nested pair type indicating whether bidding is allowed
-(\lstinline{bool}), the address of the contract owner (to prohibit
+(\lstinline/bool/), the address of the contract owner (to prohibit
 unauthorized calls to \lstinline/%close/), and the bidder's
 address. The highest bid corresponds to the token balance of the contract.
 \begin{lstlisting}[language=michelson,numbers=none,float,caption={Header of the auction contract},label={lst:auction-contract-header},captionpos=b,emph={close,bid},emphstyle=\underbar]
@@ -184,6 +177,7 @@ a smart contract, but could be implemented in separate programs that
 interact with the blockchain. We present some idealized code for these tasks.
 
 First the code that creates an auction contract and closes it after 48 hours. 
+
 \begin{lstlisting}[language=Caml,numbers=none,basicstyle=\small]
 let _ = Cl.set_authority (my_address)
 let initial_store = (true, (my_address, my_address))
@@ -191,13 +185,14 @@ let contract = Cl.originate(auction_script, 1, initial_store)
 Time.sleep(48 * 3600);               (* 48h in seconds *)
 Cl.call_contract(contract, left ()); (* entrypoint %close *)
 \end{lstlisting}
-We assume that \lstinline/Cl/ is the module containing the contract
-library, \lstinline{set_authority} sets the sender address for
+
+We assume that \lstinline!Cl! is the module containing the contract
+library, \lstinline/set_authority/ sets the sender address for
 upcoming operations,  \lstinline/originate/ deploys its argument contract along
-with the provided funds of one token and the \lstinline/initial_store/, 
-\lstinline{auction_script} is the contract from Listing~\ref{lst:auction-contract-header}, and 
-\lstinline{call_contract} invokes a contract with a parameter. The
-\lstinline{initial_store} sets the bidding flag, and both owner and
+with the provided funds of one token and the \lstinline/initial_store/
+\lstinline/auction_script/ is the contract from Listing~\ref{lst:auction-contract-header}, and 
+\lstinline/call_contract/ invokes a contract with a parameter. The
+\lstinline/initial_store/ sets the bidding flag, and both owner and
 highest bidder to the sender account.
 
 
@@ -206,6 +201,7 @@ contract to find the current highest bid. As long as bidding is
 allowed and the current bid is below our \lstinline/limit/, we update
 our bid by a given amount \lstinline/step/, and then keep watching the state of the contract by
 polling it every five minutes. 
+
 \begin{lstlisting}[numbers=none,basicstyle=\small]
 let rec poll (limit, step, ((bidding, _), (high_bid, _))) =
   if bidding and high_bid < limit then
@@ -217,7 +213,8 @@ let rec poll (limit, step, ((bidding, _), (high_bid, _))) =
 in
 poll (limit, step, Cl.get_state (contract))
 \end{lstlisting}
-The \lstinline{get_state} function obtains the storage of a contract from
+
+The \lstinline/get_state/ function obtains the storage of a contract from
 the blockchain.
 
 This code is idealized in several respects. Originating or running a contract
@@ -1335,104 +1332,3 @@ blockchain programming and concurrent programs.
 
 \end{document}
 
-\subsection{A Subsection Sample}
-Please note that the first paragraph of a section or subsection is
-not indented. The first paragraph that follows a table, figure,
-equation etc. does not need an indent, either.
-
-Subsequent paragraphs, however, are indented.
-
-\subsubsection{Sample Heading (Third Level)} Only two levels of
-headings should be numbered. Lower level headings remain unnumbered;
-they are formatted as run-in headings.
-
-\paragraph{Sample Heading (Fourth Level)}
-The contribution should contain no more than four levels of
-headings. Table~\ref{tab1} gives a summary of all heading levels.
-
-\begin{table}
-\caption{Table captions should be placed above the
-tables.}\label{tab1}
-\begin{tabular}{|l|l|l|}
-\hline
-Heading level &  Example & Font size and style\\
-\hline
-Title (centered) &  {\Large\bfseries Lecture Notes} & 14 point, bold\\
-1st-level heading &  {\large\bfseries 1 Introduction} & 12 point, bold\\
-2nd-level heading & {\bfseries 2.1 Printing Area} & 10 point, bold\\
-3rd-level heading & {\bfseries Run-in Heading in Bold.} Text follows & 10 point, bold\\
-4th-level heading & {\itshape Lowest Level Heading.} Text follows & 10 point, italic\\
-\hline
-\end{tabular}
-\end{table}
-
-
-\noindent Displayed equations are centered and set on a separate
-line.
-\begin{equation}
-x + y = z
-\end{equation}
-Please try to avoid rasterized images for line-art diagrams and
-schemas. Whenever possible, use vector graphics instead (see
-Fig.~\ref{fig1}).
-
-\begin{figure}
-\includegraphics[width=\textwidth]{fig1.eps}
-\caption{A figure caption is always placed below the illustration.
-Please note that short captions are centered, while long ones are
-justified by the macro package automatically.} \label{fig1}
-\end{figure}
-
-\begin{theorem}
-This is a sample theorem. The run-in heading is set in bold, while
-the following text appears in italics. Definitions, lemmas,
-propositions, and corollaries are styled the same way.
-\end{theorem}
-%
-% the environments 'definition', 'lemma', 'proposition', 'corollary',
-% 'remark', and 'example' are defined in the LLNCS documentclass as well.
-%
-\begin{proof}
-Proofs, examples, and remarks have the initial word in italics,
-while the following text appears in normal font.
-\end{proof}
-For citations of references, we prefer the use of square brackets
-and consecutive numbers. Citations using labels or the author/year
-convention are also acceptable. The following bibliography provides
-a sample reference list with entries for journal
-articles~\cite{ref_article1}, an LNCS chapter~\cite{ref_lncs1}, a
-book~\cite{ref_book1}, proceedings without editors~\cite{ref_proc1},
-and a homepage~\cite{ref_url1}. Multiple citations are grouped
-\cite{ref_article1,ref_lncs1,ref_book1},
-\cite{ref_article1,ref_book1,ref_proc1,ref_url1}.
-%
-% ---- Bibliography ----
-%
-% BibTeX users should specify bibliography style 'splncs04'.
-% References will then be sorted and formatted in the correct style.
-%
-% \bibliographystyle{splncs04}
-% \bibliography{mybibliography}
-%
-\begin{thebibliography}{8}
-\bibitem{ref_article1}
-Author, F.: Article title. Journal \textbf{2}(5), 99--110 (2016)
-
-\bibitem{ref_lncs1}
-Author, F., Author, S.: Title of a proceedings paper. In: Editor,
-F., Editor, S. (eds.) CONFERENCE 2016, LNCS, vol. 9999, pp. 1--13.
-Springer, Heidelberg (2016). \doi{10.10007/1234567890}
-
-\bibitem{ref_book1}
-Author, F., Author, S., Author, T.: Book title. 2nd edn. Publisher,
-Location (1999)
-
-\bibitem{ref_proc1}
-Author, A.-B.: Contribution title. In: 9th International Proceedings
-on Proceedings, pp. 1--2. Publisher, Location (2010)
-
-\bibitem{ref_url1}
-LNCS Homepage, \url{http://www.springer.com/lncs}. Last accessed 4
-Oct 2017
-\end{thebibliography}
-\end{document}
