@@ -11,7 +11,9 @@ open Store
 let (let*) x f = bind x f
 let return x = fun s -> (x, s)
 
+(* TODOs *)
 (* parameterize interpretation of SENDER, SOURCE, AMOUNT, BALANCE, ... *)
+(* support option type *)
 
 (* types and symbolic values *)
 type ty =
@@ -30,7 +32,7 @@ type ty =
   | TOperation
 
 type step =
-  | SLeft | SRight | SFirst | SSecond
+  | SLeft | SRight | SFirst | SSecond | SCar | SCdr
 
 type lr =
   | L | R
@@ -118,13 +120,15 @@ let merge_stack = List.map2 merge_sval
 type constraints = {
   true_values: sval list;       (* symbolic values that must be true to reach this *)
   false_values: sval list;      (* symbolic values that must be false to reach this *)
-  failure_values: (sval list * sval list * sval) list (* path condition and value of a failure *)
+  failure_values: (sval list * sval list * sval) list; (* path condition and value of a failure *)
+  maybe_reachable: bool
 }
 
 let initial_constraints = {
   true_values = [];
   false_values = [];
-  failure_values = []
+  failure_values = [];
+  maybe_reachable = true
 }
 
 let register_true arg r =
@@ -133,13 +137,14 @@ let register_true arg r =
 let register_false arg r =
   (), {r with false_values = arg :: r.false_values}
 
-let register_failure arg {true_values; false_values; failure_values} =
+let register_failure arg {true_values; false_values; failure_values; _} =
   let failure_values =
     (true_values, false_values, arg) ::
     failure_values in
   (), {true_values;
        false_values;
-       failure_values}
+       failure_values;
+       maybe_reachable = false}
 
 (* instructions *)
 
@@ -156,6 +161,11 @@ let rec comparable_type t =
   | TPair (t1, t2) -> comparable_type t1 && comparable_type t2
   | _ -> false
 
+let contract_type t =
+  match t with
+  | TContract _ -> true
+  | _ -> false
+
 let compare_bool a b =
   match (a, b) with
   | false, false
@@ -169,6 +179,13 @@ let multype t1 t2 =
   | TNat, TNat -> Some TNat
   | TNat, TMutez
   | TMutez, TNat -> Some TMutez
+  | _ -> None
+
+let andtype t1 t2 =
+  match (t1, t2) with
+  | TBool, TBool -> Some TBool
+  | TNat, TNat
+  | TInt, TNat -> Some TNat
   | _ -> None
 
 let addtype t1 t2 =
@@ -281,11 +298,54 @@ let interpretI ins (stack : sval list) =
   | "LE", x :: st
     when typeof x = TInt ->
     return (VSymbolic (Op ("LE", [x]), TBool) :: st)
+  | "LT", VInt a :: st ->
+    return (VBool (a < 0) :: st)
+  | "LT", x :: st
+    when typeof x = TInt ->
+    return (VSymbolic (Op ("LT", [x]), TBool) :: st)
+  | "GE", VInt a :: st ->
+    return (VBool (a >= 0) :: st)
+  | "GE", x :: st
+    when typeof x = TInt ->
+    return (VSymbolic (Op ("GE", [x]), TBool) :: st)
+  | "GT", VInt a :: st ->
+    return (VBool (a > 0) :: st)
+  | "GT", x :: st
+    when typeof x = TInt ->
+    return (VSymbolic (Op ("GT", [x]), TBool) :: st)
   | "EQ", VInt a :: st ->
     return (VBool (a = 0) :: st)
   | "EQ", x :: st
     when typeof x = TInt ->
     return (VSymbolic (Op ("EQ", [x]), TBool) :: st)
+  | "NEQ", VInt a :: st ->
+    return (VBool (a <> 0) :: st)
+  | "NEQ", x :: st
+    when typeof x = TInt ->
+    return (VSymbolic (Op ("NEQ", [x]), TBool) :: st)
+  | "AND", VBool a :: VBool b :: st ->
+    return (VBool (a && b) :: st)
+  | "AND", VNat a :: VNat b :: st
+  | "AND", VInt a :: VNat b :: st ->
+    return (VNat (a land b) :: st)
+  | "AND", x :: y :: st
+    when andtype (typeof x) (typeof y) = Some TBool ->
+    return (VSymbolic (Op ("AND", [x; y]), TBool) :: st)
+  | "AND", x :: y :: st
+    when andtype (typeof x) (typeof y) = Some TNat ->
+    return  (VSymbolic (Op ("AND", [x; y]), TNat) :: st)
+  | "ABS", VInt a :: st ->
+    return (VNat (abs a) :: st)
+  | "ABS", x :: st
+    when typeof x = TInt ->
+    return (VSymbolic (Op ("ABS", [x]), TNat) :: st)
+  | "ADDRESS", VContract (a, t) :: st ->
+    return (VAddress a :: st)
+  | "ADDRESS", x :: st
+    when contract_type (typeof x) ->
+    return (VSymbolic (Op ("ADDRESS", [x]), TAddress) :: st)
+  | ("SELF_ADDRESS", st) ->
+    return (VSymbolic (Op ("SELF_ADDRESS", []), TAddress) :: st)
   | ("SENDER", st) ->
     return (VSymbolic (Op ("SENDER", []), TAddress) :: st)
   | ("SOURCE", st) ->
@@ -321,6 +381,23 @@ let rec segment i stack =
     | [] ->
       [], []
 
+let symbolic_if mtrue mfalse cstore =
+  let (st_tru, cstore_tru) = mtrue cstore in
+  let (st_fls, cstore_fls) = mfalse cstore in
+  let (new_stack, new_cstore) =
+    if cstore_tru.maybe_reachable
+    then if cstore_fls.maybe_reachable
+      then (merge_stack st_tru st_fls,
+            {cstore with maybe_reachable = true})
+      else (st_tru, cstore_tru)
+    else (st_fls, cstore_fls) in
+  return new_stack
+    {new_cstore with
+     failure_values =
+       cstore_tru.failure_values @ cstore_fls.failure_values;
+     (* remove duplicates! *)
+    }
+
 let rec interpret (il : instr list) (stack : sval list) =
   match il with
   | [] -> return stack
@@ -348,14 +425,30 @@ and interpretC (ins, ins_tru, ins_fls) stack =
     interpret ins_tru (s :: st)
   | "IF_LEFT", VOr (R, s, t) :: st ->
     interpret ins_fls (s :: st)
-  | "IF", VSymbolic (d, TBool) :: st ->
-    let* st_tru = interpret ins_tru st in
-    let* st_fls = interpret ins_fls st in
-    return (merge_stack st_tru st_fls)
-  | "IF_LEFT", VSymbolic (d, TOr (t1, t2)) :: st ->
-    let* st_tru = interpret ins_tru (VSymbolic (Step (SLeft, d), t1) :: st) in
-    let* st_fls = interpret ins_fls (VSymbolic (Step (SRight, d), t2) :: st) in
-    return (merge_stack st_tru st_fls)
+  | "IF_CONS", VCons (h, t) :: st ->
+    interpret ins_tru (h :: t :: st)
+  | "IF_CONS", VNil t :: st ->
+    interpret ins_fls st
+  | "IF", (VSymbolic (d, TBool) as x) :: st ->
+    symbolic_if
+      (let* _ = register_true x in
+       interpret ins_tru st)
+      (let* _ = register_false x in
+       interpret ins_fls st)
+  | "IF_LEFT", (VSymbolic (d, TOr (t1, t2)) as x) :: st ->
+    symbolic_if
+      (let* _ = register_true x in
+       interpret ins_tru (VSymbolic (Step (SLeft, d), t1) :: st))
+      (let* _ = register_false x in
+       interpret ins_fls (VSymbolic (Step (SRight, d), t2) :: st))
+  | "IF_CONS", (VSymbolic (d, TList t) as x) :: st ->
+    symbolic_if
+      (let* _ = register_true x in
+       interpret ins_tru (VSymbolic (Step (SCar, d), t) ::
+                          VSymbolic (Step (SCdr, d), TList t) ::
+                          st))
+      (let* _ = register_false x in
+       interpret ins_fls st)
   | n, _ -> raise (StackType ("unprocessed conditional "^n, stack))
 
 let rec symof (d : desc) (t : ty) =
