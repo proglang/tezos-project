@@ -36,7 +36,7 @@
 Peter Thiemann\orcidID{0000-0002-9000-1239}}
 
 %
-\authorrunning{F. Author et al.}
+\authorrunning{~}
 % First names are abbreviated in the running head.
 % If there are more than two authors, 'et al.' is used.
 %
@@ -57,9 +57,9 @@ Peter Thiemann\orcidID{0000-0002-9000-1239}}
   blockchain. We establish further properties of the model that
   give rise to requirements on the API. A prototype of the interface
   is implemented in OCaml for the Tezos blockchain.
-
-\keywords{smart contract  \and Second keyword \and Another keyword.}
 \end{abstract}
+
+\keywords{smart contract  \and embedded domain specific language \and types.}
 %
 %
 %
@@ -119,23 +119,29 @@ because they aim to provide a generic service.
 \section{Motivation}
 \label{sec:motivation}
 
-Suppose you want to run an auction on the blockchain using a smart
-contract. Once the contract is deployed, the
-auction is open for bidding, but it should be closed after 48 hours. Such a timeout is a typical task for an oracle. Rather than
-trusting a generic oracle, you prefer to roll your own mechanism that reliably closes the auction
-after 48 hours have passed. So you want to write a program to do so. 
-
-As a bidder, you may want to implement a bidding
-strategy that starts at a certain amount and increases the bid until a
+Suppose you want to implement a bidding strategy for an auction that
+is deployed on the blockchain as a smart contract.
+% Once the contract is deployed, the
+% auction is open for bidding, but it should be closed after 48 hours. Such a timeout is a typical task for an oracle. Rather than
+% trusting a generic oracle, you prefer to roll your own mechanism that reliably closes the auction
+% after 48 hours have passed. So you want to write a program to do so. 
+Your bidding strategy may start at a certain amount and increase the bid until a
 limit is reached. Of course, you only want to increase your bid if
-someone else placed a higher bid. So you also want to write a
+someone else placed a higher bid. So you want to write a
 program to implement this strategy.
 
-Neither task can be implemented as a smart contract alone because both react
-to external triggers. Closing require scheduling the invocation of a
-contract at a certain time. Bidding 
-requires watching the current highest bid of the contract and
+This task cannot be implemented as a smart contract without
+cooperation of the auction contract because it reacts
+on external triggers.
+% Closing require scheduling the invocation of a
+% contract at a certain time.
+Bidding requires watching the current highest bid of the contract and
 react if another bidder places a higher bid.
+The auction contract could anticipate the need for such observations
+by allowing bidders to register callbacks that are invoked when a
+higher bid arrives. However, we cannot assume such cooperation of the
+auction contract nor would we be willing to pay the the fee for running
+that callback.
 
 For concreteness, Listing~\ref{lst:auction-contract-header} shows the
 header of an auction contract in Michelson \cite{michelson}. The
@@ -155,12 +161,12 @@ address. The highest bid corresponds to the token balance of the contract.
 parameter (or (unit %close)
               (unit %bid)); # bid in transfer
 storage (pair bool          # bidding allowed
-         (pair address      #  contract owner
+         (pair address      # contract owner
           address           # highest bidder's address
         ));
 \end{lstlisting}
 
-To avoid too much detail, we just outline the implementation of the entrypoints. The
+To avoid too much detail, we only outline the implementation of the entrypoints. The
 \lstinline/%close/ entrypoint first checks its sender's address
 against the owner's address in the store. Then it transfers the funds
 to the owner, closes the contract by clearing the bidding flag, and
@@ -172,28 +178,53 @@ transferred, returns the previous highest bid to its owner, and stores
 the current bidder as the new highest bidder.
 
 
-Timed contract closing and strategic bidding cannot be implemented in
-a smart contract, but could be implemented in separate programs that
-interact with the blockchain. We present some idealized code for these tasks.
+We present some idealized code for % timed contract closing and
+strategic bidding as a separate program that interacts with the
+blockchain.  The bidding strategy cannot be implemented as a smart
+contract.
+% A variation of timed contract closing could be
+% implemented as Tezos contracts have access to the current time: A
+% contract can enforce that bids arriving after a deadline are
+% immediately rejected or that the auction cannot be closed before the
+% deadline, but it cannot reliably execute the action associated with
+% closing the contract at the deadline
 
-First the code that creates an auction contract and closes it after 48 hours. 
-
+In preparation, we need to obtain a typed handle for the contract. We
+assume that \lstinline!Cl! is the module containing the contract
+library. The respective library function
+\lstinline!Cl.make_contract_from_hash!
+takes the hash of the contract along with representations of
+the types of the parameter and the storage (from module
+\lstinline!Ct!). It checks the validity of the hash and the types with
+the blockchain and returns a typed
+handle, which is indexed with OCaml types corresponding to parameter
+and storage type.
 \begin{lstlisting}[language=Caml,numbers=none,basicstyle=\small]
-let _ = Cl.set_authority (my_address)
-let initial_store = (true, (my_address, my_address))
-let contract = Cl.originate(auction_script, 1, initial_store)
-Time.sleep(48 * 3600);               (* 48h in seconds *)
-Cl.call_contract(contract, left ()); (* entrypoint %close *)
+# let auction = Cl.make_contract_hash auction_hash
+#     ~parameter:(Ct.Or (Ct.Unit, Ct.Unit))
+#     ~storage:(Ct.Pair (Ct.Bool, Ct.Pair (Ct.Addr, Ct.Addr))));;
+val auction :
+  ((unit, unit) Either.t,
+   bool * (Cl.Addr.t * Cl.Addr.t)) Cl.contract
 \end{lstlisting}
 
-We assume that \lstinline!Cl! is the module containing the contract
-library, \lstinline/set_authority/ sets the sender address for
-upcoming operations,  \lstinline/originate/ deploys its argument contract along
-with the provided funds of one token and the \lstinline/initial_store/
-\lstinline/auction_script/ is the contract from Listing~\ref{lst:auction-contract-header}, and 
-\lstinline/call_contract/ invokes a contract with a parameter. The
-\lstinline/initial_store/ sets the bidding flag, and both owner and
-highest bidder to the sender account.
+% First the code that creates an auction contract and closes it after 48 hours. 
+
+% \begin{lstlisting}[language=Caml,numbers=none,basicstyle=\small]
+% let _ = Cl.set_authority (my_address)
+% let initial_store = (true, (my_address, my_address))
+% let contract = Cl.originate auction 1 initial_store
+% Time.sleep(48 * 3600);               (* 48h in seconds *)
+% Cl.call_contract contract (left ()); (* entrypoint %close *)
+% \end{lstlisting}
+
+% \lstinline/set_authority/ sets the sender address for
+% upcoming operations,  \lstinline/originate/ deploys its argument contract along
+% with the provided funds of one token and the \lstinline/initial_store/
+% \lstinline/auction_script/ is the contract from Listing~\ref{lst:auction-contract-header}, and 
+% \lstinline/call_contract/ invokes a contract with a parameter. The
+% \lstinline/initial_store/ sets the bidding flag, and both owner and
+% highest bidder to the sender account.
 
 
 To implement the bidding strategy, we first check the state of the
@@ -202,20 +233,32 @@ allowed and the current bid is below our \lstinline/limit/, we update
 our bid by a given amount \lstinline/step/, and then keep watching the state of the contract by
 polling it every five minutes. 
 
-\begin{lstlisting}[numbers=none,basicstyle=\small]
-let rec poll (limit, step, ((bidding, _), (high_bid, _))) =
-  if bidding and high_bid < limit then
-    Cl.call_contract (contract, 
-      right (min (high_bid + step, limit))); (* entrypoint %bid *)
+\begin{lstlisting}[language=Caml,numbers=none,basicstyle=\small]
+let rec poll limit step =
+  let (bidding, (_, highest_bidder)) = Cl.get_storage auction;
+  let high_bid = Cl.get_balance auction;
+  if bidding && high_bid < limit then
+    (if highest_bidder <> my_address then  (* entrypoint %bid *)
+      try
+        Cl.call_contract auction
+          (right (min (high_bid + step, limit))) 
+      with
+      | Cl.FAILWITH message -> poll limit step;
     Time.sleep(5 * 60);
-    let state = Cl.get_state (contract);
-    poll (limit, step, state)
-in
-poll (limit, step, Cl.get_state (contract))
+    poll limit step)
 \end{lstlisting}
 
-The \lstinline/get_state/ function obtains the storage of a contract from
-the blockchain.
+The functions \lstinline/get_storage/ and \lstinline/get_balance/
+obtains the storage and current balance, respectively, of a contract from
+the blockchain. They never fail. Function \lstinline/call_contract/
+takes a typed handle and a parameter of suitable type. It indicates
+failure by raising an exception. If failure is caused by the
+\lstinline/FAILWITH/ instruction in the contract, then the
+corresponding \lstinline/Cl.FAILWITH/ exception is raised, which
+carries a string corresponding to the argument of the instruction. In
+our particular example, the auction may fail with signaling the message
+\lstinline/"closed"/ or \lstinline/"bid to low"/. Our
+code ignores this message for simplicity.
 
 This code is idealized in several respects. Originating or running a contract
 requires to propose a fee to the blockchain, which may or may not be
@@ -227,7 +270,7 @@ a couple of cycles before we can be sure the invocation is globally
 accepted and incorporated in the blockchain.
 Hence, after starting the invocation, we have to observe the fate of
 this invocation. If it does not get incorporated, then we need to
-analyse the reason and react accordingly. For example, if the
+analyze the reason and react accordingly. For example, if the
 invocation was rejected because of an insufficient fee, we might want
 to restart with an increased fee. Or we might decide to wait until the
 invocation goes through without increasing the fee.
@@ -251,7 +294,7 @@ In summary, a useful smart-contract-API  has facilities to
   transfers. Hence, the API has to run on
   behalf of some account (by holding its private key).
 \end{itemize}
-All these facilities are supported by the (untyped) RPC interface of the Tezos
+These facilities are supported by the (untyped) RPC interface of the Tezos
 blockchain, which is the basis of our implementation. 
 
 \section{Execution Model}
