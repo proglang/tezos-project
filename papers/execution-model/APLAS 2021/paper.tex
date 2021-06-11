@@ -96,12 +96,7 @@ require trusted intermediaries that provide so-called oracles \cite{oracle-patte
 smart contract registers a request and a callback with an oracle. The
 oracle invokes the callback as soon as an answer is available. 
 
-We present a typed API for invoking contracts from OCaml
-programs. Such an API with a reliable computing facility and network
-connection is sufficient to self provision an oracle and to avoid
-having to trust an oracle provider. Moreover, our approach provides a
-type-safe facility rather than oracles which are intrisically untyped
-because they aim to provide a generic service.
+Building such oracles requires programmatic interfaces to implement the interactions. However, current blockchains often provide non-programmatic interfaces, such as the Ethereum JSON-RPC API and the Tezos RPC API. We present a typed API for invoking contracts from OCaml programs. Our type API supports the implementation of programs that safely interact with smart contracts on the blockchain. Such an API with a reliable computing facility and network connectivity is sufficient to self-provision an oracle. Moreover, our approach provides a type-safe facility instead of oracles, which are intrinsically untyped as they aim to provide a generic service.
 
 \subsubsection{Contributions}
 \label{sec:contributions}
@@ -908,12 +903,12 @@ blockchain. To this end, any local node may be selected.
   \inferrule[Node-Inject]{
     \Angle{\PAK,\PUK} \in \ACCOUNTS \\
     \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+    \CHECKARG (\CONTRACTORS, \PUH, \PARAMETER) \\
     \CHECKCOU (\MANAGERS, \PUK) \\
-    \CHECKPUB (\MANAGERS, \PUK') \\
-    \CHECKGAS (\PUK, \PUK', \NTEZ, \MTEZ) \\
-    %\OPH = \GENERATEOPH (\PUK, \PUK','', \NTEZ, \MTEZ, \TIME) \\
+    \CHECKPUH (\CONTRACTORS, \PUH) \\
+    \CHECKGAS (\CONTRACTORS, \PUH, \PARAMETER, \MTEZ) \\
     \OPH = \GENERATEOPH (\OP, \TIME) \\
-    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ    
+    \OP = \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ    
   }{
     { [\EC\OP :: \EXPRS, \ACCOUNTS] \|
       [\PENDING, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans \\
@@ -938,22 +933,22 @@ blockchain. To this end, any local node may be selected.
   }
 
   \inferrule[Block-Accept]{
-    \OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ \\
+    \OP = \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ \\
     \TIME - \hat\TIME \le 60
   }{
     { 
       [\OPH \mapsto \Angle{\OP, \hat \TIME, \STATUSPENDING}
      ::\PENDING, \MANAGERS,
       \CONTRACTORS, \TIME]}
-    \BlockTrans  \\
-    { 
-      [\OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSINCLUDING\ \TIME} :: \PENDING, 
-      \UPDATESUCC(\MANAGERS, \PUK, \PUK', \NTEZ, \MTEZ),
-      \CONTRACTORS, \TIME +1]}
+    \BlockTrans 
+    {
+      [\OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSINCLUDING\ \TIME} :: \PENDING}, \\
+      { \UPDATESUCC (\MANAGERS, \PUK, \NTEZ, \MTEZ), 
+       \UPDATECONSTR (\CONTRACTORS, \PUH, \NTEZ, \PARAMETER), \TIME +1]
+    }
   }
 
     \inferrule[Block-Timeout]{
-    % \OP = \TRANSFER[\STRING]\NTEZ\PUK\ADDR\MTEZ \\
     \TIME-\hat\TIME > 60
   }{ 
     {[\OPH \mapsto \Angle{\OP, \hat \TIME, \STATUSPENDING}
@@ -962,7 +957,7 @@ blockchain. To this end, any local node may be selected.
     \BlockTrans \\
     { 
       [\OPH \mapsto \Angle{\OP, \hat \TIME, \STATUSTIMEOUT}
-     :: \PENDING, \UPDATECOU(\MANAGERS, \OP.\PUK, \FALSE),
+     :: \PENDING,  \UPDATECOU(\MANAGERS, \OP.\PUK, \FALSE),
       \CONTRACTORS, \TIME]}
   }
 \end{mathpar}
@@ -971,14 +966,14 @@ blockchain. To this end, any local node may be selected.
   \label{fig:lifecycle-transaction}
 \end{figure}
 Figure~\ref{fig:lifecycle-transaction} shows the transitions to start
-and finalize a transfer transaction.
+and finalize a transfer transaction, namely a smart contract invocation.
 \TirName{Node-Inject} affects a local node and the blockchain. It
 nondeterminstically selects a program that wants to do a transfer
 operation. It
 checks whether the sender of the transfer is a valid local account, whether
 the balance is sufficient to pay the fee and the transferred amount,
 whether there is an active transition for this sender (chkCount),
-whether the receiver's address is valid, and whether the fee is
+whether the public hash is associated with a smart contract, whether the type of the input parameter matchs with the smart contract's parameter type (chkArg), and whether the fee is
 sufficient. If these conditions are fulfilled, the transition forges
 an operation hash and returns it to the local node. 
 The pending operation enters the pool and the sender's counter is set
@@ -995,8 +990,7 @@ transitions are nondeterministic so that acceptance can happen any
 time in the next 60 cycles \TirName{Block-Accept}. Afterwards, a
 pending operation can only time out \TirName{Block-Timeout}.
 If the transaction is accepted, then the sender's counter is reset,
-the balances of sender and receiver are adjusted (updSucc), and the
-time stamp increases.
+the balances of sender and receiver are adjusted (updSucc), the smart contract storage and balance are updated (updConstr), and the time stamp increases.
 
 Whereas \TirName{Node-Inject} and \TirName{Block-Accept} are
 particular to the transfer operation, the timeout transition applies
@@ -1253,6 +1247,38 @@ operations. Items~\ref{item:3} and \ref{item:4} describe the lifecycle
 of a transfer and items~\ref{item:5} and~\ref{item:6} describe
 invariants for contractors. The invariants establish the
 self-verifying property common of blockchain entities.
+
+The proofs of these properties refer to all transitions with the detailed specifications of the related functions, such as chkCount and updSucc. Due to page limitations, not all transitions and their associated functions are presented in this paper, so the full proofs will be provided in an upcoming technical report. In this paper, since we only provide the proofs for Proposition 2 at 4 and 7.  
+
+\begin{proof}[4]
+ After feeding into a node, the status of the operation is \STATUSPENDING\ according to the transition \TirName{ Node-Inject }. This operation could either be accepted by the blockchain on the condition that the elapsed time is less than 60 ($\TIME - \hat\TIME \le 60$), and then its status is \STATUSINCLUDED\ \TIME \ (the transition \TirName{ Block-Accept }) or it is timeout with the status \STATUSTIMEOUT\ (\TirName{ Block-Timeout}). When an operation is accepted or times out, its status is never changed. Therefore, we have
+ 
+ \begin{itemize}
+ \item if the operation remains in \STATUSPENDING, then $\PENDING' (\OPH) = \PENDING (\OPH)$; 
+ \item if the operation is timeout, then $\PENDING' (\OPH) = \Angle{\OP, \hat\TIME, \STATUSTIMEOUT}$ according to the transition \TirName{ Block-Timeout}; 
+ \item if the operation is accepted, then $\PENDING' (\OPH) = \Angle{\OP, \hat\TIME, \STATUSINCLUDED\ \TIME }$, and $\TIME'=\TIME +1$ because the timestamp is incremented to one when an operation is accepted, according to the transition \TirName{ Block-Accept}.
+ \end{itemize}
+
+\end{proof}
+
+\begin{proof}[7]The function $\UPDATECOU(\MANAGERS, \PUK, \BOOLEAN)$ updates the flag of the counter of the account associated with the public key $\PUK$. The specification is as follows:
+ \begin{itemize}
+   \item[] \UPDATECOU($\PUK \mapsto \langle \BAL, (\NAT, \hat\BOOLEAN) \rangle$, \BOOLEAN) = $\PUK \mapsto \langle \BAL, (\NAT, \BOOLEAN) \rangle $
+ \end{itemize}
+    
+    Function $\UPDATESUCC(\MANAGERS, \PUK, \NTEZ, \MTEZ)$ updates the balance and the counter of the account that associates with the public key $\PUK$. The specification is as follows:
+ \begin{itemize}
+   \item[]  \UPDATESUCC($\PUK \mapsto \Angle{\BAL, (\NAT, \TRUE)}$, \PUK, \NTEZ, \MTEZ) = $ \PUK \mapsto \Angle{\BAL - \NTEZ - \MTEZ, (\NAT + 1, \FALSE)}$    
+ \end{itemize}
+    
+\noindent Then we have
+ \begin{itemize}
+   \item[-] $\COU.b=\TRUE$ means that the operation is injected and its status is \STATUSPENDING\ at \TIME according to the transition \TirName{Node-Inject}, and $\COU'.b=\FALSE$ means that the operation is accepted. According to the transition \TirName{Block-Accept} and the specification of the function \UPDATESUCC, the counter of the account is incremented by 1. This means $\COU.n' \in \{\COU.n,  \COU.n+1\}$.
+   \item[-] If the operation is still pending or it is time out, the country's number is changed in both cases. This means $\COU.n = \COU'.n$.
+   \item[-] If $\COU.n = \COU'.n$, the balance of the account is also changed since the balance  is only changed when the operation is accepted. This means $\BAL = \BAL'$.
+ \end{itemize}
+\end{proof}
+
 
 \subsection{Typing related properties}
 % , the parameter type and the storage type.
