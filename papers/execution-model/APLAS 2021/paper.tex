@@ -1,6 +1,9 @@
-% This is samplepaper.tex, a sample chapter demonstrating the
-% LLNCS macro package for Springer Computer Science proceedings;
-% Version 2.20 of 2017/10/04
+% APLAS 2021: Regular research papers should not exceed 18 pages in
+% the Springer LNCS format(LaTeX template), including bibliography and
+% figures.
+% Lightweight double-blind: Author names and institutions must be
+% omitted and References to the authors’ own related work should be in
+% the third person 
 %
 \documentclass[runningheads]{llncs}
 \usepackage[english]{babel}
@@ -32,17 +35,19 @@
 % If the paper title is too long for the running head, you can set
 % an abbreviated paper title here
 %
-\author{Thi Thu Ha Doan\orcidID{0000-0001-7524-4497}\and
-Peter Thiemann\orcidID{0000-0002-9000-1239}}
+% ANONYMOUS
+% \author{Thi Thu Ha Doan\orcidID{0000-0001-7524-4497}\and
+% Peter Thiemann\orcidID{0000-0002-9000-1239}}
 
 %
 \authorrunning{~}
 % First names are abbreviated in the running head.
 % If there are more than two authors, 'et al.' is used.
 %
-\institute{University of Freiburg, Germany \\
-\email{\{doanha,thiemann\}@informatik.uni-freiburg.de}
-}
+% ANONYMOUS
+% \institute{University of Freiburg, Germany \\
+% \email{\{doanha,thiemann\}@informatik.uni-freiburg.de}
+% }
 %
 \maketitle              % typeset the header of the contribution
 %
@@ -296,12 +301,41 @@ blockchain, which is the basis of our implementation.
 \label{sec:execution-model}
 The context of our work is the Tezos blockchain \cite{tezos-whitepaper,tezos-intropaper}. Tezos is a self-amending blockchain that improves several aspects compared to established blockchains. Tezos proposes an original consensus algorithm called Liquid Proof of Stake that allows consensus not only on the state of its ledger, like Bitcoin \cite{bitcoin-whitepaper} or Ethereum \cite{eth-whitepaper}, but also on how the economic protocol and nodes should upgrade, and serves as a decentralized smart contract platform that focuses on formal methods to improve security. 
 
-In Tezos, there are two types of accounts: implicit accounts, which are associated with a pair of private/public keys, and smart contracts, which are programmable accounts created by an origination operation and have no corresponding secret key. The address of a smart contract is a unique public hash that depends on the creation operation. An implicit account is maintained on the blockchain with its public key, balance, and counter, whose job is to prevent replay attacks. A smart contract account is stored with its script, storage, and balance. A contract script maps a pair of a parameter and a storage, which have fixed and monomorphic types to a pair of a list of internal operations and an updated storage. An implicit account performs three kinds of transactions: (1) transfer tokens to another implicit account, (2) invoke a smart contract, or (3) originate a new smart contract. A contract origination specifies the script of the contract and the initial contents of the contract storage, while a contract invocation must provide input data. Each transaction contains a fee to be paid either by payment to a baker or by destruction (burning). A transaction is injected into the blockchain network via a node, which then validates the transaction before submitting it to the network. Generally, a transaction can be rejected by the node for a number of reasons. Once the transaction is valid, it is injected into the mempool, which contains all pending transactions before they can be included in a block. On the other hand, a pending transaction can be lost in the mempool. A transaction is timed out when 60 blocks have passed and it can no longer be included in a block. When a transaction is included in a blockchain, the related accounts are updated according to the transaction result. 
+Tezos supports two types of accounts: implicit accounts, which
+are associated with a pair of private/public keys, and smart
+contracts, which are programmable accounts created by an origination
+operation. The address of a smart
+contract is a unique public hash that depends on the creation
+operation. No key pair is associated with a smart contract. An
+implicit account is maintained on the blockchain with 
+its public key and balance.
+% , and counter, whose job is to preventreplay attacks.
+A smart contract account is stored with its script, storage,
+and balance. A contract script maps a pair of a parameter and a
+storage, which have fixed and monomorphic types, to a pair of a list of
+internal operations and an updated storage. An account can
+perform three kinds of transactions: (1) transfer tokens to an
+implicit account, (2) invoke a smart contract, or (3) originate a new
+smart contract. A contract origination specifies the script of the
+contract and the initial contents of the contract storage, while a
+contract invocation must provide input data. Each transaction contains
+a fee to be paid either by payment to a baker or by destruction
+(burning). A transaction is injected into the blockchain network via a
+node, which then validates the transaction before submitting it to the
+network. A transaction may be rejected by the node for a
+number of reasons. After validation, the transaction is injected into
+a \emph{mempool}, which contains all pending transactions before they can
+be included in a block. A pending transaction may simply disappear
+from the mempool, for example, a transaction times out when 60 blocks
+have passed and it can no longer be included in a block. When a transaction
+is included in the blockchain, the affected accounts are updated
+according to the transaction result.  
 
 
-The execution model is an abstraction of the Tezos blockchain \cite{tezos-whitepaper}
-augmented with functional (OCaml) programs that interact with the
-blockchain. As the blockchain is realized by a peer-to-peer network of
+The execution model consists of functional (OCaml) programs that
+interact with an abstraction of the Tezos blockchain
+\cite{tezos-whitepaper}. As the blockchain is realized by a
+peer-to-peer network of 
 independent nodes, interaction happens through
 \emph{local nodes} that receive requests to originate and invoke
 contracts from programs that run on a particular node. We model the blockchain
@@ -310,8 +344,8 @@ current consensual state of the system. Our model does not express
 low-level details, but relies on nondeterminism to describe
 the possible behaviors of the system. In particular, we do
 \textbf{not} formalize the execution of the smart contracts
-themselves, we rather consider them as black boxes that execute in a
-safe way. Tezos' smart contract language Michelson and its
+themselves, we rather consider them as black boxes and probe their
+observable behavior. Tezos' smart contract language Michelson and its
 properties have been formalized elsewhere \cite{DBLP:conf/fm/BernardoCHPT19}.
 
 We write $\emptyset$ for the empty set and $\mathbf{e :: s}$ to
@@ -336,7 +370,7 @@ to another, to invoke a contract, and to originate a contract on the blockchain.
   \OP &::= \TRANSFER[\PARAMETER]\NTEZ\PUK\ADDR\MTEZ
   \\&\mid \ORIGINATE\NTEZ\PUK\CODE\INIT\MTEZ
 \end{align*}
-In the transfer, which also serves as invocation, \NTEZ\ is the amount of tokens transferred, \PUK\ is the public key of the
+In the transfer, which also serves as contract invocation, \NTEZ\ is the amount of tokens transferred, \PUK\ is the public key of the
 sender, \ADDR\ is either a public 
 key for an implicit account (in case of a simple transfer)  or a
 public hash for a smart contract (for an invocation), \PARAMETER\ is
@@ -349,7 +383,7 @@ contract's storage. Each operation returns an \emph{operation hash}
 
 The local node offers several ways to query the current state of
 the blockchain.
-\emph{Query operators} are defined by the following grammar:
+Some \emph{query operators} are defined by the following grammar:
 \begin{align*}
   \QOP & ::=
   % \GETCOUNTER\PUK  
@@ -359,7 +393,8 @@ the blockchain.
   \mid \GETSTORAGE{}%\PUH
   % \mid \GETCODE\PUH 
   % \mid \GETTYPE\PUH
-  \mid \GETCONTRACT{}%\OPH
+         \mid \GETCONTRACT{}%\OPH
+         \mid \dots
 \end{align*}
 We obtain the balance associated with an implicit account or a
 contract by its public key or public hash, respectively; the status of
@@ -412,7 +447,7 @@ that type, all values of \TOPH\ are valid.
   \\& \mid \QOP\  \EXPR \mid \TRANSFER[\EXPR]\EXPR\EXPR\EXPR\EXPR
   \\& \mid \ORIGINATE\EXPR\EXPR\EXPR\EXPR\EXPR
   % \\&\mid \CONTRACT\ \TYPE\ \EXPR
-  \\& \mid \TOSTRING\ \EXPR \mid \FROMSTRING\ \TYPE\ \EXPR
+  % \\& \mid \TOSTRING\ \EXPR \mid \FROMSTRING\ \TYPE\ \EXPR
   \\
   \PATTERN &::= \VARIABLE \mid (\PATTERN, \PATTERN) \mid \NIL \mid \CONS\ \PATTERN\ \PATTERN \mid \LEFT\ \PATTERN \mid\RIGHT\
              \PATTERN \mid \SOME\ \PATTERN \mid \NONE \\
@@ -425,11 +460,11 @@ that type, all values of \TOPH\ are valid.
                   \TPUH \mid
                   \TPUK \mid
                   \TADDR \mid 
-                  \TCONTRACT\ \TYPE \mid
-                  \TCODE\ \TYPE\ \TYPEU \mid \TTEZ \mid
-                  \TOPH \mid
-                  \TSTATUS \mid \TEXCEPTION \\
-  & \mid \TINT \mid \TUNIT \mid \TBOOL \mid \TSTRING \mid \TYPE\to\TYPEU \mid \TPAIR\ \TYPE\ \TYPEU \mid \TLIST\ \TYPE
+                  \TCONTRACT\ \TYPE\ \TYPEU \mid
+                  \TCODE\ \TYPE\ \TYPEU \mid
+                  \TOPH\ \TYPE\ \TYPEU \mid
+                  \TSTATUS \mid \TEXCEPTION \mid \TTEZ \\
+  & \mid \TNO \mid \TINT \mid \TUNIT \mid \TBOOL \mid \TSTRING \mid \TYPE\to\TYPEU \mid \TPAIR\ \TYPE\ \TYPEU \mid \TLIST\ \TYPE
     \mid \TSUM\ \TYPE\ \TYPEU \mid \TOPTION\ \TYPE 
 \end{align*}
   \caption{Syntax of expressions, \EXPR, and types, \TYPE}
@@ -440,23 +475,33 @@ expressions of type unit that run on the
 local node. Each program can send transactions on behalf of any
 account on the local node.  Figure~\ref{fig:syntax-expressions} defines the syntax of
 expressions, which describe the usual constructs of call-by-value PCF
-with sum, product, list, and option types, exceptions and fixpoint. Moreover, there are
+with sum, product, list, and option types, exceptions and fixpoint.
+Pattern matching is the only means to decompose values, cf.\ \PATTERN. 
+
+Moreover, there are
 domain-specific primitive types and constants \CONSTANT\ to support blockchain
 operations, as well as several exceptional values collected in \ERROR.
-Pattern matching is the only means to decompose values, cf.\ \PATTERN.
 There is syntax to initiate transfers and to originate contracts as
 well as for the queries. Finally, there is a type cast
-$\CAST\EXPR\TYPE\TYPEU$, which we describe after discussing types.
+$\CAST\EXPR\TYPE\TYPEU$, which we describe after discussing types. An
+implementation provides all of these types and operations via a library API.
 
 Types (also in Figure~\ref{fig:syntax-expressions}) comprise a
 collection of standard base types as well as 
-functions, pairs, lists, sums, and option types. In addition, there
+functions, pairs, lists, sums, and option types. These types are
+chosen to match with built-in types of Michelson. 
+In addition, there
 are domain specific types of public hashes $\TPUH$ and public keys $\TPUK$ subsumed by
-a type of addresses $\TADDR$. $\TCONTRACT\ \TYPE$ is the type of
-a contract with parameter type $\TYPE$. $\CODE\ \TYPE\ \TYPEU$
+a type of addresses $\TADDR$. $\TCONTRACT\ \TYPE\ \TYPEU$ is the type of
+a contract with parameter type $\TYPE$ and storage type $\TYPEU$. $\CODE\ \TYPE\ \TYPEU$
 indicates a Michelson program with parameter type $\TYPE$ and storage
-type $\TYPEU$. Tezos tokens have type $\TTEZ$. The type $\TOPH$ signifies operation hashes
-returned by blockchain operations. Querying the status of an operation
+type $\TYPEU$. Tezos tokens have type $\TTEZ$. The type $\TOPH\ \TYPE\
+\TYPEU$ signifies operation hashes
+returned by blockchain operations. The parameters of the hash carry
+the types when originating a contract. Otherwise, they are set to the
+irrelevant type $\TNO$. We take the liberty of omitting irrelevant
+type parameters, that is, we write $\TOPH$ for $\TOPH\ \TNO\ \TNO$.
+Querying the status of an operation
 returns a value of type $\TSTATUS$. Exceptions have type
 $\TEXCEPTION$. 
 
@@ -503,14 +548,14 @@ Type casts are only applicable to certain pairs of
 types governed by a relation $\SubType$, which could also serve as a
 subtyping relation. It is given by the axioms
 $\inferrule{}{\TPUH \SubType \TADDR}$, $\inferrule{}{\TPUK \SubType
-  \TADDR}$, and $\inferrule{}{\TCONTRACT\ \TYPE \SubType \TPUH}$.
+  \TADDR}$, and $\inferrule{}{\TCONTRACT\ \TYPE\ \TYPEU \SubType \TPUH}$.
 A cast from $\TYPE$ to $\TYPEU$ is only allowed
 if $\TYPE \SubType \TYPEU$ (upcast) or $\TYPEU \SubType \TYPE$
 (downcast). Upcasts always succeed, but downcasts may fail at run time.
 In particular,  public hashes and public keys can both stand for addresses. Moreover, a smart
 contract with parameter type $\TYPE$ is represented by its public hash
 at run time. The corresponding downcast must check whether the public
-hash is valid and has the expected parameter type.
+hash is valid and has the expected parameter and storage type.
 
 Figure~\ref{fig:typing-expressions} presents selected typing rules for
 expressions. We rely on an external typing judgment
@@ -522,7 +567,7 @@ a string parseable as a value of type $\TYPE$.
   \begin{mathpar}
     \inferrule{}{\JTypeExpr\TEnv\INT\TINT}
 
-    \inferrule{}{\JTypeExpr\TEnv\OPH\TOPH}
+    \inferrule{}{\JTypeExpr\TEnv\OPH{\TOPH\ \TYPE\ \TYPEU}}
 
     \inferrule{}{\JTypeExpr\TEnv\PUH{\TPUH}}
 
@@ -605,16 +650,18 @@ a string parseable as a value of type $\TYPE$.
       % \JTypeExpr\TEnv{\EXPR_3}{\TCONTRACT\ \TUNIT} \\
       \JTypeExpr\TEnv{\EXPR_4}\TUNIT \\
       \JTypeExpr\TEnv{\EXPR_5}\TTEZ }{
-      \JTypeExpr\TEnv{\TRANSFER[\EXPR_4]{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}\TOPH
+      \JTypeExpr\TEnv{\TRANSFER[\EXPR_4]{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}\TOPH\
+      \TNO\ \TNO
     }
 
     \inferrule{
       \JTypeExpr\TEnv{\EXPR_1}\TTEZ \\
       \JTypeExpr\TEnv{\EXPR_2}\TPUK \\
-      \JTypeExpr\TEnv{\EXPR_3}\TCONTRACT\ \TYPE \\
-      \JTypeExpr\TEnv{\EXPR_4}{\TYPE} \\
+      \JTypeExpr\TEnv{\EXPR_3}\TCONTRACT\ \TYPE_p\ \TYPE_s \\
+      \JTypeExpr\TEnv{\EXPR_4}{\TYPE_p} \\
       \JTypeExpr\TEnv{\EXPR_5}\TTEZ }{
-      \JTypeExpr\TEnv{\TRANSFER[\EXPR_4]{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}\TOPH
+      \JTypeExpr\TEnv{\TRANSFER[\EXPR_4]{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_5}}{\TOPH\
+      \TNO\ \TNO}
     }
 
 
@@ -624,7 +671,8 @@ a string parseable as a value of type $\TYPE$.
       \JTypeExpr\TEnv{\EXPR_3}{\TCODE\ \TYPE_p\ \TYPE_s} \\
       \JTypeExpr\TEnv{\EXPR_4}\TYPE_s \\ % really \TSTRING \\
       \JTypeExpr\TEnv{\EXPR_5}\TTEZ }{
-      \JTypeExpr\TEnv{\ORIGINATE{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_4}{\EXPR_5}}\TOPH
+      \JTypeExpr\TEnv{\ORIGINATE{\EXPR_1}{\EXPR_2}{\EXPR_3}{\EXPR_4}{\EXPR_5}}{\TOPH\
+      \TYPE_p\ \TYPE_s}
     }
   \end{mathpar}
 \begin{mathpar}
@@ -641,15 +689,15 @@ a string parseable as a value of type $\TYPE$.
   }
 
   \inferrule{
-    \JTypeExpr\TEnv\EXPR\TOPH
+    \JTypeExpr\TEnv\EXPR{\TOPH\ \TYPE\ \TYPEU}
   }{
     \JTypeExpr\TEnv {\GETSTATUS\EXPR}\TSTATUS
   }
 
   \inferrule{
-    \JTypeExpr\TEnv\EXPR{\TPUH}
+    \JTypeExpr\TEnv\EXPR{\TCONTRACT\ \TYPE_p\ \TYPE_s}
   }{
-    \JTypeExpr\TEnv {\GETSTORAGE\EXPR}\TSTRING
+    \JTypeExpr\TEnv {\GETSTORAGE\EXPR}\TYPE_s
   }
 
   % \inferrule{
@@ -665,9 +713,9 @@ a string parseable as a value of type $\TYPE$.
   % }
   %   
   \inferrule{
-    \JTypeExpr\TEnv\EXPR{\TOPH}
+    \JTypeExpr\TEnv\EXPR{\TOPH\ \TYPE\ \TYPEU}
   }{
-    \JTypeExpr\TEnv {\GETCONTRACT\EXPR}\TPUH
+    \JTypeExpr\TEnv {\GETCONTRACT\EXPR}{\TCONTRACT\ \TYPE\ \TYPEU}
   }
 \end{mathpar}
   \caption{Typing rules for blockchain operations and queries}
@@ -686,22 +734,22 @@ a string parseable as a value of type $\TYPE$.
 %  }
 % \end{mathpar}
 
-Conversion to and from serialized storage; deserialization may fail
-with an exception
-\begin{mathpar}
-  \inferrule{
-    \JTypeExpr\TEnv\EXPR\TYPE \\
-    \SERIALIZABLE (\TYPE)
-  }{
-    \JTypeExpr\TEnv{\TOSTRING\ \EXPR}\TSTRING
-  }
+% Conversion to and from serialized storage; deserialization may fail
+% with an exception
+% \begin{mathpar}
+%   \inferrule{
+%     \JTypeExpr\TEnv\EXPR\TYPE \\
+%     \SERIALIZABLE (\TYPE)
+%   }{
+%     \JTypeExpr\TEnv{\TOSTRING\ \EXPR}\TSTRING
+%   }
 
-  \inferrule{
-    \JTypeExpr\TEnv{\EXPR}\TSTRING
-  }{
-    \JTypeExpr\TEnv{\FROMSTRING\ \TYPE\ \EXPR}\TYPE
-  }
-\end{mathpar}
+%   \inferrule{
+%     \JTypeExpr\TEnv{\EXPR}\TSTRING
+%   }{
+%     \JTypeExpr\TEnv{\FROMSTRING\ \TYPE\ \EXPR}\TYPE
+%   }
+% \end{mathpar}
 
 
 
