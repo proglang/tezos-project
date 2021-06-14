@@ -200,7 +200,7 @@ the blockchain and returns a typed
 handle, which is indexed with OCaml types corresponding to parameter
 and storage type.
 \begin{lstlisting}[language=Caml,numbers=none,basicstyle=\small]
-# let auction = Cl.make_contract_hash auction_hash
+# let auction = Cl.make_contract_from_hash auction_hash
 #     ~parameter:(Ct.Or (Ct.Unit, Ct.Unit))
 #     ~storage:(Ct.Pair (Ct.Bool, Ct.Pair (Ct.Addr, Ct.Addr))));;
 val auction :
@@ -406,14 +406,14 @@ The domain-specific types come with different guarantees. Values of
 type \TPUH\ and \TPUK\ as well as \TADDR\ are not necessarily valid,
 as there might be no contract associated with a hash / no account
 associated with a public key. In contrast, a value of type
-$\TCONTRACT\ \TYPE$ is a public hash that is verified to be associated
-with a contract with parameter type $\TYPE$. Operation hashes \OPH\
+$\TCONTRACT\ \TYPE\ \TYPEU$ is a public hash that is verified to be associated
+with a contract with parameter type $\TYPE$ and storage $\TYPEU$. Operation hashes \OPH\
 are only returned from blockchain operations. As the surface language
 neither contains literals of type \TOPH\ nor are there casts into
 that type, all values of \TOPH\ are valid. 
 
 \begin{definition}%[State of a node]
-  The \emph{state of a node} is a pair
+  The \emph{state of a local node} is a pair
   $\NODE = [ \EXPRS, \ACCOUNTS
   % , \OPERATIONS
   ]$, where $\EXPRS$ is a
@@ -484,7 +484,7 @@ operations, as well as several exceptional values collected in \ERROR.
 There is syntax to initiate transfers and to originate contracts as
 well as for the queries. Finally, there is a type cast
 $\CAST\EXPR\TYPE\TYPEU$, which we describe after discussing types. An
-implementation provides all of these types and operations via a library API.
+implementation provides all of these types and operations via a library module.
 
 Types (also in Figure~\ref{fig:syntax-expressions}) comprise a
 collection of standard base types as well as 
@@ -498,8 +498,8 @@ indicates a Michelson program with parameter type $\TYPE$ and storage
 type $\TYPEU$. Tezos tokens have type $\TTEZ$. The type $\TOPH\ \TYPE\
 \TYPEU$ signifies operation hashes
 returned by blockchain operations. The parameters of the hash carry
-the types when originating a contract. Otherwise, they are set to the
-irrelevant type $\TNO$. We take the liberty of omitting irrelevant
+the parameter and storage types when originating a contract. Otherwise, they are set to the
+uninformative type $\TNO$. We take the liberty of omitting uninformative
 type parameters, that is, we write $\TOPH$ for $\TOPH\ \TNO\ \TNO$.
 Querying the status of an operation
 returns a value of type $\TSTATUS$. Exceptions have type
@@ -548,7 +548,12 @@ Type casts are only applicable to certain pairs of
 types governed by a relation $\SubType$, which could also serve as a
 subtyping relation. It is given by the axioms
 $\inferrule{}{\TPUH \SubType \TADDR}$, $\inferrule{}{\TPUK \SubType
-  \TADDR}$, and $\inferrule{}{\TCONTRACT\ \TYPE\ \TYPEU \SubType \TPUH}$.
+  \TADDR}$, $\inferrule{}{\TCONTRACT\ \TYPE\ \TYPEU \SubType
+  \TCONTRACT\ \TYPE\ \TNO}$, $\inferrule{}{\TCONTRACT\ \TYPE\ \TNO
+  \SubType \TCONTRACT\ \TNO\ \TNO}$, and $\inferrule{}{\TCONTRACT\
+  \TNO\ \TNO \SubType \TPUH}$. Similarly for operation hashes: $\inferrule{}{\TOPH\ \TYPE\ \TYPEU \SubType
+  \TOPH\ \TYPE\ \TNO}$ and $\inferrule{}{\TOPH\ \TYPE\ \TNO
+  \SubType \TOPH\ \TNO\ \TNO}$. 
 A cast from $\TYPE$ to $\TYPEU$ is only allowed
 if $\TYPE \SubType \TYPEU$ (upcast) or $\TYPEU \SubType \TYPE$
 (downcast). Upcasts always succeed, but downcasts may fail at run time.
@@ -557,12 +562,38 @@ contract with parameter type $\TYPE$ is represented by its public hash
 at run time. The corresponding downcast must check whether the public
 hash is valid and has the expected parameter and storage type.
 
+We express the subtyping relation via explicit cast operations because
+the host language OCaml does not support subtyping. The rationale of
+the subtyping among contract types is determined by the usage
+pattern. If we wish to mix uses of different contracts with the same
+parameter type but different storage, then we cast them to the common
+type $\TCONTRACT\ \TYPE\ \TNO$. Once we have cast a contract to type
+$\TCONTRACT\ \TNO\ \TNO$, we can put it in a list with any other
+contract, but the only possible operation is querying its balance
+(after casting further to $\TADDR$). The function
+\lstinline/make_contract_from_hash/ mentioned in
+Section~\ref{sec:motivation} corresponds to a cast from $\TPUH$ to
+$\TCONTRACT\ \TYPE_p\ \TYPE_s$ where $\TYPE_p$ and $\TYPE_s$ are given
+by the parameters \lstinline/parameter/ and \lstinline/storage/,
+respectively.  The type parameters for operation
+hashes just communicate the parameters to the result of the
+$\CONTRACT$ operation, so their subtyping rules are analogous to the
+one for the contract type. 
+
 Figure~\ref{fig:typing-expressions} presents selected typing rules for
 expressions. We rely on an external typing judgment
 $\JTypeCode\CODE\TYPE$ for the contract language, which we leave
-unspecified, and $\JTypeValue\STRING\TYPE$ for serialized values as
-stored on the blockchain. The latter judgment states $\STRING$ is
-a string parseable as a value of type $\TYPE$.
+unspecified. Figure~\ref{fig:typing-blockchain-operations} gives the
+typing of contract operations and queries. A standard transfer or
+contract invocation results in an uninformative operation
+hash. Originating a contract results in a fully typed operation hash,
+which may be turned into a typed constract handle by the $\CONTRACT$
+query. We can ask for the status of any operation hash, for the
+storage of a contract handle (if $\TYPE_s = \TNO$, we obtain a useless
+value with uninformative type $\TNO$), and for the balance of any address.
+% , and $\JTypeValue\STRING\TYPE$ for serialized values as
+% stored on the blockchain. The latter judgment states $\STRING$ is
+% a string parseable as a value of type $\TYPE$.
 \begin{figure}[tp]
   \begin{mathpar}
     \inferrule{}{\JTypeExpr\TEnv\INT\TINT}
