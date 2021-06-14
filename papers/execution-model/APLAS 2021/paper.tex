@@ -101,7 +101,16 @@ require trusted intermediaries that provide so-called oracles \cite{oracle-patte
 smart contract registers a request and a callback with an oracle. The
 oracle invokes the callback as soon as an answer is available. 
 
-Building such oracles requires programmatic interfaces to implement the interactions. However, current blockchains often provide non-programmatic interfaces, such as the Ethereum JSON-RPC API and the Tezos RPC API. We present a typed API for invoking contracts from OCaml programs. Our type API supports the implementation of programs that safely interact with smart contracts on the blockchain. Such an API with a reliable computing facility and network connectivity is sufficient to self-provision an oracle. Moreover, our approach provides a type-safe facility instead of oracles, which are intrinsically untyped as they aim to provide a generic service.
+Building such oracles requires programmatic interfaces to implement the interactions. 
+However, current blockchains often provide non-programmatic interfaces, 
+such as the Ethereum JSON-RPC API and the Tezos RPC API. 
+We present a typed API for invoking contracts from OCaml programs. 
+Our typed API supports the implementation of application programs/ oracles 
+that safely interact with smart contracts on the blockchain. 
+Such an API with a reliable computing facility and network 
+connectivity is sufficient to self-provision an oracle.
+ Moreover, our approach provides a type-safe facility instead of oracles, 
+ which are intrinsically untyped as they aim to provide a generic service.
 
 \subsubsection{Contributions}
 \label{sec:contributions}
@@ -200,7 +209,7 @@ the blockchain and returns a typed
 handle, which is indexed with OCaml types corresponding to parameter
 and storage type.
 \begin{lstlisting}[language=Caml,numbers=none,basicstyle=\small]
-# let auction = Cl.make_contract_from_hash auction_hash
+# let auction = Cl.make_contract_hash auction_hash
 #     ~parameter:(Ct.Or (Ct.Unit, Ct.Unit))
 #     ~storage:(Ct.Pair (Ct.Bool, Ct.Pair (Ct.Addr, Ct.Addr))));;
 val auction :
@@ -406,14 +415,14 @@ The domain-specific types come with different guarantees. Values of
 type \TPUH\ and \TPUK\ as well as \TADDR\ are not necessarily valid,
 as there might be no contract associated with a hash / no account
 associated with a public key. In contrast, a value of type
-$\TCONTRACT\ \TYPE\ \TYPEU$ is a public hash that is verified to be associated
-with a contract with parameter type $\TYPE$ and storage $\TYPEU$. Operation hashes \OPH\
+$\TCONTRACT\ \TYPE$ is a public hash that is verified to be associated
+with a contract with parameter type $\TYPE$. Operation hashes \OPH\
 are only returned from blockchain operations. As the surface language
 neither contains literals of type \TOPH\ nor are there casts into
 that type, all values of \TOPH\ are valid. 
 
 \begin{definition}%[State of a node]
-  The \emph{state of a local node} is a pair
+  The \emph{state of a node} is a pair
   $\NODE = [ \EXPRS, \ACCOUNTS
   % , \OPERATIONS
   ]$, where $\EXPRS$ is a
@@ -484,7 +493,7 @@ operations, as well as several exceptional values collected in \ERROR.
 There is syntax to initiate transfers and to originate contracts as
 well as for the queries. Finally, there is a type cast
 $\CAST\EXPR\TYPE\TYPEU$, which we describe after discussing types. An
-implementation provides all of these types and operations via a library module.
+implementation provides all of these types and operations via a library API.
 
 Types (also in Figure~\ref{fig:syntax-expressions}) comprise a
 collection of standard base types as well as 
@@ -498,8 +507,8 @@ indicates a Michelson program with parameter type $\TYPE$ and storage
 type $\TYPEU$. Tezos tokens have type $\TTEZ$. The type $\TOPH\ \TYPE\
 \TYPEU$ signifies operation hashes
 returned by blockchain operations. The parameters of the hash carry
-the parameter and storage types when originating a contract. Otherwise, they are set to the
-uninformative type $\TNO$. We take the liberty of omitting uninformative
+the types when originating a contract. Otherwise, they are set to the
+irrelevant type $\TNO$. We take the liberty of omitting irrelevant
 type parameters, that is, we write $\TOPH$ for $\TOPH\ \TNO\ \TNO$.
 Querying the status of an operation
 returns a value of type $\TSTATUS$. Exceptions have type
@@ -548,12 +557,7 @@ Type casts are only applicable to certain pairs of
 types governed by a relation $\SubType$, which could also serve as a
 subtyping relation. It is given by the axioms
 $\inferrule{}{\TPUH \SubType \TADDR}$, $\inferrule{}{\TPUK \SubType
-  \TADDR}$, $\inferrule{}{\TCONTRACT\ \TYPE\ \TYPEU \SubType
-  \TCONTRACT\ \TYPE\ \TNO}$, $\inferrule{}{\TCONTRACT\ \TYPE\ \TNO
-  \SubType \TCONTRACT\ \TNO\ \TNO}$, and $\inferrule{}{\TCONTRACT\
-  \TNO\ \TNO \SubType \TPUH}$. Similarly for operation hashes: $\inferrule{}{\TOPH\ \TYPE\ \TYPEU \SubType
-  \TOPH\ \TYPE\ \TNO}$ and $\inferrule{}{\TOPH\ \TYPE\ \TNO
-  \SubType \TOPH\ \TNO\ \TNO}$. 
+  \TADDR}$, and $\inferrule{}{\TCONTRACT\ \TYPE\ \TYPEU \SubType \TPUH}$.
 A cast from $\TYPE$ to $\TYPEU$ is only allowed
 if $\TYPE \SubType \TYPEU$ (upcast) or $\TYPEU \SubType \TYPE$
 (downcast). Upcasts always succeed, but downcasts may fail at run time.
@@ -562,38 +566,12 @@ contract with parameter type $\TYPE$ is represented by its public hash
 at run time. The corresponding downcast must check whether the public
 hash is valid and has the expected parameter and storage type.
 
-We express the subtyping relation via explicit cast operations because
-the host language OCaml does not support subtyping. The rationale of
-the subtyping among contract types is determined by the usage
-pattern. If we wish to mix uses of different contracts with the same
-parameter type but different storage, then we cast them to the common
-type $\TCONTRACT\ \TYPE\ \TNO$. Once we have cast a contract to type
-$\TCONTRACT\ \TNO\ \TNO$, we can put it in a list with any other
-contract, but the only possible operation is querying its balance
-(after casting further to $\TADDR$). The function
-\lstinline/make_contract_from_hash/ mentioned in
-Section~\ref{sec:motivation} corresponds to a cast from $\TPUH$ to
-$\TCONTRACT\ \TYPE_p\ \TYPE_s$ where $\TYPE_p$ and $\TYPE_s$ are given
-by the parameters \lstinline/parameter/ and \lstinline/storage/,
-respectively.  The type parameters for operation
-hashes just communicate the parameters to the result of the
-$\CONTRACT$ operation, so their subtyping rules are analogous to the
-one for the contract type. 
-
 Figure~\ref{fig:typing-expressions} presents selected typing rules for
 expressions. We rely on an external typing judgment
 $\JTypeCode\CODE\TYPE$ for the contract language, which we leave
-unspecified. Figure~\ref{fig:typing-blockchain-operations} gives the
-typing of contract operations and queries. A standard transfer or
-contract invocation results in an uninformative operation
-hash. Originating a contract results in a fully typed operation hash,
-which may be turned into a typed constract handle by the $\CONTRACT$
-query. We can ask for the status of any operation hash, for the
-storage of a contract handle (if $\TYPE_s = \TNO$, we obtain a useless
-value with uninformative type $\TNO$), and for the balance of any address.
-% , and $\JTypeValue\STRING\TYPE$ for serialized values as
-% stored on the blockchain. The latter judgment states $\STRING$ is
-% a string parseable as a value of type $\TYPE$.
+unspecified, and $\JTypeValue\STRING\TYPE$ for serialized values as
+stored on the blockchain. The latter judgment states $\STRING$ is
+a string parseable as a value of type $\TYPE$.
 \begin{figure}[tp]
   \begin{mathpar}
     \inferrule{}{\JTypeExpr\TEnv\INT\TINT}
@@ -1052,7 +1030,7 @@ operation. It
 checks whether the sender of the transfer is a valid local account, whether
 the balance is sufficient to pay the fee and the transferred amount,
 whether there is an active transition for this sender (chkCount),
-whether the public hash is associated with a smart contract, whether the type of the input parameter matchs with the smart contract's parameter type (chkArg), and whether the fee is
+whether the public hash is associated with a smart contract on the blockchain, whether the type of the input parameter matchs with the smart contract's parameter type (chkArg), and whether the fee is
 sufficient. If these conditions are fulfilled, the transition forges
 an operation hash and returns it to the local node. 
 The pending operation enters the pool and the sender's counter is set
@@ -1069,7 +1047,7 @@ transitions are nondeterministic so that acceptance can happen any
 time in the next 60 cycles \TirName{Block-Accept}. Afterwards, a
 pending operation can only time out \TirName{Block-Timeout}.
 If the transaction is accepted, then the sender's counter is reset,
-the balances of sender and receiver are adjusted (updSucc), the smart contract storage and balance are updated (updConstr), and the time stamp increases.
+the balances of sender is adjusted (updSucc), the smart contract's storage and balance are updated (updConstr), and the time stamp increases.
 
 Whereas \TirName{Node-Inject} and \TirName{Block-Accept} are
 particular to the transfer operation, the timeout transition applies
@@ -1327,7 +1305,7 @@ of a transfer and items~\ref{item:5} and~\ref{item:6} describe
 invariants for contractors. The invariants establish the
 self-verifying property common of blockchain entities.
 
-The proofs of these properties refer to all transitions with the detailed specifications of the related functions, such as chkCount and updSucc. Due to page limitations, not all transitions and their associated functions are presented in this paper, so the full proofs will be provided in an upcoming technical report. In this paper, since we only provide the proofs for Proposition 2 at 4 and 7.  
+The proofs of these properties refer to all transitions with the detailed specifications of the related functions, such as chkCount and updSucc. Due to page limitations, not all transitions and their associated functions are presented in this paper, so the full proofs will be provided in an upcoming technical report. In this paper, we only provide the proofs for Proposition 2 at items 4 and 7.  
 
 \begin{proof}[4]
  After feeding into a node, the status of the operation is \STATUSPENDING\ according to the transition \TirName{ Node-Inject }. This operation could either be accepted by the blockchain on the condition that the elapsed time is less than 60 ($\TIME - \hat\TIME \le 60$), and then its status is \STATUSINCLUDED\ \TIME \ (the transition \TirName{ Block-Accept }) or it is timeout with the status \STATUSTIMEOUT\ (\TirName{ Block-Timeout}). When an operation is accepted or times out, its status is never changed. Therefore, we have
