@@ -109,8 +109,7 @@ Our typed API supports the implementation of application programs/ oracles
 that safely interact with smart contracts on the blockchain. 
 Such an API with a reliable computing facility and network 
 connectivity is sufficient to self-provision an oracle.
- Moreover, our approach provides a type-safe facility instead of oracles, 
- which are intrinsically untyped as they aim to provide a generic service.
+ Moreover, our approach provides a type-safe facility instead of oracles, which are intrinsically untyped as they aim to provide a generic service.
 
 \subsubsection{Contributions}
 \label{sec:contributions}
@@ -1308,31 +1307,34 @@ self-verifying property common of blockchain entities.
 The proofs of these properties refer to all transitions with the detailed specifications of the related functions, such as chkCount and updSucc. Due to page limitations, not all transitions and their associated functions are presented in this paper, so the full proofs will be provided in an upcoming technical report. In this paper, we only provide the proofs for Proposition 2 at items 4 and 7.  
 
 \begin{proof}[4]
- After feeding into a node, the status of the operation is \STATUSPENDING\ according to the transition \TirName{ Node-Inject }. This operation could either be accepted by the blockchain on the condition that the elapsed time is less than 60 ($\TIME - \hat\TIME \le 60$), and then its status is \STATUSINCLUDED\ \TIME \ (the transition \TirName{ Block-Accept }) or it is timeout with the status \STATUSTIMEOUT\ (\TirName{ Block-Timeout}). When an operation is accepted or times out, its status is never changed. Therefore, we have
+ After feeding into a node, the status of the operation is \STATUSPENDING\ according to the transition \TirName{Node-Inject}. This operation could either be accepted by the blockchain on the condition that the elapsed time is less than 60 ($\TIME - \hat\TIME \le 60$), and then its status is \STATUSINCLUDED\ \TIME \ (the transition \TirName{Block-Accept}) or it is timed out with the status \STATUSTIMEOUT\ (\TirName{Block-Timeout}). When an operation is accepted or timed out, its status is never changed. Therefore, there are the following three cases:
  
  \begin{itemize}
- \item if the operation remains in \STATUSPENDING, then $\PENDING' (\OPH) = \PENDING (\OPH)$; 
- \item if the operation is timeout, then $\PENDING' (\OPH) = \Angle{\OP, \hat\TIME, \STATUSTIMEOUT}$ according to the transition \TirName{ Block-Timeout}; 
- \item if the operation is accepted, then $\PENDING' (\OPH) = \Angle{\OP, \hat\TIME, \STATUSINCLUDED\ \TIME }$, and $\TIME'=\TIME +1$ because the timestamp is incremented to one when an operation is accepted, according to the transition \TirName{ Block-Accept}.
+ \item if the operation remains the same (still in \STATUSPENDING, \STATUSINCLUDED\ or \STATUSTIMEOUT), then we have $\PENDING' (\OPH) = \PENDING (\OPH)$; 
+ \item if the operation is \STATUSPENDING\ and times out, then we have $\PENDING' (\OPH) = \Angle{\OP, \hat\TIME, \STATUSTIMEOUT}$ according to the transition \TirName{Block-Timeout}; 
+ \item if the operation is \STATUSPENDING, the time condition is satisfied, and then the operation is accepted, then we have $\PENDING' (\OPH) = \Angle{\OP, \hat\TIME, \STATUSINCLUDED\ \TIME }$, and $\TIME'=\TIME +1$ because the timestamp is incremented by one according to the transition \TirName{Block-Accept}.
  \end{itemize}
 
 \end{proof}
 
-\begin{proof}[7]The function $\UPDATECOU(\MANAGERS, \PUK, \BOOLEAN)$ updates the flag of the counter of the account associated with the public key $\PUK$. The specification is as follows:
+\begin{proof}[7]To prove this point, let us consider the two related functions. The function $\UPDATECOU(\MANAGERS, \PUK, \BOOLEAN)$ updates the flag of the counter of the account associated with the public key $\PUK$. Its specification is as follows:
  \begin{itemize}
    \item[] \UPDATECOU($\PUK \mapsto \langle \BAL, (\NAT, \hat\BOOLEAN) \rangle$, \BOOLEAN) = $\PUK \mapsto \langle \BAL, (\NAT, \BOOLEAN) \rangle $
  \end{itemize}
     
-    Function $\UPDATESUCC(\MANAGERS, \PUK, \NTEZ, \MTEZ)$ updates the balance and the counter of the account that associates with the public key $\PUK$. The specification is as follows:
+    The function $\UPDATESUCC(\MANAGERS, \PUK, \NTEZ, \MTEZ)$ updates the balance and the counter of the account associated with the public key $\PUK$. Its specification is as follows:
  \begin{itemize}
-   \item[]  \UPDATESUCC($\PUK \mapsto \Angle{\BAL, (\NAT, \TRUE)}$, \PUK, \NTEZ, \MTEZ) = $ \PUK \mapsto \Angle{\BAL - \NTEZ - \MTEZ, (\NAT + 1, \FALSE)}$    
+   \item[]  \UPDATESUCC($\PUK \mapsto \Angle{\BAL, (\NAT, \TRUE)}$, \NTEZ, \MTEZ) = $ \PUK \mapsto \Angle{\BAL - \NTEZ - \MTEZ, (\NAT + 1, \FALSE)}$    
  \end{itemize}
     
-\noindent Then we have
+\noindent if $\MANAGERS (\PUK) =
+   \Angle{\BAL, \COU}$, 
+   then $\MANAGERS' (\PUK) =
+   \Angle{\BAL', \COU'}$ and we have the following points:
  \begin{itemize}
-   \item[-] $\COU.b=\TRUE$ means that the operation is injected and its status is \STATUSPENDING\ at \TIME according to the transition \TirName{Node-Inject}, and $\COU'.b=\FALSE$ means that the operation is accepted. According to the transition \TirName{Block-Accept} and the specification of the function \UPDATESUCC, the counter of the account is incremented by 1. This means $\COU.n' \in \{\COU.n,  \COU.n+1\}$.
-   \item[-] If the operation is still pending or it is time out, the country's number is changed in both cases. This means $\COU.n = \COU'.n$.
-   \item[-] If $\COU.n = \COU'.n$, the balance of the account is also changed since the balance  is only changed when the operation is accepted. This means $\BAL = \BAL'$.
+   \item[-] $\COU.b=\TRUE$ means that the operation is injected and its status is \STATUSPENDING\ at the time \TIME \ according to the transition \TirName{Node-Inject}.  After that, there are only two cases where the counter's flag is reset to False. (1) If the operation is accepted, the counter's flag is reset ($\COU'.b=\FALSE$) according to the transition \TirName{Block-Accept} and the counter's value is incremented by 1 according to the specification of the function \UPDATESUCC\ ($\COU.n' =\COU.n+1$). (2) In another case, if the operation is timed out, the counter's flag is also reset to False, but the value of the counter remains the same ($\COU.n' =\COU$) according to the transition \TirName{Block-timeout}. That is, if $\COU.b=\TRUE$ and $\COU'.b=\FALSE$, then $\COU.n' \in \{\COU.n, \COU.n+1\}$;
+   \item[-] otherwise, if the operation is still \STATUSPENDING, the counter's value remains the same. This means $\COU.n = \COU'.n$; 
+   \item[-] and then $\COU.n = \COU'.n$ means that the operation is either still \STATUSPENDING\ or that it has timed out. Therefore, the balance of the account remains the same because the balance is only changed when the operation is accepted. This means $\BAL = \BAL'$.
  \end{itemize}
 \end{proof}
 
