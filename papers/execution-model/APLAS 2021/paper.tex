@@ -17,13 +17,23 @@
 \usepackage{xcolor}
 \usepackage{listings}
 \lstdefinelanguage{michelson}{
-%  basicstyle=\ttfamily,
+  % basicstyle=\ttfamily,
+  basicstyle=\fontsize{8}{9.6}\selectfont,
   morekeywords={parameter,storage,or,unit,mutez,pair,bool,address}, sensitive=false,
   morecomment=[l]{\#},
   morecomment=[s]{/*}{*/},
   morestring=[b]",
 }
-\lstset{language=Caml}
+\lstset{
+  language=Caml,
+  captionpos=b,
+  aboveskip=-\smallskipamount,
+  belowskip=-\smallskipamount,
+  belowcaptionskip=0pt,
+  basicstyle=\fontsize{8}{9.6}\selectfont,
+  morekeywords={val}
+}
+
 \input{macros}
 
 
@@ -53,28 +63,30 @@
 %
 \begin{abstract}
   Smart contract applications on the blockchain can only reach their full potential if
-  they can be integrated with traditional software systems. Invoking
-  contracts and observing the state of the blockchain requires a
-  programmatic interface. We propose a typed API for this
+  they integrate seamlessly with traditional software systems via a
+  programmatic interface. This interface should provide for
+  originating and invoking contracts as well as observing the state of
+  the blockchain. We propose a typed API for this 
   purpose and establish some properties of the combined
   system. Specifically, we provide an execution model that
   enables us to prove type-safe interaction between programs and the 
   blockchain. We establish further properties of the model that
   give rise to requirements on the API. A prototype of the interface
   is implemented in OCaml for the Tezos blockchain.
-\end{abstract}
 
 \keywords{smart contract  \and embedded domain specific language \and types.}
+\end{abstract}
+
 %
 %
 %
 \section{Introduction}
 \label{sec:introduction}
 First generation blockchains were primarily geared towards supporting
-cryptocurrencies. The most prominent system of this kind is Bitcoin
-\cite{bitcoin-whitepaper}. Though Bitcoin already features a
+cryptocurrencies. Bitcoin is the most prominent system of this kind
+\cite{bitcoin-whitepaper}. Although Bitcoin already features a
 rudimentary programming language called Script, second generation
-blockchains like the Ethereum blockchain \cite{eth-whitepaper} feature
+blockchains like Ethereum \cite{eth-whitepaper} feature
 Turing-complete programming facilities, called 
 Smart Contracts. They provide robust trustworthy distributed computing
 facilities even though the programs run on a peer-to-peer network with
@@ -82,39 +94,62 @@ untrusted participants. Each peer in the network runs the same program
 and uses cryptographic methods to check the results among the other
 peers and to create a persistent ledger of all transactions, the
 blockchain, thus ensuring the integrity of the results. Third
-generation blockchains, like Tezos \cite{tezos-whitepaper}, are even adaptable to
-new requirements without breaking participating peers (no ``hard
-forks'' required).
+generation blockchains, like Tezos \cite{tezos-whitepaper}, are adaptable to
+new requirements without breaking participating peers (no  ``soft
+forks'' required and ``hard forks'' can be avoided).
 
 The strength of programs on the blockchain is also their
 weakness. They are fully deterministic in that they can only depend on
-data that is stored on the chain and on contract invocations, which are
-also stored on the chain. Moreover, the entire data as well as all
+data that is ultimately stored on the chain including the parameters
+of a contract invocation. Moreover, the code, the data, as well as all
 transactions are public. These properties make it hard to react to
-external stimuli like time triggers or events like an exchange rate or
-a share price hitting a limit. 
+external stimuli like time triggers or events like a price exceeding a
+threshold unless these stimuli get translated to
+contract invocations. 
 
-As smart contracts rarely live in isolation, it should be possible to
-integrate them with traditional software systems and to enable
-triggering contracts from outside the blockchain. Such triggers
-require trusted intermediaries that provide so-called oracles \cite{oracle-patterns,call-action-oracle}. A
-smart contract registers a request and a callback with an oracle. The
-oracle invokes the callback as soon as an answer is available. 
+Arguably, smart contracts are more useful if they can be
+integrated with traditional software systems and thus triggered from
+outside the blockchain.  Oracles
+\cite{oracle-patterns,call-action-oracle} provide an approach for
+contracts to obtain outside information. A contract registers a
+request and a callback with an oracle. The oracle invokes the callback
+as soon as an answer is available. The issue of trustworthiness of the
+oracle arises because it is an entity outside of the blockchain, which
+injects information into an otherwise closed, trusted (or trustless)
+environment.
 
-Building such oracles requires programmatic interfaces to implement the interactions. 
-However, current blockchains often provide non-programmatic interfaces, 
-such as the Ethereum JSON-RPC API and the Tezos RPC API. 
-We present a typed API for invoking contracts from OCaml programs. 
-Our typed API supports the implementation of application programs/ oracles 
+However, oracles are expensive and there are other usecases for
+connecting a contract with traditional software. One example is
+automatizing procedures like managing an auction, automatic bidding in
+an auction, optimizing fees, or initiating delivery of goods to a
+customer. While some of these procedures are amenable to
+implementation as contracts, we might want to save the fee of running
+them on the blockchain. In particular, for actions that happen
+strictly within a single domain of trust, it is not worth running them
+on the blockchain. For example, automated bidding runs on behalf of
+a single peer.
+
+Building such automation requires a programmatic interface to implement the interactions. 
+Current blockchains mostly provide RPC interfaces, 
+such as the Ethereum JSON-RPC API and the Tezos RPC API, but they
+require cumbersome manipulation of string data in JSON format and do
+not provide static guarantees (except that the response to a
+well-formed JSON input is also a well-formed JSON output). 
+To improve on this situation
+we present a typed API for invoking contracts from OCaml programs. 
+Our typed API supports the implementation of application programs and oracles 
 that safely interact with smart contracts on the blockchain. 
-Such an API with a reliable computing facility and network 
-connectivity is sufficient to self-provision an oracle.
- Moreover, our approach provides a type-safe facility instead of oracles, which are intrinsically untyped as they aim to provide a generic service.
+Moreover, our approach provides a type-safe facility to communicate
+with contracts where data is automatically marshalled between OCaml
+and the blockchain. This interface is a step towards a seamless
+integration of contracts into traditional programs.
 
 \subsubsection{Contributions}
 \label{sec:contributions}
 
 \begin{itemize}
+\item A typed API for originating and invoking contracts as well as
+  querying the state of the blockchain.
 \item An operational semantics for functional programs running
   alongside smart contracts in a blockchain. 
 \item Established various properties of the combined system with
@@ -151,6 +186,36 @@ higher bid arrives. However, we cannot assume such cooperation of the
 auction contract nor would we be willing to pay the the fee for running
 that callback.
 
+\begin{lstlisting}[language=michelson,numbers=none,float={tp},caption={Header of the auction contract},label={lst:auction-contract-header},captionpos=b,emph={close,bid},emphstyle=\underbar]
+parameter (or (unit %close)
+              (unit %bid)); # bid in transfer
+storage (pair bool          # bidding allowed
+         (pair address      # contract owner
+          address           # highest bidder's address
+        ));
+\end{lstlisting}
+\begin{lstlisting}[language=Caml,float={tp},caption={Getting the auction handle},label={lst:getting-auction-handle},numbers=none]
+# let auction = Cl.make_contract_hash auction_hash
+#     ~parameter:(Ct.Or (Ct.Unit, Ct.Unit))
+#     ~storage:(Ct.Pair (Ct.Bool, Ct.Pair (Ct.Addr, Ct.Addr))));;
+val auction :
+  ((unit, unit) Either.t,
+   bool * (Cl.Addr.t * Cl.Addr.t)) Cl.contract
+\end{lstlisting}
+\begin{lstlisting}[language=Caml,float={tp},caption={Bidding strategy},label={lst:bidding-strategy},numbers=none]
+let rec poll limit step =
+  let (bidding, (_, highest_bidder)) = Cl.get_storage auction;
+  let high_bid = Cl.get_balance auction;
+  if bidding && high_bid < limit then
+    (if highest_bidder <> my_address then  (* entrypoint %bid *)
+      try
+        Cl.call_contract auction
+          (right (min (high_bid + step, limit))) 
+      with
+      | Cl.FAILWITH message -> poll limit step;
+    Time.sleep(5 * 60);
+    poll limit step)
+\end{lstlisting}
 For concreteness, Listing~\ref{lst:auction-contract-header} shows the
 header of an auction contract in Michelson \cite{michelson}. The
 \lstinline/parameter/ clause specifies the contract's parameter
@@ -165,16 +230,8 @@ which is a nested pair type indicating whether bidding is allowed
 (\lstinline/bool/), the address of the contract owner (to prohibit
 unauthorized calls to \lstinline/%close/), and the bidder's
 address. The highest bid corresponds to the token balance of the contract.
-\begin{lstlisting}[language=michelson,numbers=none,float,caption={Header of the auction contract},label={lst:auction-contract-header},captionpos=b,emph={close,bid},emphstyle=\underbar]
-parameter (or (unit %close)
-              (unit %bid)); # bid in transfer
-storage (pair bool          # bidding allowed
-         (pair address      # contract owner
-          address           # highest bidder's address
-        ));
-\end{lstlisting}
 
-To avoid too much detail, we only outline the implementation of the entrypoints. The
+We only outline the implementation of the entrypoints. The
 \lstinline/%close/ entrypoint first checks its sender's address
 against the owner's address in the store. Then it transfers the funds
 to the owner, closes the contract by clearing the bidding flag, and
@@ -185,9 +242,8 @@ than the existing highest bid. Otherwise, it keeps the funds
 transferred, returns the previous highest bid to its owner, and stores
 the current bidder as the new highest bidder.
 
-
-We present some idealized code for % timed contract closing and
-strategic bidding as a separate program that interacts with the
+We present a program that implements
+strategic bidding by interacting with the
 blockchain.  The bidding strategy cannot be implemented as a smart
 contract.
 % A variation of timed contract closing could be
@@ -197,28 +253,20 @@ contract.
 % deadline, but it cannot reliably execute the action associated with
 % closing the contract at the deadline
 
-In preparation, we need to obtain a typed handle for the contract. We
-assume that \lstinline!Cl! is the module containing the contract
-library. The respective library function
-\lstinline!Cl.make_contract_from_hash!
+In Listing~\ref{lst:getting-auction-handle}, we use the library function
+\lstinline!Cl.make_contract_from_hash! to 
+obtain a typed handle for the contract.\footnote{\lstinline!Cl! is the module containing the contract
+  library.} The function
 takes the hash of the contract along with representations of
 the types of the parameter and the storage (from module
 \lstinline!Ct!). It checks the validity of the hash and the types with
 the blockchain and returns a typed
 handle, which is indexed with OCaml types corresponding to parameter
 and storage type.
-\begin{lstlisting}[language=Caml,numbers=none,basicstyle=\small]
-# let auction = Cl.make_contract_hash auction_hash
-#     ~parameter:(Ct.Or (Ct.Unit, Ct.Unit))
-#     ~storage:(Ct.Pair (Ct.Bool, Ct.Pair (Ct.Addr, Ct.Addr))));;
-val auction :
-  ((unit, unit) Either.t,
-   bool * (Cl.Addr.t * Cl.Addr.t)) Cl.contract
-\end{lstlisting}
 
 % First the code that creates an auction contract and closes it after 48 hours. 
 
-% \begin{lstlisting}[language=Caml,numbers=none,basicstyle=\small]
+% \begin{lstlisting}[language=Caml,numbers=none]
 % let _ = Cl.set_authority (my_address)
 % let initial_store = (true, (my_address, my_address))
 % let contract = Cl.originate auction 1 initial_store
@@ -235,26 +283,11 @@ val auction :
 % highest bidder to the sender account.
 
 
-To implement the bidding strategy, we first check the state of the
+The implementation of the bidding strategy in Listing~\ref{lst:bidding-strategy} first checks the state of the
 contract to find the current highest bid. As long as bidding is
 allowed and the current bid is below our \lstinline/limit/, we update
 our bid by a given amount \lstinline/step/, and then keep watching the state of the contract by
 polling it every five minutes. 
-
-\begin{lstlisting}[language=Caml,numbers=none,basicstyle=\small]
-let rec poll limit step =
-  let (bidding, (_, highest_bidder)) = Cl.get_storage auction;
-  let high_bid = Cl.get_balance auction;
-  if bidding && high_bid < limit then
-    (if highest_bidder <> my_address then  (* entrypoint %bid *)
-      try
-        Cl.call_contract auction
-          (right (min (high_bid + step, limit))) 
-      with
-      | Cl.FAILWITH message -> poll limit step;
-    Time.sleep(5 * 60);
-    poll limit step)
-\end{lstlisting}
 
 The functions \lstinline/get_storage/ and \lstinline/get_balance/
 obtains the storage and current balance, respectively, of a contract from
@@ -307,7 +340,13 @@ blockchain, which is the basis of our implementation.
 
 \section{Execution Model}
 \label{sec:execution-model}
-The context of our work is the Tezos blockchain \cite{tezos-whitepaper,tezos-intropaper}. Tezos is a self-amending blockchain that improves several aspects compared to established blockchains. Tezos proposes an original consensus algorithm called Liquid Proof of Stake that allows consensus not only on the state of its ledger, like Bitcoin \cite{bitcoin-whitepaper} or Ethereum \cite{eth-whitepaper}, but also on how the economic protocol and nodes should upgrade, and serves as a decentralized smart contract platform that focuses on formal methods to improve security. 
+The context of our work is the Tezos blockchain
+\cite{tezos-whitepaper,tezos-intropaper}. Tezos is a self-amending
+blockchain that improves several aspects compared to established
+blockchains. Tezos proposes an original consensus algorithm,
+Liquid Proof of Stake, that applies not only to the state of
+its ledger, like Bitcoin \cite{bitcoin-whitepaper} or Ethereum
+\cite{eth-whitepaper}, but also to upgrades of the protocol and the software.
 
 Tezos supports two types of accounts: implicit accounts, which
 are associated with a pair of private/public keys, and smart
@@ -478,28 +517,25 @@ that type, all values of \TOPH\ are valid.
   \caption{Syntax of expressions, \EXPR, and types, \TYPE}
   \label{fig:syntax-expressions}
 \end{figure}
-All queries and operations are started by programs, i.e., closed
+Queries and operations are started by closed
 expressions of type unit that run on the
 local node. Each program can send transactions on behalf of any
-account on the local node.  Figure~\ref{fig:syntax-expressions} defines the syntax of
-expressions, which describe the usual constructs of call-by-value PCF
-with sum, product, list, and option types, exceptions and fixpoint.
+account on the local node.  Figure~\ref{fig:syntax-expressions}
+defines the syntax of lambda calculus with sum, product, list, and option types, exceptions and fixpoint.
 Pattern matching is the only means to decompose values, cf.\ \PATTERN. 
 
-Moreover, there are
-domain-specific primitive types and constants \CONSTANT\ to support blockchain
-operations, as well as several exceptional values collected in \ERROR.
+
+Domain-specific primitive types and constants \CONSTANT\ support blockchain
+interaction, as well as several exceptional values collected in \ERROR.
 There is syntax to initiate transfers and to originate contracts as
 well as for the queries. Finally, there is a type cast
 $\CAST\EXPR\TYPE\TYPEU$, which we describe after discussing types. An
 implementation provides all of these types and operations via a library API.
 
-Types (also in Figure~\ref{fig:syntax-expressions}) comprise a
-collection of standard base types as well as 
+Types (also in Figure~\ref{fig:syntax-expressions}) comprise some base types as well as 
 functions, pairs, lists, sums, and option types. These types are
 chosen to match with built-in types of Michelson. 
-In addition, there
-are domain specific types of public hashes $\TPUH$ and public keys $\TPUK$ subsumed by
+There are domain specific types of public hashes $\TPUH$ and public keys $\TPUK$ subsumed by
 a type of addresses $\TADDR$. $\TCONTRACT\ \TYPE\ \TYPEU$ is the type of
 a contract with parameter type $\TYPE$ and storage type $\TYPEU$. $\CODE\ \TYPE\ \TYPEU$
 indicates a Michelson program with parameter type $\TYPE$ and storage
@@ -867,7 +903,7 @@ local account has a manager in $\BLOCKCHAIN$:
 \section{Operational Semantics}
 \label{sec:transitions}
 
-The operational semantics is defined by several kinds of transitions depending on their scope:
+The operational semantics is defined by several kinds of transitions:
 \begin{enumerate}
 \item $\ExprTrans$ single-step evaluation of an expression in a local node,
 \item $\NodeTrans$ internal transitions of a node,
@@ -1022,7 +1058,7 @@ blockchain. To this end, any local node may be selected.
   \label{fig:lifecycle-transaction}
 \end{figure}
 Figure~\ref{fig:lifecycle-transaction} shows the transitions to start
-and finalize a transfer transaction, namely a smart contract invocation.
+and finalize a contract invocation.
 \TirName{Node-Inject} affects a local node and the blockchain. It
 nondeterminstically selects a program that wants to do a transfer
 operation. It
@@ -1116,7 +1152,7 @@ resets the sender's counter, thus rolling back the transaction.
   \caption{Cast reductions (excerpt)}
   \label{fig:cast-reductions}
 \end{figure}
-\begin{figure}[tp]
+\begin{figure}[t]
   \begin{mathpar}
     \inferrule[Block-Originate]{
       \Angle{\PAK,\PUK} \in \ACCOUNTS \\ \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
@@ -1160,7 +1196,7 @@ resets the sender's counter, thus rolling back the transaction.
   \caption{Smart contract origination}
   \label{fig:contract-origination}
 \end{figure}
-\begin{figure}[tp]
+\begin{figure}[t]
   \begin{mathpar}
     \inferrule[Query-Balance-Implicit]{
       % \BLOCKCHAIN =
@@ -1307,7 +1343,7 @@ self-verifying property common of blockchain entities.
 The proofs of these properties refer to all transitions with the detailed specifications of the related functions, such as chkCount and updSucc. Due to page limitations, not all transitions and their associated functions are presented in this paper, so the full proofs will be provided in an upcoming technical report. In this paper, we only provide the proofs for Proposition 2 at items 4 and 7.  
 
 \begin{proof}[4]
- After feeding into a node, the status of the operation is \STATUSPENDING\ according to the transition \TirName{Node-Inject}. This operation could either be accepted by the blockchain on the condition that the elapsed time is less than 60 ($\TIME - \hat\TIME \le 60$), and then its status is \STATUSINCLUDED\ \TIME \ (the transition \TirName{Block-Accept}) or it is timed out with the status \STATUSTIMEOUT\ (\TirName{Block-Timeout}). When an operation is accepted or timed out, its status is never changed. Therefore, there are the following three cases:
+ After feeding into a node, the status of the operation is \STATUSPENDING\ according to the transition \TirName{Node-Inject}. This operation could either be accepted by the blockchain on the condition that the elapsed time is less than 60 ($\TIME - \hat\TIME \le 60$), and then its status is \STATUSINCLUDED\ \TIME \ (the transition \TirName{Block-Accept}) or it is timed out with the status \STATUSTIMEOUT\ (\TirName{Block-Timeout}). When an operation is accepted or timed out, its status is never changed. There are  three cases:
  
  \begin{itemize}
  \item if the operation remains the same (still in \STATUSPENDING, \STATUSINCLUDED\ or \STATUSTIMEOUT), then we have $\PENDING' (\OPH) = \PENDING (\OPH)$; 
@@ -1330,7 +1366,7 @@ The proofs of these properties refer to all transitions with the detailed specif
 \noindent if $\MANAGERS (\PUK) =
    \Angle{\BAL, \COU}$, 
    then $\MANAGERS' (\PUK) =
-   \Angle{\BAL', \COU'}$ and we have the following points:
+   \Angle{\BAL', \COU'}$ and we have:
  \begin{itemize}
    \item[-] $\COU.b=\TRUE$ means that the operation is injected and its status is \STATUSPENDING\ at the time \TIME \ according to the transition \TirName{Node-Inject}.  After that, there are only two cases where the counter's flag is reset to False. (1) If the operation is accepted, the counter's flag is reset ($\COU'.b=\FALSE$) according to the transition \TirName{Block-Accept} and the counter's value is incremented by 1 according to the specification of the function \UPDATESUCC\ ($\COU.n' =\COU.n+1$). (2) In another case, if the operation is timed out, the counter's flag is also reset to False, but the value of the counter remains the same ($\COU.n' =\COU$) according to the transition \TirName{Block-timeout}. That is, if $\COU.b=\TRUE$ and $\COU'.b=\FALSE$, then $\COU.n' \in \{\COU.n, \COU.n+1\}$;
    \item[-] otherwise, if the operation is still \STATUSPENDING, the counter's value remains the same. This means $\COU.n = \COU'.n$; 
