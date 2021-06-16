@@ -3,17 +3,25 @@ module Store = struct
   let map f m = fun s -> let (a, s') = m s in (f a, s')
 
   let bind m f = fun s -> let (a, s') = m s in f a s'
-
+  let return x = fun s -> (x, s)
+  let lift f = f
+end
+module ReaderStore = struct
+  (* type ('a, 'r, 's) reader_store = 'r -> 's -> 'a * 's *)
+  let bind m f = fun r s -> let (a, s') = m r s in f a r s'
+  let return x = fun r s -> (x, s)
+  let lift f = fun r -> f
 end
 
-open Store
 
-let (let*) x f = bind x f
-let return x = fun s -> (x, s)
+let (let*) = ReaderStore.bind
+let return = ReaderStore.return
+let lift = ReaderStore.lift
 
 (* TODOs *)
-(* parameterize interpretation of SENDER, SOURCE, AMOUNT, BALANCE, ... *)
-(* support option type *)
+(* to be handled in the Reader:
+   parameterize interpretation of SENDER, SOURCE, AMOUNT, BALANCE, ... *)
+(* ITER for sets *)
 
 (* types and symbolic values *)
 type ty =
@@ -22,6 +30,8 @@ type ty =
   | TInt
   | TNat
   | TList of ty
+  | TOption of ty
+  | TSet of ty
   | TMap of ty * ty
   | TMutez
   | TOr of ty * ty
@@ -32,7 +42,8 @@ type ty =
   | TOperation
 
 type step =
-  | SLeft | SRight | SFirst | SSecond | SCar | SCdr
+  | SLeft | SRight | SFirst | SSecond | SCar | SCdr | SSome
+  | WSome                       (* wrapped in option Some *)
 
 type lr =
   | L | R
@@ -46,9 +57,12 @@ type sval =
   | VOr of lr * sval * ty
   | VPair of sval * sval
   | VString of string
+  | VSet of sval list * ty         (* no repetitions *)
   | VUnit
   | VNil of ty
   | VCons of sval * sval
+  | VNone of ty
+  | VSome of sval
   | VContract of string * ty
   | VSymbolic of desc * ty
 and desc =
@@ -57,6 +71,11 @@ and desc =
   | Storage
   | Op of string * sval list
   | Set of sval list
+
+let nstep (spec : step * desc) =
+  match spec with
+  | SSome, Step (WSome, d) -> d (* shortcut *)
+  | stp, d -> Step (stp, d)
       
 let rec typeof (s : sval) =
   match s with
@@ -69,11 +88,19 @@ let rec typeof (s : sval) =
   | VOr (R, s, t) -> TOr (t, typeof s)
   | VPair (s1, s2) -> TPair (typeof s1, typeof s2)
   | VString (_) -> TString
+  | VSet (_, t) -> TSet t
   | VUnit -> TUnit
   | VNil t -> TList t
   | VCons (s1, s2) -> TList (typeof s1)
+  | VNone t -> TOption t
+  | VSome s -> TOption (typeof s)
   | VContract (_, t) -> TContract t
   | VSymbolic (d, t) -> t
+
+let concrete (s : sval) =
+  match s with
+  | VSymbolic (_, _) -> false
+  | _ -> true
 
 let isPair (t : ty) =
   match t with
@@ -107,6 +134,9 @@ let rec merge_sval x y =
   | (VUnit, VUnit) -> VUnit
   | (VNil t1, VNil t2) when t1 = t2 -> VNil t1
   | (VCons (x1, x2), VCons (y1, y2)) when typeof x = typeof y -> VCons (merge_sval x1 y1, merge_sval x2 y2)
+  | (VNone t1, VNone t2) when t1 = t2 -> VNone t1
+  | (VSome x, VSome y) when typeof x = typeof y -> VSome (merge_sval x y)
+  | (VSet (x1, t1), VSet (x2, t2)) when t1 = t2 && x1 = x2 -> VSet (x1, t1) (* set equality *)
   | (VPair (x1, x2), VPair (y1, y2)) when typeof x = typeof y -> VPair (merge_sval x1 y1, merge_sval x2 y2)
   | (VOr (tag1, s1,t1), VOr (tag2, s2, t2)) when tag1 = tag2 && t1 = t2 -> VOr (tag1, merge_sval s1 s2, t1)
   | _ when typeof x = typeof y -> VSymbolic (Set [x; y], typeof x)
@@ -131,20 +161,21 @@ let initial_constraints = {
   maybe_reachable = true
 }
 
-let register_true arg r =
-  (), {r with true_values = arg :: r.true_values}
+let register_true arg =
+  lift (fun r -> (), {r with true_values = arg :: r.true_values})
 
-let register_false arg r =
-  (), {r with false_values = arg :: r.false_values}
+let register_false arg =
+  lift (fun r -> (), {r with false_values = arg :: r.false_values})
 
-let register_failure arg {true_values; false_values; failure_values; _} =
+let register_failure arg =
+  lift (fun {true_values; false_values; failure_values; _} ->
   let failure_values =
     (true_values, false_values, arg) ::
     failure_values in
   (), {true_values;
        false_values;
        failure_values;
-       maybe_reachable = false}
+       maybe_reachable = false})
 
 (* instructions *)
 
@@ -159,11 +190,17 @@ let rec comparable_type t =
   | TUnit -> true
   | TOr (t1, t2)
   | TPair (t1, t2) -> comparable_type t1 && comparable_type t2
+  | TOption (t) -> comparable_type t
   | _ -> false
 
 let contract_type t =
   match t with
   | TContract _ -> true
+  | _ -> false
+
+let set_type t =
+  match t with
+  | TSet _ -> true
   | _ -> false
 
 let compare_bool a b =
@@ -275,12 +312,19 @@ let interpretI ins (stack : sval list) =
     return (VPair (s1, s2) :: st)
   | ("CONS", s1 :: s2 :: st) ->
     return (VCons (s1, s2) :: st) (* check types? *)
+  | ("SOME", s :: st) ->
+    return (VSome s :: st)
   | ("DUP", (x :: st)) ->
     return (x :: x :: st)
   | ("SWAP", (x :: y :: st)) ->
     return (y :: x :: st)
   | ("DROP", (x :: st)) ->
     return (st)
+  | ("ISNAT", VInt a :: st) ->
+    return ((if a >= 0 then VSome (VNat a) else VNone TNat) :: st)
+  | ("ISNAT", x :: st)
+    when typeof x = TInt ->
+    return (VSymbolic (Op ("ISNAT", [x]), TOption TNat) :: st)
   | "COMPARE", VMutez a :: VMutez b :: st
   | "COMPARE", VInt a :: VInt b :: st
   | "COMPARE", VNat a :: VNat b :: st ->
@@ -344,6 +388,33 @@ let interpretI ins (stack : sval list) =
   | "ADDRESS", x :: st
     when contract_type (typeof x) ->
     return (VSymbolic (Op ("ADDRESS", [x]), TAddress) :: st)
+  | "MEM", x :: VSet (zs, t) :: st
+    when typeof x = t && concrete x && List.for_all concrete zs ->
+    return (VBool (List.mem x zs) :: st)
+  | "MEM", x :: y :: st
+    when typeof y = TSet (typeof x) ->
+    return (VSymbolic (Op ("MEM", [x; y]), TBool) :: st)
+  (* concrete instances of MEM would be quite complex *)
+  | "SIZE", VSet (xs, t) :: st ->
+    return (VNat (List.length xs) :: st)
+  | "SIZE", x :: st
+    when set_type (typeof x) ->
+    return (VSymbolic (Op ("SIZE", [x]), TNat) :: st)
+  | "UPDATE", x :: VBool true :: VSet (zs, t) :: st
+    when typeof x = t && concrete x && List.for_all concrete zs ->
+    if List.mem x zs then 
+      return (VSet (zs, t) :: st)
+    else
+      return (VSet (x :: zs, t) :: st)
+  | "UPDATE", x :: VBool false :: VSet (zs, t) :: st
+    when typeof x = t && concrete x && List.for_all concrete zs ->
+    if List.mem x zs then 
+      return (VSet (List.filter (fun z -> z <> x) zs, t) :: st)
+    else
+      return (VSet (zs, t) :: st)
+  | "UPDATE", x :: y :: z :: st
+    when typeof z = TSet (typeof x) && typeof y = TBool ->
+    return (VSymbolic (Op ("UPDATE", [x;y;z]), typeof z) :: st)
   | ("SELF_ADDRESS", st) ->
     return (VSymbolic (Op ("SELF_ADDRESS", []), TAddress) :: st)
   | ("SENDER", st) ->
@@ -363,12 +434,21 @@ let interpretI ins (stack : sval list) =
 
 let interpretT ins t stack =
   match (ins, stack) with
-  | ("CONTRACT", VAddress a :: st) ->
-    return (VContract (a, t) :: st)
-  | ("CONTRACT", VSymbolic (d, TAddress) :: st) ->
-    return (VSymbolic (d, TContract t) :: st)
+  | ("CONTRACT", (VAddress a as x) :: st) ->
+    return (VSymbolic (Step (WSome, Set[x]), TOption (TContract t)) :: st)
+  (* returns an option
+   * - requires new kind of symbolic value introduced with WSome
+   * - it's a VContract (a, t) if it returns Some value -> this is hidden in a singleton set
+   * - it can also be None
+  *)
+  | ("CONTRACT", (VSymbolic (d, TAddress)) :: st) ->
+    return (VSymbolic (Step (WSome, d), TOption (TContract t)) :: st)
   | "NIL", st ->
     return (VNil t :: st)
+  | "NONE", st ->
+    return (VNone t :: st)
+  | "EMPTY_SET", st ->
+    return (VSet ([], t) :: st)
   | _ ->
     raise (StackType ("unprocessed TOperation " ^ ins, stack))
   
@@ -381,9 +461,9 @@ let rec segment i stack =
     | [] ->
       [], []
 
-let symbolic_if mtrue mfalse cstore =
-  let (st_tru, cstore_tru) = mtrue cstore in
-  let (st_fls, cstore_fls) = mfalse cstore in
+let symbolic_if mtrue mfalse rd cstore =
+  let (st_tru, cstore_tru) = mtrue rd cstore in
+  let (st_fls, cstore_fls) = mfalse rd cstore in
   let (new_stack, new_cstore) =
     if cstore_tru.maybe_reachable
     then if cstore_fls.maybe_reachable
@@ -391,12 +471,12 @@ let symbolic_if mtrue mfalse cstore =
             {cstore with maybe_reachable = true})
       else (st_tru, cstore_tru)
     else (st_fls, cstore_fls) in
-  return new_stack
-    {new_cstore with
-     failure_values =
-       cstore_tru.failure_values @ cstore_fls.failure_values;
-     (* remove duplicates! *)
-    }
+  (new_stack,
+   {new_cstore with
+    failure_values =
+      cstore_tru.failure_values @ cstore_fls.failure_values;
+    (* remove duplicates! *)
+   })
 
 let rec interpret (il : instr list) (stack : sval list) =
   match il with
@@ -429,6 +509,10 @@ and interpretC (ins, ins_tru, ins_fls) stack =
     interpret ins_tru (h :: t :: st)
   | "IF_CONS", VNil t :: st ->
     interpret ins_fls st
+  | "IF_NONE", VNone t :: st ->
+    interpret ins_tru st
+  | "IF_NONE", VSome s :: st ->
+    interpret ins_fls (s :: st)
   | "IF", (VSymbolic (d, TBool) as x) :: st ->
     symbolic_if
       (let* _ = register_true x in
@@ -449,6 +533,12 @@ and interpretC (ins, ins_tru, ins_fls) stack =
                           st))
       (let* _ = register_false x in
        interpret ins_fls st)
+  | "IF_NONE", (VSymbolic (d, TOption t) as x) :: st ->
+    symbolic_if
+      (let* _ = register_true x in
+       interpret ins_tru st)
+      (let* _ = register_false x in
+      interpret ins_fls (VSymbolic (nstep (SSome, d), t) :: st))
   | n, _ -> raise (StackType ("unprocessed conditional "^n, stack))
 
 let rec symof (d : desc) (t : ty) =
@@ -535,8 +625,9 @@ let auction_entrypoints = entrypoints auction_parameter
 let auction_stacks = List.map (fun ep -> initial_stack_from_entrypoint ep auction_storage) auction_entrypoints
 let [stack_close; stack_bid] = auction_stacks
     
-let final_close = interpret auction stack_close
-let final_bid = interpret auction stack_bid
+let env = ()
+let final_close = interpret auction stack_close env
+let final_bid = interpret auction stack_bid env
 
 (* execute *)
 let analysis_close = final_close initial_constraints
