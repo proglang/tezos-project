@@ -1408,6 +1408,8 @@ if  $\PENDING (\OPH) =  \Angle{\OP, \hat\TIME, \STATUS}$
 \end{itemize}
 \end{lemma}
 
+\begin{proof} Consider the proof of the second item of Lemma 3, which specifies the property on type for a smart contract invocation. A smart contract call \OP\ has the form \TRANSFER [\PARAMETER]\NTEZ\PUK\PUH\MTEZ. If $\PENDING (\OPH) = \Angle{\OP, \hat\TIME, \STATUS }$, then the operation $\OP$ is injected into the node. According to the transition \TirName{Node-Inject} for a smart contract invocation, the public key is valid and the public hash must be associated with a smart contract on the blockchain. This means $\PUK \in \DOM (\MANAGERS)$ and $\PUH\in \DOM (\CONTRACTORS)$. The chkArg function checks whether the type of the input parameter \PARAMETER\ matches the parameter type of the smart contract. If the casted type of the smart contract is $\Delta (\PUH) =\TPAIR\ \TYPE_p\ \TYPE_s$, then the type of the parameter  must be $\TYPE_p$. This means $\JTypeValue\PARAMETER {\TYPE_p}$.
+\end{proof}
 
 \section{Related Work}
 \label{sec:related work}
@@ -1459,4 +1461,4 @@ blockchain programming and concurrent programs.
 
 
 \end{document}
-
+\end{proof} 
