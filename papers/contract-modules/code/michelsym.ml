@@ -19,7 +19,7 @@ let return = ReaderStore.return
 let lift = ReaderStore.lift
 
 (* TODOs *)
-(* to be handled in the Reader:
+(* to be handled in the Reader, using the hash table in module Env:
    parameterize interpretation of SENDER, SOURCE, AMOUNT, BALANCE, ... *)
 (* ITER for sets *)
 
@@ -176,6 +176,15 @@ let register_failure arg =
        false_values;
        failure_values;
        maybe_reachable = false})
+
+module Env = struct
+  type t = (string, sval) Hashtbl.t
+  let init_lst = List.map
+      (fun instr -> (instr, VSymbolic (Op (instr, []), TAddress))) 
+      ["SENDER"; "SOURCE"; "SELF_ADDRESS"; "AMOUNT"; "BALANCE"]
+  let table = Hashtbl.create 10
+  let _ = List.iter (fun (k, v) -> Hashtbl.add table k v) init_lst
+end
 
 (* instructions *)
 
