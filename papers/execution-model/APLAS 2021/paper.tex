@@ -1269,6 +1269,7 @@ unknown, then we raise an exception
 Running a program that starts with valid references to accounts,
 operations, and contracts does not get corrupted by a transition.
 \begin{proposition}
+\label{propo:1}
   The following properties are preserved by a step on a well-formed
   configuration $ [\EXPRS, \ACCOUNTS] \| \BLOCKCHAIN$:
   \begin{itemize}
@@ -1279,6 +1280,7 @@ operations, and contracts does not get corrupted by a transition.
 \end{proposition}
 
 \begin{proposition}
+\label{propo:2}
 If $[\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \BlockTrans{}
 [\PENDING', \MANAGERS', \CONTRACTORS', \TIME']$, then
 \begin{enumerate}
@@ -1326,8 +1328,8 @@ If $[\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \BlockTrans{}
    \end{itemize}
  \item\label{item:6} invariant for contractors:
    for all $\PUH \in \DOM (\CONTRACTORS)$,
-   $\CONTRACTORS (\PUH) = \Angle{ \CODE, \tilde\TIME, \BAL, \STORAGE}$
-   implies that $\PUH = \GENERATEHASH (\CODE, \tilde\TIME)$.
+    $\CONTRACTORS (\PUH)$ = $\Angle{ \CODE, \tilde\TIME, \BAL, \STORAGE}$
+   implies that $\PUH$ = $\GENERATEHASH (\CODE, \tilde\TIME)$.
 \end{enumerate}
 \end{proposition}
 Establishing items~\ref{item:7} and~\ref{item:4} relies on the preimage resistance of the
@@ -1343,14 +1345,14 @@ self-verifying property common of blockchain entities.
 The proofs of these properties refer to all transitions with the detailed specifications of the related functions, such as chkCount and updSucc. Due to page limitations, not all transitions and their associated functions are presented in this paper, so the full proofs will be provided in an upcoming technical report. In this paper, we only provide the proofs for Proposition 2 at items 4 and 7.  
 
 \begin{proof}[4]
- After feeding into a node, the status of the operation is \STATUSPENDING\ according to the transition \TirName{Node-Inject}. This operation could either be accepted by the blockchain on the condition that the elapsed time is less than 60 ($\TIME - \hat\TIME \le 60$), and then its status is \STATUSINCLUDED\ \TIME \ (the transition \TirName{Block-Accept}) or it is timed out with the status \STATUSTIMEOUT\ (\TirName{Block-Timeout}). When an operation is accepted or timed out, its status is never changed. There are  three cases:
+ After feeding into a node, the status of the operation is \STATUSPENDING\ according to the transition \TirName{Node-Inject}. This operation could either be accepted by the blockchain on the condition that the elapsed time is less than 60 ($\TIME - \hat\TIME \le 60$), and then its status is \STATUSINCLUDED\ \TIME \ (the transition \TirName{Block-Accept}) or it is timed out with the  \STATUSTIMEOUT\ status (\TirName{Block-Timeout}). When an operation is accepted or timed out, its status is never changed. Therefore, if $\PENDING (\OPH)$ = $\Angle{\OP,  \hat\TIME, \STATUS}$, then there are  three cases:
  
  \begin{itemize}
- \item if the operation remains the same (still in \STATUSPENDING, \STATUSINCLUDED\ or \STATUSTIMEOUT), then we have $\PENDING' (\OPH) = \PENDING (\OPH)$; 
- \item if the operation is \STATUSPENDING\ and times out, then we have $\PENDING' (\OPH) = \Angle{\OP, \hat\TIME, \STATUSTIMEOUT}$ according to the transition \TirName{Block-Timeout}; 
- \item if the operation is \STATUSPENDING, the time condition is satisfied, and then the operation is accepted, then we have $\PENDING' (\OPH) = \Angle{\OP, \hat\TIME, \STATUSINCLUDED\ \TIME }$, and $\TIME'=\TIME +1$ because the timestamp is incremented by one according to the transition \TirName{Block-Accept}.
+ \item [(1)] if the operation's status remains the same as $\STATUS$ (still in \STATUSPENDING, \STATUSINCLUDED\ or \STATUSTIMEOUT), then we have $\PENDING' (\OPH)$ = $\Angle{\OP,  \hat\TIME, \STATUS}$. This means $\PENDING' (\OPH)$ = $\PENDING (\OPH)$; 
+ \item [(2)] if the operation's status is \STATUSPENDING\ (\STATUS\ = \STATUSPENDING), and then the operation is timed out, then we have $\PENDING' (\OPH)$ = $\Angle{\OP, \hat\TIME, \STATUSTIMEOUT}$ according to the transition \TirName{Block-Timeout}; 
+ \item [(3)] if the operation's status is \STATUSPENDING, the time condition is satisfied, and then the operation is accepted, then we have $\PENDING' (\OPH) = \Angle{\OP, \hat\TIME, \STATUSINCLUDED\ \TIME }$ and $\TIME'=\TIME +1$ because the timestamp is incremented by one according to the transition \TirName{Block-Accept}.
  \end{itemize}
-
+From (1), (2) and (3), the item \ref{item:7} of Proposition 2 is proved.
 \end{proof}
 
 \begin{proof}[7]To prove this point, let us consider the two related functions. The function $\UPDATECOU(\MANAGERS, \PUK, \BOOLEAN)$ updates the flag of the counter of the account associated with the public key $\PUK$. Its specification is as follows:
@@ -1368,10 +1370,12 @@ The proofs of these properties refer to all transitions with the detailed specif
    then $\MANAGERS' (\PUK) =
    \Angle{\BAL', \COU'}$ and we have:
  \begin{itemize}
-   \item[-] $\COU.b=\TRUE$ means that the operation is injected and its status is \STATUSPENDING\ at the time \TIME \ according to the transition \TirName{Node-Inject}.  After that, there are only two cases where the counter's flag is reset to False. (1) If the operation is accepted, the counter's flag is reset ($\COU'.b=\FALSE$) according to the transition \TirName{Block-Accept} and the counter's value is incremented by 1 according to the specification of the function \UPDATESUCC\ ($\COU.n' =\COU.n+1$). (2) In another case, if the operation is timed out, the counter's flag is also reset to False, but the value of the counter remains the same ($\COU.n' =\COU$) according to the transition \TirName{Block-timeout}. That is, if $\COU.b=\TRUE$ and $\COU'.b=\FALSE$, then $\COU.n' \in \{\COU.n, \COU.n+1\}$;
-   \item[-] otherwise, if the operation is still \STATUSPENDING, the counter's value remains the same. This means $\COU.n = \COU'.n$; 
-   \item[-] and then $\COU.n = \COU'.n$ means that the operation is either still \STATUSPENDING\ or that it has timed out. Therefore, the balance of the account remains the same because the balance is only changed when the operation is accepted. This means $\BAL = \BAL'$.
+   \item[(1)] $\COU.b=\TRUE$ means that the operation is injected and its status is \STATUSPENDING\ at the time \TIME \ according to the transition \TirName{Node-Inject}.  After that, there are only two cases where the counter's flag is reset to False. If the operation is accepted, the counter's flag is reset ($\COU'.b=\FALSE$) according to the transition \TirName{Block-Accept} and the counter's value is incremented by 1 according to the specification of the function \UPDATESUCC\ ($\COU.n' =\COU.n+1$). In another case, if the operation is timed out, the counter's flag is also reset to False, but the value of the counter remains the same ($\COU.n' =\COU$) according to the transition \TirName{Block-timeout}. That is, if $\COU.b=\TRUE$ and $\COU'.b=\FALSE$, then $\COU.n' \in \{\COU.n, \COU.n+1\}$;
+   \item[(2)] otherwise, if the operation is still \STATUSPENDING, the counter's value remains the same. This means $\COU.n = \COU'.n$; 
+   \item[(3)] and then $\COU.n = \COU'.n$ means that the operation is either still \STATUSPENDING\ or  it has timed out. Therefore, the balance of the account remains the same because the balance is only changed when the operation is accepted. This means $\BAL = \BAL'$.
  \end{itemize}
+ 
+ From (1), (2) and (3), the item \ref{item:4} of Proposition 2 is proved.
 \end{proof}
 
 
@@ -1444,7 +1448,7 @@ if  $\PENDING (\OPH) =  \Angle{\OP, \hat\TIME, \STATUS}$
 \end{itemize}
 \end{lemma}
 
-\begin{proof} Consider the proof of the second item of Lemma 3, which specifies the property on type for a smart contract invocation. A smart contract call \OP\ has the form \TRANSFER [\PARAMETER]\NTEZ\PUK\PUH\MTEZ. If $\PENDING (\OPH) = \Angle{\OP, \hat\TIME, \STATUS }$, then the operation $\OP$ is injected into the node. According to the transition \TirName{Node-Inject} for a smart contract invocation, the public key is valid and the public hash must be associated with a smart contract on the blockchain. This means $\PUK \in \DOM (\MANAGERS)$ and $\PUH\in \DOM (\CONTRACTORS)$. The chkArg function checks whether the type of the input parameter \PARAMETER\ matches the parameter type of the smart contract. If the casted type of the smart contract is $\Delta (\PUH) =\TPAIR\ \TYPE_p\ \TYPE_s$, then the type of the parameter  must be $\TYPE_p$. This means $\JTypeValue\PARAMETER {\TYPE_p}$.
+\begin{proof} Consider the proof of the second item of Lemma 3, which specifies the property on type for a smart contract invocation. A smart contract call \OP\ has the form \TRANSFER [\PARAMETER]\NTEZ\PUK\PUH\MTEZ. If $\PENDING (\OPH) = \Angle{\OP, \hat\TIME, \STATUS }$, then the operation $\OP$ is injected into the node. According to the transition \TirName{Node-Inject} for a smart contract invocation, the public key is valid and the public hash must be associated with a smart contract on the blockchain. This means $\PUK \in \DOM (\MANAGERS)$ and $\PUH\in \DOM (\CONTRACTORS)$. Moreover, the chkArg function checks whether the type of the input parameter \PARAMETER\ matches the parameter type of the smart contract. If the casted type of the smart contract is $\Delta (\PUH) =\TPAIR\ \TYPE_p\ \TYPE_s$, then the type of the parameter  must be $\TYPE_p$. This means $\JTypeValue\PARAMETER {\TYPE_p}$. Therefore, the item is proved.
 \end{proof}
 
 \section{Related Work}
