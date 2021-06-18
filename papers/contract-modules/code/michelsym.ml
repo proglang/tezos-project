@@ -12,6 +12,11 @@ module ReaderStore = struct
   let return x = fun r s -> (x, s)
   let get () = fun r s -> (r, s)
   let lift f = fun r -> f
+  let rec fold f xs st =
+    match xs with
+    | [] -> return st
+    | x :: xs ->
+      bind (f x st) (fold f xs)
 end
 
 let (let*) = ReaderStore.bind
@@ -19,7 +24,14 @@ let return = ReaderStore.return
 let lift = ReaderStore.lift
 
 (* TODOs *)
-(* ITER for sets *)
+(* move TInt and TNat to Zarith *)
+(* map datatype *)
+
+let rec listunion xs ys =
+  match xs with
+  | [] -> ys
+  | x :: xs ->
+    if List.mem x ys then listunion xs ys else x :: listunion xs ys
 
 (* types and symbolic values *)
 type ty =
@@ -41,7 +53,7 @@ type ty =
   | TAny
 
 type step =
-  | SLeft | SRight | SFirst | SSecond | SCar | SCdr | SSome
+  | SLeft | SRight | SFirst | SSecond | SCar | SCdr | SSome | SInset | SInlist
   | WSome                       (* wrapped in option Some *)
 
 type lr =
@@ -233,6 +245,11 @@ let multype t1 t2 =
   | TMutez, TNat -> Some TMutez
   | _ -> None
 
+let not_type t =
+  match t with
+  | TBool | TNat | TInt -> true
+  | _ -> false
+
 let andtype t1 t2 =
   match (t1, t2) with
   | TBool, TBool -> Some TBool
@@ -257,6 +274,7 @@ let subtype t1 t2 =
 type instr =
   | I of string
   | COND of string * instr list * instr list
+  | LOOP of string * instr list
   | PUSH of sval
   | T of string * ty
   | DIP of int * instr list
@@ -382,6 +400,24 @@ let interpretI ins (stack : sval list) =
   | "NEQ", x :: st
     when typeof x = TInt ->
     return (VSymbolic (Op ("NEQ", [x]), TBool) :: st)
+  | "NOT", VBool a :: st ->
+    return (VBool (not a) :: st)
+  | "NOT", VInt a :: st ->
+    return (VInt (a lxor -1) :: st)
+  (* VNat ? lxor breaks the invariant *)
+  | "NOT", x :: st
+    when not_type (typeof x) ->
+    return (VSymbolic (Op ("NOT", [x]), typeof x) :: st)
+  | "XOR", VBool a :: VBool b :: st ->
+    return (VBool (a <> b) :: st)
+  | "XOR", VNat a :: VNat b :: st ->
+    return (VNat (a lxor b) :: st)
+  | "XOR", x :: y :: st
+    when andtype (typeof x) (typeof y) = Some TBool ->
+    return (VSymbolic (Op ("XOR", [x; y]), TBool) :: st)
+  | "XOR", x :: y :: st
+    when andtype (typeof x) (typeof y) = Some TNat ->
+    return (VSymbolic (Op ("XOR", [x; y]), TNat) :: st)
   | "AND", VBool a :: VBool b :: st ->
     return (VBool (a && b) :: st)
   | "AND", VNat a :: VNat b :: st
@@ -494,9 +530,11 @@ let symbolic_if mtrue mfalse rd cstore =
   (new_stack,
    {new_cstore with
     failure_values =
-      cstore_tru.failure_values @ cstore_fls.failure_values;
-    (* remove duplicates! *)
+      listunion cstore_tru.failure_values cstore_fls.failure_values;
    })
+
+let set_reachable rd cstore =
+  (), {cstore with maybe_reachable = true}
 
 let rec interpret (il : instr list) (stack : sval list) =
   match il with
@@ -509,6 +547,9 @@ let rec interpret (il : instr list) (stack : sval list) =
   | (COND (n, ins_tru, ins_fls) :: inss) ->
     let* st = interpretC (n, ins_tru, ins_fls) stack in
     interpret inss st
+  | (LOOP (n, ins_body) :: inss) ->
+    let* st = interpretL (n, ins_body) stack in
+    interpret inss st
   | (T (n, t) :: inss) ->
     let* st = interpretT n t stack in
     interpret inss st
@@ -516,6 +557,25 @@ let rec interpret (il : instr list) (stack : sval list) =
     let seg, rest = segment i stack in
     let* rest_after = interpret il rest in
     interpret inss (seg @ rest_after)
+
+and interpretL (ins, ins_body) stack =
+  match (ins, stack) with
+  | "ITER", VSet (ss, t) :: st ->
+    ReaderStore.fold (fun s st -> interpret ins_body (s :: st)) ss st
+  | "ITER", VNil t :: st ->
+    return st
+  | "ITER", VCons (sx, sl) :: st ->
+    let* st = interpret ins_body (sx :: st) in
+    interpretL ("ITER", ins_body) (sl :: st)
+  | "ITER", VSymbolic (d, TSet t) :: st ->
+    let* st_after = interpret ins_body (VSymbolic (Step (SInset, d), t) :: st) in
+    let* () = set_reachable in  (* in case of empty set *)
+    return (merge_stack st st_after)
+  | "ITER", VSymbolic (d, TList t) :: st ->
+    let* st_after = interpret ins_body (VSymbolic (Step (SInlist, d), t) :: st) in
+    let* () = set_reachable in  (* in case of empty list *)
+    return (merge_stack st st_after)
+  | n, _ -> raise (StackType ("unprocessed loop "^n, stack))
 
 and interpretC (ins, ins_tru, ins_fls) stack =
   match (ins, stack) with
