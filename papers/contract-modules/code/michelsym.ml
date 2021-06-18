@@ -10,17 +10,15 @@ module ReaderStore = struct
   (* type ('a, 'r, 's) reader_store = 'r -> 's -> 'a * 's *)
   let bind m f = fun r s -> let (a, s') = m r s in f a r s'
   let return x = fun r s -> (x, s)
+  let get () = fun r s -> (r, s)
   let lift f = fun r -> f
 end
-
 
 let (let*) = ReaderStore.bind
 let return = ReaderStore.return
 let lift = ReaderStore.lift
 
 (* TODOs *)
-(* to be handled in the Reader, using the hash table in module Env:
-   parameterize interpretation of SENDER, SOURCE, AMOUNT, BALANCE, ... *)
 (* ITER for sets *)
 
 (* types and symbolic values *)
@@ -40,6 +38,7 @@ type ty =
   | TUnit
   | TContract of ty
   | TOperation
+  | TAny
 
 type step =
   | SLeft | SRight | SFirst | SSecond | SCar | SCdr | SSome
@@ -179,12 +178,19 @@ let register_failure arg =
 
 module Env = struct
   type t = (string, sval) Hashtbl.t
-  let init_lst = List.map
-      (fun instr -> (instr, VSymbolic (Op (instr, []), TAddress))) 
+  let init_lst = List.map2
+      (fun instr t -> (instr, VSymbolic (Op (instr, []), t))) 
       ["SENDER"; "SOURCE"; "SELF_ADDRESS"; "AMOUNT"; "BALANCE"]
+      [TAddress; TAddress; TAddress; TMutez; TMutez]
   let table = Hashtbl.create 10
   let _ = List.iter (fun (k, v) -> Hashtbl.add table k v) init_lst
 end
+
+let getenv (n : string) =
+  let* e = ReaderStore.get () in
+  match Hashtbl.find_opt e n with
+  | Some s -> return s
+  | None -> return (VSymbolic (Op (n, []), TAny))
 
 (* instructions *)
 
@@ -425,15 +431,20 @@ let interpretI ins (stack : sval list) =
     when typeof z = TSet (typeof x) && typeof y = TBool ->
     return (VSymbolic (Op ("UPDATE", [x;y;z]), typeof z) :: st)
   | ("SELF_ADDRESS", st) ->
-    return (VSymbolic (Op ("SELF_ADDRESS", []), TAddress) :: st)
+    let* s = getenv "SELF_ADDRESS" in
+    return (s :: st)
   | ("SENDER", st) ->
-    return (VSymbolic (Op ("SENDER", []), TAddress) :: st)
+    let* s = getenv "SENDER" in
+    return (s :: st)
   | ("SOURCE", st) ->
-    return (VSymbolic (Op ("SOURCE", []), TAddress) :: st)
+    let* s = getenv "SOURCE" in
+    return (s :: st)
   | ("AMOUNT", st) ->
-    return (VSymbolic (Op ("AMOUNT", []), TMutez) :: st)
+    let* s = getenv "AMOUNT" in
+    return (s :: st)
   | ("BALANCE", st) ->
-    return (VSymbolic (Op ("BALANCE", []), TMutez) :: st)
+    let* s = getenv "BALANCE" in
+    return (s :: st)
   | ("TRANSFER_TOKENS", arg :: amt :: contract :: st) ->
     return (VSymbolic (Op ("TRANSFER_TOKENS", [arg; amt; contract]), TOperation) :: st)
   | "FAILWITH", x :: st ->
@@ -634,7 +645,7 @@ let auction_entrypoints = entrypoints auction_parameter
 let auction_stacks = List.map (fun ep -> initial_stack_from_entrypoint ep auction_storage) auction_entrypoints
 let [stack_close; stack_bid] = auction_stacks
     
-let env = ()
+let env = Env.table
 let final_close = interpret auction stack_close env
 let final_bid = interpret auction stack_bid env
 
