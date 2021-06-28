@@ -26,6 +26,7 @@ let lift = ReaderStore.lift
 (* TODOs *)
 (* move TInt and TNat to Zarith *)
 (* map datatype *)
+(* instrutions: SELF (how to get the type?) *)
 
 let rec listunion xs ys =
   match xs with
@@ -196,6 +197,8 @@ module Env = struct
       [TAddress; TAddress; TAddress; TMutez; TMutez]
   let table = Hashtbl.create 10
   let _ = List.iter (fun (k, v) -> Hashtbl.add table k v) init_lst
+  let add_typed instr t =
+    Hashtbl.add table instr (VSymbolic (Op (instr, []), t))
 end
 
 let getenv (n : string) =
@@ -218,6 +221,11 @@ let rec comparable_type t =
   | TOr (t1, t2)
   | TPair (t1, t2) -> comparable_type t1 && comparable_type t2
   | TOption (t) -> comparable_type t
+  | _ -> false
+
+let contract_compatible tc ta =
+  match tc with
+  | TContract targ -> targ = ta
   | _ -> false
 
 let contract_type t =
@@ -469,6 +477,9 @@ let interpretI ins (stack : sval list) =
   | ("SELF_ADDRESS", st) ->
     let* s = getenv "SELF_ADDRESS" in
     return (s :: st)
+  | ("SELF", st) ->
+    let* s = getenv "SELF" in
+    return (s :: st)
   | ("SENDER", st) ->
     let* s = getenv "SENDER" in
     return (s :: st)
@@ -481,12 +492,14 @@ let interpretI ins (stack : sval list) =
   | ("BALANCE", st) ->
     let* s = getenv "BALANCE" in
     return (s :: st)
-  | ("TRANSFER_TOKENS", arg :: amt :: contract :: st) ->
+  | ("TRANSFER_TOKENS", arg :: amt :: contract :: st)
+    when typeof amt = TMutez (* && contract_compatible (typeof contract) (typeof arg) *) ->
     return (VSymbolic (Op ("TRANSFER_TOKENS", [arg; amt; contract]), TOperation) :: st)
   | "FAILWITH", x :: st ->
     let* () = register_failure x in
     return st   (* but need to remember x *)
-  | n, _ -> raise (StackType ("unprocessed op " ^ n, stack))
+  | n, _ ->
+    raise (StackType ("unprocessed op " ^ n, stack))
 
 let interpretT ins t stack =
   match (ins, stack) with
@@ -665,7 +678,10 @@ let auction_close = [
   (* store : - *)
   I "DUP"; I "CDR"; I "CAR";
   (* owner-address : store : - *)
-  T ("CONTRACT", TUnit); I "BALANCE"; PUSH VUnit;
+  T ("CONTRACT", TUnit);
+  (* (contract unit) option : store *)
+  COND ("IF_NONE", [PUSH (VString "bad owner address"); I "FAILWITH"], []);
+  I "BALANCE"; PUSH VUnit;
   (* unit : mutez : contract unit : store : - *)
   I "TRANSFER_TOKENS";
   (* operation : store : - *)
@@ -687,7 +703,10 @@ let auction_bid = [
   (* store : - *)
   I "CDR"; I "UNPAIR"; I "SWAP";
   (* highbidder : owner : - *)
-  T ("CONTRACT", TUnit); I "AMOUNT"; I "BALANCE"; I "SUB"; PUSH VUnit; I "TRANSFER_TOKENS"; T ("NIL", TOperation); I "SWAP"; I "CONS";
+  T ("CONTRACT", TUnit);
+  COND ("IF_NONE", [PUSH (VString "bad high bidder address"); I "FAILWITH"], []);
+  (* TODO: should be possible to prove that this failure never happens! *)
+  I "AMOUNT"; I "BALANCE"; I "SUB"; PUSH VUnit; I "TRANSFER_TOKENS"; T ("NIL", TOperation); I "SWAP"; I "CONS";
   (* operation list : owner *)
   DIP (1, [I "SENDER"; I "SWAP"; I "PAIR"; PUSH (VBool true); I "PAIR"]);
   (* operation list : store : - *)
@@ -705,6 +724,7 @@ let auction_entrypoints = entrypoints auction_parameter
 let auction_stacks = List.map (fun ep -> initial_stack_from_entrypoint ep auction_storage) auction_entrypoints
 let [stack_close; stack_bid] = auction_stacks
     
+let () = Env.add_typed "SELF" (TContract auction_parameter)
 let env = Env.table
 let final_close = interpret auction stack_close env
 let final_bid = interpret auction stack_bid env
