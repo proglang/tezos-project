@@ -7,7 +7,7 @@
 \title{Contract Orchestration for OCaml \\
   Progress Report 
 }
-\date{26 June 2021}
+\date{\today}
 \author{Prof.\ Dr.\ Peter Thiemann, University of Freiburg, Germany}
 \begin{document}
 \maketitle{}
@@ -20,19 +20,19 @@ The Contract Orchestration for OCaml (COOC) project is funded by the Tezos found
 \section{Timeline of Events}
 \label{sec:timeline-events}
 
-August 2020 - October 2020
+\paragraph{August 2020 - October 2020} 
 \begin{itemize}
-\item Since May 2020, Tamara Bernhardt, Master's student, has been employed as a student woker. She designed and implemented the Ocaml API that interacts with the Tezos node. The Ocaml API is based on the intensive use of the recently released Tezos library on Opam. The research  also aims at exploring the library intensively. The Ocaml API provides a programmatic interface that allows users to interact with the Tezos node, such as transferring tokens, invoking and initialising a smart contract, and querying the state of an operation. It leverages the Tezos client library with its built-in validation and pre-validation of operations to provide immediate feedback and avoid injections of invalid operations. In addition, the API extends these functions to handle the fee. A manager operation is issued starting with a low fee and repeated with the higher fee if it is rejected by the baker due to the low fee. It also handles return errors structurally. The implementation of the API can be found at the Github repository \cite{tezos-api}.
-\end{itemize}
+\item
+Since May 2020, Tamara Bernhardt, Master's student, has been employed as a student woker. She designed and implemented the Ocaml API that interacts with the Tezos node. The Ocaml API is based on the intensive use of the recently released Tezos library on Opam. The research  also aims at exploring the library intensively. The Ocaml API provides a programmatic interface that allows users to interact with the Tezos node, such as transferring tokens, invoking and initialising a smart contract, and querying the state of an operation. It leverages the Tezos client library with its built-in validation and pre-validation of operations to provide immediate feedback and avoid injections of invalid operations. In addition, the API extends these functions to handle the fee. A manager operation is issued starting with a low fee and repeated with the higher fee if it is rejected by the baker due to the low fee. It also handles return errors structurally. The implementation of the API can be found at the Github repository \cite{tezos-api}.
 
+\end{itemize}
 An application may perform some offline calculations before passing the result as a parameter to a smart contract on the blockchain to reduce the cost of gas and fees. However, the parameters should be checked for legitimacy, i.e., they should satisfy some specific properties. So we need a mechanism to check the validity of the assumptions before the contract is executed. It is not trivial to confirm these properties, as they  require a large amount of computation, often depending on the size of the parameter. Therefore, our goal is to design and implement a checking assertion that verifies the legitimacy of a smart contract parameter. The research proposal can be found at the expos\'{e} by Peter Thiemann \cite{expose}.
 
 Consider a property that can be expressed with an explicit assertion in predicate logic. If we test the validity of a parameter within a smart contract, the test would consume additional cost according to the size of the parameter. However, we could do better by recruiting the validators of the contract for a distributed attempt to find a counterexample. To this end, we consider the negation of an assertion. The assertion can be checked by having each validator work independently. In this scenario, each validator only needs to be paid to generate a random value, say a random number, and perform a computation, which is a constant cost that is independent of the size of the parameter. To this end, our strategy is to extend the contract language with assertions that specify these logical formulas.
-\\
-\\
-October 2020 - June 2021
 
-Tamara Bernhardt worked her master's project on distributed assertion checking for Tezos smart contracts. The assertion is specified in its own syntax in a separate file from the contract implementation. This scenario requires a separate compiler for assertions in Michelson. The generated code is either combined with the contract implementation or stored separately on the blockchain. Tamara worked on grammar, lexer/parser, transformer and the compiler for the assertion language. 
+\paragraph{October 2020 - June 2021}
+\begin{itemize}
+\item Tamara Bernhardt worked her master's project on distributed assertion checking for Tezos smart contracts. The assertion is specified in its own syntax in a separate file from the contract implementation. This scenario requires a separate compiler for assertions in Michelson. The generated code is either combined with the contract implementation or stored separately on the blockchain. Tamara worked on grammar, lexer/parser, transformer and the compiler for the assertion language. 
 \begin{itemize}
 \item Defining grammar for the assertion language. Although the grammar is related to Michelson, it was designed to be as general as possible so that it can be adapted to different smart contract languages. There are two types of grammars: prefix and infix.
 \item Implementing and extensively testing the lexer/parser using OCamllex and Menhir for the prefix style version.
@@ -40,31 +40,64 @@ Tamara Bernhardt worked her master's project on distributed assertion checking f
 \item Implementing the compiler that generates the target code according to an on-chain orchestration scheme between the assertion and the parent contract.
 \end{itemize}
 At the end, she write the development document and then wrap it up in her thesis.
+\end{itemize}
+
+\paragraph{November 2020 - June 2021}
+\begin{itemize}
+\item We recruited Julian Veigel to do his master's thesis with us. He was our student in the blockchain course. For his thesis, he will be developing a checking assertion for Ethereum. He and Tamara will collaborate on some parts of the assertion project, e.g. they will collaborate on formulating this assertion and implementing it in generators and/or exchange ideas. He completed his thesis in mid-June. It deals with different approaches on how to implement such a validation process. The basic idea is to distribute the validation process to several nodes in the network, all testing different property cases. The goal is to reduce the cost while preserving basic properties such as decentralization and trust. All the approaches are discussed in detail and the most promising one is shown in an implementation. The contribution of his work includes:
+\begin{itemize}
+\item exploring Ethereum infrastructures, especially the recent release of Ethereum 2.0.
+\item presenting different approaches and discuss their strengths and weaknesses.
+\item laying some mathematical groundwork to build a qualitative.
+\item an implementation with its components for one of the presented approaches.
+\end{itemize}
+\end{itemize}
 
 
-November 2020 - June 2021
+\paragraph{April 2021}
 \begin{itemize}
-\item We recruited Julian Veigel to do his master's thesis with us. He was our student in the blockchain course. For his thesis, he will develop a checking assertion for Ethereum.  He and Tamara will collaborate on some parts of the assertion project, e.g. they might collaborate and/or share ideas on how to formulate this assertion and turn it into generators. However, they will need to implement different backends to translate assertions into Michelson and EVM respectively. The contribution of his works includes: 
+\item Leqaa Ahmed, a bachelor student in computer science, starts her bachelor thesis in my group. 
+\end{itemize}
+
+Ha and I have been running the course “Blockchain and Cryptocurrencies”. This course builds on the book “Bitcoin and Cryptocurrency Technologies” by Narayanan and others. It covers seven weeks worth of material from the book; two weeks on Ethereum, Solidity, and its security issues; and two weeks on Tezos, with the bulk of material on Michelson.
+\paragraph{May 2020 - September 2020}
 \begin{itemize}
-\item Exploring Ethereum's infrastructures, especially the recent release Ethereum 2.0.
-\item Researching on the random number generator.
-\item Writing a JSON generator that formally extracts the result of the lexer/parser into JSON. 
-\item Working with Tamara on collecting use cases for interesting formulas.
+\item We run the course for the first time. We designed the exercise to help students confirm their understanding of the basic concepts of cryptocurrency and blockchain and also focus on training students in blockchain programming. Students are required to implement some basic blockchain systems in Python, write smart contracts in Solidity and Michelson. In terms of Michelson, we guided the students to understand how the languages work and study its strong type system. For practice, we use some online tools that support coding and testing of smart contracts in Solidity, e.g. Remix ethereum and Michelson, e.g. Try michelson. Finally, we have included the final exam with an open time for 48 hours. The final exam covers the main concepts and programming tasks. The grading of the exam was completed and submitted at the end of October. At the end of the course, we received some feedback from the students. Some of them found the course interesting and some might consider doing research on Blockchain with us in the future.
 \end{itemize}
-\end{itemize}
-December 2020 
-\begin{itemize}
-\item Ibrahim Njoum, a master's student in computer science, starts working on a project in my group. He is interested in programming languages and he has a compiler background. We assign him two main tasks: (1) implementing the lexer/parser with OCamllex and Menhir for the infix style of the current grammar, which is not yet implemented, and (2) continuing to work on the design and implementation of a safe-type OCaml API. The proposal for the safe-type OCaml API could be found at . He is currently enriching his background on Tezos smart contract, Ocaml, and OCamllex and Menhir. For the second task, he will need to dig deep into the Tezos library.
-\end{itemize}
-August 2020 - October 2020
-\begin{itemize}
-\item Ha and I have finished running the course ''Blockchain and Cryptocurrencies''. The lecture ended at the end of July, but the exercise was still running in August. We designed the exercise to help students confirm their understanding of the basic concepts of cryptocurrency and blockchain. We also focus on training students in blockchain programming. Students are required to implement some basic blockchain systems in Python, write smart contracts in Solidity and Michelson. In terms of Michelson, we guided the students to understand how the languages work and study its strong type system. For practice, we use some online tools that support coding and testing of smart contracts in Solidity, e.g. Remix ethereum and Michelson, e.g. Try michelson. Finally, we have included the final exam with an open time for 48 hours. The final exam covers the main concepts and programming tasks. The grading of the exam was completed and submitted at the end of October. At the end of the course, we received some feedback from the students. Some of them found the course interesting and some might consider doing research on Blockchain with us in the future.
-\end{itemize}
-August 2020
+
+\paragraph{April 2021 - September 2021}
 \begin{itemize} 
-\item Ha and I have made progress on the execution model that models the interaction of an OCaml program with the Tezos blockchain. We are striving to make the model at the generic abstraction level so that it has enough detail to describe the interaction between contract calls on the blockchain and a program, but not specific to a typical blockchain system. 
+\item We are running the course for the second time. The basic content of the lecture and exercises has remained essentially the same, but has been adjusted according to feedback we have received from former students. We will be working on the new exam for this year, which will be in September.
+\end{itemize}
 
-The current version can be found in the appendix model.pdf.
+
+
+Ha and I have worked on the safe-interaction with Tezos blockchain.
+\paragraph{August 2020  - June 2021}
+\begin{itemize} 
+\item Tezos provides low-level interfaces, which work with loosely structured data in JSON format that is inconvenient to handle and offers few guarantees. Ha and I proposed Contract modules that provide a statically checked interface to interact with contracts on the Tezos blockchain. A module specification provides all types as well as information about potential failure conditions of the contract. The specification is checked against the contract implementation using symbolic execution. An OCaml module is generated that contains a function for each entrypoint of the contract. The types of these functions fully describe the interface including the failure conditions and guarantee type-safe and sometimes fail-safe invocation of the contract on the blockchain.
+
+Based on the result of the research, we have submited a short paper on towards contract modules for the Tezos blockchain to a workshop on formal Methods for Blockchains.
+
+\item Current blockchains mostly provide RPC interfaces, such as the Ethereum JSON-RPC API and the Tezos RPC API, but they require cumbersome manipulation of string data in JSON format and do not provide static
+guarantees (except that the response to a well-formed JSON input is also a well-formed JSON output). To improve on this situation, we propose a typed API for for originating and invoking contracts as well as observing the state of the blockchain and establish some properties of the combined system. Specifically, we provide an execution model that enables us to prove type-safe interaction between programs and the blockchain. We establish further properties of the model that give rise to requirements on the API. A prototype of the interface is implemented in OCaml for the Tezos blockchain.  Our typed API supports the
+implementation of application programs and oracles that safely interact with
+smart contracts on the blockchain. Moreover, our approach provides a type-safe
+facility to communicate with contracts where data is automatically marshalled
+between OCaml and the blockchain. This interface is a step towards a seamless integration of contracts into traditional programs.
+
+As a result, we have submited a research paper to a conference on programming Languages and systems. The   
+Contributions of the paper is as follows:
+\begin{itemize}
+\item A typed API for originating and invoking contracts as well as querying the
+state of the blockchain.
+\item An operational semantics for functional programs running alongside smart
+contracts in a blockchain.
+\item Established various properties of the combined system with proofs in upcoming techreport.
+\item An implementation of a low-level OCaml-API to the Tezos blockchain, which corresponds to the operational semantics. 
+\end{itemize}
+
+
 \end{itemize}
 
 \section{Relation to the Contract}
@@ -76,24 +109,10 @@ We have made progress on several points in the contract.
 \end{itemize}
 
 \section{Next Steps}
-\label{sec:next-steps}
-The assertion project is well on its way. However, there are a few items that need to be taken care of.
 
-For Tezos, the assertion for contract C is compiled into a separate contract A(C). A(C) takes the argument x of C and tries to disprove the assertion by finding a counterexample.
 \begin{itemize}
-\item  implement the entire protocol. 
+\item  to be written.
 \end{itemize}
-
-
-
-
-%Ibrahim will continue to work on his tasks. The expected deliverables are the Ocaml lexer/parser for the Infix style and the safe-type version of the Ocaml API.
-
-%I and Ha will work on the blockchain course, the support for students on their work, and the execution model.
-%\begin{itemize}
-%\item Preparing for the second exam for the blockchain course.
-%\item Running the blockchain course in the summer term.
-%\item Competing the execution model and elaborating the execution model into the operational semantics of the full system called Mini-OCaml in the contract.  
 
 
 \bibliography{report}
