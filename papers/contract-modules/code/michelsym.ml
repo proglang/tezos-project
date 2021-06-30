@@ -26,7 +26,7 @@ let lift = ReaderStore.lift
 (* TODOs *)
 (* move TInt and TNat to Zarith *)
 (* map datatype *)
-(* instrutions: SELF (how to get the type?) *)
+(* instructions: SELF (how to get the type?), IMPLICIT_ACCOUNT (requires hash type) *)
 
 let rec listunion xs ys =
   match xs with
