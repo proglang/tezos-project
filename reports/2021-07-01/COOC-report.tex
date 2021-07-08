@@ -53,7 +53,7 @@ At the end, Tamara wrote the development document and then wrapped it up in her 
 
 \paragraph{November 2020 - June 2021}
 \begin{itemize}
-\item We supervised the master's thesis of Julian Veigel. He developed a counterpart of the assertion checker for Ethereum. He  and Tamara collaborated on some parts of the assertion project, e.g., on assertion language and general analysis of the problem. Julian completed his thesis in mid-June. It deals with different approaches on how to implement such a validation process. The basic idea is to distribute the validation process to several nodes in the network, all testing different property cases. The goal is to reduce the cost while preserving basic properties such as decentralization and trust. All the approaches are discussed in detail and the most promising one is shown in an implementation. The contribution of his work includes:
+\item We supervised the master's thesis of Julian Veigel. He developed a counterpart of the assertion checker for Ethereum. He  and Tamara collaborated on some parts of the assertion project, e.g., on the assertion language and the general analysis of the problem (in particular, stastistical and economic aspects). Julian completed his thesis in mid-June. It deals with different approaches on how to implement such a validation process. The basic idea is to distribute the validation process to several nodes in the network, all testing different property cases. The goal is to reduce the cost while preserving basic properties such as decentralization and trust. All the approaches are discussed in detail and the most promising one is shown in an implementation. The contribution of his work includes:
 \begin{itemize}
 \item exploring Ethereum infrastructures, especially the recent release of Ethereum 2.0.
 \item presenting different approaches and discuss their strengths and weaknesses.
@@ -62,7 +62,7 @@ At the end, Tamara wrote the development document and then wrapped it up in her 
 \end{itemize}
 \end{itemize}
 
-Julian's work is not directly related to Tezos and to the project's goals. Nevertheless, we gained a lot of understanding of the problem due to his contributions and due to the additional perspective provided by considering Ethereum. 
+Julian's work is not directly related to Tezos. Nevertheless, it contributed to the project goals because we gained a lot of insight into the problem due to the different perspective provided by considering Ethereum. Julian initiated and pursued the statistical analysis as well as the investigation of the economic aspects as part of his master's thesis.
 
 
 \paragraph{April 2021}
@@ -70,10 +70,10 @@ Julian's work is not directly related to Tezos and to the project's goals. Never
 \item Leqaa Ahmed, a bachelor student in computer science, starts her bachelor thesis in my group. Her task is to further develop and strengthen the typing properties of our Tezos-API. She is mainly supervised by Dr. Doan.
 \end{itemize}
 
-Dr. Doan (mainly) and I have been running the course “Blockchain and Cryptocurrencies”. This course builds on the book “Bitcoin and Cryptocurrency Technologies” by Narayanan and others. Our implementation covers seven weeks worth of material from the book; two weeks on Ethereum, Solidity, and its security issues; and two weeks on Tezos, with the bulk of material on Michelson. 
+Dr. Doan (mainly) and I have been running the course “Blockchain and Cryptocurrencies”. This course builds on the book “Bitcoin and Cryptocurrency Technologies” by Narayanan and others. Our implementation of the course covers seven weeks worth of material from the book; two weeks on Ethereum, Solidity, and its security issues; and two weeks on Tezos, with the bulk of material on Michelson. 
 \paragraph{May 2020 - September 2020}
 \begin{itemize}
-\item First instance of the course with 25 students. We created the lecture materials consisting of slides and videos.  We designed numerous exercise tasks to help students confirm their understanding of the basic concepts of cryptocurrency and blockchain and also focus on training students in blockchain programming. Students are required to implement some basic blockchain systems in  Python. The they write smart contracts in Solidity and Michelson. In terms of Michelson, we guided the students to understand how the languages work and study its strong type system. For practice, we use some online tools that support coding and testing of smart contracts in Solidity (Remix ethereum) and Michelson (Try michelson). Finally, we conducted the final exam in the form of a take home exam during a time window of 48 hours. The final exam covers the main concepts and several programming tasks. The grading of the exam was completed and submitted at the end of October. 
+\item First instance of the course with 25 students. We created the lecture materials consisting of slides and videos.  We designed numerous exercise tasks to help students confirm their understanding of the basic concepts of cryptocurrencies and blockchains. We also focus on training students in blockchain ``smart contract'' programming. Students are required to implement some basic blockchain systems in  Python. The they write smart contracts in Solidity and Michelson. In terms of Michelson, we guided the students to understand how the languages work and study its strong type system. For practice, we use some online tools that support coding and testing of smart contracts in Solidity (Remix ethereum) and Michelson (Try michelson). Finally, we conducted the final exam in the form of a take home exam during a time window of 48 hours. The final exam covers the main concepts and several programming tasks. The grading of the exam was completed and submitted at the end of October. 
 \end{itemize}
 
 \paragraph{April 2021 - September 2021}
@@ -86,7 +86,7 @@ Dr. Doan (mainly) and I have been running the course “Blockchain and Cryptocur
 Doan and Thiemann have worked on the safe interaction with contracts on the Tezos blockchain.
 \paragraph{August 2020  - June 2021}
 \begin{itemize} 
-\item Tezos provides low-level interfaces, which work with loosely structured data in JSON format that is inconvenient to handle and offers few guarantees. We proposed Contract modules that provide a statically checked interface to interact with contracts on the Tezos blockchain. A module specification provides all types as well as information about potential failure conditions of the contract. The specification is checked against the contract implementation using symbolic execution. An OCaml module is generated that contains a function for each entrypoint of the contract. The types of these functions fully describe the interface including the failure conditions and guarantee type-safe and sometimes fail-safe invocation of the contract on the blockchain.
+\item Tezos provides low-level interfaces, which work with loosely structured data in JSON format that offers few static guarantees. We proposed Contract Modules that provide a statically checked interface to interact with contracts on the Tezos blockchain. A module specification provides all types as well as information about potential failure conditions of the contract. The specification is checked against the contract implementation using symbolic execution. An OCaml module is generated that contains a function for each entrypoint of the contract. The types of these functions fully describe the interface including the failure conditions and guarantee type-safe and sometimes fail-safe invocation of the contract on the blockchain.
 
 Based on the result of the research, we submitted a short paper titled ``Towards Contract Modules for the Tezos Blockchain''  to the workshop on Formal Methods for Blockchains (FMBC 2021). 
 
@@ -103,7 +103,7 @@ As a result, we submitted a research paper to the Asian Symposium on Programming
 state of the blockchain.
 \item An operational semantics for functional programs running alongside smart
 contracts in a blockchain.
-\item Established various properties of the combined system with proofs in upcoming techreport.
+\item Established various properties of the combined system.
 \item An implementation of a low-level OCaml-API to the Tezos blockchain, which corresponds to the operational semantics. 
 \end{itemize}
 \end{itemize}
@@ -113,15 +113,38 @@ contracts in a blockchain.
 
 We have made progress on several points in the contract.
 \begin{itemize}
-\item to be written.
+\item Type system of OCaml and Michelson to ensure smooth interaction: this work is in progress in the submitted papers. Final steps to be taken in the work of Ms Leqaa Ahmed.
+\item Framework to guarantee orchestration
+  \begin{itemize}
+  \item First draft of contract modules provided in paper submitted to FMBC.
+  \item Compiler for contract modules: this is our next working item.
+  \item Behavioral type system:
+    We created a preliminary symbolic interpreter for checking contract module specifications. We plan to prototype the behavioral type system by extending the specifications with pre- and postconditions, as well as constraints on the possible call orders of the entrypoints. This approach gives us sufficient flexibility to investigate different designs using an encoding in first-order logic and using an SMT solver as a type checker for the system. 
+  \end{itemize}
+\item (Linear types and typestate have not made it into OCaml so far, but)
+  \begin{itemize}
+  \item type-safe integration of Tezos-RPC calls in OCaml: see the paper submitted to APLAS
+  \item behavioral types with resource: this will be integrated in the SMT-based approach outlined above
+  \item type checker: will only make sense after evaluating the design space as explained above
+  \end{itemize}
+\item Mini-OCaml with operational semantics: see APLAS submission
+\item We are in the second year of teaching blockchain concepts (see above) and start getting traction with students (two master's theses finished, and currently  several Bachelor students on the topic). We are also offering an intensive course in OCaml to attract students to work on Tezos and project related tasks.
+\item We gave a presentation based on the current state of the project as part of the Nomadic Lab seminar series.
 \end{itemize}
 
 \section{Next Steps}
 
-To support this paper, we implemented Michelsym, a prototype of a symbolic interpreter for Michelson. 
+We plan to 
 \begin{itemize}
-\item  to be written.
+\item continue our teaching activities (the blockchain course, a seminar on the topic in the winter semester, another instance of the intensive OCaml course);
+\item implement code generation for contract modules;
+\item extend contract modules to contract specifications that include pre- and postconditions as well as permissible call sequences for entrypoints; 
+\item design and implement a checker for contract specifications based on Michelsym, our prototype symbolic interpreter for Michelson;
+\item complete the implementation of the type-safe interface (Leqaa Ahmed);
+\item finish the implementation of assertions (cf.\ the theses of Tamara Bernhardt and Julian Veigel), document the outcome in a paper.
 \end{itemize}
+We also plan to redesign the redesign the OCaml interface based on concepts from concurrent programming (promises / futures).
+
 
 
 \bibliography{report}
