@@ -87,6 +87,20 @@
 				       (Pair Bool (Pair Address
 							Address))))
 
+(define-fun
+  get-parameter ((stack (Pair (Or Unit Unit)
+			      (Pair Bool (Pair Address
+					       Address)))))
+  (Or Unit Unit)
+  (first stack))
+(define-fun
+  get-storage ((stack (Pair (Or Unit Unit)
+			    (Pair Bool (Pair Address
+					       Address)))))
+  (Pair Bool (Pair Address Address))
+  (second stack))
+
+
 (declare-const auction-open Bool)
 (declare-const auction-owner Address)
 (declare-const auction-bidder Address)
@@ -120,23 +134,28 @@
 (declare-const final-stack-top (Pair (List (Operation Unit))
 				     (Pair Bool (Pair Address
 						      Address))))
-; invariants
+; invariants (from pre/postconditions)
 
 (define-fun invariant-constant-owner () Bool
   (= (get-owner (second initial-stack-top))
      (get-owner (second final-stack-top))))
 (define-fun invariant-open-bidding () Bool
-  (=> (entrypoint-bid (first initial-stack-top))
+  (=> (entrypoint-bid (get-parameter initial-stack-top))
       (=> (get-open (second initial-stack-top))
 	  (get-open (second final-stack-top)))))
 (define-fun invariant-close-bidding () Bool
-  (=> (entrypoint-close (first initial-stack-top))
+  (=> (entrypoint-close (get-parameter initial-stack-top))
       (=> (get-open (second initial-stack-top))
 	  (not (get-open (second final-stack-top))))))
+(define-fun invariant-high-bidder () Bool
+  (or (= (get-bidder (second initial-stack-top))
+	 (get-bidder (second final-stack-top)))
+      (= SENDER
+	 (get-bidder (second final-stack-top)))))
 
 (push)
 (echo "entrypoint close")
-(assert (entrypoint-close (first initial-stack-top)))
+(assert (entrypoint-close (get-parameter initial-stack-top)))
 (assert 
  (= final-stack-top
     (mk-pair
@@ -175,11 +194,12 @@
 (push) (assert (not invariant-constant-owner)) (check-sat) (pop)
 (push) (assert (not invariant-open-bidding)) (check-sat) (pop)
 (push) (assert (not invariant-close-bidding)) (check-sat) (pop)
+(push) (assert (not invariant-high-bidder)) (check-sat) (pop)
 (pop)
 
 (push)
 (echo "entrypoint bid")
-(assert (entrypoint-bid (first initial-stack-top)))
+(assert (entrypoint-bid (get-parameter initial-stack-top)))
 (assert (mutez-valid (mutez-subtract BALANCE AMOUNT)))
 (assert
  (= final-stack-top
@@ -203,4 +223,5 @@
 (push) (assert (not invariant-constant-owner)) (check-sat) (pop)
 (push) (assert (not invariant-open-bidding)) (check-sat) (pop)
 (push) (assert (not invariant-close-bidding)) (check-sat) (pop)
+(push) (assert (not invariant-high-bidder)) (check-sat) (pop)
 (pop)
