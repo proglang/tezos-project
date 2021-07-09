@@ -132,7 +132,7 @@
 (define-fun invariant-close-bidding () Bool
   (=> (entrypoint-close (first initial-stack-top))
       (=> (get-open (second initial-stack-top))
-	  (not (get-open (second initial-stack-top))))))
+	  (not (get-open (second final-stack-top))))))
 
 (push)
 (echo "entrypoint close")
@@ -174,7 +174,7 @@
 (echo "check invariants - must be unsat")
 (push) (assert (not invariant-constant-owner)) (check-sat) (pop)
 (push) (assert (not invariant-open-bidding)) (check-sat) (pop)
-(push) (assert (not invariant-close-bidding)) (check-sat) (get-model) (pop)
+(push) (assert (not invariant-close-bidding)) (check-sat) (pop)
 (pop)
 
 (push)
@@ -199,4 +199,8 @@
 (assert (not (mutez-le (mutez-int-mul 2 AMOUNT) BALANCE)))
 (check-sat)
 (get-model)
+(echo "check invariants - must be unsat")
+(push) (assert (not invariant-constant-owner)) (check-sat) (pop)
+(push) (assert (not invariant-open-bidding)) (check-sat) (pop)
+(push) (assert (not invariant-close-bidding)) (check-sat) (pop)
 (pop)
