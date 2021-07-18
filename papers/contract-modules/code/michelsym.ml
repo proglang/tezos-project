@@ -697,7 +697,7 @@ let auction_bid = [
   (* bidding : store : - *)
   COND ("IF", [], [PUSH (VString "closed"); I "FAILWITH"]);
   (* store : - *)
-  I "AMOUNT"; PUSH (VNat 2); I "MUL"; I "BALANCE"; I "COMPARE"; I "LE";
+  I "BALANCE"; I "AMOUNT"; PUSH (VNat 2); I "MUL"; I "COMPARE"; I "LE";
   (* amt <= bal : store : - *)
   COND ("IF", [PUSH (VString "too low"); I "FAILWITH"], []);
   (* store : - *)

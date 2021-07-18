@@ -135,6 +135,7 @@
 				     (Pair Bool (Pair Address
 						      Address))))
 ; invariants (from pre/postconditions)
+; TODO (PT): invariant about not reopening the auction
 
 (define-fun invariant-constant-owner () Bool
   (= (get-owner (second initial-stack-top))
