@@ -135,7 +135,6 @@
 				     (Pair Bool (Pair Address
 						      Address))))
 ; invariants (from pre/postconditions)
-; TODO (PT): invariant about not reopening the auction
 
 (define-fun invariant-constant-owner () Bool
   (= (get-owner (second initial-stack-top))
@@ -148,6 +147,9 @@
   (=> (entrypoint-close (get-parameter initial-stack-top))
       (=> (get-open (second initial-stack-top))
 	  (not (get-open (second final-stack-top))))))
+(define-fun invariant-no-reopen () Bool
+  (=> (not (get-open (second initial-stack-top)))
+      (not (get-open (second final-stack-top)))))
 (define-fun invariant-high-bidder () Bool
   (or (= (get-bidder (second initial-stack-top))
 	 (get-bidder (second final-stack-top)))
@@ -195,6 +197,7 @@
 (push) (assert (not invariant-constant-owner)) (check-sat) (pop)
 (push) (assert (not invariant-open-bidding)) (check-sat) (pop)
 (push) (assert (not invariant-close-bidding)) (check-sat) (pop)
+(push) (assert (not invariant-no-reopen)) (check-sat) (pop)
 (push) (assert (not invariant-high-bidder)) (check-sat) (pop)
 (pop)
 
@@ -224,5 +227,6 @@
 (push) (assert (not invariant-constant-owner)) (check-sat) (pop)
 (push) (assert (not invariant-open-bidding)) (check-sat) (pop)
 (push) (assert (not invariant-close-bidding)) (check-sat) (pop)
+(push) (assert (not invariant-no-reopen)) (check-sat) (pop)
 (push) (assert (not invariant-high-bidder)) (check-sat) (pop)
 (pop)
