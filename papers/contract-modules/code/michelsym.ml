@@ -9,9 +9,9 @@ end
 module ReaderStore = struct
   (* type ('a, 'r, 's) reader_store = 'r -> 's -> 'a * 's *)
   let bind m f = fun r s -> let (a, s') = m r s in f a r s'
-  let return x = fun r s -> (x, s)
+  let return x = fun _r s -> (x, s)
   let get () = fun r s -> (r, s)
-  let lift f = fun r -> f
+  let lift f = fun _r -> f
   let rec fold f xs st =
     match xs with
     | [] -> return st
@@ -25,8 +25,12 @@ let lift = ReaderStore.lift
 
 (* TODOs *)
 (* move TInt and TNat to Zarith *)
-(* map datatype *)
-(* instructions: SELF (how to get the type?), IMPLICIT_ACCOUNT (requires hash type) *)
+(* map datatype: MAP instr *)
+(* instructions: 
+ ** SELF (to get the type, we need to store the parameter type in the environment!)
+ ** CHECK_SIGNATURE needs types signature and bytes 
+ ** CREATE_CONTRACT (quite involved)
+ **)
 
 let rec listunion xs ys =
   match xs with
@@ -36,7 +40,6 @@ let rec listunion xs ys =
 
 (* types and symbolic values *)
 type ty =
-  | TAddress
   | TBool
   | TInt
   | TNat
@@ -44,13 +47,18 @@ type ty =
   | TOption of ty
   | TSet of ty
   | TMap of ty * ty
-  | TMutez
   | TOr of ty * ty
   | TPair of ty * ty
   | TString
   | TUnit
+  | TAddress
+  | TMutez
   | TContract of ty
   | TOperation
+  | TKey
+  | TKey_Hash
+  | TSignature
+  | TBytes
   | TAny
 
 type step =
@@ -61,11 +69,9 @@ type lr =
   | L | R
 
 type sval =
-  | VAddress of string
   | VBool of bool
   | VInt of int
   | VNat of int                 (* >= 0 *)
-  | VMutez of int
   | VOr of lr * sval * ty
   | VPair of sval * sval
   | VString of string
@@ -75,6 +81,13 @@ type sval =
   | VCons of sval * sval
   | VNone of ty
   | VSome of sval
+  | VMap of (sval * sval) list * ty * ty
+  | VAddress of string
+  | VKey of string
+  | VKey_Hash of string
+  | VSignature of string
+  | VBytes of string
+  | VMutez of int
   | VContract of string * ty
   | VSymbolic of desc * ty
 and desc =
@@ -91,11 +104,9 @@ let nstep (spec : step * desc) =
       
 let rec typeof (s : sval) =
   match s with
-  | VAddress (_) -> TAddress
   | VBool (_) -> TBool
   | VInt (_) -> TInt
   | VNat (_) -> TNat
-  | VMutez (_) -> TMutez
   | VOr (L, s, t) -> TOr (typeof s, t)
   | VOr (R, s, t) -> TOr (t, typeof s)
   | VPair (s1, s2) -> TPair (typeof s1, typeof s2)
@@ -103,11 +114,18 @@ let rec typeof (s : sval) =
   | VSet (_, t) -> TSet t
   | VUnit -> TUnit
   | VNil t -> TList t
-  | VCons (s1, s2) -> TList (typeof s1)
+  | VCons (s1, _) -> TList (typeof s1)
   | VNone t -> TOption t
   | VSome s -> TOption (typeof s)
+  | VMap (_, t1, t2) -> TMap (t1, t2)
+  | VAddress (_) -> TAddress
+  | VKey (_) -> TKey
+  | VKey_Hash (_) -> TKey_Hash
+  | VSignature (_) -> TSignature
+  | VBytes (_) -> TBytes
+  | VMutez (_) -> TMutez
   | VContract (_, t) -> TContract t
-  | VSymbolic (d, t) -> t
+  | VSymbolic (_d, t) -> t
 
 let concrete (s : sval) =
   match s with
@@ -133,7 +151,7 @@ let symEQ x y =
     raise (Symbolic ("possible type clash in symEQ", x, y))
 
 (* merging stacks and values *)
-
+(* TODO: maps *)
 let rec merge_sval x y =
   if x = y then x else
   match (x, y) with
@@ -142,6 +160,8 @@ let rec merge_sval x y =
   | (VInt a, VInt b) when a = b -> VInt a
   | VNat a, VNat b when a = b -> VNat a
   | (VMutez a, VMutez b) when a = b -> VMutez a
+  | (VKey a, VKey b) when a = b -> VKey a
+  | (VKey_Hash a, VKey_Hash b) when a = b -> VKey_Hash a
   | (VString a, VString b) when a = b -> VString a
   | (VUnit, VUnit) -> VUnit
   | (VNil t1, VNil t2) when t1 = t2 -> VNil t1
@@ -238,6 +258,31 @@ let set_type t =
   | TSet _ -> true
   | _ -> false
 
+let map_type t =
+  match t with
+  | TMap (_,_) -> true
+  | _ -> false
+
+let map_key_type t =
+  match t with
+  | TMap (tk, _tv) -> Some tk
+  | _ -> None
+
+let map_val_type t =
+  match t with
+  | TMap (_tk, tv) -> Some tv
+  | _ -> None
+
+let option_val_type t =
+  match t with
+  | TOption (ot) -> Some ot
+  | _ -> None
+
+let option_to_sval msv t =
+  match msv with
+  | Some sv -> VSome sv
+  | None -> VNone t
+
 let compare_bool a b =
   match (a, b) with
   | false, false
@@ -285,6 +330,7 @@ type instr =
   | LOOP of string * instr list
   | PUSH of sval
   | T of string * ty
+  | T2 of string * ty * ty
   | DIP of int * instr list
 
 let interpretI ins (stack : sval list) =
@@ -337,17 +383,17 @@ let interpretI ins (stack : sval list) =
   | ("MUL", (x :: y :: st))
     when multype (typeof x) (typeof y) = Some TMutez ->
     return (VSymbolic (Op ("MUL", [x; y]), TMutez) :: st)
-  | ("CAR", (VPair (s1, s2) :: st)) ->
+  | ("CAR", (VPair (s1, _s2) :: st)) ->
     return (s1 :: st)
-  | ("CAR", (VSymbolic (d, TPair (t1, t2)) as x :: st)) ->
+  | ("CAR", (VSymbolic (_d, TPair (t1, _t2)) as x :: st)) ->
     return (VSymbolic (Op ("CAR", [x]), t1) :: st)
-  | ("CDR", (VPair (s1, s2) :: st)) ->
+  | ("CDR", (VPair (_s1, s2) :: st)) ->
     return (s2 :: st)
-  | ("CDR", (VSymbolic (d, TPair (t1, t2)) as x :: st)) ->
+  | ("CDR", (VSymbolic (_d, TPair (_t1, t2)) as x :: st)) ->
     return (VSymbolic (Op ("CDR", [x]), t2) :: st)
   | ("UNPAIR", (VPair (s1, s2) :: st)) ->
     return (s1 :: s2 :: st)
-  | ("UNPAIR", (VSymbolic (d, TPair (t1, t2)) as x :: st)) ->
+  | ("UNPAIR", (VSymbolic (_d, TPair (t1, t2)) as x :: st)) ->
     return (VSymbolic (Op ("CAR", [x]), t1) :: VSymbolic (Op ("CDR", [x]), t2) :: st)
   | ("PAIR", s1 :: s2 :: st) ->
     return (VPair (s1, s2) :: st)
@@ -359,7 +405,7 @@ let interpretI ins (stack : sval list) =
     return (x :: x :: st)
   | ("SWAP", (x :: y :: st)) ->
     return (y :: x :: st)
-  | ("DROP", (x :: st)) ->
+  | ("DROP", (_ :: st)) ->
     return (st)
   | ("ISNAT", VInt a :: st) ->
     return ((if a >= 0 then VSome (VNat a) else VNone TNat) :: st)
@@ -442,7 +488,16 @@ let interpretI ins (stack : sval list) =
   | "ABS", x :: st
     when typeof x = TInt ->
     return (VSymbolic (Op ("ABS", [x]), TNat) :: st)
-  | "ADDRESS", VContract (a, t) :: st ->
+  | "CONCAT", VBytes a :: VBytes b :: st ->
+    return (VBytes (a ^ b) :: st)
+  | "CONCAT", x :: y :: st
+    when typeof x = TBytes && typeof y = TBytes ->
+    return (VSymbolic (Op ("CONCAT", [x;y]), TBytes) :: st)
+  | "CONCAT", x :: st
+    when typeof x = TList TBytes ->
+    (* TODO: concrete version *)
+    return (VSymbolic (Op ("CONCAT", [x]), TBytes) :: st)
+  | "ADDRESS", VContract (a, _t) :: st ->
     return (VAddress a :: st)
   | "ADDRESS", x :: st
     when contract_type (typeof x) ->
@@ -453,12 +508,41 @@ let interpretI ins (stack : sval list) =
   | "MEM", x :: y :: st
     when typeof y = TSet (typeof x) ->
     return (VSymbolic (Op ("MEM", [x; y]), TBool) :: st)
+  | "MEM", x :: VMap (alist, kt, _vt) :: st
+    when typeof x = kt && concrete x && List.for_all concrete (List.map fst alist) ->
+    return (VBool (List.mem x (List.map fst alist)) :: st)
+  | "MEM", x :: y :: st
+    when map_key_type (typeof y) = Some (typeof x) ->
+    return (VSymbolic (Op ("MEM", [x; y]), TBool) :: st)
   (* concrete instances of MEM would be quite complex *)
-  | "SIZE", VSet (xs, t) :: st ->
+  | "SIZE", VSet (xs, _t) :: st ->
     return (VNat (List.length xs) :: st)
   | "SIZE", x :: st
     when set_type (typeof x) ->
     return (VSymbolic (Op ("SIZE", [x]), TNat) :: st)
+  | "SIZE", VMap (xs, _kt, _vt) :: st ->
+    return (VNat (List.length xs) :: st)
+  | "SIZE", x :: st
+    when map_type (typeof x) ->
+    return (VSymbolic (Op ("SIZE", [x]), TNat) :: st)
+  | "GET_AND_UPDATE", x :: VSome y :: VMap (alist, kt, vt) :: st
+    when typeof x = kt && concrete x && typeof y = vt && List.for_all concrete (List.map fst alist) ->
+    return (option_to_sval (List.assoc_opt x alist) vt :: VMap ((x, y) :: List.filter (fun m -> fst m <> x) alist, kt, vt) :: st)
+  | "GET_AND_UPDATE", x :: VNone vt1 :: VMap (alist, kt, vt) :: st
+    when typeof x = kt && concrete x && vt = vt1 && List.for_all concrete (List.map fst alist) ->
+    return (option_to_sval (List.assoc_opt x alist) vt :: VMap (List.filter (fun m -> fst m <> x) alist, kt, vt) :: st)
+  | "GET_AND_UPDATE", x :: y :: z :: st
+    when map_key_type (typeof z) = Some (typeof x) && map_val_type (typeof z) = option_val_type (typeof y) ->
+    return (VSymbolic (Op ("GET", [x;z]), typeof y) :: VSymbolic (Op ("UPDATE", [x;y;z]), typeof z) :: st)
+  | "UPDATE", x :: VSome y :: VMap (alist, kt, vt) :: st
+    when typeof x = kt && concrete x && typeof y = vt && List.for_all concrete (List.map fst alist) ->
+    return (VMap ((x, y) :: List.filter (fun m -> fst m <> x) alist, kt, vt) :: st)
+  | "UPDATE", x :: VNone vt1 :: VMap (alist, kt, vt) :: st
+    when typeof x = kt && concrete x && vt = vt1 && List.for_all concrete (List.map fst alist) ->
+    return (VMap (List.filter (fun m -> fst m <> x) alist, kt, vt) :: st)
+  | "UPDATE", x :: y :: z :: st
+    when map_key_type (typeof z) = Some (typeof x) && map_val_type (typeof z) = option_val_type (typeof y) ->
+    return (VSymbolic (Op ("UPDATE", [x;y;z]), typeof z) :: st)
   | "UPDATE", x :: VBool true :: VSet (zs, t) :: st
     when typeof x = t && concrete x && List.for_all concrete zs ->
     if List.mem x zs then 
@@ -474,6 +558,22 @@ let interpretI ins (stack : sval list) =
   | "UPDATE", x :: y :: z :: st
     when typeof z = TSet (typeof x) && typeof y = TBool ->
     return (VSymbolic (Op ("UPDATE", [x;y;z]), typeof z) :: st)
+  | "GET", (ky :: VMap (alist, kt, vt) :: st)
+    when typeof ky = kt ->
+    (match List.assoc_opt ky alist with
+     | None ->
+       (* not ok because if ky is a symbolic value: may match conditionally *)
+       return (VNone vt :: st)
+     | Some vl ->
+       (* is this a definitive answer? *)
+       return (VSome vl :: st))
+  | "GET", ky :: mp :: st
+    when Some (typeof ky) = map_key_type (typeof mp) ->
+    (match map_val_type (typeof mp) with
+     | Some vt -> 
+       return (VSymbolic (Op ("GET", [ky; mp]), TOption vt) :: st)
+     | None ->                  (* never happens *)
+       raise (Symbolic ("impossible type clash", ky, mp)))
   | ("SELF_ADDRESS", st) ->
     let* s = getenv "SELF_ADDRESS" in
     return (s :: st)
@@ -492,9 +592,42 @@ let interpretI ins (stack : sval list) =
   | ("BALANCE", st) ->
     let* s = getenv "BALANCE" in
     return (s :: st)
+  | ("HASH_KEY", k :: st)
+    when typeof k = TKey ->
+    (* TODO: concrete version computes the Base58Check of a public key *)
+    return (VSymbolic (Op ("HASH_KEY", [k]), TKey_Hash) :: st)
   | ("TRANSFER_TOKENS", arg :: amt :: contract :: st)
     when typeof amt = TMutez (* && contract_compatible (typeof contract) (typeof arg) *) ->
     return (VSymbolic (Op ("TRANSFER_TOKENS", [arg; amt; contract]), TOperation) :: st)
+  | ("SET_DELEGATE", okh :: st)
+    when typeof okh = TOption TKey_Hash ->
+    return (VSymbolic (Op ("SET_DELEGATE", [okh]), TOperation) :: st)
+  | ("IMPLICIT_ACCOUNT", kh :: st)
+    when typeof kh = TKey_Hash ->
+    return (VSymbolic (Op ("IMPLICIT_ACCOUNT", [kh]), TContract TUnit) :: st)
+  | ("VOTING_POWER", kh :: st)
+    when typeof kh = TKey_Hash ->
+    return (VSymbolic (Op ("VOTING_POWER", [kh]), TNat) :: st)
+  | ("CHECK_SIGNATURE", key :: sg :: bys :: st)
+    when typeof key = TKey && typeof sg = TSignature && typeof bys = TBytes ->
+    (* TODO: concrete version *)
+    return (VSymbolic (Op ("CHECK_SIGNATURE", [key; sg; bys]), TBool) :: st)
+  | ("KECCAK", bys :: st)
+    when typeof bys = TBytes ->
+    (* TODO: concrete version *)
+    return (VSymbolic (Op ("KECCAK", [bys]), TBytes) :: st)
+  | ("SHA256", bys :: st)
+    when typeof bys = TBytes ->
+    (* TODO: concrete version *)
+    return (VSymbolic (Op ("SHA256", [bys]), TBytes) :: st)
+  | ("SHA3", bys :: st)
+    when typeof bys = TBytes ->
+    (* TODO: concrete version *)
+    return (VSymbolic (Op ("SHA3", [bys]), TBytes) :: st)
+  | ("SHA512", bys :: st)
+    when typeof bys = TBytes ->
+    (* TODO: concrete version *)
+    return (VSymbolic (Op ("SHA512", [bys]), TBytes) :: st)
   | "FAILWITH", x :: st ->
     let* () = register_failure x in
     return st   (* but need to remember x *)
@@ -503,7 +636,7 @@ let interpretI ins (stack : sval list) =
 
 let interpretT ins t stack =
   match (ins, stack) with
-  | ("CONTRACT", (VAddress a as x) :: st) ->
+  | ("CONTRACT", (VAddress _a as x) :: st) ->
     return (VSymbolic (Step (WSome, Set[x]), TOption (TContract t)) :: st)
   (* returns an option
    * - requires new kind of symbolic value introduced with WSome
@@ -520,6 +653,15 @@ let interpretT ins t stack =
     return (VSet ([], t) :: st)
   | _ ->
     raise (StackType ("unprocessed TOperation " ^ ins, stack))
+
+let interpretT2 ins t1 t2 stack =
+  match (ins, stack) with
+  | "EMPTY_MAP", st ->
+    return (VMap ([], t1, t2) :: st)
+  | "EMPTY_BIG_MAP", st ->
+    return (VMap ([], t1, t2) :: st)
+  | _ ->
+    raise (StackType ("unprocessed T2Operation " ^ ins, stack))
   
 let rec segment i stack =
   if i <= 0 then ([], stack) else
@@ -546,7 +688,7 @@ let symbolic_if mtrue mfalse rd cstore =
       listunion cstore_tru.failure_values cstore_fls.failure_values;
    })
 
-let set_reachable rd cstore =
+let set_reachable _rd cstore =
   (), {cstore with maybe_reachable = true}
 
 let rec interpret (il : instr list) (stack : sval list) =
@@ -566,6 +708,9 @@ let rec interpret (il : instr list) (stack : sval list) =
   | (T (n, t) :: inss) ->
     let* st = interpretT n t stack in
     interpret inss st
+  | (T2 (n, t1, t2) :: inss) ->
+    let* st = interpretT2 n t1 t2 stack in
+    interpret inss st
   | DIP (i, il) :: inss ->
     let seg, rest = segment i stack in
     let* rest_after = interpret il rest in
@@ -573,9 +718,9 @@ let rec interpret (il : instr list) (stack : sval list) =
 
 and interpretL (ins, ins_body) stack =
   match (ins, stack) with
-  | "ITER", VSet (ss, t) :: st ->
+  | "ITER", VSet (ss, _t) :: st ->
     ReaderStore.fold (fun s st -> interpret ins_body (s :: st)) ss st
-  | "ITER", VNil t :: st ->
+  | "ITER", VNil _t :: st ->
     return st
   | "ITER", VCons (sx, sl) :: st ->
     let* st = interpret ins_body (sx :: st) in
@@ -594,19 +739,19 @@ and interpretC (ins, ins_tru, ins_fls) stack =
   match (ins, stack) with
   | "IF", VBool b :: st ->
     if b then interpret ins_tru st else interpret ins_fls st
-  | "IF_LEFT", VOr (L, s, t) :: st ->
+  | "IF_LEFT", VOr (L, s, _t) :: st ->
     interpret ins_tru (s :: st)
-  | "IF_LEFT", VOr (R, s, t) :: st ->
+  | "IF_LEFT", VOr (R, s, _t) :: st ->
     interpret ins_fls (s :: st)
   | "IF_CONS", VCons (h, t) :: st ->
     interpret ins_tru (h :: t :: st)
-  | "IF_CONS", VNil t :: st ->
+  | "IF_CONS", VNil _t :: st ->
     interpret ins_fls st
-  | "IF_NONE", VNone t :: st ->
+  | "IF_NONE", VNone _t :: st ->
     interpret ins_tru st
   | "IF_NONE", VSome s :: st ->
     interpret ins_fls (s :: st)
-  | "IF", (VSymbolic (d, TBool) as x) :: st ->
+  | "IF", (VSymbolic (_d, TBool) as x) :: st ->
     symbolic_if
       (let* _ = register_true x in
        interpret ins_tru st)
@@ -663,72 +808,3 @@ let rec symentries d t =
 let entrypoints (parameter : ty) =
   symentries Parameter parameter
 
-(* examples *)
-let auction_parameter = TOr (TUnit, TUnit)
-let auction_storage = TPair (TBool, TPair (TAddress, TAddress))
-    
-let auction_close = [
-  (* unit : parm * store : - *)
-  I "DROP";
-  (* parm * store : - *)
-  I "CDR"; I "DUP"; I "CDR"; I "CAR"; I "SENDER"; I "COMPARE"; I "EQ";
-  COND ("IF", [], [PUSH (VString "not owner"); I "FAILWITH"]);
-  (* store : - *)
-  I "UNPAIR"; COND ("IF", [], [PUSH (VString "closed"); I "FAILWITH"]); PUSH (VBool false); I "PAIR";
-  (* store : - *)
-  I "DUP"; I "CDR"; I "CAR";
-  (* owner-address : store : - *)
-  T ("CONTRACT", TUnit);
-  (* (contract unit) option : store *)
-  COND ("IF_NONE", [PUSH (VString "bad owner address"); I "FAILWITH"], []);
-  I "BALANCE"; PUSH VUnit;
-  (* unit : mutez : contract unit : store : - *)
-  I "TRANSFER_TOKENS";
-  (* operation : store : - *)
-  T ("NIL", TOperation); I "SWAP"; I "CONS";
-  (* operation list : store : - *)
-  I "PAIR"
-  (* operation list * store : - *)
-]
-
-let auction_bid = [
-  (* unit : parm * store : - *)
-  I "DROP"; I "CDR"; I "DUP"; I "CAR";
-  (* bidding : store : - *)
-  COND ("IF", [], [PUSH (VString "closed"); I "FAILWITH"]);
-  (* store : - *)
-  I "BALANCE"; I "AMOUNT"; PUSH (VNat 2); I "MUL"; I "COMPARE"; I "LE";
-  (* amt <= bal : store : - *)
-  COND ("IF", [PUSH (VString "too low"); I "FAILWITH"], []);
-  (* store : - *)
-  I "CDR"; I "UNPAIR"; I "SWAP";
-  (* highbidder : owner : - *)
-  T ("CONTRACT", TUnit);
-  COND ("IF_NONE", [PUSH (VString "bad high bidder address"); I "FAILWITH"], []);
-  (* TODO: should be possible to prove that this failure never happens! *)
-  I "AMOUNT"; I "BALANCE"; I "SUB"; PUSH VUnit; I "TRANSFER_TOKENS"; T ("NIL", TOperation); I "SWAP"; I "CONS";
-  (* operation list : owner *)
-  DIP (1, [I "SENDER"; I "SWAP"; I "PAIR"; PUSH (VBool true); I "PAIR"]);
-  (* operation list : store : - *)
-  I "PAIR"
-]
-
-let auction = [
-  I "DUP";
-  I "CAR";
-  COND ("IF_LEFT", auction_close, auction_bid);
-]
-
-(* experiments with the example program *)
-let auction_entrypoints = entrypoints auction_parameter
-let auction_stacks = List.map (fun ep -> initial_stack_from_entrypoint ep auction_storage) auction_entrypoints
-let [stack_close; stack_bid] = auction_stacks
-    
-let () = Env.add_typed "SELF" (TContract auction_parameter)
-let env = Env.table
-let final_close = interpret auction stack_close env
-let final_bid = interpret auction stack_bid env
-
-(* execute *)
-let analysis_close = final_close initial_constraints
-let analysis_bid   = final_bid   initial_constraints
