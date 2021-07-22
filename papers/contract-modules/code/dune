@@ -1,2 +1,5 @@
-(executable
- (name auction))
+(executables
+ (names auction liq_auction)
+ )
+
+;  (libraries lib_micheline)
