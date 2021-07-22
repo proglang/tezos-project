@@ -1,6 +1,8 @@
-.PHONY: all
+.PHONY: all　sat
 
-all:
+all: michelsym.cmo
+
+sat:
 	z3 -smt2 auction.smt
 
 michelsym.cmi michelsym.cmo: michelsym.ml
