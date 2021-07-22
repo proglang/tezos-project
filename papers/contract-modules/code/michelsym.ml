@@ -241,7 +241,11 @@ let rec comparable_type t =
   | TInt
   | TNat
   | TMutez
+  | TTimestamp
   | TString
+  | TKey
+  | TKey_Hash
+  | TBytes
   | TUnit -> true
   | TOr (t1, t2)
   | TPair (t1, t2) -> comparable_type t1 && comparable_type t2
@@ -340,9 +344,12 @@ type instr =
   | T of string * ty
   | T2 of string * ty * ty
   | DIP of int * instr list
+  | DIG of int
 
 let interpretI ins (stack : sval list) =
   match (ins, stack) with
+  | "UNIT", st ->
+    return (VUnit :: st)
   | ("ADD", (VInt (x) :: VInt (y) :: st))
   | ("ADD", (VNat (x) :: VInt (y) :: st))
   | ("ADD", (VInt (x) :: VNat (y) :: st)) ->
@@ -422,6 +429,7 @@ let interpretI ins (stack : sval list) =
   | ("ISNAT", x :: st)
     when typeof x = TInt ->
     return (VSymbolic (Op ("ISNAT", [x]), TOption TNat) :: st)
+  | "COMPARE", VTimestamp a :: VTimestamp b :: st
   | "COMPARE", VMutez a :: VMutez b :: st
   | "COMPARE", VInt a :: VInt b :: st
   | "COMPARE", VNat a :: VNat b :: st ->
@@ -728,6 +736,13 @@ let rec interpret (il : instr list) (stack : sval list) =
     let seg, rest = segment i stack in
     let* rest_after = interpret il rest in
     interpret inss (seg @ rest_after)
+  | DIG (i) :: inss ->
+    let seg, rest = segment i stack in
+    (match rest with
+    | x :: rest_after ->
+      interpret inss (x :: seg @ rest_after)
+    | [] ->
+      raise (StackType ("Bad DIG instruction on ", stack)))
 
 and interpretL (ins, ins_body) stack =
   match (ins, stack) with
