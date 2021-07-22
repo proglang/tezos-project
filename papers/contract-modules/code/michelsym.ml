@@ -221,7 +221,7 @@ module Env = struct
       ["SENDER"; "SOURCE"; "SELF_ADDRESS"; "AMOUNT"; "BALANCE"; "NOW"]
       [TAddress; TAddress; TAddress; TMutez; TMutez; TTimestamp]
   let table = Hashtbl.create 10
-  let _ = List.iter (fun (k, v) -> Hashtbl.add table k v) init_lst
+  let () = List.iter (fun (k, v) -> Hashtbl.add table k v) init_lst
   let add_typed instr t =
     Hashtbl.add table instr (VSymbolic (Op (instr, []), t))
 end
