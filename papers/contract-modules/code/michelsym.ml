@@ -53,6 +53,7 @@ type ty =
   | TUnit
   | TAddress
   | TMutez
+  | TTimestamp
   | TContract of ty
   | TOperation
   | TKey
@@ -88,6 +89,7 @@ type sval =
   | VSignature of string
   | VBytes of string
   | VMutez of int
+  | VTimestamp of int
   | VContract of string * ty
   | VSymbolic of desc * ty
 and desc =
@@ -124,6 +126,7 @@ let rec typeof (s : sval) =
   | VSignature (_) -> TSignature
   | VBytes (_) -> TBytes
   | VMutez (_) -> TMutez
+  | VTimestamp (_) -> TTimestamp
   | VContract (_, t) -> TContract t
   | VSymbolic (_d, t) -> t
 
@@ -160,6 +163,7 @@ let rec merge_sval x y =
   | (VInt a, VInt b) when a = b -> VInt a
   | VNat a, VNat b when a = b -> VNat a
   | (VMutez a, VMutez b) when a = b -> VMutez a
+  | (VTimestamp a, VTimestamp b) when a = b -> VTimestamp a
   | (VKey a, VKey b) when a = b -> VKey a
   | (VKey_Hash a, VKey_Hash b) when a = b -> VKey_Hash a
   | (VString a, VString b) when a = b -> VString a
@@ -213,8 +217,8 @@ module Env = struct
   type t = (string, sval) Hashtbl.t
   let init_lst = List.map2
       (fun instr t -> (instr, VSymbolic (Op (instr, []), t))) 
-      ["SENDER"; "SOURCE"; "SELF_ADDRESS"; "AMOUNT"; "BALANCE"]
-      [TAddress; TAddress; TAddress; TMutez; TMutez]
+      ["SENDER"; "SOURCE"; "SELF_ADDRESS"; "AMOUNT"; "BALANCE"; "NOW"]
+      [TAddress; TAddress; TAddress; TMutez; TMutez; TTimestamp]
   let table = Hashtbl.create 10
   let _ = List.iter (fun (k, v) -> Hashtbl.add table k v) init_lst
   let add_typed instr t =
@@ -315,12 +319,15 @@ let addtype t1 t2 =
   | TInt, TInt | TNat, TInt | TInt, TNat -> Some TInt
   | TNat, TNat -> Some TNat
   | TMutez, TMutez -> Some TMutez
+  | TTimestamp, TInt | TInt, TTimestamp -> Some TTimestamp
   | _ -> None
   
 let subtype t1 t2 =
   match (t1, t2) with
   | TInt, TInt | TNat, TInt | TInt, TNat | TNat, TNat -> Some TInt
   | TMutez, TMutez -> Some TMutez
+  | TTimestamp, TInt -> Some TTimestamp
+  | TTimestamp, TTimestamp -> Some TInt
   | _ -> None
   
 
@@ -343,6 +350,9 @@ let interpretI ins (stack : sval list) =
     return (VNat (x+y) :: st)
   | ("ADD", (VMutez (x) :: VMutez (y) :: st)) ->
     return (VMutez (x+y) :: st)
+  | ("ADD", (VTimestamp (x) :: VInt (y) :: st))
+  | ("ADD", (VInt (x) :: VTimestamp (y) :: st))->
+    return (VTimestamp (x+y) :: st)
   | ("ADD", (x :: y :: st))
     when addtype (typeof x) (typeof y) = Some TInt ->
     return (VSymbolic (Op ("ADD", [x; y]), TInt) :: st)
@@ -352,6 +362,9 @@ let interpretI ins (stack : sval list) =
   | ("ADD", (x :: y :: st))
     when addtype (typeof x) (typeof y) = Some TMutez ->
     return (VSymbolic (Op ("ADD", [x; y]), TMutez) :: st)
+  | ("ADD", (x :: y :: st))
+    when addtype (typeof x) (typeof y) = Some TTimestamp ->
+    return (VSymbolic (Op ("ADD", [x; y]), TTimestamp) :: st)
   | ("SUB", (VInt x :: VInt y :: st))
   | ("SUB", (VNat x :: VInt y :: st))
   | ("SUB", (VInt x :: VNat y :: st))
@@ -359,12 +372,16 @@ let interpretI ins (stack : sval list) =
     return (VInt (x-y) :: st)
   | ("SUB", (VMutez x :: VMutez y :: st)) ->
     return (VMutez (x-y) :: st)
-  | ("SUB", (x :: y :: st))
-    when subtype (typeof x) (typeof y) = Some TInt ->
-    return (VSymbolic (Op ("SUB", [x; y]), TInt) :: st)
-  | ("SUB", (x :: y :: st))
-    when subtype (typeof x) (typeof y) = Some TMutez ->
-    return (VSymbolic (Op ("SUB", [x; y]), TMutez) :: st)
+  | ("SUB", (VTimestamp x :: VInt y :: st)) ->
+    return (VTimestamp (x-y) :: st)
+  | ("SUB", (VTimestamp x :: VTimestamp y :: st)) ->
+    return (VInt (x-y) :: st)
+  | ("SUB", (x :: y :: st)) ->
+    (match subtype (typeof x) (typeof y) with
+     | Some t ->
+       return (VSymbolic (Op ("SUB", [x; y]), t) :: st)
+     | None ->
+       raise (Symbolic ("SUB: illegal argument types", x, y)))
   | ("MUL", (VInt x :: VInt y :: st))
   | ("MUL", (VNat x :: VInt y :: st))
   | ("MUL", (VInt x :: VNat y :: st)) ->
@@ -591,6 +608,9 @@ let interpretI ins (stack : sval list) =
     return (s :: st)
   | ("BALANCE", st) ->
     let* s = getenv "BALANCE" in
+    return (s :: st)
+  | "NOW", st ->
+    let* s = getenv "NOW" in
     return (s :: st)
   | ("HASH_KEY", k :: st)
     when typeof k = TKey ->
