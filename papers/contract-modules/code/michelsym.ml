@@ -25,6 +25,7 @@ let lift = ReaderStore.lift
 
 (* TODOs *)
 (* move TInt and TNat to Zarith *)
+(* support division *)
 (* map datatype: MAP instr *)
 (* instructions: 
  ** SELF (to get the type, we need to store the parameter type in the environment!)
@@ -353,18 +354,12 @@ let interpretI ins (stack : sval list) =
   | ("ADD", (VTimestamp (x) :: VInt (y) :: st))
   | ("ADD", (VInt (x) :: VTimestamp (y) :: st))->
     return (VTimestamp (x+y) :: st)
-  | ("ADD", (x :: y :: st))
-    when addtype (typeof x) (typeof y) = Some TInt ->
-    return (VSymbolic (Op ("ADD", [x; y]), TInt) :: st)
-  | ("ADD", (x :: y :: st))
-    when addtype (typeof x) (typeof y) = Some TNat ->
-    return (VSymbolic (Op ("ADD", [x; y]), TNat) :: st)
-  | ("ADD", (x :: y :: st))
-    when addtype (typeof x) (typeof y) = Some TMutez ->
-    return (VSymbolic (Op ("ADD", [x; y]), TMutez) :: st)
-  | ("ADD", (x :: y :: st))
-    when addtype (typeof x) (typeof y) = Some TTimestamp ->
-    return (VSymbolic (Op ("ADD", [x; y]), TTimestamp) :: st)
+  | ("ADD", (x :: y :: st)) ->
+    (match addtype (typeof x) (typeof y) with
+     | Some t ->
+       return (VSymbolic (Op ("ADD", [x; y]), t) :: st)
+     | None ->
+       raise (Symbolic ("ADD: illegal argument types", x, y)))
   | ("SUB", (VInt x :: VInt y :: st))
   | ("SUB", (VNat x :: VInt y :: st))
   | ("SUB", (VInt x :: VNat y :: st))
@@ -391,15 +386,13 @@ let interpretI ins (stack : sval list) =
   | ("MUL", (VMutez x :: VNat y :: st))
   | ("MUL", (VNat x :: VMutez y :: st)) ->
     return (VMutez (x*y) :: st)
-  | ("MUL", (x :: y :: st))
-    when multype (typeof x) (typeof y) = Some TInt ->
-    return (VSymbolic (Op ("MUL", [x; y]), TInt) :: st)
-  | ("MUL", (x :: y :: st))
-    when multype (typeof x) (typeof y) = Some TNat ->
-    return (VSymbolic (Op ("MUL", [x; y]), TNat) :: st)
-  | ("MUL", (x :: y :: st))
-    when multype (typeof x) (typeof y) = Some TMutez ->
-    return (VSymbolic (Op ("MUL", [x; y]), TMutez) :: st)
+  | ("MUL", (x :: y :: st)) ->
+    (match multype (typeof x) (typeof y) with
+     | Some t ->
+       return (VSymbolic (Op ("MUL", [x; y]), t) :: st)
+     | None ->
+       raise (Symbolic ("MUL: illegal argument types", x, y))
+    )
   | ("CAR", (VPair (s1, _s2) :: st)) ->
     return (s1 :: st)
   | ("CAR", (VSymbolic (_d, TPair (t1, _t2)) as x :: st)) ->
