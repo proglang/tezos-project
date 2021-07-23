@@ -9,6 +9,20 @@ let (let*) (a, errs) f =
 
 let return x = (x, [])
 
+let rec print_node n =
+  match n with
+  | Micheline.Int (_loc, _i)->
+    print_string "int "
+  | Micheline.Bytes (_loc, _b) ->
+    print_string "bytes "
+  | Micheline.String (_loc, s) ->
+    print_string ("string \""^s^"\"")
+  | Micheline.Prim (_loc, s, ns, _) ->
+    (print_string ("prim \""^s^"\"(") ; List.iter ns ~f:print_node ;
+    print_string (") "); Out_channel.newline stdout)
+  | Micheline.Seq (_loc, ns) ->
+    (print_string ("seq (") ; List.iter ns ~f:print_node ; print_string (") "))
+
 let run_file filename =
   let _ignore = In_channel.with_file filename ~f:(fun file ->
       let source = String.concat ~sep:"\n" (In_channel.input_lines file) in
@@ -18,6 +32,7 @@ let run_file filename =
       let printable_nodes =
         List.map nodes ~f:(map_node (fun _ -> {Micheline_printer.comment=None}) (fun x -> x)) in
       let () = List.iter printable_nodes ~f:(Micheline_printer.print_expr Format.std_formatter) in
+      let () = Out_channel.newline stdout; List.iter printable_nodes ~f:print_node in
       return ())
   in ()
 
