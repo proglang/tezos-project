@@ -252,6 +252,28 @@ let rec comparable_type t =
   | TOption (t) -> comparable_type t
   | _ -> false
 
+let rec packable_type t =
+  match t with
+  | TAddress
+  | TBool
+  | TInt
+  | TNat
+  | TMutez
+  | TTimestamp
+  | TString
+  | TKey
+  | TKey_Hash
+  | TBytes
+  | TUnit -> true
+  | TOr (t1, t2)
+  | TPair (t1, t2)
+  | TMap (t1, t2) -> packable_type t1 && packable_type t2
+  | TOption (t)
+  | TSet (t)
+  | TList (t) -> packable_type t
+  | TContract (_) -> true
+  | _ -> false
+
 let contract_compatible tc ta =
   match tc with
   | TContract targ -> targ = ta
@@ -344,7 +366,7 @@ type instr =
   | T of string * ty
   | T2 of string * ty * ty
   | DIP of int * instr list
-  | DIG of int
+  | II of string * int
 
 let interpretI ins (stack : sval list) =
   match (ins, stack) with
@@ -592,6 +614,9 @@ let interpretI ins (stack : sval list) =
        return (VSymbolic (Op ("GET", [ky; mp]), TOption vt) :: st)
      | None ->                  (* never happens *)
        raise (Symbolic ("impossible type clash", ky, mp)))
+  | "PACK", x :: st
+    when packable_type (typeof x) ->
+    return (VSymbolic (Op ("PACK", [x]), TBytes) :: st)
   | ("SELF_ADDRESS", st) ->
     let* s = getenv "SELF_ADDRESS" in
     return (s :: st)
@@ -672,6 +697,14 @@ let interpretT ins t stack =
     return (VNone t :: st)
   | "EMPTY_SET", st ->
     return (VSet ([], t) :: st)
+  | "UNPACK", VSymbolic (Op ("PACK", [x]), TBytes) :: st ->
+    if typeof x = t then
+      return (VSome x :: st)
+    else
+      return (VNone t :: st)
+  | "UNPACK", x :: st
+    when typeof x = TBytes ->
+    return (VSymbolic (Op ("UNPACK", [x]), TOption t) :: st)
   | _ ->
     raise (StackType ("unprocessed TOperation " ^ ins, stack))
 
@@ -736,13 +769,24 @@ let rec interpret (il : instr list) (stack : sval list) =
     let seg, rest = segment i stack in
     let* rest_after = interpret il rest in
     interpret inss (seg @ rest_after)
-  | DIG (i) :: inss ->
+  | II (ins, i) :: inss ->
+    let* st = interpretII ins i stack in
+    interpret inss st
+
+and interpretII ins i stack =
+  match (ins, stack) with
+  | "DIG", _ ->
     let seg, rest = segment i stack in
     (match rest with
     | x :: rest_after ->
-      interpret inss (x :: seg @ rest_after)
+      return (x :: seg @ rest_after)
     | [] ->
       raise (StackType ("Bad DIG instruction on ", stack)))
+  | "DROP", _ ->
+    let _seg, rest = segment i stack in
+    return rest
+  | _, _ ->
+    raise (StackType ("Bad II instruction "^ins^" on ", stack))
 
 and interpretL (ins, ins_body) stack =
   match (ins, stack) with
