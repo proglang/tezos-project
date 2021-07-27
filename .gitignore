@@ -8,6 +8,8 @@ auto
 *.pdf
 *.rel
 *.vtc
+*.cmi
+*.cmo
 *.merlin
 _build
 .DS_Store
