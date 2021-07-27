@@ -60,7 +60,7 @@ type ty =
   | TKey_Hash
   | TSignature
   | TBytes
-  | TAny
+  | TNever
 
 type step =
   | SLeft | SRight | SFirst | SSecond | SCar | SCdr | SSome | SInset | SInlist
@@ -229,7 +229,7 @@ let getenv (n : string) =
   let* e = ReaderStore.get () in
   match Hashtbl.find_opt e n with
   | Some s -> return s
-  | None -> return (VSymbolic (Op (n, []), TAny))
+  | None -> return (VSymbolic (Op (n, []), TNever))
 
 (* instructions *)
 
@@ -374,9 +374,13 @@ type instr =
   | T2 of string * ty * ty
   | DIP of int * instr list
   | II of string * int
+  | CREATE_CONTRACT of ty * ty * instr list
 
 let interpretI ins (stack : sval list) =
   match (ins, stack) with
+  | "RENAME", st ->
+    (* designated no-op to manipulate annotations *)
+    return st
   | "UNIT", st ->
     return (VUnit :: st)
   | ("ADD", (VInt (x) :: VInt (y) :: st))
@@ -785,6 +789,17 @@ let symbolic_if mtrue mfalse rd cstore =
 let set_reachable _rd cstore =
   (), {cstore with maybe_reachable = true}
 
+let interpretCC _ty_param ty_storage _cins stack =
+  match stack with
+  | a :: b :: c :: st
+    when typeof a = TOption TKey_Hash && typeof b = TMutez && typeof c = ty_storage ->
+    let op_cc =  Op ("CREATE_CONTRACT", [a; b; c]) in 
+    return (VSymbolic (Step (SFirst, op_cc), TOperation) ::
+            VSymbolic (Step (SSecond, op_cc), TAddress) ::
+            st)
+  | _ ->
+    raise (StackType ("Bad CREATE_CONTRACT instruction on ", stack))
+
 let rec interpret (il : instr list) (stack : sval list) =
   match il with
   | [] -> return stack
@@ -811,6 +826,9 @@ let rec interpret (il : instr list) (stack : sval list) =
     interpret inss (seg @ rest_after)
   | II (ins, i) :: inss ->
     let* st = interpretII ins i stack in
+    interpret inss st
+  | CREATE_CONTRACT (ty_p, ty_s, cins) :: inss ->
+    let* st = interpretCC ty_p ty_s cins stack in
     interpret inss st
 
 and interpretII ins i stack =
