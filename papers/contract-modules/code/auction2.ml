@@ -1,8 +1,11 @@
 open Michelsym
 
-(* examples *)
+(* !!! *)
+(* this should fail to type check because of a type mismatch in the storage:
+ * the highest bidder starts as a key_hash, but the it gets replaced by the SENDER, which is an address
+ *)
 let auction_parameter = TOr (TUnit, TUnit)
-let auction_storage = TPair (TBool, TPair (TAddress, TAddress))
+let auction_storage = TPair (TBool, TPair (TKey_Hash, TKey_Hash))
     
 let auction_close = [
   (* unit : parm * store : - *)
@@ -13,13 +16,12 @@ let auction_close = [
   (* store : - *)
   I "UNPAIR"; COND ("IF", [], [PUSH (VString "closed"); I "FAILWITH"]); PUSH (VBool false); I "PAIR";
   (* store : - *)
-  PUSH (VMutez 0); I "BALANCE"; I "COMPARE"; I "GT";
+  PUSH (VMutez Z.zero); I "BALANCE"; I "COMPARE"; I "GT";
   COND ("IF", [
   I "DUP"; I "CDR"; I "CAR";
   (* owner-address : store : - *)
-  T ("CONTRACT", TUnit);
-  (* (contract unit) option : store *)
-  COND ("IF_NONE", [PUSH (VString "bad owner address"); I "FAILWITH"], []);
+  I "IMPLICIT_ACCOUNT" ;
+  (* (contract unit) : store *)
   I "BALANCE"; PUSH VUnit;
   (* unit : mutez : contract unit : store : - *)
   I "TRANSFER_TOKENS";
@@ -37,15 +39,13 @@ let auction_bid = [
   (* bidding : store : - *)
   COND ("IF", [], [PUSH (VString "closed"); I "FAILWITH"]);
   (* store : - *)
-  I "BALANCE"; I "AMOUNT"; PUSH (VNat 2); I "MUL"; I "COMPARE"; I "LE";
+  I "BALANCE"; I "AMOUNT"; PUSH (VNat (Z.of_int 2)); I "MUL"; I "COMPARE"; I "LE";
   (* amt <= bal : store : - *)
   COND ("IF", [PUSH (VString "too low"); I "FAILWITH"], []);
   (* store : - *)
   I "CDR"; I "UNPAIR"; I "SWAP";
   (* highbidder : owner : - *)
-  T ("CONTRACT", TUnit);
-  COND ("IF_NONE", [PUSH (VString "bad high bidder address"); I "FAILWITH"], []);
-  (* TODO: should be possible to prove that this failure never happens! *)
+  I "IMPLICIT_ACCOUNT" ;
   I "AMOUNT"; I "BALANCE"; I "SUB"; PUSH VUnit; I "TRANSFER_TOKENS"; T ("NIL", TOperation); I "SWAP"; I "CONS";
   (* operation list : owner *)
   DIP (1, [I "SENDER"; I "SWAP"; I "PAIR"; PUSH (VBool true); I "PAIR"]);

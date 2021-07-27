@@ -24,12 +24,11 @@ let return = ReaderStore.return
 let lift = ReaderStore.lift
 
 (* TODOs *)
-(* move TInt and TNat to Zarith *)
-(* support division *)
 (* map datatype: MAP instr *)
+(* lambda datatype: LAMBDA ty1 ty2 instr, APPLY, EXEC *)
 (* instructions: 
  ** SELF (to get the type, we need to store the parameter type in the environment!)
- ** CHECK_SIGNATURE needs types signature and bytes 
+ ** CHECK_SIGNATURE, KECCAK, etc: concrete versions needed
  ** CREATE_CONTRACT (quite involved)
  **)
 
@@ -72,8 +71,8 @@ type lr =
 
 type sval =
   | VBool of bool
-  | VInt of int
-  | VNat of int                 (* >= 0 *)
+  | VInt of Z.t
+  | VNat of Z.t                 (* >= 0 *)
   | VOr of lr * sval * ty
   | VPair of sval * sval
   | VString of string
@@ -89,8 +88,8 @@ type sval =
   | VKey_Hash of string
   | VSignature of string
   | VBytes of string
-  | VMutez of int
-  | VTimestamp of int
+  | VMutez of Z.t
+  | VTimestamp of Z.t
   | VContract of string * ty
   | VSymbolic of desc * ty
 and desc =
@@ -329,6 +328,14 @@ let multype t1 t2 =
   | TMutez, TNat -> Some TMutez
   | _ -> None
 
+let divtype t1 t2 =
+  match (t1, t2) with
+  | TInt, TInt | TNat, TInt | TInt, TNat -> Some (TPair (TInt, TNat))
+  | TNat, TNat -> Some (TPair (TNat, TNat))
+  | TMutez, TNat -> Some (TPair (TMutez, TMutez))
+  | TMutez, TMutez -> Some (TPair (TNat, TMutez))
+  | _ -> None
+
 let not_type t =
   match t with
   | TBool | TNat | TInt -> true
@@ -375,14 +382,14 @@ let interpretI ins (stack : sval list) =
   | ("ADD", (VInt (x) :: VInt (y) :: st))
   | ("ADD", (VNat (x) :: VInt (y) :: st))
   | ("ADD", (VInt (x) :: VNat (y) :: st)) ->
-    return (VInt (x+y) :: st)
+    return (VInt (Z.add x y) :: st)
   | ("ADD", (VNat (x) :: VNat (y) :: st)) ->
-    return (VNat (x+y) :: st)
+    return (VNat (Z.add x y) :: st)
   | ("ADD", (VMutez (x) :: VMutez (y) :: st)) ->
-    return (VMutez (x+y) :: st)
+    return (VMutez (Z.add x y) :: st)
   | ("ADD", (VTimestamp (x) :: VInt (y) :: st))
   | ("ADD", (VInt (x) :: VTimestamp (y) :: st))->
-    return (VTimestamp (x+y) :: st)
+    return (VTimestamp (Z.add x y) :: st)
   | ("ADD", (x :: y :: st)) ->
     (match addtype (typeof x) (typeof y) with
      | Some t ->
@@ -393,13 +400,13 @@ let interpretI ins (stack : sval list) =
   | ("SUB", (VNat x :: VInt y :: st))
   | ("SUB", (VInt x :: VNat y :: st))
   | ("SUB", (VNat x :: VNat y :: st)) ->
-    return (VInt (x-y) :: st)
+    return (VInt (Z.sub x y) :: st)
   | ("SUB", (VMutez x :: VMutez y :: st)) ->
-    return (VMutez (x-y) :: st)
+    return (VMutez (Z.sub x y) :: st)
   | ("SUB", (VTimestamp x :: VInt y :: st)) ->
-    return (VTimestamp (x-y) :: st)
+    return (VTimestamp (Z.sub x y) :: st)
   | ("SUB", (VTimestamp x :: VTimestamp y :: st)) ->
-    return (VInt (x-y) :: st)
+    return (VInt (Z.sub x y) :: st)
   | ("SUB", (x :: y :: st)) ->
     (match subtype (typeof x) (typeof y) with
      | Some t ->
@@ -409,18 +416,51 @@ let interpretI ins (stack : sval list) =
   | ("MUL", (VInt x :: VInt y :: st))
   | ("MUL", (VNat x :: VInt y :: st))
   | ("MUL", (VInt x :: VNat y :: st)) ->
-    return (VInt (x*y) :: st)
+    return (VInt (Z.mul x y) :: st)
   | ("MUL", (VNat x :: VNat y :: st)) ->
-    return (VNat (x*y) :: st)
+    return (VNat (Z.mul x y) :: st)
   | ("MUL", (VMutez x :: VNat y :: st))
   | ("MUL", (VNat x :: VMutez y :: st)) ->
-    return (VMutez (x*y) :: st)
+    return (VMutez (Z.mul x y) :: st)
   | ("MUL", (x :: y :: st)) ->
     (match multype (typeof x) (typeof y) with
      | Some t ->
        return (VSymbolic (Op ("MUL", [x; y]), t) :: st)
      | None ->
        raise (Symbolic ("MUL: illegal argument types", x, y))
+    )
+  | "DIV", (VInt x :: VNat y :: st)
+  | "DIV", (VNat x :: VInt y :: st)
+  | "DIV", (VInt x :: VInt y :: st) ->
+    (if y = Z.zero then
+      return (VNone (TPair (TInt, TNat)) :: st)
+    else
+      let (q, r) = Z.div_rem x y in
+      return (VSome (VPair (VInt q, VNat r)) :: st))
+  | "DIV", (VNat x :: VNat y :: st) ->
+    (if y = Z.zero then
+      return (VNone (TPair (TNat, TNat)) :: st)
+    else
+      let (q, r) = Z.div_rem x y in
+      return (VSome (VPair (VNat q, VNat r)) :: st))
+  | "DIV", (VMutez x :: VNat y :: st) ->
+    (if y = Z.zero then
+      return (VNone (TPair (TMutez, TMutez)) :: st)
+    else
+      let (q, r) = Z.div_rem x y in
+      return (VSome (VPair (VMutez q, VMutez r)) :: st))
+  | "DIV", (VMutez x :: VMutez y :: st) ->
+    (if y = Z.zero then
+      return (VNone (TPair (TNat, TMutez)) :: st)
+    else
+      let (q, r) = Z.div_rem x y in
+      return (VSome (VPair (VNat q, VMutez r)) :: st))
+  | ("DIV", (x :: y :: st)) ->
+    (match divtype (typeof x) (typeof y) with
+     | Some t ->
+       return (VSymbolic (Op ("DIV", [x; y]), TOption t) :: st)
+     | None ->
+       raise (Symbolic ("DIV: illegal argument types", x, y))
     )
   | ("CAR", (VPair (s1, _s2) :: st)) ->
     return (s1 :: st)
@@ -447,7 +487,7 @@ let interpretI ins (stack : sval list) =
   | ("DROP", (_ :: st)) ->
     return (st)
   | ("ISNAT", VInt a :: st) ->
-    return ((if a >= 0 then VSome (VNat a) else VNone TNat) :: st)
+    return ((if a >= Z.zero then VSome (VNat a) else VNone TNat) :: st)
   | ("ISNAT", x :: st)
     when typeof x = TInt ->
     return (VSymbolic (Op ("ISNAT", [x]), TOption TNat) :: st)
@@ -455,49 +495,49 @@ let interpretI ins (stack : sval list) =
   | "COMPARE", VMutez a :: VMutez b :: st
   | "COMPARE", VInt a :: VInt b :: st
   | "COMPARE", VNat a :: VNat b :: st ->
-    return (VInt (a-b) :: st)
+    return (VInt (Z.sub a b) :: st)
   | "COMPARE", VBool a :: VBool b :: st ->
-    return (VInt (compare_bool a b) :: st)
+    return (VInt (Z.of_int (compare_bool a b)) :: st)
   | "COMPARE", x :: y :: st
     when typeof x = TUnit && typeof y = TUnit ->
-    return (VInt 0 :: st)
+    return (VInt Z.zero :: st)
   | "COMPARE", x :: y :: st
     when typeof x = typeof y && comparable_type (typeof x) ->
     return (VSymbolic (Op ("COMPARE", [x; y]), TInt) :: st)
   | "LE", VInt a :: st ->
-    return (VBool (a <= 0) :: st)
+    return (VBool (a <= Z.zero) :: st)
   | "LE", x :: st
     when typeof x = TInt ->
     return (VSymbolic (Op ("LE", [x]), TBool) :: st)
   | "LT", VInt a :: st ->
-    return (VBool (a < 0) :: st)
+    return (VBool (a < Z.zero) :: st)
   | "LT", x :: st
     when typeof x = TInt ->
     return (VSymbolic (Op ("LT", [x]), TBool) :: st)
   | "GE", VInt a :: st ->
-    return (VBool (a >= 0) :: st)
+    return (VBool (a >= Z.zero) :: st)
   | "GE", x :: st
     when typeof x = TInt ->
     return (VSymbolic (Op ("GE", [x]), TBool) :: st)
   | "GT", VInt a :: st ->
-    return (VBool (a > 0) :: st)
+    return (VBool (a > Z.zero) :: st)
   | "GT", x :: st
     when typeof x = TInt ->
     return (VSymbolic (Op ("GT", [x]), TBool) :: st)
   | "EQ", VInt a :: st ->
-    return (VBool (a = 0) :: st)
+    return (VBool (a = Z.zero) :: st)
   | "EQ", x :: st
     when typeof x = TInt ->
     return (VSymbolic (Op ("EQ", [x]), TBool) :: st)
   | "NEQ", VInt a :: st ->
-    return (VBool (a <> 0) :: st)
+    return (VBool (a <> Z.zero) :: st)
   | "NEQ", x :: st
     when typeof x = TInt ->
     return (VSymbolic (Op ("NEQ", [x]), TBool) :: st)
   | "NOT", VBool a :: st ->
     return (VBool (not a) :: st)
   | "NOT", VInt a :: st ->
-    return (VInt (a lxor -1) :: st)
+    return (VInt (Z.lognot a) :: st)
   (* VNat ? lxor breaks the invariant *)
   | "NOT", x :: st
     when not_type (typeof x) ->
@@ -505,7 +545,7 @@ let interpretI ins (stack : sval list) =
   | "XOR", VBool a :: VBool b :: st ->
     return (VBool (a <> b) :: st)
   | "XOR", VNat a :: VNat b :: st ->
-    return (VNat (a lxor b) :: st)
+    return (VNat (Z.logxor a b) :: st)
   | "XOR", x :: y :: st
     when andtype (typeof x) (typeof y) = Some TBool ->
     return (VSymbolic (Op ("XOR", [x; y]), TBool) :: st)
@@ -516,7 +556,7 @@ let interpretI ins (stack : sval list) =
     return (VBool (a && b) :: st)
   | "AND", VNat a :: VNat b :: st
   | "AND", VInt a :: VNat b :: st ->
-    return (VNat (a land b) :: st)
+    return (VNat (Z.logand a b) :: st)
   | "AND", x :: y :: st
     when andtype (typeof x) (typeof y) = Some TBool ->
     return (VSymbolic (Op ("AND", [x; y]), TBool) :: st)
@@ -524,7 +564,7 @@ let interpretI ins (stack : sval list) =
     when andtype (typeof x) (typeof y) = Some TNat ->
     return  (VSymbolic (Op ("AND", [x; y]), TNat) :: st)
   | "ABS", VInt a :: st ->
-    return (VNat (abs a) :: st)
+    return (VNat (Z.abs a) :: st)
   | "ABS", x :: st
     when typeof x = TInt ->
     return (VSymbolic (Op ("ABS", [x]), TNat) :: st)
@@ -556,12 +596,12 @@ let interpretI ins (stack : sval list) =
     return (VSymbolic (Op ("MEM", [x; y]), TBool) :: st)
   (* concrete instances of MEM would be quite complex *)
   | "SIZE", VSet (xs, _t) :: st ->
-    return (VNat (List.length xs) :: st)
+    return (VNat (Z.of_int (List.length xs)) :: st)
   | "SIZE", x :: st
     when set_type (typeof x) ->
     return (VSymbolic (Op ("SIZE", [x]), TNat) :: st)
   | "SIZE", VMap (xs, _kt, _vt) :: st ->
-    return (VNat (List.length xs) :: st)
+    return (VNat (Z.of_int (List.length xs)) :: st)
   | "SIZE", x :: st
     when map_type (typeof x) ->
     return (VSymbolic (Op ("SIZE", [x]), TNat) :: st)

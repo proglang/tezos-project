@@ -17,7 +17,7 @@ let rec print_node n =
     (print_string ("seq (") ; List.iter ns ~f:print_node ; print_string (") "))
 
 
-(* TODO: Zarith, annotations... *)
+(* TODO: annotations... *)
 
 type ast =
   | Parameter of Michelsym.ty
@@ -67,8 +67,7 @@ let rec conv_type_node n =
 
 let conv_sval_node n t =
   match n with
-  | Micheline.Int (_loc, i) ->
-    let ii = Z.to_int i in
+  | Micheline.Int (_loc, ii) ->
     (match t with
      | Michelsym.TInt -> Michelsym.VInt (ii)
      | Michelsym.TNat -> Michelsym.VNat (ii)
