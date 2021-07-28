@@ -101,6 +101,10 @@ let rec conv_sval_node t n =
      | Michelsym.TOr (t1, t2) when String.(=) p "Right" ->
        let s2 = conv_sval_node t2 (List.nth_exn ns 0) in
        Michelsym.VOr (L, s2, t1)
+     | Michelsym.TBool when String.(=) p "False" ->
+       Michelsym.VBool false
+     | Michelsym.TBool when String.(=) p "True" ->
+       Michelsym.VBool true
      | _ -> raise (Mismatch ("prim "^p^" given"))
     )
   | Micheline.Seq (_loc, ns) ->
