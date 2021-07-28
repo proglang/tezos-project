@@ -63,7 +63,7 @@ type ty =
   | TNever
 
 type step =
-  | SLeft | SRight | SFirst | SSecond | SCar | SCdr | SSome | SInset | SInlist
+  | SLeft | SRight | SFirst | SSecond | SCar | SCdr | SSome | SInset | SInlist | SInmap
   | WSome                       (* wrapped in option Some *)
 
 type lr =
@@ -293,6 +293,11 @@ let map_type t =
   | TMap (_,_) -> true
   | _ -> false
 
+let list_type t =
+  match t with
+  | TList (_) -> true
+  | _ -> false
+
 let map_key_type t =
   match t with
   | TMap (tk, _tv) -> Some tk
@@ -433,33 +438,33 @@ let interpretI ins (stack : sval list) =
      | None ->
        raise (Symbolic ("MUL: illegal argument types", x, y))
     )
-  | "DIV", (VInt x :: VNat y :: st)
-  | "DIV", (VNat x :: VInt y :: st)
-  | "DIV", (VInt x :: VInt y :: st) ->
+  | "EDIV", (VInt x :: VNat y :: st)
+  | "EDIV", (VNat x :: VInt y :: st)
+  | "EDIV", (VInt x :: VInt y :: st) ->
     (if y = Z.zero then
       return (VNone (TPair (TInt, TNat)) :: st)
     else
       let (q, r) = Z.div_rem x y in
       return (VSome (VPair (VInt q, VNat r)) :: st))
-  | "DIV", (VNat x :: VNat y :: st) ->
+  | "EDIV", (VNat x :: VNat y :: st) ->
     (if y = Z.zero then
       return (VNone (TPair (TNat, TNat)) :: st)
     else
       let (q, r) = Z.div_rem x y in
       return (VSome (VPair (VNat q, VNat r)) :: st))
-  | "DIV", (VMutez x :: VNat y :: st) ->
+  | "EDIV", (VMutez x :: VNat y :: st) ->
     (if y = Z.zero then
       return (VNone (TPair (TMutez, TMutez)) :: st)
     else
       let (q, r) = Z.div_rem x y in
       return (VSome (VPair (VMutez q, VMutez r)) :: st))
-  | "DIV", (VMutez x :: VMutez y :: st) ->
+  | "EDIV", (VMutez x :: VMutez y :: st) ->
     (if y = Z.zero then
       return (VNone (TPair (TNat, TMutez)) :: st)
     else
       let (q, r) = Z.div_rem x y in
       return (VSome (VPair (VNat q, VMutez r)) :: st))
-  | ("DIV", (x :: y :: st)) ->
+  | ("EDIV", (x :: y :: st)) ->
     (match divtype (typeof x) (typeof y) with
      | Some t ->
        return (VSymbolic (Op ("DIV", [x; y]), TOption t) :: st)
@@ -599,15 +604,17 @@ let interpretI ins (stack : sval list) =
     when map_key_type (typeof y) = Some (typeof x) ->
     return (VSymbolic (Op ("MEM", [x; y]), TBool) :: st)
   (* concrete instances of MEM would be quite complex *)
+  (* TODO: concrete instance of SIZE for list *)
   | "SIZE", VSet (xs, _t) :: st ->
     return (VNat (Z.of_int (List.length xs)) :: st)
-  | "SIZE", x :: st
-    when set_type (typeof x) ->
-    return (VSymbolic (Op ("SIZE", [x]), TNat) :: st)
   | "SIZE", VMap (xs, _kt, _vt) :: st ->
     return (VNat (Z.of_int (List.length xs)) :: st)
+  | "SIZE", VString str :: st ->
+    return (VNat (Z.of_int (String.length str)) :: st)
+  | "SIZE", VBytes str :: st ->
+    return (VNat (Z.of_int (String.length str)) :: st)
   | "SIZE", x :: st
-    when map_type (typeof x) ->
+    when set_type (typeof x) || map_type (typeof x) || list_type (typeof x) || typeof x = TString || typeof x = TBytes ->
     return (VSymbolic (Op ("SIZE", [x]), TNat) :: st)
   | "GET_AND_UPDATE", x :: VSome y :: VMap (alist, kt, vt) :: st
     when typeof x = kt && concrete x && typeof y = vt && List.for_all concrete (List.map fst alist) ->
@@ -855,6 +862,8 @@ and interpretL (ins, ins_body) stack =
   | "ITER", VCons (sx, sl) :: st ->
     let* st = interpret ins_body (sx :: st) in
     interpretL ("ITER", ins_body) (sl :: st)
+  | "ITER", VMap (alist, _t1, _t2) :: st ->
+    ReaderStore.fold (fun (k,v) st -> interpret ins_body (VPair (k, v) :: st)) alist st
   | "ITER", VSymbolic (d, TSet t) :: st ->
     let* st_after = interpret ins_body (VSymbolic (Step (SInset, d), t) :: st) in
     let* () = set_reachable in  (* in case of empty set *)
@@ -863,6 +872,36 @@ and interpretL (ins, ins_body) stack =
     let* st_after = interpret ins_body (VSymbolic (Step (SInlist, d), t) :: st) in
     let* () = set_reachable in  (* in case of empty list *)
     return (merge_stack st st_after)
+  | "ITER", VSymbolic (d, TMap (t1, t2)) :: st ->
+    let* st_after = interpret ins_body (VSymbolic (Step (SInmap, d), TPair (t1, t2)) :: st) in
+    let* () = set_reachable in  (* in case of empty list *)
+    return (merge_stack st st_after)
+  | "MAP", VMap (alist, t1, t2) :: st ->
+    let* (dry_st) =
+      interpret ins_body (VSymbolic (Op ("DRY_MAP",[]), TPair (t1, t2)) :: st) in
+    let* (ys, st_out) = ReaderStore.fold
+        (fun (k,v) (ys, st) ->
+           let* st1 = interpret ins_body (VPair (k, v) :: st) in
+           return ((k,List.hd st1) :: ys, List.tl st1))
+        alist
+        ([], st)
+    in
+    let* () = set_reachable in  (* in case of empty map *)
+    return (VMap (ys, t1, typeof (List.hd dry_st)) :: st_out)
+  | "MAP", (VSymbolic (d, TMap (t1, t2)) as a) :: st ->
+    let* st_after = interpret ins_body (VSymbolic (Step (SInmap, d), TPair (t1, t2)) :: st) in
+    let* () = set_reachable in  (* in case of empty list *)
+    return (VSymbolic (Op ("MAP", [a]), TMap (t1, typeof (List.hd st_after))) ::
+            merge_stack st (List.tl st_after))
+  | "MAP", (VSymbolic (d, TList (t1)) as a) :: st ->
+    let* st_after = interpret ins_body (VSymbolic (Step (SInlist, d), t1) :: st) in
+    let* () = set_reachable in  (* in case of empty list *)
+    return (VSymbolic (Op ("MAP", [a]), TList (typeof (List.hd st_after))) ::
+            merge_stack st (List.tl st_after))
+  | n, VSymbolic (_, TMap (_, _)) :: _ ->
+    raise (StackType ("unprocessed loop "^n^" on symbolic map", stack))
+  | n, VSymbolic (_, TList (_)) :: _ ->
+    raise (StackType ("unprocessed loop "^n^" on symbolic list", stack))
   | n, _ -> raise (StackType ("unprocessed loop "^n, stack))
 
 and interpretC (ins, ins_tru, ins_fls) stack =
