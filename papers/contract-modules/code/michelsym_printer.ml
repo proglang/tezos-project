@@ -44,6 +44,7 @@ let string_of_step stp =
   | SSome -> "some"
   | SInset -> "in_set"
   | SInlist -> "in_list"
+  | SInmap -> "in_map"
   | WSome -> "wrapped_some"
 
 let rec string_of_sval s =
@@ -54,7 +55,7 @@ let rec string_of_sval s =
   | VOr (lr, s, _t) -> "("^string_of_lr lr^" "^string_of_sval s^")"
   | VPair (s1,s2) -> "(pair "^string_of_sval s1^" "^string_of_sval s2^")"
   | VString (st) -> "\"" ^ st ^ "\""
-  | VSet (ss, _t) -> "(set "^String.concat " " (List.map string_of_sval ss)^")"
+  | VSet (ss, _t) -> "(set "^string_of_svals ss^")"
   | VUnit -> "unit"
   | VNil (_) -> "nil"
   | VCons (s1, s2) -> "(cons "^string_of_sval s1^" "^string_of_sval s2^")"
@@ -75,5 +76,7 @@ and string_of_desc d =
   | Step (st, d) -> string_of_step st^">"^string_of_desc d
   | Parameter -> "parameter"
   | Storage -> "storage"
-  | Op (str, ss) -> "(op "^str^" "^String.concat " " (List.map string_of_sval ss)^")"
-  | Set (ss) -> "(set"^String.concat " " (List.map string_of_sval ss)^")"
+  | Op (str, ss) -> "(op "^str^" "^string_of_svals ss^")"
+  | Set (ss) -> "(set"^string_of_svals ss^")"
+and string_of_svals ss =
+  String.concat " " (List.map string_of_sval ss)
