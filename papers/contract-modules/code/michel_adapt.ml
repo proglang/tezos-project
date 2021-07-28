@@ -111,6 +111,9 @@ let rec conv_sval_node t n =
      | Michelsym.TSet (t1) ->
        let ss = List.map ~f:(conv_sval_node t1) ns in
        Michelsym.VSet (ss, t1)
+     | Michelsym.TMap (t1, t2) ->
+       let ss = List.map ~f:(conv_sval_node (TPair (t1, t2))) ns in
+       Michelsym.VMap (List.filter_map ss ~f:(function (VPair (s1, s2)) -> Some (s1, s2) | _ -> None), t1, t2)
      | _ -> raise (Mismatch "seq given")
     )
   
@@ -176,6 +179,11 @@ and conv_code_node n =
         | _ ->
           [II (p, 1)]
        )
+     | "LAMBDA" ->
+       let t1 = conv_type_node (List.nth_exn ns 0) in
+       let t2 = conv_type_node (List.nth_exn ns 1) in
+       let body = conv_code_node (List.nth_exn ns 2) in
+       [Michelsym.LAMBDA (t1, t2, body)]
      | _ ->
        [Michelsym.I p]
     )

@@ -12,6 +12,7 @@ let rec string_of_ty t =
   | TMap (t1, t2) -> "(map "^ string_of_ty t1 ^" "^ string_of_ty t2 ^")"
   | TOr (t1,t2) -> "(or "^ string_of_ty t1 ^" "^ string_of_ty t2 ^")"
   | TPair (t1, t2) -> "(pair "^ string_of_ty t1 ^" "^ string_of_ty t2 ^")"
+  | TLambda (t1, t2) -> "(lambda "^ string_of_ty t1 ^" "^ string_of_ty t2 ^")"
   | TString -> "string"
   | TUnit -> "unit"
   | TAddress -> "address"
@@ -54,6 +55,7 @@ let rec string_of_sval s =
   | VNat n -> Z.to_string n
   | VOr (lr, s, _t) -> "("^string_of_lr lr^" "^string_of_sval s^")"
   | VPair (s1,s2) -> "(pair "^string_of_sval s1^" "^string_of_sval s2^")"
+  | VLambda (t1,t2, _ins_body) -> "(LAMBDA "^string_of_ty t1^" "^string_of_ty t2^" ...)"
   | VString (st) -> "\"" ^ st ^ "\""
   | VSet (ss, _t) -> "(set "^string_of_svals ss^")"
   | VUnit -> "unit"

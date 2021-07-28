@@ -25,7 +25,7 @@ let lift = ReaderStore.lift
 
 (* TODOs *)
 (* map datatype: MAP instr *)
-(* lambda datatype: LAMBDA ty1 ty2 instr, APPLY, EXEC *)
+(* lambda datatype: LAMBDA ty1 ty2 instr (started), APPLY, EXEC (started) *)
 (* instructions: 
  ** SELF (to get the type, we need to store the parameter type in the environment!)
  ** CHECK_SIGNATURE, KECCAK, etc: concrete versions needed
@@ -49,6 +49,7 @@ type ty =
   | TMap of ty * ty
   | TOr of ty * ty
   | TPair of ty * ty
+  | TLambda of ty * ty
   | TString
   | TUnit
   | TAddress
@@ -75,6 +76,7 @@ type sval =
   | VNat of Z.t                 (* >= 0 *)
   | VOr of lr * sval * ty
   | VPair of sval * sval
+  | VLambda of ty * ty * instr list
   | VString of string
   | VSet of sval list * ty         (* no repetitions *)
   | VUnit
@@ -98,6 +100,18 @@ and desc =
   | Storage
   | Op of string * sval list
   | Set of sval list
+and instr =
+  | I of string
+  | COND of string * instr list * instr list
+  | LOOP of string * instr list
+  | PUSH of sval
+  | T of string * ty
+  | T2 of string * ty * ty
+  | DIP of int * instr list
+  | II of string * int
+  | CREATE_CONTRACT of ty * ty * instr list
+  | LAMBDA of ty * ty * instr list
+
 
 let nstep (spec : step * desc) =
   match spec with
@@ -112,6 +126,7 @@ let rec typeof (s : sval) =
   | VOr (L, s, t) -> TOr (typeof s, t)
   | VOr (R, s, t) -> TOr (t, typeof s)
   | VPair (s1, s2) -> TPair (typeof s1, typeof s2)
+  | VLambda (t1, t2, _) -> TLambda (t1, t2)
   | VString (_) -> TString
   | VSet (_, t) -> TSet t
   | VUnit -> TUnit
@@ -298,6 +313,16 @@ let list_type t =
   | TList (_) -> true
   | _ -> false
 
+let applicable_function tf ta =
+  match tf with
+  | TLambda (t1, _t2) -> ta = t1
+  | _ -> false
+
+let return_type_exn tf =
+  match tf with
+  | TLambda (_t1, t2) -> t2
+  | _ -> raise (StackType ("return_type_exn: lambda expected", []))
+
 let map_key_type t =
   match t with
   | TMap (tk, _tv) -> Some tk
@@ -369,18 +394,6 @@ let subtype t1 t2 =
   | TTimestamp, TTimestamp -> Some TInt
   | _ -> None
   
-
-type instr =
-  | I of string
-  | COND of string * instr list * instr list
-  | LOOP of string * instr list
-  | PUSH of sval
-  | T of string * ty
-  | T2 of string * ty * ty
-  | DIP of int * instr list
-  | II of string * int
-  | CREATE_CONTRACT of ty * ty * instr list
-
 let interpretI ins (stack : sval list) =
   match (ins, stack) with
   | "RENAME", st ->
@@ -668,6 +681,9 @@ let interpretI ins (stack : sval list) =
   | "PACK", x :: st
     when packable_type (typeof x) ->
     return (VSymbolic (Op ("PACK", [x]), TBytes) :: st)
+  | "EXEC", a :: f :: st
+    when applicable_function (typeof f) (typeof a) ->
+    return (VSymbolic (Op ("EXEC", [a;f]), return_type_exn (typeof f)) :: st)
   | ("SELF_ADDRESS", st) ->
     let* s = getenv "SELF_ADDRESS" in
     return (s :: st)
@@ -837,6 +853,8 @@ let rec interpret (il : instr list) (stack : sval list) =
   | CREATE_CONTRACT (ty_p, ty_s, cins) :: inss ->
     let* st = interpretCC ty_p ty_s cins stack in
     interpret inss st
+  | LAMBDA (ty_arg, ty_ret, ins_body) :: inss ->
+    interpret inss (VLambda (ty_arg, ty_ret, ins_body) :: stack)
 
 and interpretII ins i stack =
   match (ins, stack) with
