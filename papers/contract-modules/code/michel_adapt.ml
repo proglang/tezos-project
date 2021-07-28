@@ -65,7 +65,7 @@ let rec conv_type_node n =
   | _ ->
     raise (Mismatch "type node expected")
 
-let conv_sval_node n t =
+let rec conv_sval_node t n =
   match n with
   | Micheline.Int (_loc, ii) ->
     (match t with
@@ -89,12 +89,28 @@ let conv_sval_node n t =
      | Michelsym.TBytes -> Michelsym.VBytes (Bytes.to_string b)
      | _ -> raise (Mismatch "bytes given")
     )
-  | Micheline.Prim (_loc, p, _ns, _annot) ->
+  | Micheline.Prim (_loc, p, ns, _annot) ->
     (match t with
+     | Michelsym.TPair (t1, t2) when String.(=) p "Pair" ->
+       let s1 = conv_sval_node t1 (List.nth_exn ns 0) in
+       let s2 = conv_sval_node t2 (List.nth_exn ns 1) in
+       Michelsym.VPair (s1, s2)
+     | Michelsym.TOr (t1, t2) when String.(=) p "Left" ->
+       let s1 = conv_sval_node t1 (List.nth_exn ns 0) in
+       Michelsym.VOr (L, s1, t2)
+     | Michelsym.TOr (t1, t2) when String.(=) p "Right" ->
+       let s2 = conv_sval_node t2 (List.nth_exn ns 0) in
+       Michelsym.VOr (L, s2, t1)
      | _ -> raise (Mismatch ("prim "^p^" given"))
     )
-  | Micheline.Seq (_loc, _ns) ->
+  | Micheline.Seq (_loc, ns) ->
     (match t with
+     | Michelsym.TList (t1) ->
+       let ss = List.map ~f:(conv_sval_node t1) ns in
+       List.fold_right ss ~f:(fun a l -> Michelsym.VCons (a,l)) ~init:(Michelsym.VNil t1)
+     | Michelsym.TSet (t1) ->
+       let ss = List.map ~f:(conv_sval_node t1) ns in
+       Michelsym.VSet (ss, t1)
      | _ -> raise (Mismatch "seq given")
     )
   
@@ -135,7 +151,7 @@ and conv_code_node n =
        [Michelsym.LOOP (p, conv_code_node (List.hd_exn ns))]
      | "PUSH" ->
        let t = conv_type_node (List.hd_exn ns) in
-       let s = conv_sval_node (List.hd_exn (List.tl_exn ns)) t in
+       let s = conv_sval_node t (List.hd_exn (List.tl_exn ns)) in
        [Michelsym.PUSH s]
      | "CONTRACT" | "NIL" | "NONE" | "EMPTY_SET" ->
        let t = conv_type_node (List.hd_exn ns) in
