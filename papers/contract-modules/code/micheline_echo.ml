@@ -42,17 +42,18 @@ let run_file filename =
         let () = Michelsym.Env.add_typed "SELF" (Michelsym.TContract ty_p) in
         let env = Michelsym.Env.table in
         let ct_entrypoints = Michelsym.entrypoints ty_p in
-        let ct_stacks =
-          List.map ~f:(fun ep -> Michelsym.initial_stack_from_entrypoint ep ty_s) ct_entrypoints in
-        let ct_finals =
-          List.map ~f:(fun istack -> Michelsym.interpret ct_code istack env) ct_stacks in
-        let _ct_analysis =
-          List.map ~f:(fun final -> final Michelsym.initial_constraints) ct_finals in
-        print_string ("entrypoints: "^ String.concat ~sep:" " (List.map ~f:Michelsym_printer.string_of_sval ct_entrypoints)); Out_channel.newline stdout;
         (* for each entrypoint... *)
-        (* TODO: print initial stacks *)
-        (* TODO: print final stacks *)
-        (* TODO: print analysis *)
+        List.iter
+          ct_entrypoints
+          ~f:(fun ep ->
+              let ep_stack = Michelsym.initial_stack_from_entrypoint ep ty_s in
+              let ep_analysis = Michelsym.interpret ct_code ep_stack env in
+              let (ep_final_stack, ep_final_constraints) = ep_analysis Michelsym.initial_constraints in
+              print_string ("--- entrypoint: "^Michelsym_printer.string_of_sval ep) ; Out_channel.newline stdout;
+              print_string ("initial stack:\n"^Michelsym_printer.string_of_svals ep_stack); Out_channel.newline stdout;
+              print_string ("final stack:\n"^Michelsym_printer.string_of_svals ep_final_stack); Out_channel.newline stdout;
+              print_string ("final constraints:\n"^Michelsym_printer.string_of_constraints ep_final_constraints); Out_channel.newline stdout;
+            ) ;
         return ()
       | _ ->
         print_string "unexpected node sequence";

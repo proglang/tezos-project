@@ -82,3 +82,30 @@ and string_of_desc d =
   | Set (ss) -> "(set"^string_of_svals ss^")"
 and string_of_svals ss =
   String.concat " " (List.map string_of_sval ss)
+and string_of_instr ins =
+  match ins with
+  | I str -> str
+  | COND (str, inss_true, inss_false) -> str^" "^string_of_instrs inss_true^" "^string_of_instrs inss_false
+  | LOOP (str, inss_body) -> str^" "^string_of_instrs inss_body
+  | PUSH sv -> "PUSH "^string_of_sval sv
+  | T (str, t1) -> str^" "^string_of_ty t1
+  | T2 (str, t1, t2) -> str^" "^string_of_ty t1^" "^string_of_ty t2
+  | DIP (i, inss_body) -> "DIP "^string_of_int i^" "^string_of_instrs inss_body
+  | II (str, i) -> str^" "^string_of_int i
+  | CREATE_CONTRACT (t1, t2, inss_body) -> "CREATE_CONTRACT "^string_of_ty t1^" "^string_of_ty t2^" "^string_of_instrs inss_body
+  | LAMBDA (t1, t2, inss_body) -> "LAMBDA "^string_of_ty t1^" "^string_of_ty t2^" "^string_of_instrs inss_body
+and string_of_instrs inss =
+  "{ "^String.concat "; " (List.map string_of_instr inss) ^ " }"
+
+let string_of_failure_value (true_values, false_values, sv) =
+  "\nFAILWITH "^string_of_sval sv^
+  "\n  IF TRUE:  "^string_of_svals true_values^
+  "\n  IF FALSE: "^string_of_svals false_values
+
+let string_of_constraints {true_values; false_values; failure_values; maybe_reachable} =
+  let _ = failure_values in
+  "\nTrue values:\n "^String.concat "\n " (List.map string_of_sval true_values)^
+  "\nFalse values:\n "^String.concat "\n " (List.map string_of_sval false_values)^
+  "\nFailure values:\n"^String.concat "\n" (List.map string_of_failure_value failure_values)^
+  "\nMaybe reachable: "^Bool.to_string maybe_reachable
+                          
