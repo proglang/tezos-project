@@ -1,0 +1,266 @@
+APLAS 2021 Paper #58 Reviews and Comments
+===========================================================================
+Paper #58 A Typed Programmatic Interface to Contracts on the Blockchain
+
+
+Review #58A
+===========================================================================
+
+Overall merit
+-------------
+3. Weak accept
+
+Reviewer expertise
+------------------
+4. Expert
+
+Paper summary
+-------------
+This work defines an execution model for off-chain programs interacting with an account-based blockchain supporting smart contracts. The off-chain program can only query about the current state of the blockchain, create or call existing contracts, or submit transactions which transfer funds from one address to another.
+
+This type of off-chain interaction is mostly appropriate in cases where a single participant wishes to automate their interaction with the blockchain and there is no need to cooperate with other parties, in contrast to smart contracts that utilize the full power of the blockchain consensus. 
+
+The authors also provide a small-step operational semantics and proofs of simple meta-theoretical properties. The theorems have not been mechanized, but there is a prototype OCaml implementation for the Tezos blockchain.
+
+Lastly, a connection with the 'oracle' approach for adding external data feeds to smart contracts is discussed.
+
+Comments for author
+-------------------
+# General comments
+
+In general, I think your works enjoys high technical merit and the semantics have been clearly presented.
+
+However, the paper lacks in prose and storytelling (especially in Section 5 onwards), which is still a very important aspect of communicating technical results. You could easily improve on this point by inserting prose in between the different propositions you prove, reflecting on why we are proving this particular property, as well as adding a bit more discussion on related and future work.
+
+Given that most emphasis was put on fleshing out the technical details and (a selection of) the corresponding rules/properties, I would expect for the paper to be accompanied by a mechanisation in a contemporary proof assistant such as Coq or Agda, as this methodology is becoming increasingly more standard in the field of programming language semantics. This can be undertaken as a significant improvement on the current paper, if time allows, otherwise in a future presentation of this work or some extended version of it. Your definitions are simple enough for you to be able to rapidly mechanise the rules. Apart from giving significantly more confidence in the results you present in this paper, it is also an appropriate next step on integrating your work with the existing mechanised metatheory for Michelson in Mi-Cho-Coq [5].
+
+Regarding related work, you seem to consider your approach as an alternative to the 'oracles' approach, but I cannot see that clearly as there is no mention of 'external data source' anywhere when you present your model. Take your running example for instance, an off-chain program that automates a bidding strategy, given an existing auction smart contract on the blockchain. This problem does not seem related to oracles, since the contract itself does not rely on any external data sources, therefore it solves a different problem.
+
+To my understanding, your model captures off-chain (functional) programs that interact with (a sufficient abstraction of) a blockchain and smart contracts running on it, which makes more sense when this off-chain script runs on behalf of a single entity. However, the term 'off-chain' is never mentioned in the paper! Finally, what I would expect as related work would be current approaches to verifiable clients for smart contract platforms and, more importantly, how your approach is novel and goes beyond this related work.
+
+
+# Specific comments (would be much easier with line numbers)
+
+---pg1
+
+**keywords**
+- 'smart contract' ~> 'smart contracts'
+- 'embedded domain specific language' ~> 'embedded domain specific languages'
+
+**1. Introduction**
+
+- Citations are not 'clickable' in the generated PDF, better fix this for user friendliness.
+- 'called Smart Contracts' ~> 'called \textit{smart contracts}'
+
+
+>The strength of programs on the blockchain is also their weakness.
+
+It is not entirely clear what you mean by strength/weakness here? Is the fact that contracts are deterministic a strength or a weakness?
+
+---pg2
+
+'automatizing' ~> 'automating'
+'automatic bidding' ~> 'bidding' (redundant use of automatic)
+
+>the Ethereum JSON-RPC API and the Tezos RPC API
+
+Add link/reference to these APIs.
+
+>An implementation of a low-level OCaml-API to the Tezos blockchain, which corresponds to the operational semantics.
+
+The implementation does not seem polished enough, it certainly needs some comments and how it connects with everything mentioned in the operational semantics presented in this paper; currently I see very little resemblance, e.g. where are the implementation for chkBal/chkPuh/etc...?
+
+Note that it might be better to add the code as an appendix as it's essentially a single file, and possibly referring to specific definitions/rules in the paper.
+
+**2. Motivation**
+
+---pg4
+
+- 'bid_to_low' ~> 'bid_too_low'
+- 'requires to propose' ~> 'requires the caller to propose' or 'requires proposing'
+
+
+**3. Execution Model**
+
+---pg5
+
+>In particular, we do not formalize the execution of the smart contracts themselves, we rather consider them as black boxes and probe their observable behavior. Tezos’ smart contract language Michelson and its properties have been formalized elsewhere [5].
+
+I am wondering whether it would be more efficient to present your work as an extension to Michelson and its corresponding formalisation, rather than defining everything from scratch and assuming a black-box approach. One possible advantage from this would be that the essential/novel elements of your theory would be emphasized and the less interesting, pre-established parts (e.g. sums, products) could be deferred to existing papers.
+
+NB: this also connects well with my general suggestion to mechanize all of this in Coq, possibly extending Mi-Cho-Coq or something similar directly.
+
+---pg6
+
+>e :: s to decompose a set nondeterministically into an element e and a set s
+
+NB: this would be the only point where you would find difficulties when mechanizing it in a constructive proof assistant (e.g. in Coq), which would force you to assume a less direct, but more straightforward syntax.
+
+>op ::= transfer nt from puk to addr arg p fee fee | originate contract transferring nt from puk running code init s fee fee
+
+Does the ternary syntax here really help? I think it would be less confusing to write these as:
+- transfer(nt,puk,addr,p,fee)
+- originate(nt,puk,code,s,fee)
+Of course, you will have to add some remarks to clarity what the role of each argument is, which was previously self-explanatory.
+Another option would be to use more creative syntax using other symbols, e.g. transferring would become something like 'puk ---[ nt | p | fee ]--> addr '.
+
+>[Definition 1] "is a set of programs"
+
+'Program' is never properly defined, but in this case it coincides with 'expression' which you have. Regardless, you should make this explicit here, it is confusing otherwise.
+
+---pg7
+
+>code T U indicates a Michelson
+
+'\textbf{code}' ~> 'Code'
+
+---pg8
+
+>A manager keeps track of a single implicit account
+
+From what I understood, a manager keeps track of all/multiple implicit accounts.
+
+---pg9
+
+>A contractor manages a smart contract.
+
+Again, a contractor seems to manage *multiple* smart contracts.
+
+---pg10
+
+>"M is a map of managers, C is a map of contractors"
+
+I suggest removing the whole terminology of manager/contractor; just introduce them with their partial-maps definition from/to appropriate types and refer to them as \textbf{M}/\textbf{C} the couple of times you need it for the rest of the paper.
+
+---pg11
+
+>"We give just one example Node-Reject of the numerous transitions that cover the cases where one of the premises of Node-Inject is not fulfilled"
+
+There is no need to formulate this as numerous rules, you can just have two if you define an overall check `CHECK` consisting of all individual checks `chkBal/chkFee/...` and returning True or an appropriate error. Then:
+1. [NODE-INJECT]
+```
+      CHECK(..args..) = True    ....
+  --------------------------------------
+      ...<op, t, pending>...
+```
+
+2. [NODE-REJECT]
+```
+       CHECK(..args..) = xErr
+  ---------------------------------
+       ... --> ...[raise xErr]...
+```
+
+---pg12
+
+- 'The cast succeeds Contract-Yes on puh' ~> 'The case succeeds on puh (`CONTRACT-YES`)'
+
+- 'The cast fails Contract-No' ~> 'The cast fails (`CONTRACT-NO`)'
+
+---pg13
+
+>[Conclusion of BLOCK-ACCEPT]
+
+The arrow notation gets quite clunky, I suggest you put the arrow in a line of its own (justified in the center) so that it's clearer to distinguish source and target states.
+
+**5. Properties**
+
+- You should add some text here to introduce the section, e.g. "Having defined our execution model, we proceed with proving ....".
+
+>Running a program that starts with valid references to accounts, operations, and contracts does not get corrupted by a transition.
+
+This sentence seems out of place, it should either be inside a proposition (possible number 1), or guide us to why a subsequent proposition makes sense (e.g. "One interesting property we would like to prove is that running a program ....").
+
+
+**6. Related Work**
+
+---pg17
+
+- 'Several researches have ...' ~> 'There has been extensive research on providing oracle solutions for blockchain.'
+
+>Closely following our work, Nielsen and Spitters [17]
+
+[17] formalised smart contract execution on an account-based blockchain, but has nothing to do with oracles/off-chain interaction. One would say it's very similar to the Mi-Cho-Coq framework, possibly on a higher level of abstraction to allow for instantiation at different target blockchains / smart contract platforms.
+
+Furthermore, you have to be aware of the different meaning word 'formalisation' in different contexts, specifically when you use it both for mechanized meta-theory, as in 'Nielsen and Spitters [17]', and for your type system and operational semantics. (c.f. my general suggestion to mechanize your work)
+
+**7. Conclusion**
+
+>ample scope for future work
+
+It would be nice if there was a brief discussion on possible future directions.
+
+
+
+Review #58B
+===========================================================================
+
+Overall merit
+-------------
+1. Reject
+
+Reviewer expertise
+------------------
+3. Knowledgeable
+
+Paper summary
+-------------
+According to the paper's abstract and introduction, this paper aims to propose an interface for writing programs that query the Tezos blockchain. However, the paper is mainly about the definition of operational semantics that models the behavior of operations in the Tezos blockchain. The operational semantics is defined as a state machine that nondeterministically selects a pending operation and changes the chain's state by executing that operation.
+
+Comments for author
+-------------------
+The paper does not achieve its argued goal of an API for writing off-chain programs but only defines the semantics of operations in Tezos.  I believe that the paper should be rejected.  Even if I see the paper as one that proposes an operational semantics that models the behavior of the Tezos blockchain, its application is still unclear to me.
+
+The paper needs much revision.
++ The explanation of Michelson in Section 2 would be difficult to understand for those who are not already familiar with Michelson.
++ The entire picture of the system to be implemented in the motivating example in Section 2 is not clear.  This makes the goal of the paper vague.
++ I do not believe one needs to formally state an operational semantics of a blockchain when he/she designs an API to implement a system using the blockchain.
+
+Questions for authors’ response
+---------------------------------
++ Why do you need to formalize operational semantics of Tezos to describe your API?
+
+
+
+Review #58C
+===========================================================================
+
+Overall merit
+-------------
+3. Weak accept
+
+Reviewer expertise
+------------------
+3. Knowledgeable
+
+Paper summary
+-------------
+This paper presents a very realistic and pressing problem in blockchain: suppose a multi-party computation involves clients from traditional software as well as regular smart contracts running on blockchain, how do we ensure the safety of cross-platform communications? To address this problem,  the authors propose a typed API (implemented in OCaml) for this purpose and establish some properties of the combined system. The core contributions include an execution model that enables type-safe interaction between programs and the blockchain as well as a formal semantics of the type system. A prototype of the interface is implemented in OCaml for the Tezos blockchain and is publicly available.
+
+Comments for author
+-------------------
+Overall, I enjoy reading the paper. I think the authors are addressing a very pressing problem with an elegant solution. 
+
+Strengths:
+
+1. A pressing and realistic problem in blockchain.
+
+2. A language-based solution to ensure safety via types, which will be easy to be adopted by the programmers.
+
+3. A full formalism of the language as well as its operational semantics.
+
+4. An implementation that is publicly available.
+
+Weaknesses:
+
+1. Writing. The current writing is a bit dense and it will be great if the authors can present a mini-language that focuses on the most interesting part of the type system. It that case, the authors can leverage the extra space to provide more examples.
+
+2. Decidability. If I understand correctly, it seems that the authors implement a customized decision procedure for type checking. In that case, is it possible for the type system to generate constraints that go beyond the decidable fragments? How do you handle it?
+
+3. Soundness. The paper presents the operational semantics. But is the type system sound (it should), if so, how do you prove it? Is your system complete? 
+
+4. Implementation. It will be great if you could move some of the formalizations to the appendix and leverage the extra space to discuss some implementation details and use cases.
+
+Questions for authors’ response
+---------------------------------
+Can you provide the soundness proof?

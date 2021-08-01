@@ -1,0 +1,31 @@
+Thanks to the reviewers for their insightful comments.
+
+In a revision, we will address all specific comments, except where otherwise noted.
+
+## reviewer 58A
+
+* We agree that mechanizing the typing-related results is an important step forward. We are currently looking into it, but it's ongoing and hence not reported in the paper.
+* Our initial examples were related to Oracles, but the work has moved away from that and we will update the text and related work to reflect that.
+* *off-chain script runs on behalf of a single entity* this is indeed the case in our implementation. We will emphasize this in the revised version.
+* *current approaches to verifiable clients* excellent point! we will add this aspect to our related work.
+
+*Is the fact that contracts are deterministic a strength or a weakness?* It's mostly a strength, except for applications that require nondeterminism or some degree of impredictability, the most prominent example being (pseudo) random numbers.
+
+*implementation does not seem polished enough* It's in constant flux as we are working against a moving target. Tezos has been updating its protocol and its library infrastructure in quite rapid succession. We are happy to add the interface in an appendix if it fits in the page limit.
+
+*implementation for chkBal/chkPuh/etc* These are metafunctions used to describe the semantics of the blockchain transactions. The model functionality that is implemented in the Tezos client or the node.
+
+*present your work as an extension to Michelson and its corresponding formalisation* we think that the present work is an excellent starting point for this endeavor. This way we have a blueprint for the formalization.
+
+## reviewer 58B
+
+We are sorry that our text does not make the need for the operational semantics sufficiently clear. In the end, we wish to state and prove properties of a system comprising OCaml code (multi-threaded or distributed) connected  via the API to Michelson contracts on the Tezos blockchain. This work is a first step in obtaining insight into the problem, next will be a formalization that connects with the Mi-Cho-Coq formalization of Michelson contracts, as mentioned by reviewer 58A.
+
+## reviewer 58C
+
+Let us comment on the weaknesses.
+
+1. We started with a mini language, but were forced to add features as our work proceeded. We'll see what we can cut down.
+2. *customized decision procedure* I'm not sure where this impression comes from, as we have no customized decision procedure. We do not give any indication of that in the paper and there is nothing special going on in type checking beyond OCaml's provisions. It would be advantageous to have subtyping, but as OCaml does not support subtyping, we decided to keep types separate and rely on cast operations that are checked at run time. BTW this approach is inspired by Michelson's design, which has similar casting operations, e.g., `IMPLICIT_CONTRACT` which casts from type `address` to type `contract unit`.
+3. Soundness. We have a sketch of the type soundness proof on paper, but nothing typeset so far. It is structured as usual in type preservation and progress results. Progress is, of course, relative to the behavior of the blockchain (which we model as a gray box), so that any operation that requires interaction with the blockchain may be stuck temporarily.
+4. Implementation. We'll be happy to make some space to discuss implementation details.
