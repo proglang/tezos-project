@@ -21,8 +21,13 @@
  ()
  ((Unit unit)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Tezos/Michelson specific
 (declare-sort Address)
+(declare-fun mk-address (String) Address)
+(assert (forall ((s1 String) (s2 String))
+		(=> (= (mk-address s1) (mk-address s2))
+		    (= s1 s2))))
 
 (declare-datatypes
  ()
@@ -79,7 +84,8 @@
 ; CONTRACT ty
 (declare-fun CONTRACT-ADDRESS (STyp Address) Bool)
 
-; specific contract description
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; contract specific description
 (declare-const parameter (Or Unit Unit))
 (declare-const storage (Pair Bool (Pair Address Address)))
 
