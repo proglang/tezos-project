@@ -60,12 +60,10 @@ let run_file filename =
           ~f:(fun ep ->
               let ep_stack = Michelsym.initial_stack_from_entrypoint ep ty_s in
               let ep_analysis = Michelsym.interpret ct_code ep_stack env in
-              let (_ep_final_stack, ep_final_constraints) = ep_analysis Michelsym.initial_constraints in
+              let (ep_final_stack, ep_final_constraints) = ep_analysis Michelsym.initial_constraints in
               print_string ("--- entrypoint: "^Michelsym_smt.smt_of_sval ep) ; Out_channel.newline stdout;
               print_string ("initial stack:\n"^Michelsym_smt.smt_of_svals ep_stack); Out_channel.newline stdout;
-(*
-              print_string ("final stack:\n"^Michelsym_printer.string_of_svals ep_final_stack); Out_channel.newline stdout;
-*)
+              print_string ("final stack:\n"^Michelsym_smt.smt_of_svals ep_final_stack); Out_channel.newline stdout;
               print_string ("final constraints:\n"^Michelsym_smt.smt_of_constraints ep_final_constraints); Out_channel.newline stdout;
             ) ;
         return ()
