@@ -57,4 +57,4 @@ let%entry close
         ([op],
         Map.update parameter (Some {active= false; owner= auction.owner; 
                              high_bidder= auction.high_bidder;
-                             high_bid= auction.high_bid}) storage)
+                             high_bid= 0.00_DUN}) storage)
