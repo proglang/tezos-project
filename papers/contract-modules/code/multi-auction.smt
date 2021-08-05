@@ -21,13 +21,14 @@
  ()
  ((Unit unit)))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Tezos/Michelson specific
 (declare-sort Address)
 (declare-fun mk-address (String) Address)
-(assert (forall ((s1 String) (s2 String))
-		(=> (= (mk-address s1) (mk-address s2))
-		    (= s1 s2))))
+;; (assert (forall ((s1 String) (s2 String))
+;; 		(=> (= (mk-address s1) (mk-address s2))
+;; 		    (= s1 s2))))
 
 (declare-datatypes
  ()
@@ -87,152 +88,204 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; contract specific description
 (declare-const parameter (Or String (Or String String)))
-(declare-const storage (Pair Bool (Pair Address Address)))
 
-(declare-const initial-stack-top (Pair (Or Unit Unit)
-				       (Pair Bool (Pair Address
-							Address))))
+(declare-const storage (Array String (Option (Pair Bool (Pair Address (Pair Address Mutez))))))
+
+;; (assert (forall ((s String) (v (Pair Bool (Pair Address (Pair Address Mutez)))))
+;; 		(=> (= (select storage s) (mk-some v))
+;; 		    (mutez-le (second (second (second v))) BALANCE))))
+
+(declare-const initial-stack-top (Pair
+				  (Or String (Or String String))
+				  (Array String (Option (Pair Bool (Pair Address (Pair Address Mutez)))))))
 
 (define-fun
-  get-parameter ((stack (Pair (Or Unit Unit)
-			      (Pair Bool (Pair Address
-					       Address)))))
-  (Or Unit Unit)
+  get-parameter ((stack (Pair
+			  (Or String (Or String String))
+			  (Array String (Option (Pair Bool (Pair Address (Pair Address Mutez))))))))
+  (Or String (Or String String))
   (first stack))
 (define-fun
-  get-storage ((stack (Pair (Or Unit Unit)
-			    (Pair Bool (Pair Address
-					       Address)))))
-  (Pair Bool (Pair Address Address))
+  get-storage ((stack  (Pair
+			  (Or String (Or String String))
+			  (Array String (Option (Pair Bool (Pair Address (Pair Address Mutez))))))))
+  (Array String (Option (Pair Bool (Pair Address (Pair Address Mutez)))))
   (second stack))
 
 
+(define-fun
+  get-open ((storage (Array String (Option (Pair Bool (Pair Address (Pair Address Mutez))))))
+	    (auction-name String)) Bool
+  (first (as-some (select storage auction-name))))
+(define-fun
+  get-owner
+  ((storage (Array String (Option (Pair Bool (Pair Address (Pair Address Mutez))))))
+   (auction-name String)) Address
+  (first (second (as-some (select storage auction-name)))))
+(define-fun
+  get-bidder
+  ((storage (Array String (Option (Pair Bool (Pair Address (Pair Address Mutez))))))
+   (auction-name String)) Address
+  (first (second (second (as-some (select storage auction-name))))))
+(define-fun
+  get-bid
+  ((storage (Array String (Option (Pair Bool (Pair Address (Pair Address Mutez))))))
+   (auction-name String)) Mutez
+   (second (second (second (as-some (select storage auction-name))))))
+
+(declare-const auction-name String)
 (declare-const auction-open Bool)
 (declare-const auction-owner Address)
 (declare-const auction-bidder Address)
+(declare-const auction-hibid Mutez)
 
 (define-fun
-  get-open ((storage (Pair Bool (Pair Address Address)))) Bool
-  (first storage))
+  entrypoint-create () Bool
+  (= (as-left parameter) auction-name))
 (define-fun
-  get-owner ((storage (Pair Bool (Pair Address Address)))) Address
-  (first (second storage)))
+  entrypoint-bid () Bool
+  (= (as-left (as-right parameter)) auction-name))
 (define-fun
-  get-bidder ((storage (Pair Bool (Pair Address Address)))) Address
-  (second (second storage)))
+  entrypoint-close () Bool
+  (= (as-right (as-right parameter)) auction-name))
 
 (define-fun
-  entrypoint-close ((parameter (Or Unit Unit))) Bool
-  (= parameter (mk-left unit)))
-(define-fun
-  entrypoint-bid ((parameter (Or Unit Unit))) Bool
-  (= parameter (mk-right unit)))
+  auction-not-present
+  ((storage (Array String (Option (Pair Bool (Pair Address (Pair Address Mutez))))))
+   (auction-name String)) Bool
+  (= (select storage auction-name) (as mk-none (Option (Pair Bool (Pair Address (Pair Address Mutez)))))))
 
+(define-fun auction-present
+  ((storage (Array String (Option (Pair Bool (Pair Address (Pair Address Mutez))))))
+   (auction-name String)) Bool
+  (= (select storage auction-name) (mk-some (mk-pair auction-open
+						     (mk-pair auction-owner
+							      (mk-pair auction-bidder auction-hibid))))))
 
-(assert (= storage
-	   (mk-pair auction-open
-		    (mk-pair auction-owner
-			     auction-bidder))))
 ; initial state
 (assert (= initial-stack-top (mk-pair parameter storage)))
 
-; final state after close
+; final state
 (declare-const final-stack-top (Pair (List (Operation Unit))
-				     (Pair Bool (Pair Address
-						      Address))))
-; invariants (from pre/postconditions)
+				     (Array String (Option (Pair Bool (Pair Address (Pair Address Mutez)))))))
+;; invariants (from pre/postconditions)
 
-(define-fun invariant-constant-owner () Bool
-  (= (get-owner (second initial-stack-top))
-     (get-owner (second final-stack-top))))
-(define-fun invariant-open-bidding () Bool
-  (=> (entrypoint-bid (get-parameter initial-stack-top))
-      (=> (get-open (second initial-stack-top))
-	  (get-open (second final-stack-top)))))
-(define-fun invariant-close-bidding () Bool
-  (=> (entrypoint-close (get-parameter initial-stack-top))
-      (=> (get-open (second initial-stack-top))
-	  (not (get-open (second final-stack-top))))))
-(define-fun invariant-no-reopen () Bool
-  (=> (not (get-open (second initial-stack-top)))
-      (not (get-open (second final-stack-top)))))
-(define-fun invariant-high-bidder () Bool
-  (or (= (get-bidder (second initial-stack-top))
-	 (get-bidder (second final-stack-top)))
-      (= SENDER
-	 (get-bidder (second final-stack-top)))))
+(define-fun invariant-create () Bool
+  (=> entrypoint-create
+      (=> (auction-not-present (second initial-stack-top) auction-name)
+	  (and (auction-present (second final-stack-top) auction-name)
+	       (= SENDER (get-owner (second final-stack-top) auction-name))
+	       (= SENDER (get-bidder (second final-stack-top) auction-name))
+	       (mutez-le (get-bid (second final-stack-top) auction-name) BALANCE)
+	       (get-open (second final-stack-top) auction-name)))))
+
+
+;; (define-fun invariant-constant-owner () Bool
+;;   (= (get-owner (second initial-stack-top))
+;;      (get-owner (second final-stack-top))))
+;; (define-fun invariant-open-bidding () Bool
+;;   (=> (entrypoint-bid (get-parameter initial-stack-top))
+;;       (=> (get-open (second initial-stack-top))
+;; 	  (get-open (second final-stack-top)))))
+;; (define-fun invariant-close-bidding () Bool
+;;   (=> (entrypoint-close (get-parameter initial-stack-top))
+;;       (=> (get-open (second initial-stack-top))
+;; 	  (not (get-open (second final-stack-top))))))
+;; (define-fun invariant-no-reopen () Bool
+;;   (=> (not (get-open (second initial-stack-top)))
+;;       (not (get-open (second final-stack-top)))))
+;; (define-fun invariant-high-bidder () Bool
+;;   (or (= (get-bidder (second initial-stack-top))
+;; 	 (get-bidder (second final-stack-top)))
+;;       (= SENDER
+;; 	 (get-bidder (second final-stack-top)))))
 
 (push)
-(echo "entrypoint close")
-(assert (entrypoint-close (get-parameter initial-stack-top)))
-(assert 
- (= final-stack-top
-    (mk-pair
-     (insert (TRANSFER_TOKENS unit BALANCE (mk-contract (first (second storage)))) nil)
-     (mk-pair false
-	      (mk-pair (first (second storage))
-		       (second (second storage)))))))
-
-; true values
-(assert (first storage))
-(assert (= SENDER (second (second storage))))
-(assert (CONTRACT-ADDRESS TUnit (first (second storage))))
-
-(echo "check first failure")
-(push)
-(assert (not (CONTRACT-ADDRESS TUnit (first (second storage)))))
-(assert (first storage))
-(assert (= SENDER (second (second storage))))
-(check-sat)
-(pop)
-(echo "check second failure")
-(push)
-(assert (= SENDER (second (second storage))))
-(assert (not (first storage)))
-(check-sat)
-(pop)
-(echo "check-sat third failure")
-(push)
-(assert (not (= SENDER (second (second storage)))))
-(check-sat)
-(pop)
-(echo "check general feasibility")
+(echo "entrypoint create")
+(assert entrypoint-create)
+;; from final constraints
+(assert (= mk-none (select storage (as-left parameter))))
+;; from final stack
+(assert (= final-stack-top
+	   (mk-pair nil
+		    (store storage
+			   (as-left parameter)
+			   (mk-some (mk-pair true (mk-pair SENDER (mk-pair SENDER AMOUNT))))))))
+(assert (not invariant-create))
 (check-sat)
 (get-model)
-(echo "check invariants - must be unsat")
-(push) (assert (not invariant-constant-owner)) (check-sat) (pop)
-(push) (assert (not invariant-open-bidding)) (check-sat) (pop)
-(push) (assert (not invariant-close-bidding)) (check-sat) (pop)
-(push) (assert (not invariant-no-reopen)) (check-sat) (pop)
-(push) (assert (not invariant-high-bidder)) (check-sat) (pop)
-(pop)
 
-(push)
-(echo "entrypoint bid")
-(assert (entrypoint-bid (get-parameter initial-stack-top)))
-(assert (mutez-valid (mutez-subtract BALANCE AMOUNT)))
-(assert
- (= final-stack-top
-    (mk-pair
-     (insert (TRANSFER_TOKENS unit
-			      (mutez-subtract BALANCE AMOUNT)
-			      (mk-contract (second (second storage))))
-	     nil)
-     (mk-pair true
-	      (mk-pair (first (second storage))
-		       SENDER)))))
-; true values
-(assert (first storage))
-; false value
-(assert (CONTRACT-ADDRESS TUnit (second (second storage))))
-(assert (mutez-valid (mutez-int-mul 2 AMOUNT)))
-(assert (not (mutez-le (mutez-int-mul 2 AMOUNT) BALANCE)))
-(check-sat)
-(get-model)
-(echo "check invariants - must be unsat")
-(push) (assert (not invariant-constant-owner)) (check-sat) (pop)
-(push) (assert (not invariant-open-bidding)) (check-sat) (pop)
-(push) (assert (not invariant-close-bidding)) (check-sat) (pop)
-(push) (assert (not invariant-no-reopen)) (check-sat) (pop)
-(push) (assert (not invariant-high-bidder)) (check-sat) (pop)
-(pop)
+;; (push)
+;; (echo "entrypoint close")
+;; (assert (entrypoint-close (get-parameter initial-stack-top)))
+;; (assert 
+;;  (= final-stack-top
+;;     (mk-pair
+;;      (insert (TRANSFER_TOKENS unit BALANCE (mk-contract (first (second storage)))) nil)
+;;      (mk-pair false
+;; 	      (mk-pair (first (second storage))
+;; 		       (second (second storage)))))))
+
+;; ; true values
+;; (assert (first storage))
+;; (assert (= SENDER (second (second storage))))
+;; (assert (CONTRACT-ADDRESS TUnit (first (second storage))))
+
+;; (echo "check first failure")
+;; (push)
+;; (assert (not (CONTRACT-ADDRESS TUnit (first (second storage)))))
+;; (assert (first storage))
+;; (assert (= SENDER (second (second storage))))
+;; (check-sat)
+;; (pop)
+;; (echo "check second failure")
+;; (push)
+;; (assert (= SENDER (second (second storage))))
+;; (assert (not (first storage)))
+;; (check-sat)
+;; (pop)
+;; (echo "check-sat third failure")
+;; (push)
+;; (assert (not (= SENDER (second (second storage)))))
+;; (check-sat)
+;; (pop)
+;; (echo "check general feasibility")
+;; (check-sat)
+;; (get-model)
+;; (echo "check invariants - must be unsat")
+;; (push) (assert (not invariant-constant-owner)) (check-sat) (pop)
+;; (push) (assert (not invariant-open-bidding)) (check-sat) (pop)
+;; (push) (assert (not invariant-close-bidding)) (check-sat) (pop)
+;; (push) (assert (not invariant-no-reopen)) (check-sat) (pop)
+;; (push) (assert (not invariant-high-bidder)) (check-sat) (pop)
+;; (pop)
+
+;; (push)
+;; (echo "entrypoint bid")
+;; (assert (entrypoint-bid (get-parameter initial-stack-top)))
+;; (assert (mutez-valid (mutez-subtract BALANCE AMOUNT)))
+;; (assert
+;;  (= final-stack-top
+;;     (mk-pair
+;;      (insert (TRANSFER_TOKENS unit
+;; 			      (mutez-subtract BALANCE AMOUNT)
+;; 			      (mk-contract (second (second storage))))
+;; 	     nil)
+;;      (mk-pair true
+;; 	      (mk-pair (first (second storage))
+;; 		       SENDER)))))
+;; ; true values
+;; (assert (first storage))
+;; ; false value
+;; (assert (CONTRACT-ADDRESS TUnit (second (second storage))))
+;; (assert (mutez-valid (mutez-int-mul 2 AMOUNT)))
+;; (assert (not (mutez-le (mutez-int-mul 2 AMOUNT) BALANCE)))
+;; (check-sat)
+;; (get-model)
+;; (echo "check invariants - must be unsat")
+;; (push) (assert (not invariant-constant-owner)) (check-sat) (pop)
+;; (push) (assert (not invariant-open-bidding)) (check-sat) (pop)
+;; (push) (assert (not invariant-close-bidding)) (check-sat) (pop)
+;; (push) (assert (not invariant-no-reopen)) (check-sat) (pop)
+;; (push) (assert (not invariant-high-bidder)) (check-sat) (pop)
+;; (pop)
