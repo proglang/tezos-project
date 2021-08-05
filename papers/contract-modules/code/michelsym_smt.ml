@@ -2,10 +2,10 @@ open Michelsym
 (* print symbolic values in smtlib syntax *)
 
 let itable_assoc = [
+  (* unary *)
   "NOT", "not";
   "CAR", "first";
   "CDR", "second";
-  "GET", "get";
   (* nullary *)
   "SENDER", "SENDER";
   "BALANCE", "BALANCE";
@@ -57,8 +57,8 @@ let print_ty t =
 
 let smt_of_lr lr =
   match lr with
-  | L -> "as-left"
-  | R -> "as-right"
+  | L -> "mk-left"
+  | R -> "mk-right"
 
 let smt_of_step stp =
   match stp with
@@ -101,7 +101,7 @@ let rec smt_of_sval s =
   | VSymbolic (d, t1) ->
     (let str_desc = smt_of_desc d in
      match t1 with
-     | TOption _ -> "(is-none "^str_desc^")"
+     | TOption _ -> "(= mk-none "^str_desc^")"
      | _ -> str_desc)
       
 and smt_of_desc d =
@@ -111,6 +111,12 @@ and smt_of_desc d =
   | Storage -> "storage"
   | Op (str, []) when Hashtbl.mem itable str -> Hashtbl.find itable str 
   | Op (str, ss) when Hashtbl.mem itable str -> "("^Hashtbl.find itable str^" "^smt_of_svals ss^")"
+  | Op ("UPDATE", [skey; sv; smap]) ->
+    "(store "^smt_of_sval smap^" "^smt_of_sval skey^" "^smt_of_sval sv^")"
+  | Op ("GET", [skey; smap]) ->
+    "(select "^smt_of_sval smap^" "^smt_of_sval skey^")"
+  | Op ("MEM", [skey; smap]) ->
+    "(not (= mk-none (select "^smt_of_sval smap^" "^smt_of_sval skey^")))"
   | Op ("NEQ", [VSymbolic (Op ("COMPARE", ss), _)]) ->
     "(not (= "^smt_of_svals ss^"))"
   | Op (eq, [VSymbolic (Op ("COMPARE", ss), _)]) when Hashtbl.mem ctable eq ->

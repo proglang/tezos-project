@@ -1,6 +1,7 @@
 (executables
  (names auction auction2 liq_auction
  	micheline_echo)
- (libraries core zarith stdio tezos-micheline tezos-error-monad)
+ (libraries core zarith stdio tezos-micheline tezos-error-monad
+ 	    dune-build-info)
  (preprocess (pps ppx_jane))
  )
