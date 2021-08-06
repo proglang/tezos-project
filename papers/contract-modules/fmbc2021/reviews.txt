@@ -1,0 +1,77 @@
+# Review 1
+
+-1: (weak reject)
+## Summary
+The authors propose a representation of a Tezos blockchain smart contract through an OCaml module that provides specifications about said smart contract.
+Furthermore, they discuss some of the formalisation challenges that need to be overtaken in order to check that specification against the contract implementation, namely the implementation of a symbolic interpreter.
+The authors are currently working on a prototype of the symbolic interpreter.
+​
+​
+## Strong Points
+- Promising work that aims to design a mechanised formalisation of the inner workings of Tezos smart contracts.
+- The paper is generally well structured and has a good reading flow.
+​
+## Weak Points and Suggestions
+​
+- Still in an early stage of development
+- I would like to see some of the work that is being done on the symbolic interpreter
+- The authors do not explain how the OCaml module is generated.
+​
+​
+## General Remarks
+​
+This paper talks about the development of a programmatic interaction with smart contracts on the Tezos blockchain.
+I think this is a very pertinent work, but I also think that it is still in a very early stage of development.
+​
+Section 5 briefly describes the author's goal for "Advanced checking", this is the most interesting section in the whole paper, but it could be a little more detailed
+(e.g. describe the specification language in the given example)
+​
+​
+## Typos
+​
+- In page 3 line 89 there is a reference missing
+- In page 5 line 144 "some" --> someone or some invocation
+​
+
+# Review 2
+
+2: (accept)
+The abstract presents a module specification language to describe the interface of a smart contract to operate with other contracts or with off-chain applications. The interface is specified independently from the smart contract code.
+Once this specification is given it can be formally checked against the smart contract code using symbolic execution in order to assure that types and failure conditions meet the specification.
+
+The approach is applied in the context of the Tezos Blockchain, and the fact that this blockchain is funding this research is a proof of its relevance and hence I recommend it to be accepted for presentation.
+
+This is ongoing work: the symbolic execution engine is under development, but the the specification language and some transformation steps to generate an OCaml like module is already done.
+
+The authors should clarify in its presentation which blockchains would benefit from their specification language and from the symbolic execution tool, as it seems that it is intended to help the analysis and descriptions of smart contract written in a low level language like Michelson (the machine language of Tezos), but in presence of high level programming languages, precise interface definition mechanism are usually already available.
+
+It is not explicitly said, but I understand that once the specification is given the rest of steps are all fully-automatic. Is it like this?
+
+Typos:
+Reference missing in line 89
+
+# Review 3
+
+1: (weak accept)
+The paper studies an approach to use the Ocaml Module system to model
+offchain-onchain interactions. These are used in Blockchain Oracles.
+The API to access the blockchain is a typical cloud based API (JSON,
+etc) where external agents access the nodes that ultimately end in a
+invocation to a smart contract. The approach suggested models the
+entrypoints, arguments, storage types etc using the Ocaml module
+system. Then, when used in combination of symbolic execution/deductive
+verification the idea is to reason about the Michelson code itself to
+reason offchain about the execution of the contract, for example not
+invoking contracts that are guaranteed to fail.
+
+Even though the approach is not fully implemented, it is a good avenue
+so I encourage the authors to continue.
+
+One point that the authors should study is that of front-running (or
+even concurrent accesses). There is no guarantee that between the
+moment at which the precondition is checked by the offchain code and
+the actual invocation to the contract the precondition checked is
+preserved.
+
+PS: the references are all pointing to incorrect papers (did you run
+bibtex before submitting)
