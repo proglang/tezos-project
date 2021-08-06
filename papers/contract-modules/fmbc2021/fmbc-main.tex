@@ -31,10 +31,25 @@ by a grant from the Tezos foundation}%TODO mandatory, please use full name; only
 
 \Copyright{Thi Thu Ha Doan and Peter Thiemann} %TODO mandatory, please use full first names. OASIcs license is "CC-BY";  http://creativecommons.org/licenses/by/3.0/
 
-%\ccsdesc[100]{\textcolor{red}{Replace ccsdesc macro with valid one}}
 %%TODO mandatory: Please choose ACM 2012 classifications from
 %%https://dl.acm.org/ccs/ccs_flat.cfm
-\ccsdesc[100]{}
+\begin{CCSXML}
+<ccs2012>
+   <concept>
+       <concept_id>10011007.10011006.10011060.10011690</concept_id>
+       <concept_desc>Software and its engineering~Specification languages</concept_desc>
+       <concept_significance>500</concept_significance>
+       </concept>
+   <concept>
+       <concept_id>10011007.10011006.10011041.10010943</concept_id>
+       <concept_desc>Software and its engineering~Interpreters</concept_desc>
+       <concept_significance>300</concept_significance>
+       </concept>
+ </ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Software and its engineering~Specification languages}
+%\ccsdesc[300]{Software and its engineering~Interpreters}
 
 \keywords{contract API, modules, static checking} %TODO mandatory; please add comma-separated list of keywords
 
@@ -55,17 +70,17 @@ by a grant from the Tezos foundation}%TODO mandatory, please use full name; only
 %\hideOASIcs %uncomment to remove references to OASIcs series (logo, DOI, ...), e.g. when preparing a pre-final version to be uploaded to arXiv or another public repository
 
 %Editor-only macros:: begin (do not touch as author)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\EventEditors{John Q. Open and Joan R. Access}
+\EventEditors{Bruno Bernardo and Diego Marmsoler}
 \EventNoEds{2}
-\EventLongTitle{42nd Conference on Very Important Topics (CVIT 2016)}
-\EventShortTitle{CVIT 2016}
-\EventAcronym{CVIT}
-\EventYear{2016}
-\EventDate{December 24--27, 2016}
-\EventLocation{Little Whinging, United Kingdom}
+\EventLongTitle{3rd International Workshop on Formal Methods for Blockchains (FMBC 2021)}
+\EventShortTitle{FMBC 2021}
+\EventAcronym{FMBC}
+\EventYear{2021}
+\EventDate{July 18-19, 2021}
+\EventLocation{Los Angeles, California, USA (Virtual Conference)}
 \EventLogo{}
-\SeriesVolume{42}
-\ArticleNo{23}
+\SeriesVolume{95}
+\ArticleNo{4}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \input{macros}
@@ -113,21 +128,26 @@ are essentially untyped (string-based or JSON-based) and often low
 level because they require dealing directly with RPC interfaces. Trust
 is not needed because the process runs on behalf of a certain user.
 
-Contract modules provide a clean, language-integrated way to interact
-with a blockchain. They abstract over underlying string-based
-interfaces and details like fee handling. They provide a high-level
-typed interface which reduces a contract invocation to a function call
-in the language.
+We propose contract modules that provide a clean, language-integrated
+way to interact with a blockchain from a host language (OCaml in our
+case). They abstract over underlying string-based interfaces and
+details like fee handling. They provide a high-level typed interface
+which reduces a contract invocation to a function call in the host
+language.
 
-Contract modules do not provide a fixed API, but
-rather generate a specialized interface for each contract. This
+The contract modules approach does not provide a fixed API, but
+rather generates a specific interface for each contract with one
+function for each entrypoint of the contract. This
 interface is statically checked against the contract implementation to
-ensure type safety and exception safety (every failure condition
-arising is handled by proper error reporting).
+ensure type safety and exception safety. That is, values passed to an
+interface function do not lead to type mismatches when invoking the
+underlying contract. Morever, every failure condition arising during
+contract execution is handled by proper error reporting according to
+the interface.
 
 Our work is situated in the context of the Tezos blockchain, which
 supports Michelson as its low-level contract language, and the
-language OCaml, which comes with an expressive polymorphic type system
+host language OCaml, which comes with an expressive polymorphic type system
 as well as a powerful module system that we
 enhance with contract modules. 
 
@@ -140,35 +160,39 @@ includes ways to evolve the protocol itself. The consensus protocol is
 executed by so-called bakers and their proposed blocks are checked by
 validators. They receive some compensation in the form of
 tokens (Tezzies) for their work. According to proof-of-stake,
-bakers and validators are just nodes elected by the Tezos network
+bakers and validators are nodes elected by the Tezos network
 according to their token balance. 
 
-Each Tezos contract owns an account as well as some storage. Contracts
-are pure functions of type parameter $\times$ storage $\to$ operation
-list $\times$ storage. When a contract is invoked with a parameter,
+Each Tezos contract is associated with an account as well as some
+storage. Contracts are pure functions of type $\mathit{parameter} \times
+\mathit{storage} \to \mathit{operation\ list} \times
+\mathit{storage}$, where the types \textit{parameter} and
+\textit{storage} are depend on the specific contract while the type
+\textit{operation} is fixed by the Tezos system. When a contract is invoked with a parameter,
 the blockchain provides the current storage and updates it with the
-second, storage component of its return value. The first component is
-a list of blockchain operations (contract deployments, token
-transfers, contract invocations) that are executed transactionally
-after the first invocation terminates. Each invocation may be
+second, storage component of its return value. The first component of
+the return value is a list of blockchain operations (contract deployments, token
+transfers, contract invocations, and delegation of baking rights) that
+are executed transactionally after the first invocation terminates. Each invocation may be
 accompanied with an amount of tokens that are added to the current
-account balance of the contract.
+account balance of the callee contract.
 
-Contracts are implemented in the language Michelson, a fully typed
+Contracts are implemented in the language Michelson, a statically typed
 stack-based language. Each contract has fixed types for its parameter
 and for its storage. The storage is initialized when the contract is
 deployed. Besides primitive types like unit, int, bool, address, and string,
-there are pairs, sums, functions, lists, and maps (and many more) that
+there are pairs, sums, functions, lists, and maps along with a range
+of domain-specific types (operation, key, signature, timestamp,
+key\_hash, contract, mutez --- for tokens, and so on) most of which
 can serve as types for storage and parameters.
 
 \section{An auction contract}
 \label{sec:an-auction-contract}
-\begin{lstlisting}[float,caption={Simple auction contract (auction.tz)},captionpos=b,label={lst:auction-header},language=michelson,numbers=none,emph={close,bid},emphstyle=\underbar]
+\begin{lstlisting}[float,caption={Simple auction contract (auction.tz)},captionpos=b,label={lst:auction-header},language=michelson,numbers=none,emph={close,bid,bidding,owner,hi_bidder},emphstyle=\underbar]
 parameter (or (unit %close) (unit %bid));
-storage (pair bool          # bidding allowed
-         (pair address      #  contract owner
-          address           # highest bidder's address
-        ));
+storage (pair (bool %bidding)
+              (pair (address %owner)
+                    (address %hi_bidder)));
 \end{lstlisting}
 
 As a concrete example, we consider a simple auction contract with the
@@ -182,7 +206,7 @@ contains a boolean flag and two addresses.
 
 The contract works as follows. It is deployed with storage
 \lstinline/(true,(owner,owner))/ which indicates that bidding is
-allowed and the contract owner is currently also the highest
+allowed and the contract owner is currently the highest
 bidder. On deployment the owner deposits an initial balance to indicate the
 minimum bid. Closing the contract transfers the balance to the
 owner. It is restricted to the owner. Closing as well as bidding fails
@@ -192,7 +216,7 @@ current highest bid, the current bidder replaces the previous highest
 bidder and the previous highest bidder is reimbursed. Otherwise,
 bidding fails, too.
 
-To invoke this contract from an OCaml program, we'd like to generate an
+To invoke this contract from an OCaml program, we generate an
 OCaml module, say \lstinline/Auction/, from a specification of the
 contract. This module contains two functions
 \lstinline/close/ and \lstinline/bid/ corresponding to the
@@ -213,9 +237,9 @@ exceptions, but we wish to deal with the explicit failures like
 checked exceptions~\cite{DBLP:conf/oopsla/AnconaLZ01}.
 Our generated code handles failures in a suitable
 error monad that makes the failures explicit in a custom
-datatype.\footnote{Alternatively, this could be done using OCaml
-  exceptions, but we chose to stay within the monadic framework that
-  is already used by existing Tezos APIs.}
+datatype.\footnote{Alternatively, errors could be modeled using OCaml
+  exceptions, but we choose to stay within the monadic framework that
+  is used by existing Tezos APIs.}
 
 \begin{lstlisting}[float,captionpos=b,caption={Example contract module},label={lst:contract-module-example}]
 contract type Auction = sig
@@ -230,11 +254,15 @@ end
 \end{lstlisting}
 Listing~\ref{lst:contract-module-example} shows a contract module for
 the auction contract.  It declares the entrypoint \lstinline/bid/ as
-\lstinline/paid/, i.e., it needs to be invoked with a
-non-zero amount of tokens, it gives the pattern \lstinline/()/ for the
-input value of type \lstinline/unit/, and it specifies two possible
+\lstinline/paid/, i.e., it should be invoked with a
+non-zero amount of tokens, it states the pattern \lstinline/()/ for the
+input value of type \lstinline/unit/, and it specifies two 
 failure messages that we wish to deal with programmatically.
-The \lstinline/close/ entrypoint is similar, but requires no tokens.
+The \lstinline/close/ entrypoint is similar, but it is not
+\lstinline/pair/. This contract reflects the understanding of the
+programmer with the intention that the \lstinline/raises/ clauses
+cover all failures that can arise during execution of the respective
+entrypoint. 
 
 % module type MyContract = sig 
 \begin{lstlisting}[float,captionpos=b,caption={Generated signature},label={lst:generated-signature}]
@@ -256,7 +284,7 @@ The \lstinline/close/ entrypoint is similar, but requires no tokens.
 \end{lstlisting}
 % end 
 Listing~\ref{lst:generated-signature} contains an OCaml module
-signature as it could be generated from the contract module. The
+signature as it would be generated from the contract module. The
 module \lstinline/Tezos/ supposedly contains types and other low-level
 Tezos-specific definitions. The type \lstinline/pukh/ for public
 key hashes identifies contracts, the type \lstinline/mutez/ stands for
@@ -274,21 +302,64 @@ the parameter; it is omitted here because its type is
 \section{Simple Checking}
 \label{sec:check-contr-against}
 
-We plan to check the contract by symbolic execution against its
-specification in the contract module. Here are some examples of
-checkable properties.
+We check the contract by symbolic execution against its
+specification in the contract module. Symbolic execution proceeds in
+the usual way by calculating a symbolic stack at each transition from
+one Michelson instruction to the next. The initial stack is calculated
+from the storage type, the parameter type, and the entrypoint.
+As we aim to keep symbolic
+values as concrete as possible, some instructions may turn out to be
+unreachable or only reachable under certain conditions. This way, we
+obtain, for each entrypoint, a set of final symbolic stacks along with
+a path condition indicating when this final state is
+reachable. Moreover, for each \lstinline/FAILWITH/ instruction we
+obtain a symbolic value for the reported message and a path condition
+indicating reachability of this instruction. We employ the SMT solver
+Z3 \cite{DBLP:conf/tacas/MouraB08,DBLP:conf/setss/BjornerMNW18} to
+check the feasibility of a path condition. 
+
+Here are some simple examples of checkable properties.
 
 For each entrypoint, we collect the set of reachable instructions.
 For example, the  \lstinline/AMOUNT/ instruction obtains the amount of
 tokens sent with a contract invocation.
 It should not be possible to reach that instruction from an unpaid
-entrypoint  like \lstinline/close/.
+entrypoint  like \lstinline/close/. This property is straightforward
+to check from the path condition generated for the \lstinline/AMOUNT/
+instruction. 
 
 For the \lstinline/FAILWITH/ instructions, we also collect their
 arguments. The symbolic interpreter needs to retain concrete values as
 much as possible to obtain precise results at this point. Each
 argument to \lstinline/FAILWITH/ should be accounted for by one
 \lstinline/raises/ clause.
+
+For the simple auction contract the symbolic interpreter flags an
+omission in the contract module
+(Listing~\ref{lst:contract-module-example}). The problem is that
+bidding returns the previous highest bid as part of the transaction
+where the highest bidder is stored as a value of type
+\lstinline/address/.  However, to receive a token transfer, this
+address must by cast (by the Michelson implementation of the contract)
+to an implicit contract of Michelson type \lstinline/(contract unit)/. This cast is unavoidable as a
+value of contract type cannot be stored. However, the cast may fail and its failure leads to an
+error condition that is reported with a \lstinline/FAILWITH/ instruction that is not covered by the
+contract module.\footnote{We generated the Michelson code for this example using the Liquidity
+  compiler (\url{https://www.liquidity-lang.org/}). While the failures for \lstinline/closed/ and
+  \lstinline/too low/ are explicit in the source program, the compiler inserts the casts into the contract
+  type automatically using the error message \texttt{No entrypoint default with parameter type
+    unit}.}  The entrypoint for closing has the same issue with the address of the owner, who is
+scheduled to receive the balance of the contract.
+
+The best way to address this issue would be to assert that the addresses stored for the owner and
+the highest bidder always cast successly into the \lstinline/(contract unit)/ type so that the
+stated module type can be retained. Unfortunately, doing so requires control over the deployment of
+the contract where the storage is initialized and it is not clear whether deployment should be part
+of the API generated from a contract module.
+
+The quick fix is to add \lstinline/raises/ clauses for the \texttt{No entrypoing \dots}
+message. With this fix, we successfully check the module description against the Michelson
+implementation of its contract.
 
 \section{Advanced Checking}
 \label{sec:advanced-checking}
@@ -318,9 +389,11 @@ preconditions as shown in Listing~\ref{lst:safer-contract-module}. The
 idea is that the generated OCaml module tries to check the
 preconditions off-chain before invoking the contract. To this end, the
 off-chain code needs to obtain properties like balance, storage etc of the
-contract, but this information is available from the Tezos node without a fee!
+contract, but this information is available from a Tezos node without a fee! Of course, such an
+off-chain check is prone to race conditions as concurrent contract invocations from other parties
+may interfere and change the data before our module gets a chance to invoke the contract. 
 We discuss two of the preconditions to highlight the properties that 
-need to be analyzed. 
+need to be analyzed and where race conditions may interfere. 
 
 The precondition \lstinline/sender = owner/ of \lstinline/close/ can
 be checked off-chain because the owner's address is part of the
@@ -363,7 +436,7 @@ we need to know that there is no successful execution of
 each invocation of \lstinline/bid/ raises the balance of the contract
 monotonically. Thus, if the off-chain check
 \lstinline/amount > balance/ fails, we can be sure that the contract
-invocation will also fail; either because some closed the auction or
+invocation will also fail; either because someone closed the auction or
 because the balance is at least as high as in the off-chain sample. 
 \section{Related work}
 \label{sec:related-work}
@@ -415,12 +488,15 @@ specified in a user-defined data type. A contract call is wrapped in a
 fully typed and integrated OCaml function. In addition, the wrapper can check preconditions before the 
 actual call to reduce the waste of gas of a failed call.
 
-Status: we are currently working on a prototype of the symbolic interpreter.
-% As future work, we
-% combine the contract module with our typed API designed to provide a
-% general type-safe programmatic API for the Tezos blockchain.
+Status: the symbolic interpreter works on Michelson files which results from compiling the examples
+provided with the Liquidity compiler. It generates human-readable output as well as output in the
+SMTlib format suitable for SMT-solvers like Z3.
 
-
+While our conceptual approch is applicable and would be beneficial for other blockchains, the actual
+implementation is very much tied to the Tezos blockchain. The key asset here is the symbolic
+interpreter which is hardcoded for Michelson and adapted to the peculiarities of the Tezos
+blockchain. By targeting Michelson, our work is applicable to all languages running on Tezos, but
+a similar tool would have to be developed from scratch for another blockchain.
 
 %%
 %% Bibliography
