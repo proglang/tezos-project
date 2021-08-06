@@ -749,15 +749,13 @@ let interpretI ins (stack : sval list) =
 
 let interpretT ins t stack =
   match (ins, stack) with
-  | ("CONTRACT", (VAddress _a as x) :: st) ->
-    return (VSymbolic (Step (WSome, Set[x]), TOption (TContract t)) :: st)
+  | ("CONTRACT", x :: st) ->
+    return (VSymbolic (Op ("CONTRACT", [x]), TOption (TContract t)) :: st)
   (* returns an option
    * - requires new kind of symbolic value introduced with WSome
    * - it's a VContract (a, t) if it returns Some value -> this is hidden in a singleton set
    * - it can also be None
   *)
-  | ("CONTRACT", (VSymbolic (d, TAddress)) :: st) ->
-    return (VSymbolic (Step (WSome, d), TOption (TContract t)) :: st)
   | "NIL", st ->
     return (VNil t :: st)
   | "NONE", st ->
@@ -958,6 +956,12 @@ and interpretC (ins, ins_tru, ins_fls) stack =
                           st))
       (let* _ = register_false x in
        interpret ins_fls st)
+  | "IF_NONE", (VSymbolic (Op ("CONTRACT", [VAddress a]), TOption t) as x) :: st ->
+    symbolic_if
+      (let* _ = register_true x in
+       interpret ins_tru st)
+      (let* _ = register_false x in
+      interpret ins_fls (VContract (a, t) :: st))
   | "IF_NONE", (VSymbolic (d, TOption t) as x) :: st ->
     symbolic_if
       (let* _ = register_true x in

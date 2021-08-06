@@ -2,6 +2,9 @@ open Michelsym
 (* print symbolic values in smtlib syntax *)
 
 let itable_assoc = [
+  (* ternary *)
+  "TRANSFER_TOKENS", "TRANSFER_TOKENS";
+  "CONTRACT", "CONTRACT TUnit"; (* preliminary... *)
   (* unary *)
   "NOT", "not";
   "CAR", "first";
@@ -72,7 +75,7 @@ let smt_of_step stp =
   | SInset -> "IN_SET"
   | SInlist -> "IN_LIST"
   | SInmap -> "IN_MAP"
-  | WSome -> "WRAPPED_SOME"
+  | WSome -> "{WRAPPED_SOME}"
 
 let rec smt_of_sval s =
   match s with
