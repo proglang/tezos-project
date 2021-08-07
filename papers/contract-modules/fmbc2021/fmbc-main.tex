@@ -100,7 +100,7 @@ by a grant from the Tezos foundation}%TODO mandatory, please use full name; only
   provides all types as well as information about potential failure
   conditions of the contract. The specification is checked against the
   contract implementation using symbolic execution. An OCaml module is
-  generated that contains a function for each entrypoint of the
+  generated that contains a function for each entry point of the
   contract. The types of these functions fully describe the interface
   including the failure conditions and guarantee type-safe and
   sometimes fail-safe invocation of the contract on the blockchain.
@@ -137,7 +137,7 @@ language.
 
 The contract modules approach does not provide a fixed API, but
 rather generates a specific interface for each contract with one
-function for each entrypoint of the contract. This
+function for each entry point of the contract. This
 interface is statically checked against the contract implementation to
 ensure type safety and exception safety. That is, values passed to an
 interface function do not lead to type mismatches when invoking the
@@ -186,6 +186,9 @@ of domain-specific types (operation, key, signature, timestamp,
 key\_hash, contract, mutez --- for tokens, and so on) most of which
 can serve as types for storage and parameters.
 
+A Michelson contract has a single default entry point. However, the \textit{parameter} type is
+typically a sum type and each component of the sum can serve as a subsidiary entry point. 
+
 \section{An auction contract}
 \label{sec:an-auction-contract}
 \begin{lstlisting}[float,caption={Simple auction contract (auction.tz)},captionpos=b,label={lst:auction-header},language=michelson,numbers=none,emph={close,bid,bidding,owner,hi_bidder},emphstyle=\underbar]
@@ -197,9 +200,9 @@ storage (pair (bool %bidding)
 
 As a concrete example, we consider a simple auction contract with the
 header shown in Listing~\ref{lst:auction-header}. 
-This contract has two entrypoints, \lstinline/close/ and \lstinline/bid/,
+This contract has two entry points, \lstinline/close/ and \lstinline/bid/,
 expressed by giving the single parameter a sum type. To call the
-entrypoint \lstinline/close/ we invoke the contract with parameter \lstinline/Left ()/
+entry point \lstinline/close/ we invoke the contract with parameter \lstinline/Left ()/
 otherwise we use \lstinline/Right ()/, where \lstinline/()/ is the sole
 value of type \lstinline/unit/. The contract's storage is a nested pair which
 contains a boolean flag and two addresses.
@@ -209,19 +212,19 @@ The contract works as follows. It is deployed with storage
 allowed and the contract owner is currently the highest
 bidder. On deployment the owner deposits an initial balance to indicate the
 minimum bid. Closing the contract transfers the balance to the
-owner. It is restricted to the owner. Closing as well as bidding fails
+owner. Closing is restricted to the owner. Closing as well as bidding fails
 if the auction is
 closed. If bidding is open and the amount of tokens accompanying the bid exceeds the
 current highest bid, the current bidder replaces the previous highest
 bidder and the previous highest bidder is reimbursed. Otherwise,
-bidding fails, too.
+bidding fails.
 
 To invoke this contract from an OCaml program, we generate an
 OCaml module, say \lstinline/Auction/, from a specification of the
 contract. This module contains two functions
 \lstinline/close/ and \lstinline/bid/ corresponding to the
-entrypoints. The type of these entrypoints reflects further properties
-of these entrypoints as well as the ways in which an entrypoint might
+entry points. The type of these entry points reflects further properties
+of these entry points as well as the ways in which an entry point might
 fail.
 
 Besides the obvious, technology induced ways that a contract invocation might fail
@@ -253,16 +256,16 @@ contract type Auction = sig
 end
 \end{lstlisting}
 Listing~\ref{lst:contract-module-example} shows a contract module for
-the auction contract.  It declares the entrypoint \lstinline/bid/ as
+the auction contract.  It declares the entry point \lstinline/bid/ as
 \lstinline/paid/, i.e., it should be invoked with a
 non-zero amount of tokens, it states the pattern \lstinline/()/ for the
 input value of type \lstinline/unit/, and it specifies two 
 failure messages that we wish to deal with programmatically.
-The \lstinline/close/ entrypoint is similar, but it is not
+The \lstinline/close/ entry point is similar, but it is not
 \lstinline/pair/. This contract reflects the understanding of the
 programmer with the intention that the \lstinline/raises/ clauses
 cover all failures that can arise during execution of the respective
-entrypoint. 
+entry point. 
 
 % module type MyContract = sig 
 \begin{lstlisting}[float,captionpos=b,caption={Generated signature},label={lst:generated-signature}]
@@ -290,12 +293,12 @@ Tezos-specific definitions. The type \lstinline/pukh/ for public
 key hashes identifies contracts, the type \lstinline/mutez/ stands for
 Tezos tokens, the type \lstinline/status/ reflects the internal return
 status, and \lstinline/monad/ is an internal monad type. The signature
-declares a function and an error type for each entrypoint.
+declares a function and an error type for each entry point.
 
 The error types mirror the raises clauses. The first argument of each
 function is the address of the contract, then an optional argument for
 the transaction fee, an argument for passing an amount of tokens
-(only for a paid entrypoint), the next argument would be for
+(only for a paid entry point), the next argument would be for
 the parameter; it is omitted here because its type is
 \lstinline/unit/. The return type refers to the specific error type.
 
@@ -303,14 +306,16 @@ the parameter; it is omitted here because its type is
 \label{sec:check-contr-against}
 
 We check the contract by symbolic execution against its
-specification in the contract module. Symbolic execution proceeds in
-the usual way by calculating a symbolic stack at each transition from
-one Michelson instruction to the next. The initial stack is calculated
-from the storage type, the parameter type, and the entrypoint.
+specification in the contract module. Symbolic execution proceeds by calculating a symbolic stack at
+each transition from 
+one Michelson instruction to the next. The symbolic interpreter is fully typed and rejects ill-typed
+Michelson programs, if the ill-typed part is reachable from the default entry point. The initial
+stack is calculated 
+from the storage type, the parameter type, and the entry point.
 As we aim to keep symbolic
 values as concrete as possible, some instructions may turn out to be
 unreachable or only reachable under certain conditions. This way, we
-obtain, for each entrypoint, a set of final symbolic stacks along with
+obtain, for each entry point, a set of final symbolic stacks along with
 a path condition indicating when this final state is
 reachable. Moreover, for each \lstinline/FAILWITH/ instruction we
 obtain a symbolic value for the reported message and a path condition
@@ -320,21 +325,22 @@ check the feasibility of a path condition.
 
 Here are some simple examples of checkable properties.
 
-For each entrypoint, we collect the set of reachable instructions.
+For each entry point, we collect the set of reachable instructions.
 For example, the  \lstinline/AMOUNT/ instruction obtains the amount of
 tokens sent with a contract invocation.
 It should not be possible to reach that instruction from an unpaid
-entrypoint  like \lstinline/close/. This property is straightforward
+entry point  like \lstinline/close/. This property is straightforward
 to check from the path condition generated for the \lstinline/AMOUNT/
 instruction. 
 
-For the \lstinline/FAILWITH/ instructions, we also collect their
-arguments. The symbolic interpreter needs to retain concrete values as
-much as possible to obtain precise results at this point. Each
-argument to \lstinline/FAILWITH/ should be accounted for by one
+For each entry point, we collect the set of reachable \lstinline/FAILWITH/ instructions along with
+their path condition and their arguments. In most cases the symbolic interpreter finds a concrete
+argument for each \lstinline/FAILWITH/ instruction because the typical usage pattern is to push a
+concrete (string) value on the stack immediately preceding the \lstinline/FAILWITH/.
+It remains to check that each argument to \lstinline/FAILWITH/ should be accounted for by one
 \lstinline/raises/ clause.
 
-For the simple auction contract the symbolic interpreter flags an
+Checking the simple auction contract in this way already flags an
 omission in the contract module
 (Listing~\ref{lst:contract-module-example}). The problem is that
 bidding returns the previous highest bid as part of the transaction
@@ -348,96 +354,141 @@ contract module.\footnote{We generated the Michelson code for this example using
   compiler (\url{https://www.liquidity-lang.org/}). While the failures for \lstinline/closed/ and
   \lstinline/too low/ are explicit in the source program, the compiler inserts the casts into the contract
   type automatically using the error message \texttt{No entrypoint default with parameter type
-    unit}.}  The entrypoint for closing has the same issue with the address of the owner, who is
+    unit}.}  The entry point for closing has the same issue with the address of the owner, who is
 scheduled to receive the balance of the contract.
 
 The best way to address this issue would be to assert that the addresses stored for the owner and
 the highest bidder always cast successly into the \lstinline/(contract unit)/ type so that the
-stated module type can be retained. Unfortunately, doing so requires control over the deployment of
-the contract where the storage is initialized and it is not clear whether deployment should be part
-of the API generated from a contract module.
+stated module type can be retained. Unfortunately, doing so requires control over the initialization
+of the storage, which is part of the deployment of the contract. At present, our design for contract
+modules does not include support for the deployment of a contract. Moreover, it is not clear whether
+it makes sense to support it as there is no guarantee
+that a contract will be deployed using the API generated from a contract module.
 
 The quick fix is to add \lstinline/raises/ clauses for the \texttt{No entrypoing \dots}
 message. With this fix, we successfully check the module description against the Michelson
-implementation of its contract.
+implementation of its contract. Another fix would be to rewrite the contract to enable the
+dynamic creation of auctions.
 
 \section{Advanced Checking}
 \label{sec:advanced-checking}
-\begin{lstlisting}[float,captionpos=b,caption={Enhanced contract module},label={lst:safer-contract-module}]
+\begin{lstlisting}[float,captionpos=b,caption={Enhanced contract module},label={lst:safer-contract-module},numbers=left]
 contract type SaferAuction = sig
   storage (Pair (bidding : bool) 
                 (Pair (owner : address) (hi_bidder : address)))
 
   entrypoint close ()
-  requires bidding raises "closed" (** auction closed*)
+  requires bidding raises "closed"        (** auction closed*)
+  requires (SOURCE = owner) raises "not owner"
   ensures not bidding
-  requires (sender = owner) raises "not owner"
+  ensures (post.BALANCE = 0)
+  ensures (TRANSFER_TOKENS unit BALANCE hi_bidder)
 
   paid entrypoint bid () 
-  requires bidding raises "closed" (** auction closed*)
-  ensures bidding
-  requires (amount > old.balance)
-  raises "too low"                 (** bid too low *)
-  ensures (balance >= old.balance)
-  ensures (owner = old.owner)
+  requires bidding raises "closed"        (** auction closed*)
+  requires (AMOUNT > pre.BALANCE) raises "too low" (** low bid *)
+  ensures bidding 
+  ensures (post.BALANCE = AMOUNT)
+  ensures (post.hi_bidder = SOURCE)
+  ensures (TRANSFER_TOKENS unit pre.BALANCE hi_bidder)
+
+  invariant (post.owner = owner)
+  invariant (post.bidding => bidding)
+  invariant (post.hi_bidder = hi_bidder or post.hi_bidder = SOURCE)
 end
 \end{lstlisting}
 
 As it is expensive to invoke a contract just to find out that it
-fails, we propose to extend entrypoint specifications with
-preconditions as shown in Listing~\ref{lst:safer-contract-module}. The
+fails, we propose to extend entry point specifications with
+preconditions along with some global invariants as shown in Listing~\ref{lst:safer-contract-module}. The
 idea is that the generated OCaml module tries to check the
 preconditions off-chain before invoking the contract. To this end, the
 off-chain code needs to obtain properties like balance, storage etc of the
 contract, but this information is available from a Tezos node without a fee! Of course, such an
 off-chain check is prone to race conditions as concurrent contract invocations from other parties
-may interfere and change the data before our module gets a chance to invoke the contract. 
+may interfere and change the data before our module gets a chance to invoke the contract.
+
+Generally, a specification can refer to the values available to the contract. For example, the
+instructions \lstinline/SOURCE/\footnote{The execution of a Michelson contract is part of
+  a transaction, which can encompass several contract executions. The SOURCE of a Michelson contract
+  is the originator of the entire transaction.}, \lstinline/BALANCE/, and \lstinline/AMOUNT/ refer
+to the respective values. As the current \lstinline/BALANCE/ includes the \lstinline/AMOUNT/ sent
+with the transaction, we write \lstinline/pre.BALANCE/ ($=$ \lstinline/BALANCE/ $-$
+\lstinline/AMOUNT/) for the balance before the transaction starts and \lstinline/post.BALANCE/ for
+the balance after the transaction finishes. The latter is calculated by subtracting the amounts
+transferred from the current \lstinline/BALANCE/. The existence of a token transfer in the returned
+operation list is indicated by
+the respective \lstinline/TRANSFER_TOKENS/ instruction.  The components of the storage are referred
+to by name. We distinguish the outgoing storage by prepending \lstinline/post./ as in
+\lstinline/post.owner/.
+
+For each clause \lstinline/requires/ $\Phi$ \lstinline/raises/ $s$, we take the path condition
+$\Theta$ for a \lstinline/FAILWITH/ instruction with argument matching the string $s$ and check that
+$\Phi \wedge \Theta$ is not satisfiable in the context given by the initial stack for the entry point.
+
+From all \lstinline/requires/ $\Phi_i$ and \lstinline/ensures/ $\Psi_j$ clauses, we check that $\neg
+(\bigwedge\Phi_i \to \bigwedge \Psi_j)$ is unsatisfiable in the context given by the initial stack
+for the entry point and its corresponding final stack and path condition.
+
 We discuss two of the preconditions to highlight the properties that 
 need to be analyzed and where race conditions may interfere. 
 
-The precondition \lstinline/sender = owner/ of \lstinline/close/ can
+The precondition \lstinline/SOURCE = owner/ of \lstinline/close/ can
 be checked off-chain because the owner's address is part of the
 storage. However, it is in general unsound to perform such a test
-off-chain because the owner's address could change if an entrypoint
+off-chain because the owner's address could change if an entry point
 changes that component of the storage. To safely check this
-precondition, the analysis must determine that the owner component of
-the storage remains the same across all possible execution paths of
-the contract.
+precondition, all other entry points must preserve the \lstinline/owner/'s address, which is indeed
+the case by the postcondition in line~17. This postcondition is verified as outlined above.
 
-Moreover, the gathering of instructions must build path predicates,
-such that each \lstinline/FAILWITH/ instruction comes with a predicate
-that must be true to reach the instruction. In contract
-implementation, the path predicate is \lstinline/sender != owner/. As
-the conjunction of path predicate and precondition is unsatisfiable
-and because the \lstinline/owner/ component is constant, an off-chain
-test for \lstinline/sender = owner/ precisely predicts whether the
-failure condition arises.
+% Moreover, the gathering of instructions must build path predicates,
+% such that each \lstinline/FAILWITH/ instruction comes with a predicate
+% that must be true to reach the instruction. In contract
+% implementation, the path predicate is \lstinline/sender != owner/. As
+% the conjunction of path predicate and precondition is unsatisfiable
+% and because the \lstinline/owner/ component is constant, an off-chain
+% test for \lstinline/sender = owner/ precisely predicts whether the
+% failure condition arises.
 
 The situation is slightly more complex at the \lstinline/bid/
-entrypoint. The failure \lstinline/"closed"/ is guarded by
+entry point. The failure \lstinline/"closed"/ is guarded by
 \lstinline/bidding/. As the \lstinline/bidding/ component of the state can change,
-precise prediction is not possible. A closer look reveals some
+a precise prediction is not possible. A closer look reveals some
 subtlety. If \lstinline/bidding/ is true, then the flag may have
 changed by some interleaved call to \lstinline/close/. However, if
 \lstinline/bidding/ is false, then there is no point in invoking the
 contract because \lstinline/bidding/ will never be reset to true.
-
-Hence the analysis should also record value transitions in the
-storage for non-failing executions. For \lstinline/bidding/
-\lstinline/bid/ transitions from true to true and \lstinline/close/
-transitions from true to false. Thus, if the off-chain check finds
-\lstinline/bidding/ $=$ false, then we can precisely predict that
-\lstinline/bid/ would fail and trigger the corresponding error without
-invoking the contract proper.
+We address this situation by verifying the global invariant
+\lstinline/post.bidding => bidding/. 
 
 For the failure \lstinline/"to low"/, the analysis is very similar:
 we need to know that there is no successful execution of
 \lstinline/bid/ after an execution of \lstinline/close/. Moreover,
 each invocation of \lstinline/bid/ raises the balance of the contract
 monotonically. Thus, if the off-chain check
-\lstinline/amount > balance/ fails, we can be sure that the contract
+\lstinline/AMOUNT > pre.BALANCE/ fails, we can be sure that the contract
 invocation will also fail; either because someone closed the auction or
-because the balance is at least as high as in the off-chain sample. 
+because the balance is at least as high as in the off-chain sample. Checking \lstinline/pre.BALANCE/
+off-chain is particularly simple, because it is the current balance of the account.
+
+\section{Symbolic interpretation of Michelson}
+\label{sec:symb-interpr-mich}
+
+Michelsym, our symbolic interpreter for Michelson, works in two stages. In the first stage, it
+calculates symbolic stacks between each pair of reachable instructions. The underlying symbolic
+domain comprises all concrete values, supports the type system, and generates a term representation
+for symbolic values. Michelsym collects a path predicate that is extended at each conditional, but
+which remains uninterpreted. If symbolic execution reaches certain instructions (most notably
+\lstinline/FAILWITH/), Michelsym records the argument value and the path condition. 
+
+Presently, Michelsym works on Michelson files which result from compiling the examples
+provided with the Liquidity compiler. It generates human-readable output as well as output in the
+SMTlib format suitable for SMT-solvers like Z3. This output needs to be weaved together manually
+with the formulas generated from a contract module.
+
+We plan to revise Michelsym so that it directly communicates with Z3 to directly check for
+unsatisfiable path conditions and to be better integrated with the contract module frontend. 
+
 \section{Related work}
 \label{sec:related-work}
 %RPC APIs, often provided by current blockchains such as Ethereum \cite{eth-whitepaper} and Tezos \cite{tezos-whitepaper}, use loosely structured data, such as a JSON-based format, which is difficult for a programmatic program to handle. As a result, there is increasing work on providing better programmatic interfaces to the blockchains. Web3.js \cite{web3.js} provides an Ethereum JavaScript API and offers Java Script users a convenient interface to interact with the Etherum blockchain. Later, Web3.py \cite{web3.py}, derived from Web3.js, is developed to provide a Python library for interacting with Ethereum. Tezos prove a PRC API that utilizes JSON format for both input and output data, which is neither convenient nor programmatic.
@@ -488,9 +539,6 @@ specified in a user-defined data type. A contract call is wrapped in a
 fully typed and integrated OCaml function. In addition, the wrapper can check preconditions before the 
 actual call to reduce the waste of gas of a failed call.
 
-Status: the symbolic interpreter works on Michelson files which results from compiling the examples
-provided with the Liquidity compiler. It generates human-readable output as well as output in the
-SMTlib format suitable for SMT-solvers like Z3.
 
 While our conceptual approch is applicable and would be beneficial for other blockchains, the actual
 implementation is very much tied to the Tezos blockchain. The key asset here is the symbolic
