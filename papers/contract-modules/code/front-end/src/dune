@@ -1,0 +1,15 @@
+(env
+  (dev
+    (flags (:standard -w -27-8-33-26-32))))
+
+(executable
+ (name test)
+ (modules test)
+ 	(preprocess (pps ppx_let))
+ (libraries parsing))
+
+(executable
+	(name contract_module_to_json)
+	(modules contract_module_to_json)
+	(preprocess (pps ppx_let))
+	(libraries parsing))
