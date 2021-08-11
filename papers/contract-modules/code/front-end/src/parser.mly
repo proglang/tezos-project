@@ -55,7 +55,7 @@ error_decl:
   | l = error_list {l}
 
 pattern:
-  | WILDCARD                      {`Wildcard}
+  | in_parens(WILDCARD)           {`Wildcard}
   | p = in_parens(pattern_paren)  {p}
   | NONE                          {`None}
   | NIL                           {`Nil}

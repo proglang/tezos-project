@@ -23,7 +23,6 @@ let wildcard = '_'
 let colon = ':'
 let percent = '%'
 let bar = '|'
-let space = ' '
 
 rule read =
   parse
@@ -39,7 +38,6 @@ rule read =
   | colon         { COLON }
   | percent       { PERCENT }
   | bar           { BAR }
-  | space         { SPACE }
   | "int"         { INT_T }
   | "bool"        { BOOL_T }
   | "bytes"       { BYTES_T }
