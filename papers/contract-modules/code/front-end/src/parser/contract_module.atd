@@ -39,51 +39,23 @@ type pattern = [
   | Nil
   ]
 
-type unop = [
-  | Size
-  | Abs
-  | Neg
-  | Not
+type error_list = [
+  | Nill
+  | Cons of (string * error_list)
   ]
 
-type binop = [
-  | Nth
-  | Add
-  | Sub
-  | Mul
-  | Div
-  | Mod
-  | Or
-  | And
-  | Xor
-  | Lsl
-  | Lsr
-  | Eq
-  | Neq
-  | Lt
-  | Gt
-  | Le
-  | Ge
+type entrypoint_name = [
+   | Entrypoint of string
+   | Paid_entrypoint of string
+   ]
+
+type entrypoint_decl = {entrypoint : (string * pattern); error : error_list}
+
+type entrypoint_list = [
+  | Nill
+  | Cons of (entrypoint_decl * entrypoint_list)
   ]
 
-type expression = [
-  | Int of int
-  | Bool of bool
-  | String of string
-  | Ident of string
-  | IfThenElse of (expression * expression * expression)
-  | Unop of (unop * expression)
-  | Binop of (binop * expression * expression)
-  ]
+type contract_module_ast = {contract : string; body : entrypoint_list}
 
-type assertion = [
-  | Forall of (var_decl * assertion)
-  | Exists of (var_decl * assertion)
-  | If of (expression * assertion)
-  | Assert of expression
-  ]
 
-type assertion_ast = {
-  entrypoint : (string option * pattern);
-  body : assertion;
-}
