@@ -14,14 +14,13 @@
 %token EOF  
 %token CONTRACT
 %token SIG
-%token CLOSE
+%token END
 %token RAISES
 %token BAR  
-%token SPACE
 
           
 
-%start <Contract_module.contract_module_ast option> main
+%start <Contract_module_t.contract_module_ast option> main
 
 %%
 
@@ -31,17 +30,17 @@ main:
   ;
 
 modul:
-  | e = contract_name; a = entrypoint_list; CLOSE
-    {{contract = e; body = a} : Contract_module.contract_module_ast}
+  | e = contract_name; a = entrypoint_list; END
+    {{contract = e; body = a} : Contract_module_t.contract_module_ast}
 
 entrypoint_decl:
-  | e = entrypoint_name;  p = pattern; RAISES; er = error_decl
-    {{entrypoint = (e, p); error = er} : Contract_module.entrypoint_decl}
+  | e = entrypoint_name;  p = pattern; RAISES; er = error_list
+    {{entrypoint = (e, p); error = er} : Contract_module_t.entrypoint_decl}
 
 entrypoint_list:
-  | NIL {`Nill}
-  | en = in_parens(entrypoint_decl) {`Cons (en, `Nill)}
-  | en = in_parens(entrypoint_decl); l = entrypoint_list {`Cons (en, l)}
+  | NIL {`Nill : Contract_module_t.entrypoint_list}
+  | en = in_parens(entrypoint_decl) {`Cons (en, `Nill) : Contract_module_t.entrypoint_list}
+  | en = in_parens(entrypoint_decl); l = entrypoint_list {`Cons (en, l) : Contract_module_t.entrypoint_list}
 
 contract_name:
   | CONTRACT; id = IDENT; SIG {id}
@@ -50,9 +49,6 @@ contract_name:
 entrypoint_name:
   | ENTRYPOINT; id = IDENT; {id}
   | PAID_ENTRYPOINT; id = IDENT;{id}
-
-error_decl:
-  | l = error_list {l}
 
 pattern:
   | in_parens(WILDCARD)           {`Wildcard}
@@ -107,7 +103,7 @@ in_parens(X):
 error_list:
   | NIL {`Nill}
   | s = STRING {`Cons (s, `Nill)}
-  | s = STRING; b = BAR; l = error_list {`Cons (s, l)}
+  | s = STRING; BAR; l = error_list {`Cons (s, l)}
 
 
 

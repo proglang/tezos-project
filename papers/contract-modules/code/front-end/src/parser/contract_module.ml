@@ -44,11 +44,6 @@ type error_list = [
   | `Cons of string * error_list
   ]
 
-type entrypoint_name = [
-   | `Entrypoint of string
-   | `Paid_entrypoint of string
-   ]
-
 type entrypoint_decl = {entrypoint : string * pattern; error : error_list}
 
 type entrypoint_list = [

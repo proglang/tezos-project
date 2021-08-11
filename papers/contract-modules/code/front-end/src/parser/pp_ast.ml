@@ -1,5 +1,5 @@
 open Core
-open Contract_module
+(*open Contract_module*)
 
 let indent_space = "  "
 
@@ -72,7 +72,7 @@ let pp_type_expr_top ppf ~indent t =
     Fmt.pf ppf ">"
   in
   pp_type_expr ppf ~indent t;
-  Fmt.pf ppf "@."
+  Fmt.pf ppf "@." 
   
 let rec pp_pattern ppf ~indent pat =
   let print_pattern = Fmt.pf ppf "%sPattern: %s@." indent in

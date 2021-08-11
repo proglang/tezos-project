@@ -70,9 +70,9 @@ rule read =
   | "entrypoint"  { ENTRYPOINT }
   | "paid entrypoint"  { PAID_ENTRYPOINT }
   | "contract type" { CONTRACT }
-  | "end" { CLOSE }
-  | "= sig" { SIG }
-  | "raises" { RAISES }
+  | "end"         { END }
+  | "= sig"       { SIG }
+  | "raises"      { RAISES }
   | id            { IDENT (Lexing.lexeme lexbuf)}
   | _             { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
   | eof           { EOF }
