@@ -1,6 +1,6 @@
 (env
   (dev
-    (flags (:standard -w -27-8-33-26-32))))
+    (flags (:standard -w -32))))
 
 (executable
  (name test)
