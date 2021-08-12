@@ -30,24 +30,19 @@ type var_decl = (string * ty)
 type pattern = [
   | Wildcard
   | Ident of var_decl
-  | Pair of (pattern * pattern)
   | Left of pattern
   | Right of pattern
-  | None
-  | Some of pattern
-  | Cons of (pattern * pattern)
-  | Nil
   ]
 
 type error_list = [
-  | Nill
+  | Nil
   | Cons of (string * error_list)
   ]
 
 type entrypoint_decl = {entrypoint : (string * pattern); error : error_list}
 
 type entrypoint_list = [
-  | Nill
+  | Nil
   | Cons of (entrypoint_decl * entrypoint_list)
   ]
 

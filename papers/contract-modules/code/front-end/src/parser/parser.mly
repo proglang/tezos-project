@@ -6,7 +6,7 @@
 %token INT_T BOOL_T BYTES_T STRING_T MUTEZ_T NAT_T UNIT_T
 %token ADDRESS_T CHAINID_T KEY_T KEYHASH_T OP_T SIG_T TIMESTAMP_T
 %token LIST_T SET_T OPTION_T PAIR_T LAMBDA_T MAP_T CONTRACT_T BIGMAP_T
-%token LEFT RIGHT SOME NONE CONS NIL
+%token LEFT RIGHT NIL
 %token ENTRYPOINT
 %token PAID_ENTRYPOINT; 
 %token OR
@@ -38,8 +38,8 @@ entrypoint_decl:
     {{entrypoint = (e, p); error = er} : Contract_module_t.entrypoint_decl}
 
 entrypoint_list:
-  | NIL {`Nill : Contract_module_t.entrypoint_list}
-  | en = in_parens(entrypoint_decl) {`Cons (en, `Nill) : Contract_module_t.entrypoint_list}
+  | NIL {`Nil : Contract_module_t.entrypoint_list}
+  | en = in_parens(entrypoint_decl) {`Cons (en, `Nil) : Contract_module_t.entrypoint_list}
   | en = in_parens(entrypoint_decl); l = entrypoint_list {`Cons (en, l) : Contract_module_t.entrypoint_list}
 
 contract_name:
@@ -53,15 +53,10 @@ entrypoint_name:
 pattern:
   | in_parens(WILDCARD)           {`Wildcard}
   | p = in_parens(pattern_paren)  {p}
-  | NONE                          {`None}
-  | NIL                           {`Nil}
   ;          
 
 pattern_paren:
   | v = var_declaration                  {`Ident v}
-  | PAIR_T; p1 = pattern; p2 = pattern   {`Pair (p1, p2)}
-  | CONS; p1 = pattern; p2 = pattern     {`Cons (p1, p2)}
-  | SOME; p = pattern                    {`Some p}
   | LEFT; p = pattern                    {`Left p}
   | RIGHT; p = pattern                   {`Right p} 
 
@@ -101,8 +96,8 @@ in_parens(X):
   | LBRACKET; x = X ; RBRACKET {x}
 
 error_list:
-  | NIL {`Nill}
-  | s = STRING {`Cons (s, `Nill)}
+  | NIL {`Nil}
+  | s = STRING {`Cons (s, `Nil)}
   | s = STRING; BAR; l = error_list {`Cons (s, l)}
 
 

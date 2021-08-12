@@ -61,10 +61,6 @@ rule read =
   | "map"         { MAP_T }
   | "contract"    { CONTRACT_T }
   | "big_map"     { BIGMAP_T }
-  | "cons"        { CONS }
-  | "nil"         { NIL }
-  | "some"        { SOME }
-  | "none"        { NONE }
   | "left"        { LEFT }
   | "right"       { RIGHT }
   | "entrypoint"  { ENTRYPOINT }
@@ -72,6 +68,7 @@ rule read =
   | "contract type" { CONTRACT }
   | "end"         { END }
   | "= sig"       { SIG }
+  | "nil"         { NIL }
   | "raises"      { RAISES }
   | id            { IDENT (Lexing.lexeme lexbuf)}
   | _             { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }

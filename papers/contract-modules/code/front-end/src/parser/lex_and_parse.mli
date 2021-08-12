@@ -1,5 +1,5 @@
-(*open Contract_module*)
+open Contract_module_t
 
-(*val print_past: assertion_ast -> unit*)
-val parse_contract: string -> Contract_module_t.contract_module_ast list
-(*val parse_and_print: string -> unit*)
+val print_past: contract_module_ast -> unit
+val parse_contract: string -> contract_module_ast list
+val parse_and_print: string -> unit
