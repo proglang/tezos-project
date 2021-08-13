@@ -26,7 +26,7 @@
 
 main:
   | EOF {None}
-  | m = in_parens(modul) {Some m}
+  | m = modul {Some m}
   ;
 
 modul:
