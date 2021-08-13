@@ -1,9 +1,9 @@
 open Parsing.Lex_and_parse
 open Parsing
 
-let example = {|(contract type Auction = sig (paid entrypoint bid (n : int)
+let example = {|contract type Auction = sig (paid entrypoint bid (n : int)
 raises "closed" | "close action") (entrypoint close (s : string)
-raises "not owner") end)|}
+raises "not owner") end|}
 
 let x = parse_contract example
 
@@ -19,9 +19,9 @@ val x : Contract_module_t.contract_module_ast list =
 
 **)
 
-let example_1 = {|(contract type Auction = sig (paid entrypoint bid (n : int)
+let example_1 = {|contract type Auction = sig (paid entrypoint bid (n : int)
 raises "closed" | "close action") (entrypoint close (_)
-raises "not owner") end)|}
+raises "not owner") end|}
 
 let y = parse_contract example_1
 
@@ -36,9 +36,9 @@ val y : Contract_module_t.contract_module_ast list =
 
 **)
 
-let example_2 = {|(contract type Auction = sig (paid entrypoint bid (left (right (n : int)))
+let example_2 = {|contract type Auction = sig (paid entrypoint bid (left (right (n : int)))
 raises "closed" | "close action") (entrypoint close (_)
-raises "not owner") end)|}
+raises "not owner") end|}
 
 let z = parse_contract example_2
 
