@@ -33,14 +33,14 @@ modul:
   | e = contract_name; a = entrypoint_list; END
     {{contract = e; body = a} : Contract_module_t.contract_module_ast}
 
+entrypoint_list:
+  | NIL {[]}
+  | LPAREN ; en = entrypoint_decl; RPAREN {en :: []}
+  | LPAREN ; en = entrypoint_decl; RPAREN; l = entrypoint_list {en :: l}
+
 entrypoint_decl:
   | e = entrypoint_name;  p = pattern; RAISES; er = error_list
-    {{entrypoint = (e, p); error = er} : Contract_module_t.entrypoint_decl}
-
-entrypoint_list:
-  | NIL {`Nil : Contract_module_t.entrypoint_list}
-  | en = in_parens(entrypoint_decl) {`Cons (en, `Nil) : Contract_module_t.entrypoint_list}
-  | en = in_parens(entrypoint_decl); l = entrypoint_list {`Cons (en, l) : Contract_module_t.entrypoint_list}
+    {{entrypoint = (e, p); errors = er}}
 
 contract_name:
   | CONTRACT; id = IDENT; SIG {id}
@@ -96,9 +96,9 @@ in_parens(X):
   | LBRACKET; x = X ; RBRACKET {x}
 
 error_list:
-  | NIL {`Nil}
-  | s = STRING {`Cons (s, `Nil)}
-  | s = STRING; BAR; l = error_list {`Cons (s, l)}
+  | NIL {[]}
+  | s = STRING {s :: []}
+  | s = STRING; BAR; l = error_list {s :: l}
 
 
 

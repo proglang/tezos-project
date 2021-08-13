@@ -34,18 +34,11 @@ type pattern = [
   | `Right of pattern
   ]
 
-type error_list = [
-  | `Nil
-  | `Cons of string * error_list
-  ]
+type error_list = string list
 
-type entrypoint_decl = {entrypoint : string * pattern; error : error_list}
+type entrypoint_decl = {entrypoint : string * pattern; errors : error_list}
 
-type entrypoint_list = [
-  | `Nil
-  | `Cons of entrypoint_decl * entrypoint_list
-  ]
+type entrypoint_list = entrypoint_decl list
 
 type contract_module_ast = {contract : string; body : entrypoint_list}
-
 

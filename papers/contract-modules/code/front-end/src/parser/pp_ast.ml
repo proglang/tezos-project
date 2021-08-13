@@ -96,26 +96,23 @@ let pp_entrypoint_name ppf ~indent (ep, pat) =
   print_ep_name ep; pp_pattern ppf ~indent:new_indent pat
 
 let rec pp_error_list ppf ~indent l =
-  let print_ep_name = Fmt.pf ppf "%sError_list: %%%s@." indent in
-  let new_indent = indent_space ^ indent in
   match l with
-  | `Nil  -> print_ep_name "Nil"; 
-  | `Cons (e, ls) ->  Fmt.pf ppf "%sError: %%%s@." indent e; pp_error_list ppf ~indent:new_indent ls
+  | [] ->  Fmt.pf ppf ""; 
+  | e :: ls ->  Fmt.pf ppf "%sError: %s@." indent e; pp_error_list ppf ~indent ls
 
-let pp_entrypoint_decl ppf ~indent ({entrypoint = (e, p); error = er}: entrypoint_decl) =
+let pp_entrypoint_decl ppf ~indent ({entrypoint = (e, p); errors = er}: entrypoint_decl) =
   let new_indent = indent_space ^ indent in
-  pp_entrypoint_name ppf ~indent:new_indent (e, p); pp_error_list ppf ~indent:new_indent er
+  pp_entrypoint_name ppf ~indent (e, p); pp_error_list ppf ~indent:new_indent er
 
 let rec pp_emtrypoint_list ppf ~indent (l : entrypoint_list) =
-  let print_ep_name = Fmt.pf ppf "%sEntrypoint_list: %%%s@." indent in
-  let new_indent = indent_space ^ indent in
   match l with
-  | `Nil  -> print_ep_name "Nil"; 
-  | `Cons (e, ls) ->  pp_entrypoint_decl ppf ~indent:new_indent e; pp_emtrypoint_list ppf ~indent:new_indent ls
+  | []  -> Fmt.pf ppf "";
+  | e :: ls ->  pp_entrypoint_decl ppf ~indent e; pp_emtrypoint_list ppf ~indent ls
 
 let pp_ast ppf ({contract = ep; body = entrypoint_list}: contract_module_ast) =
   let indent = "└──" in
-  let pp_contract_name = Fmt.pf ppf "%sContract: %%%s@." indent in
+  let pp_contract_name = Fmt.pf ppf "%sContract: %s@." indent in
+  let new_indent = indent_space ^ indent in
   Fmt.pf ppf "AST@." ;
   pp_contract_name ep;
-  pp_emtrypoint_list ppf ~indent entrypoint_list
+  pp_emtrypoint_list ppf ~indent:new_indent entrypoint_list
