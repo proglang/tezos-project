@@ -480,7 +480,7 @@ that type, all values of \TOPH\ are valid.
             \STATUSTIMEOUT \\
   \ERROR &::= \ERRPRG \mid \ERRBAL \mid \ERRCOUNT \mid \ERRFEE \mid
            \ERRPUK \mid \ERRPUH \mid \ERRARG \mid \ERRINIT\\
-	\EXPR & :: =  \CONSTANT \mid \STATUS \mid \ERROR \mid \VARIABLE \mid \lambda \VARIABLE. \EXPR\ 
+	\EXPR & :: =  \CONSTANT \mid \STATUS \mid \ERROR \mid \VARIABLE \mid \lambda \VARIABLE. \EXPR
 	\mid \EXPR\EXPR  %\mid \FST\ \EXPR \mid \SND\ \EXPR 	%\mid \NI \EI
   \mid \EXPR\ \PLUS\ \EXPR\ \mid
   % \EXPR\ \MINUS\ \EXPR\ \mid
@@ -617,8 +617,9 @@ a string parseable as a value of type $\TYPE$.
 
     \inferrule{}{\JTypeExpr\TEnv\PUK\TPUK}
 
-    \inferrule{\JTypeCode \CODE{ \TPAIR\ \TYPE_p\
-        \TYPE_s}}{\JTypeExpr\TEnv\CODE{\TCODE\ \TYPE_p\ \TYPE_s}}
+    \inferrule{
+      \JTypeCode \CODE{ \TPAIR\ \TYPE_p\ \TYPE_s}
+    }{\JTypeExpr\TEnv\CODE{\TCODE\ \TYPE_p\ \TYPE_s}}
 
     % \inferrule{\JTypeExpr\TEnv\EXPR\TADDR}{\JTypeExpr\TEnv{\CONTRACT\
     %     \TYPE\ \EXPR}{\TOPTION (\TCONTRACT\ \TYPE)}}
@@ -757,7 +758,8 @@ a string parseable as a value of type $\TYPE$.
   % }
   %   
   \inferrule{
-    \JTypeExpr\TEnv\EXPR{\TOPH\ \TYPE\ \TYPEU}
+    \JTypeExpr\TEnv\EXPR{\TOPH\ \TYPE\ \TYPEU} \\
+    \TYPE\ne\TNO \\ \TYPEU \ne\TNO
   }{
     \JTypeExpr\TEnv {\GETCONTRACT\EXPR}{\TCONTRACT\ \TYPE\ \TYPEU}
   }
@@ -1040,7 +1042,7 @@ blockchain. To this end, any local node may be selected.
     }
   }
 
-    \inferrule[Block-Timeout]{
+  \inferrule[Block-Timeout]{
     \TIME-\hat\TIME > 60
   }{ 
     {[\OPH \mapsto \Angle{\OP, \hat \TIME, \STATUSPENDING}
@@ -1170,7 +1172,7 @@ resets the sender's counter, thus rolling back the transaction.
         \TIME, \STATUSPENDING} ::\PENDING,
       \UPDATECOU(\MANAGERS,\PUK,\TRUE), \CONTRACTORS, \TIME] }
 
-  \inferrule[Block-Accept]{
+  \inferrule[Block-Originate-Accept]{
     \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ \\
     \PUH = \GENERATEHASH(\CODE, \TIME) \\
     \TIME-\hat\TIME  \le 60
@@ -1400,20 +1402,22 @@ the code stored at that hash. The storage at that hash has the type
 expected by the code.
 \begin{mathpar}
   \inferrule{
-    \JTypeExpr\cdot{ \EXPR_i}\TUNIT  }{
+    \JTypeExpr\cdot{ \EXPR_i}\TUNIT
+  }{
     \JTypeNode{[\overline{\EXPR}, \ACCOUNTS]}
   }
 
-  \inferrule{\JTypeBlockchain\Delta\BLOCKCHAIN \\
+  \inferrule{
+    \JTypeBlockchain\Delta\BLOCKCHAIN \\
     \JTypeNode{\NODE_i}
   }{\JTypeConfig\Delta{\BLOCKCHAIN[\overline\NODE]}}
 \end{mathpar}
 
 \begin{lemma}[Preservation]
-  If $\BLOCKCHAIN[\overline\NODE] \SystemTrans{} \BLOCKCHAIN'[\overline\NODE']$ and
-  $\JTypeBlockchain\Delta \BLOCKCHAIN$, then there is some
+  If $\BLOCKCHAIN[\overline\NODE] \SystemTrans{} \BLOCKCHAIN'[\overline{\NODE'}]$ and
+  $\JTypeConfig\Delta {\BLOCKCHAIN[\overline\NODE]}$, then there is some
   $\Delta' \supseteq \Delta$ such that
-  $\JTypeBlockchain{\Delta'}{ \BLOCKCHAIN'}$.
+  $\JTypeConfig{\Delta'}{ \BLOCKCHAIN'[\overline{\NODE'}]}$.
 \end{lemma}
 This lemma includes the standard preservation for the lambda calculus part.
 \begin{lemma}[Progress]
@@ -1499,6 +1503,6 @@ blockchain programming and concurrent programs.
 \bibliographystyle{splncs04}
 \bibliography{bio}
 
-
+\input{appendix}
 \end{document}
 
