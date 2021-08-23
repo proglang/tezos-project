@@ -1,0 +1,539 @@
+\clearpage
+\appendix
+
+\section{Type Soundness}
+\label{sec:type-soundness}
+
+\begin{lemma}[Canonical forms]\label{lemma:canonical-forms}
+  Given a set of local accounts $\ACCOUNTS$, a blockchain
+  $\BLOCKCHAIN$, and a typed value $\JTypeExpr\cdot \VAL \TYPE$.
+  \begin{itemize}
+  \item If $\TYPE=\TPUH$, then $\VAL=\PUH$ and $\PUH \in \DOM
+    (\BLOCKCHAIN.\CONTRACTORS)$.
+  \item If $\TYPE = \TPUK$, then $\VAL=\PUK$ and $\exists\PAK$ such
+    that $(\PAK, \PUK) \in \ACCOUNTS$.
+  \item If $\TYPE = \TADDR$, then $\VAL$ is $\PUH$ or $\PUK$.
+  \item If $\TYPE = \TCONTRACT\ \TYPE_p\ \TYPE_s$, then $\VAL=\PUH$
+    and $\PUH \in \DOM (\BLOCKCHAIN.\CONTRACTORS)$ and
+    $\BLOCKCHAIN.\CONTRACTORS (\PUH) = (\CODE, \TIME, \BAL, \STORAGE)$
+    such that $      \JTypeCode \CODE{ \TPAIR\ \TYPE_p\ \TYPE_s}$ and
+    $\JTypeValue \STORAGE { \TYPE_s}$.
+  \item If $\TYPE = \TCODE\ \TYPE\ \TYPEU$, then $\VAL = \CODE$ and
+    $\JTypeCode \CODE{\TPAIR\ \TYPE\ \TYPEU}$.
+  \item If $\TYPE = \TOPH\ \TYPE\ \TYPEU$, then $\VAL = \OPH$ and
+    $\OPH\in \DOM (\BLOCKCHAIN.\PENDING)$ and $\BLOCKCHAIN.\PENDING
+    (\OPH) = \Angle{\OP, \TIME, \STATUS}$ where $\TYPE=\TYPEU=\TNO$ if
+    $\OP$ is a transfer and $\TYPE=\TYPE_p\ne\TNO$, $\TYPEU=\TYPE_s\ne\TNO$ if $\OP
+    = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ$ and $\JTypeCode\CODE{
+      \TPAIR\ \TYPE_p\ \TYPE_s}$.
+  \item If $\TYPE = \TSTATUS$, then $\VAL \in \{\STATUSPENDING , \STATUSINCLUDING (\INT),
+    \STATUSTIMEOUT\}$.
+  \item If $\TYPE = \TEXCEPTION$, then $\VAL \in \{\ERRPRG, \ERRBAL, \ERRCOUNT, \ERRFEE,
+    \ERRPUK, \ERRPUH, \ERRARG, \ERRINIT \}$.
+  \item If $\TYPE = \TTEZ$, then $\VAL = \NTEZ$, a token amount.
+  \item If $\TYPE = \TNO$, then $\VAL$ can be any syntactic value.
+  \item If $\TYPE = \TINT$, then $\VAL = \INT$.
+  \item If $\TYPE = \TUNIT$, then $\VAL = \SUNIT$.
+  \item If $\TYPE = \TBOOL$, then $\VAL \in \{ \TRUE, \FALSE\}$.
+  \item If $\TYPE = \TSTRING$, then $\VAL = \STRING$ a string.
+  \item If $\TYPE = \TYPE\to\TYPEU$, then $\VAL = \lambda
+    \VARIABLE. \EXPR$. 
+  \item If $\TYPE = \TPAIR\ \TYPE\ \TYPEU$, then $\VAL = (\VAL',
+    \VAL'')$ where $\JTypeExpr\cdot {\VAL'}\TYPE$ and $\JTypeExpr\cdot
+    {\VAL''}\TYPEU$ in context $\ACCOUNTS$ and $\BLOCKCHAIN$.
+  \item If $\TYPE = \TLIST\ \TYPE$, then either $\VAL = \NIL$ or $\VAL
+    = \CONS\ {\VAL'}\ {\VAL''}$ where $\JTypeExpr\cdot{\VAL'}\TYPE$
+    and $\JTypeExpr\cdot{\VAL''}{\TLIST\ \TYPE}$ in context
+    $\ACCOUNTS$ and $\BLOCKCHAIN$.
+  \item If $\TYPE = \TSUM\ \TYPE\ \TYPEU$, then either $\VAL = \LEFT\
+    \VAL'$ where $\JTypeExpr\cdot {\VAL'}\TYPE$ or $\VAL= \RIGHT\
+    \VAL''$ where $\JTypeExpr\cdot {\VAL''}\TYPEU$ in context
+    $\ACCOUNTS$ and $\BLOCKCHAIN$.
+  \item If $\TYPE = \TOPTION\ \TYPE$, then $\VAL = \NONE$ or $\VAL =
+    \SOME\ \VAL'$ where $\JTypeExpr\cdot {\VAL'}\TYPE$ in context
+    $\ACCOUNTS$ and $\BLOCKCHAIN$.
+  \end{itemize}
+\end{lemma}
+
+\begin{lemma}[Subterm replacement]\label{lemma:subterm-replacement}
+  If $\JTypeExpr\cdot{ \EC\EXPR}\TYPE$,
+  $\JTypeExpr\cdot\EXPR \TYPE'$, and
+  $\JTypeExpr\cdot{\EXPR'} \TYPE'$, then
+  $\JTypeExpr\cdot{ \EC{\EXPR'}}\TYPE$.
+\end{lemma}
+\begin{proof}
+  Induction on evaluation context $\ECN$ making use of the fact that
+  an evaluation context does not bind variables.
+\end{proof}
+
+\begin{lemma}[Preservation for expressions]\label{lemma:type-preservation-expressions}
+  If $\JTypeExpr\cdot{ \EXPR}\TYPE$ and $\EXPR \ExprTrans \EXPR'$,
+  then  $\JTypeExpr\cdot{ \EXPR'}\TYPE$.
+\end{lemma}
+\begin{proof}
+  Standard result: type preservation for simply typed lambda calculus
+  with pairs, sums, and exceptions. Uses
+  Lemma~\ref{lemma:subterm-replacement} for reductions in evaluation
+  context. See, for instance, Types in
+  Programming Languages by Benjamin Pierce.
+\end{proof}
+
+\begin{lemma}[Preservation]
+  If $\BLOCKCHAIN[\overline\NODE] \SystemTrans{} \BLOCKCHAIN'[\overline{\NODE'}]$ and
+  $\JTypeConfig\Delta {\BLOCKCHAIN[\overline\NODE]}$, then there is some
+  $\Delta' \supseteq \Delta$ such that
+  $\JTypeConfig{\Delta'}{ \BLOCKCHAIN'[\overline{\NODE'}]}$.
+\end{lemma}
+\begin{proof}
+  The proof is by induction on the reduction relation
+  $\BLOCKCHAIN[\overline\NODE] \SystemTrans{}
+  \BLOCKCHAIN'[\overline\NODE']$ and inversion of the typing
+  judgments. We only consider the exemplary reductions shown in the
+  paper. We mark all components that belong to the reductum with 
+  $'$ as in $\NODE'$.
+
+  From $\JTypeConfig\Delta {\BLOCKCHAIN[\overline\NODE]}$ we obtain
+  \begin{gather}
+    \label{eq:1}
+    \JTypeBlockchain\Delta\BLOCKCHAIN
+    \\\label{eq:2}
+    \JTypeNode{\NODE_i}
+  \end{gather}
+  From~\eqref{eq:1} we obtain
+  \begin{gather}
+    \label{eq:3}
+    \DOM (\Delta) = \DOM (\BLOCKCHAIN.\CONTRACTORS)
+    \intertext{and $\forall\PUH\in\DOM (\Delta)$}\label{eq:4}
+    \Delta (\PUH) = \TPAIR\ \TYPE_p\ \TYPE_s
+    \\\label{eq:5}
+    \JTypeCode{\BLOCKCHAIN.\CONTRACTORS (\PUH).\CODE} {\TPAIR\ \TYPE_p\ \TYPE_s}
+    \\
+    \JTypeValue{\BLOCKCHAIN.\CONTRACTORS (\PUH).\STORAGE}{ \TYPE_s}
+  \end{gather}
+  From~\eqref{eq:2} we obtain, if $\NODE_i = [\overline{\EXPR_i},
+  \ACCOUNTS_i]$, 
+  \begin{gather}
+    \label{eq:6}
+    \JTypeExpr\cdot{ \EXPR_{ij}}\TUNIT
+  \end{gather}
+
+  \textbf{Reduction }$  \inferrule[Config-Node]
+  {\NODE_0 \NodeTrans \NODE_0'}
+  { {\BLOCKCHAIN[\NODE_0 :: \overline\NODE]}
+    \SystemTrans
+    {\BLOCKCHAIN[\NODE_0' :: \overline\NODE]}}$.
+
+  The only possible reduction here is $  \inferrule[Node-Eval]
+  {
+    \EXPR \ExprTrans \EXPR'
+  }{
+    [\EC\EXPR :: \EXPRS, \ACCOUNTS] \NodeTrans{}
+    [\EC{\EXPR'} :: \EXPRS, \ACCOUNTS]
+  }$.
+
+  From~\eqref{eq:6}, we know that $\JTypeExpr\cdot{ \EXPR}\TUNIT$. By
+  Lemma~\ref{lemma:type-preservation-expressions}, $\JTypeExpr\cdot{
+    \EXPR'}\TUNIT$, the types of the $\EXPRS$ are not affected, hence
+  $\JTypeNode{\NODE_0' = [\EC{\EXPR'} :: \EXPRS, \ACCOUNTS]}$. None of the other
+  nodes changed, neither did $\BLOCKCHAIN$, so that
+  $\JTypeConfig\Delta{{\BLOCKCHAIN[\NODE_0' :: \overline\NODE]}}$. 
+
+  \clearpage
+  \textbf{Reduction }$\inferrule[Config-System]{
+    \NODE\|\BLOCKCHAIN \SystemTrans \NODE'\|\BLOCKCHAIN'
+}{
+    \BLOCKCHAIN[\NODE :: \overline{\NODE}] \SystemTrans
+    \BLOCKCHAIN'[\NODE' :: \overline{\NODE}]
+  }$.
+
+  We need to consider the cases for $\SystemTrans$.
+
+  \textbf{Subcase }$  \inferrule[Node-Inject]{
+    \Angle{\PAK,\PUK} \in \ACCOUNTS \\
+    \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+    \CHECKARG (\CONTRACTORS, \PUH, \PARAMETER) \\
+    \CHECKCOU (\MANAGERS, \PUK) \\
+    \CHECKPUH (\CONTRACTORS, \PUH) \\
+    \CHECKGAS (\CONTRACTORS, \PUH, \PARAMETER, \MTEZ) \\
+    \OPH = \GENERATEOPH (\OP, \TIME) \\
+    \OP = \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ    
+  }{
+    { [\EC\OP :: \EXPRS, \ACCOUNTS] \|
+      [\PENDING, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans \\
+    { [\EC{\OPH}  :: \EXPRS, \ACCOUNTS] \|
+      [ \OPH \mapsto \Angle{\OP, \TIME, \STATUSPENDING}
+      ::\PENDING,
+      \UPDATECOU(\MANAGERS, \PUK, \TRUE),
+      \CONTRACTORS,
+      \TIME]
+    }
+  }$.
+  Here $\NODE = [\EC\OP :: \EXPRS, \ACCOUNTS]$. We first check type
+  preservation for the expression part. There are two typing rules for
+  the transfer
+  $\OP$, but only the one for contract invocation applies as the other
+  one requires $\JTypeExpr\cdot{\PUH}\TPUK$, which does not hold.
+
+  % For a token transfer
+  % \begin{gather}
+  %   \label{eq:7}
+  %       \inferrule{
+  %     \JTypeExpr\TEnv{\NTEZ}\TTEZ \\
+  %     \JTypeExpr\TEnv{\PUK}\TPUK \\
+  %     \JTypeExpr\TEnv{\PUH}\TPUK \\
+  %     % \JTypeExpr\TEnv{\EXPR_3}{\TCONTRACT\ \TUNIT} \\
+  %     \JTypeExpr\TEnv{\PARAMETER}\TUNIT \\
+  %     \JTypeExpr\TEnv{\MTEZ}\TTEZ }{
+  %     \JTypeExpr\TEnv{\TRANSFER[\PARAMETER]{\NTEZ}{\PUK}{\PUH}{\MTEZ}}\TOPH\
+  %     \TNO\ \TNO
+  %   }
+  % \end{gather}
+
+  For a contract invocation (specialized to empty environment)
+  \begin{gather}
+    \label{eq:8}
+        \inferrule{
+      \JTypeExpr\cdot{\NTEZ}\TTEZ \\
+      \JTypeExpr\cdot{\PUK}\TPUK \\
+      \JTypeExpr\cdot{\PUH}\TCONTRACT\ \TYPE_p\ \TYPE_s \\
+      \JTypeExpr\cdot{\PARAMETER}{\TYPE_p} \\
+      \JTypeExpr\cdot{\MTEZ}\TTEZ }{
+      \JTypeExpr\cdot{\TRANSFER[\PARAMETER]{\NTEZ}{\PUK}{\PUH}{\MTEZ}}{\TOPH\
+      \TNO\ \TNO}
+    }
+  \end{gather}
+  The canoncical forms lemma~\ref{lemma:canonical-forms} is parameterized over the accounts
+  $\ACCOUNTS$ of the local node and the current contractors
+  $\BLOCKCHAIN.\CONTRACTORS$. Hence, we know that the arguments are
+  legal, which is also checked by the rule.
+
+  The reduct returns an operation hash $\OPH$ at type $\TOPH\ \TNO\
+  \TNO$, which places no restrictions on the context of $\OPH$.
+
+  Moreover, $\Delta' = \Delta$ and $\CONTRACTORS' = \CONTRACTORS$ as
+  no new contract is originated.
+
+  We conclude with Lemma~\ref{lemma:subterm-replacement} and
+  reapplying \TirName{Config-System}.
+
+  \textbf{Subcase }$\inferrule[Contract-Yes]{
+    \JTypeCode\CODE{\TPAIR\ \TYPE\ \TYPEU} \\
+    \BLOCKCHAIN.\CONTRACTORS (\PUH) =  \Angle{\CODE, \tilde\TIME, \NTEZ', \STRING'}
+    % 
+  }{
+    { [\EC{\CAST\PUH\TPUH{\TCONTRACT\ \TYPE}}  :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+    }
+    \SystemTrans
+    { [\EC{\PUH} :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+    }
+  }$.
+
+  Immediate using Lemma~\ref{lemma:canonical-forms} and
+  Lemma~\ref{lemma:subterm-replacement}.
+
+  \textbf{Subcase }$\inferrule[Contract-No]{
+    % \ADDR \in \DOM (\BLOCKCHAIN.\MANAGERS) \Rightarrow \TYPE\ne\TUNIT \\
+    \BLOCKCHAIN.\CONTRACTORS (\PUH) = \Angle{\CODE, \tilde\TIME,
+      \NTEZ', \STRING'} \Rightarrow {}
+    \JTypeCode\CODE{\TPAIR\ \TYPE'\ \TYPEU} \wedge \TYPE \ne \TYPE' \\
+  }{
+    { [\EC{\CAST\PUH\TPUH{\TCONTRACT\ \TYPE}}  :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+    }
+    \SystemTrans
+    { [\EC{\RAISE\ \ERRPRG} :: \EXPRS, \ACCOUNTS] \|
+      \BLOCKCHAIN
+    }
+  }$.
+
+  The typing rule for $\RAISE$ can return any type. Hence, this is
+  immediate by Lemma~\ref{lemma:subterm-replacement}.
+
+  \textbf{Subcase }$\inferrule[Block-Originate]{
+    \Angle{\PAK,\PUK} \in \ACCOUNTS \\ \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+    \CHECKCOU (\MANAGERS, \PUK) \\
+    \CHECKPRG (\CODE) \\
+    \CHECKGAS (\CODE, \INIT, \NTEZ, \MTEZ)  \\
+    \CHECKINIT (\CODE, \STRING) \\
+    % \OPH = \GENERATEOPH(\PUK, \CODE, \STRING, \NTEZ, \MTEZ, \TIME)
+    % \\
+    \OPH = \GENERATEOPH(\OP, \TIME) \\
+    \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ }{ [\EC\OP :: \EXPRS,
+    \ACCOUNTS
+    ] \| [\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \to \\
+    [\EC{\OPH} :: \EXPRS, \ACCOUNTS] \| [\OPH \mapsto \Angle{\OP,
+      \TIME, \STATUSPENDING} ::\PENDING,
+    \UPDATECOU(\MANAGERS,\PUK,\TRUE), \CONTRACTORS, \TIME] }$. 
+  
+  Suppose that $\JTypeCode\CODE {\TPAIR\ \TYPE_p\ \TYPE_s}$. Then
+  $\JTypeExpr\cdot\OP{\TOPH\ \TYPE_p\ \TYPE_s}$. But this is the type
+  of the $\OPH$ in the reductum as it points to $\OP$ in
+  $\PENDING$. Hence, the result is immediate by
+  Lemma~\ref{lemma:subterm-replacement}.
+
+  % \textbf{Subcase }$    \inferrule[Block-Accept-Query]{
+  %   \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ \\
+  %   \PENDING (\OPH) =  \Angle{\OP,
+  %     \hat\TIME, \STATUSINCLUDING\ \tilde\TIME} \\
+  %   \PUH = \GENERATEHASH (\CODE, \tilde\TIME)
+  %   % \CONTRACTORS (\PUH) =  \Angle{\CODE, \tilde\TIME, \NTEZ', \STRING'}
+  % }{
+  %   [\EC{\GETCONTRACT\ \OPH}  :: \EXPRS, \ACCOUNTS] \| [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]
+  %   \SystemTrans 
+  %   [\EC{ \PUH}  :: \EXPRS, \ACCOUNTS] \|  [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]
+  % }$.
+
+  
+
+  \textbf{Subcase }$\inferrule[Query-Balance-Implicit]{
+    % \BLOCKCHAIN =
+    % [\PENDING, \PUK \mapsto \Angle{\BAL, \COU} :: \MANAGERS,
+    % \CONTRACTORS, \TIME]
+    \BLOCKCHAIN.\MANAGERS (\PUK) = \Angle{\BAL,\COU}
+  }{[\EC{\GETBALANCE\PUK} :: \EXPRS, \ACCOUNTS] \| \BLOCKCHAIN
+    \SystemTrans\ [\EC{\BAL} ::\EXPRS, \ACCOUNTS] \| \BLOCKCHAIN} $.
+  
+  The reduction replaces $\GETBALANCE\PUK$ of type $\TTEZ$ by $\BAL$
+  of the same type. Hence, the result is immediate by
+  Lemma~\ref{lemma:subterm-replacement}.
+
+  \textbf{Subcase }$\inferrule[Query-Balance-Fail]{ \PUK \notin \DOM
+    (\BLOCKCHAIN.\MANAGERS) \ }{[\EC{\GETBALANCE\PUK} :: \EXPRS,
+    \ACCOUNTS] \| \BLOCKCHAIN \SystemTrans {[\EC{\RAISE\ \ERRPUK}
+      ::\EXPRS, \ACCOUNTS] \| \BLOCKCHAIN}}$.
+
+  Immediate by Lemma~\ref{lemma:subterm-replacement} because $\RAISE$
+  can have any type.
+    
+  \clearpage
+  \textbf{Reduction }$\inferrule[Config-Block]
+  {\BLOCKCHAIN \BlockTrans \BLOCKCHAIN'}
+  { \BLOCKCHAIN[{\overline\NODE}]
+    \SystemTrans
+    \BLOCKCHAIN'[{\overline\NODE}]}$.
+
+  We need to considere cases for $\BlockTrans$.
+
+  \textbf{Subcase }$\inferrule[Block-Accept]{
+    \OP = \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ \\
+    \TIME - \hat\TIME \le 60
+  }{
+    { 
+      [\OPH \mapsto \Angle{\OP, \hat \TIME, \STATUSPENDING}
+      ::\PENDING, \MANAGERS,
+      \CONTRACTORS, \TIME]}
+    \BlockTrans 
+    {
+      [\OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSINCLUDING\ \TIME} :: \PENDING}, \\
+    { \UPDATESUCC (\MANAGERS, \PUK, \NTEZ, \MTEZ), 
+      \UPDATECONSTR (\CONTRACTORS, \PUH, \NTEZ, \PARAMETER), \TIME +1]
+    }
+  }$.
+
+  No typing-related properties are affected.
+
+  \textbf{Subcase }$\inferrule[Block-Originate-Accept]{
+    \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ \\
+    \PUH = \GENERATEHASH(\CODE, \TIME) \\
+    \TIME-\hat\TIME  \le 60
+  }{
+    [\OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSPENDING} :: \PENDING, \MANAGERS, \CONTRACTORS, \TIME]
+    \BlockTrans \\
+    [\OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSINCLUDING\ \TIME} :: \PENDING, \UPDATESUCC
+    (\MANAGERS, \PUK, \NTEZ, \MTEZ),\\ \PUH \mapsto  \Angle{\CODE, \TIME, \NTEZ, \STRING} :: \CONTRACTORS, \TIME+1]
+  }$.
+  
+  This reduction extends $\CONTRACTORS$ with a new entry for
+  $\PUH$. To preserve typing, we need to extend $\Delta$ with the
+  binding $\PUH : \TPAIR\ \TYPE_p\ \TYPE_s$ where $\JTypeCode\CODE
+  {\TPAIR\ \TYPE_p\ \TYPE_s}$. The generated code pointer is obtained
+  with a query operation via the operation hash $\OPH$, which is also
+  connected to the parameter and storage types. 
+
+  \textbf{Subcase }$  \inferrule[Block-Timeout]{
+    \TIME-\hat\TIME > 60
+  }{ 
+    {[\OPH \mapsto \Angle{\OP, \hat \TIME, \STATUSPENDING}
+     ::\PENDING, \MANAGERS,
+      \CONTRACTORS, \TIME]}
+    \BlockTrans \\
+    { 
+      [\OPH \mapsto \Angle{\OP, \hat \TIME, \STATUSTIMEOUT}
+     :: \PENDING,  \UPDATECOU(\MANAGERS, \OP.\PUK, \FALSE),
+      \CONTRACTORS, \TIME]}
+  }$.
+
+  No typing-related properties are affected.
+\end{proof}
+
+\clearpage
+\begin{lemma}[Progress for expressions]\label{lemma:progress-expressions}
+  If $\JTypeExpr\cdot{ \EXPR}\TYPE$, then either
+  \begin{itemize}
+  \item $\EXPR$ is a value,
+  \item $\EXPR \ExprTrans \EXPR'$, or
+  \item $\EXPR = \EC{\EXPR'}$ is a blockchain operation in an evaluation context:
+    \begin{itemize}
+    \item $\EXPR' = \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ$;
+    \item $\EXPR' = \ORIGINATE\NTEZ\PUK\CODE\INIT\MTEZ$;
+    \item $\EXPR' = \QOP\ \VAL$;
+    \item $\EXPR' = \CAST\VAL\TYPE\TYPEU$ where $\TYPEU \SubType \TYPE$.
+    \end{itemize}
+  \end{itemize}
+\end{lemma}
+\begin{proof}
+  Standard result: progress for simply type lambda calculus with
+  pairs, sums, and exceptions. Upcasts are resolved by identity
+  reductions. The blockchain operations including downcasts are not
+  handled by the $\ExprTrans$ relation. 
+\end{proof}
+\begin{lemma}[Progress]
+  If $\JTypeConfig\Delta{\BLOCKCHAIN[\overline\NODE]}$, then either
+  all expressions in all nodes are unit values or there is a
+  configuration $\BLOCKCHAIN'[\overline\NODE']$ such that
+  $\BLOCKCHAIN[\overline\NODE] \SystemTrans \BLOCKCHAIN'[\overline\NODE']$.
+\end{lemma}
+\begin{proof}
+  From $\JTypeConfig\Delta {\BLOCKCHAIN[\overline\NODE]}$ we obtain
+  \begin{gather}
+    \label{eq:101}
+    \JTypeBlockchain\Delta\BLOCKCHAIN
+    \\\label{eq:102}
+    \JTypeNode{\NODE_i}
+  \end{gather}
+  From~\eqref{eq:101} we obtain
+  \begin{gather}
+    \label{eq:103}
+    \DOM (\Delta) = \DOM (\BLOCKCHAIN.\CONTRACTORS)
+    \intertext{and $\forall\PUH\in\DOM (\Delta)$}\label{eq:4}
+    \Delta (\PUH) = \TPAIR\ \TYPE_p\ \TYPE_s
+    \\\label{eq:105}
+    \JTypeCode{\BLOCKCHAIN.\CONTRACTORS (\PUH).\CODE} {\TPAIR\ \TYPE_p\ \TYPE_s}
+    \\
+    \JTypeValue{\BLOCKCHAIN.\CONTRACTORS (\PUH).\STORAGE}{ \TYPE_s}
+  \end{gather}
+  From~\eqref{eq:102} we obtain, if $\NODE_i = [\overline{\EXPR_i},
+  \ACCOUNTS_i]$, 
+  \begin{gather}
+    \label{eq:106}
+    \JTypeExpr\cdot{ \EXPR_{ij}}\TUNIT
+  \end{gather}
+
+  For each such $\EXPR_{ij}$, Lemma~\ref{lemma:progress-expressions}
+  yields that either
+  \begin{itemize}
+  \item $\EXPR_{ij}$ is a value; as it has type $\TUNIT$, we obtain
+    $\EXPR_{ij} = \SUNIT$ by Lemma~\ref{lemma:canonical-forms};
+  \item $\EXPR_{ij} \ExprTrans \EXPR_{ij}'$, in which case the whole
+    system makes a step; or
+  \item $\EXPR_{ij} = \EC{\EXPR}$ where $\EXPR$ is a blockchain operation.
+  \end{itemize}
+
+  \textbf{Subcase } $\EXPR =
+  \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ$. In this case, the
+  \TirName{Node-Inject} reduction is in principle enabled:
+  \begin{mathpar}
+    \inferrule[Node-Inject]{
+      \Angle{\PAK,\PUK} \in \ACCOUNTS \\
+      \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+      \CHECKARG (\CONTRACTORS, \PUH, \PARAMETER) \\
+      \CHECKCOU (\MANAGERS, \PUK) \\
+      \CHECKPUH (\CONTRACTORS, \PUH) \\
+      \CHECKGAS (\CONTRACTORS, \PUH, \PARAMETER, \MTEZ) \\
+      \OPH = \GENERATEOPH (\OP, \TIME) \\
+      \OP = \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ    
+    }{
+      { [\EC\OP :: \EXPRS, \ACCOUNTS] \|
+        [\PENDING, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans \\
+      { [\EC{\OPH}  :: \EXPRS, \ACCOUNTS] \|
+        [ \OPH \mapsto \Angle{\OP, \TIME, \STATUSPENDING}
+        ::\PENDING,
+        \UPDATECOU(\MANAGERS, \PUK, \TRUE),
+        \CONTRACTORS,
+        \TIME]
+      }
+    }
+  \end{mathpar}
+  Thanks to the canonical forms Lemma~\ref{lemma:canonical-forms}, we
+  know that $\Angle{\PAK,\PUK} \in \ACCOUNTS$, $\CHECKARG
+  (\CONTRACTORS, \PUH, \PARAMETER)$ holds, and $\CHECKPUH
+  (\CONTRACTORS, \PUH)$ holds. If one of the remaining checks fails,
+  then one of the \TirName{Node-Reject} transitions throws an
+  exception, so the configuration steps in every case. 
+
+  \textbf{Subcase } $\EXPR = \ORIGINATE\NTEZ\PUK\CODE\INIT\MTEZ$. In
+  this case, the \TirName{Block-Originate} reduction is in principle
+  enabled:
+  \begin{mathpar}
+    \inferrule[Block-Originate]{
+      \Angle{\PAK,\PUK} \in \ACCOUNTS \\ \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
+      \CHECKCOU (\MANAGERS, \PUK) \\
+      \CHECKPRG (\CODE) \\
+      \CHECKGAS (\CODE, \INIT, \NTEZ, \MTEZ)  \\
+      \CHECKINIT (\CODE, \STRING) \\
+      % \OPH = \GENERATEOPH(\PUK, \CODE, \STRING, \NTEZ, \MTEZ, \TIME)
+      % \\
+      \OPH = \GENERATEOPH(\OP, \TIME) \\
+      \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ }{ [\EC\OP :: \EXPRS,
+      \ACCOUNTS
+      ] \| [\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \to \\
+      [\EC{\OPH} :: \EXPRS, \ACCOUNTS] \| [\OPH \mapsto \Angle{\OP,
+        \TIME, \STATUSPENDING} ::\PENDING,
+      \UPDATECOU(\MANAGERS,\PUK,\TRUE), \CONTRACTORS, \TIME] }
+  \end{mathpar}
+  Thanks to the canonical forms Lemma~\ref{lemma:canonical-forms}, we
+  know that $\Angle{\PAK,\PUK} \in \ACCOUNTS$, $\CHECKPRG (\CODE)$ holds, and $\CHECKINIT
+  (\CODE, \STRING)$ holds. If one of the remaining checks fails,
+  then one of the \TirName{Node-Reject} transitions throws an
+  exception, so the configuration steps in every case. 
+  
+  \textbf{Subcase } $\EXPR = \QOP\ \VAL$. If $\EXPR =
+  \GETBALANCE\VAL$, then inversion tells us that $\JTypeExpr\cdot{
+    \VAL}\TADDR$ and by canonical forms
+  (Lemma~\ref{lemma:canonical-forms}), it must be that $\VAL$ has the
+  form $\PUK$ or $\PUH$. In any case, the value is a meaningful
+  address for the manager $\MANAGERS$. Depending on whether the
+  address is in use, one of the reductions
+  \TirName{Query-Balance-Implicit} or \TirName{Query-Balance-Fail} can
+  execute. There are further analogous reductions handling the case where
+  $\VAL=\PUH$ and we ask for the balance of a smart contract.
+
+  Most queries behave like $\GETBALANCE\cdot$, except getting a
+  contract handle from an operation hash:
+
+  \textbf{Subcase }$\EXPR = \GETCONTRACT\VAL$. This query is somewhat
+  special as it is handled with reduction
+  \TirName{Block-Accept-Query}. By inversion and canonical forms
+  (Lemma~\ref{lemma:canonical-forms}) we know that $\VAL = \OPH$ is a
+  valid operation hash of type $\TCONTRACT\ \TYPE\ \TYPEU$ where
+  $\TYPE\ne\TNO$ and $\TYPEU \ne\TNO$.
+
+  However, this reduction is conditional on the state of the
+  transaction; it requires the new contract to have status
+  $\STATUSINCLUDED$. If the contract has status $\STATUSTIMEOUT$, then
+  the query raises and exception, analogous to the
+  \TirName{Query-Balance-Fail} reduction. If the contract has status
+  $\STATUSPENDING$, then the expression is blocked, but the system can
+  make a step using \TirName{Block-Originate-Accept} that changes the
+  status from $\STATUSPENDING$ to $\STATUSINCLUDED$. Alternatively,
+  \TirName{Block-Timeout} can make a step to change the status to
+  $\STATUSTIMEOUT$. In any case, the system as a whole can make a reduction.
+
+  \textbf{Subcase } $\EXPR = \CAST\VAL\TYPE\TYPEU$ where $\TYPEU \SubType \TYPE$.
+  As an example, we consider the reductions \TirName{Contract-Yes} and
+  \TirName{Contract-No}, where a cast is applied to a value of type
+  $\TPUH$. By canonical forms, we know that the value has the
+  form $\PUH \in \DOM (\BLOCKCHAIN.\CONTRACTORS)$. The code pointed to
+  by this hash is checked at run time and results either in a $\PUH$
+  at suitable contract type (-Yes reduction) or in raising an
+  exception (-No reduction). 
+
+\end{proof}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "paper"
+%%% End:
