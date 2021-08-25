@@ -74,7 +74,7 @@
   give rise to requirements on the API. A prototype of the interface
   is implemented in OCaml for the Tezos blockchain.
 
-\keywords{smart contract  \and embedded domain specific language \and types.}
+\keywords{smart contracts \and embedded domain specific languages \and types.}
 \end{abstract}
 
 %
@@ -88,7 +88,7 @@ cryptocurrencies. Bitcoin is the most prominent system of this kind
 rudimentary programming language called Script, second generation
 blockchains like Ethereum \cite{eth-whitepaper} feature
 Turing-complete programming facilities, called 
-Smart Contracts. They provide robust trustworthy distributed computing
+\textit{smart contracts}. They provide robust trustworthy distributed computing
 facilities even though the programs run on a peer-to-peer network with
 untrusted participants. Each peer in the network runs the same program
 and uses cryptographic methods to check the results among the other
@@ -113,14 +113,10 @@ outside the blockchain.  Oracles
 \cite{oracle-patterns,call-action-oracle} provide an approach for
 contracts to obtain outside information. A contract registers a
 request and a callback with an oracle. The oracle invokes the callback
-as soon as an answer is available. The issue of trustworthiness of the
-oracle arises because it is an entity outside of the blockchain, which
-injects information into an otherwise closed, trusted (or trustless)
-environment.
-
-However, oracles are expensive and there are other usecases for
-connecting a contract with traditional software. One example is
-automatizing procedures like managing an auction, automatic bidding in
+as soon as an answer is available. %The issue of trustworthiness of the oracle arises because it is an entity outside of the blockchain, which njects information into an otherwise closed, trusted (or trustless) environment.
+%However, oracles are expensive and 
+There are other usecases for connecting a contract with traditional software. One example is
+automating procedures like managing an auction,  bidding in
 an auction, optimizing fees, or initiating delivery of goods to a
 customer. While some of these procedures are amenable to
 implementation as contracts, we might want to save the fee of running
@@ -131,7 +127,7 @@ a single peer.
 
 Building such automation requires a programmatic interface to implement the interactions. 
 Current blockchains mostly provide RPC interfaces, 
-such as the Ethereum JSON-RPC API and the Tezos RPC API, but they
+such as the Ethereum JSON-RPC API \cite{ethereum-rpc} and the Tezos RPC API \cite{tezos-whitepaper}, but they
 require cumbersome manipulation of string data in JSON format and do
 not provide static guarantees (except that the response to a
 well-formed JSON input is also a well-formed JSON output). 
@@ -164,10 +160,6 @@ integration of contracts into traditional programs.
 
 Suppose you want to implement a bidding strategy for an auction that
 is deployed on the blockchain as a smart contract.
-% Once the contract is deployed, the
-% auction is open for bidding, but it should be closed after 48 hours. Such a timeout is a typical task for an oracle. Rather than
-% trusting a generic oracle, you prefer to roll your own mechanism that reliably closes the auction
-% after 48 hours have passed. So you want to write a program to do so. 
 Your bidding strategy may start at a certain amount and increase the bid until a
 limit is reached. Of course, you only want to increase your bid if
 someone else placed a higher bid. So you want to write a
@@ -176,8 +168,6 @@ program to implement this strategy.
 This task cannot be implemented as a smart contract without
 cooperation of the auction contract because it reacts
 on external triggers.
-% Closing require scheduling the invocation of a
-% contract at a certain time.
 Bidding requires watching the current highest bid of the contract and
 react if another bidder places a higher bid.
 The auction contract could anticipate the need for such observations
@@ -298,11 +288,10 @@ failure by raising an exception. If failure is caused by the
 corresponding \lstinline/Cl.FAILWITH/ exception is raised, which
 carries a string corresponding to the argument of the instruction. In
 our particular example, the auction may fail with signaling the message
-\lstinline/"closed"/ or \lstinline/"bid to low"/. Our
+\lstinline/"closed"/ or \lstinline/"bid too low"/. Our
 code ignores this message for simplicity.
 
-This code is idealized in several respects. Originating or running a contract
-requires to propose a fee to the blockchain, which may or may not be
+This code is idealized in several respects. Originating or running a contract requires proposing a fee to the blockchain, which may or may not be
 accepted.
 Starting a contract may also time out for a variety of reasons. So just
 invoking a contract with a fixed fee does not guarantee the contract's
@@ -470,6 +459,8 @@ that type, all values of \TOPH\ are valid.
   % $\OPERATIONS \subseteq \ECS \times \TOP $ is a set of pairs of
   % expression contexts and operations.
 \end{definition}
+
+The execution model envisions off-chain programs interacting with smart contracts on the blockchain. The programs are defined using expression scripts, as shown in Figure~\ref{fig:syntax-expressions}. The off-chain scripts run on behalf of a single entity. 
 
 \begin{figure}[tp]
 \begin{align*}
@@ -818,7 +809,7 @@ and ${b}$ is its flag.   The counter is used internally to serialize transaction
 %\end{definition}
 
 %\begin{definition}%[Contractor]
-A \emph{contractor} manages a smart contract. Contractors are
+A \emph{contractor} manages a single smart contract. Contractors are
 represented by a partial map $\CONTRACTORS : \TPUH \partialto
 \TCODE \times \TIME  \times \TBAL \times  \TSTORAGE$. If $\CONTRACTORS (\PUH) = \langle
 \CODE, \TIME, \BAL, \STORAGE \rangle $ is defined, then $\PUH$ is the
@@ -1162,25 +1153,24 @@ resets the sender's counter, thus rolling back the transaction.
       \CHECKPRG (\CODE) \\
       \CHECKGAS (\CODE, \INIT, \NTEZ, \MTEZ)  \\
       \CHECKINIT (\CODE, \STRING) \\
-      % \OPH = \GENERATEOPH(\PUK, \CODE, \STRING, \NTEZ, \MTEZ, \TIME)
-      % \\
       \OPH = \GENERATEOPH(\OP, \TIME) \\
-      \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ }{ [\EC\OP :: \EXPRS,
+      \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ }{ {[\EC\OP :: \EXPRS,
       \ACCOUNTS
-      ] \| [\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \to \\
-      [\EC{\OPH} :: \EXPRS, \ACCOUNTS] \| [\OPH \mapsto \Angle{\OP,
-        \TIME, \STATUSPENDING} ::\PENDING,
-      \UPDATECOU(\MANAGERS,\PUK,\TRUE), \CONTRACTORS, \TIME] }
+      ] \| [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]}    
+       \SystemTrans 
+      {[\EC{\OPH} :: \EXPRS, \ACCOUNTS] \| [\OPH \mapsto \Angle{\OP,
+        \TIME, \STATUSPENDING} ::\PENDING,} \\ {
+      \UPDATECOU(\MANAGERS,\PUK,\TRUE), \CONTRACTORS, \TIME] }}
 
   \inferrule[Block-Originate-Accept]{
     \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ \\
     \PUH = \GENERATEHASH(\CODE, \TIME) \\
     \TIME-\hat\TIME  \le 60
   }{
-    [\OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSPENDING} :: \PENDING, \MANAGERS, \CONTRACTORS, \TIME]
-    \BlockTrans \\
-     [\OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSINCLUDING\ \TIME} :: \PENDING, \UPDATESUCC
-      (\MANAGERS, \PUK, \NTEZ, \MTEZ),\\ \PUH \mapsto  \Angle{\CODE, \TIME, \NTEZ, \STRING} :: \CONTRACTORS, \TIME+1]
+    {[\OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSPENDING} :: \PENDING, \MANAGERS, \CONTRACTORS, \TIME]} \BlockTrans    
+     {[\OPH \mapsto \Angle{\OP, \hat\TIME, \STATUSINCLUDING\ \TIME} :: \PENDING,} \\ { \UPDATESUCC
+      (\MANAGERS, \PUK, \NTEZ, \MTEZ),} 
+     {\PUH \mapsto  \Angle{\CODE, \TIME, \NTEZ, \STRING} :: \CONTRACTORS, \TIME+1]}
   }
 
     \inferrule[Block-Accept-Query]{
@@ -1188,10 +1178,9 @@ resets the sender's counter, thus rolling back the transaction.
     \PENDING (\OPH) =  \Angle{\OP,
       \hat\TIME, \STATUSINCLUDING\ \tilde\TIME} \\
     \PUH = \GENERATEHASH (\CODE, \tilde\TIME)
-    % \CONTRACTORS (\PUH) =  \Angle{\CODE, \tilde\TIME, \NTEZ', \STRING'}
-  }{
+}{
       [\EC{\GETCONTRACT\ \OPH}  :: \EXPRS, \ACCOUNTS] \| [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]
-    \SystemTrans 
+    \SystemTrans
      [\EC{ \PUH}  :: \EXPRS, \ACCOUNTS] \|  [\PENDING, \MANAGERS, \CONTRACTORS, \TIME]
   }
 \end{mathpar}
@@ -1221,9 +1210,9 @@ resets the sender's counter, thus rolling back the transaction.
 Figure~\ref{fig:cast-reductions} contains the most interesting
 example of cast reductions, from a public hash to a typed
 contract. These reductions force the local node to obtain information
-from the blockchain. The cast succeeds \TirName{Contract-Yes} on \PUH, if there is a
+from the blockchain. The cast succeeds on \PUH\ (`CONTRACT-YES'), if there is a
 contractor for \PUH\ such that the stored code has the parameter type
-expected by the cast. The cast fails \TirName{Contract-No}, if \PUH\
+expected by the cast. The cast fails (`CONTRACT-NO'), if \PUH\
 is invalid or if the types do not match.
 
 
@@ -1265,11 +1254,9 @@ unknown, then we raise an exception
 
 \section{Properties}
 \label{sec:properties}
-
+Having defined our execution model, we proceed to prove properties of the combined systems that ensure type-safe interaction between programs and the blockchain.
 \subsection{Properties of blockchain state transitions}
-
-Running a program that starts with valid references to accounts,
-operations, and contracts does not get corrupted by a transition.
+One interesting property we wish to prove is that the execution of a program that starts with valid references to accounts, operations, and contracts is not corrupted by a transition.
 \begin{proposition}
 \label{propo:1}
   The following properties are preserved by a step on a well-formed
@@ -1329,7 +1316,7 @@ If $[\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \BlockTrans{}
      $\CONTRACTORS (\PUH).\CODE = \CONTRACTORS' (\PUH).\CODE$
    \end{itemize}
  \item\label{item:6} invariant for contractors:
-   for all $\PUH \in \DOM (\CONTRACTORS)$,
+   for all $\PUH \in \DOM (\CONTRACTORS)$, \\
     $\CONTRACTORS (\PUH)$ = $\Angle{ \CODE, \tilde\TIME, \BAL, \STORAGE}$
    implies that $\PUH$ = $\GENERATEHASH (\CODE, \tilde\TIME)$.
 \end{enumerate}
@@ -1462,32 +1449,21 @@ smart contracts. Oracles
 \cite{oracle-patterns,call-action-oracle,oracles-study} can help
 overcome this limitation by providing a bridge between the outside
 sources and the blockchain network. A blockchain oracle is used to
-provide external data to smart contracts. Several researches have been
-done to provide oracle solutions for blockchain. Adler et al
+provide external data to smart contracts. There has been extensive research on providing oracle solutions for blockchain.  Adler et al
 \cite{blockchain-oracles} propose a framework to explain blockchain
 oracles and various key aspects of oracles. This framework aims to
 provide developers with a guide for incorporating oracles into
-blockchain-based applications. Practically, the decentralized oracle
-network Chainlink \cite{chainlink-whitepaper} is being developed to
-provide reliable, tamper-proof input for smart contracts on any
-blockchain. For a specific application, a system called Town Crier
-\cite{town-crier} provides an authenticated data feed, sourced from
-HTTPS-enabled data websites, for smart contracts on Ethereum. George
-and Lesaege \cite{oracle-real-value} construct an oracle that can
-estimate the value of a real quantity, such as $R$.  
-For application to prediction markets, there are Truthcoin system
-\cite{truthcoin-whitepaper} and Astraea, a trustless decentralized
-oracle \cite{astraea}.   
-
-The main problems with using a blockchain oracle are the untrusted
+blockchain-based applications. The main problems with using a blockchain oracle are the untrusted
 data provided maliciously or inaccurately \cite{trustworthy}. Ma at el
 \cite{reliable-oracle} propose an oracle equipped with 
 verification and disputation mechanisms. Similarly, Lo et al
 \cite{reliablity-oracles} provide a framework for performing
-reliability analysis of various blockchain oracle platforms. Closely
-following our work, Nielsen and Spitters \cite{interact-coq} present a
-model-executable specification of smart-contract execution in
-Coq. Their formalizations target Ethereum and Tezos.  
+reliability analysis of various blockchain oracle platforms.
+
+%Practically, the decentralized oracle network Chainlink \cite{chainlink-whitepaper} is being developed to provide reliable, tamper-proof input for smart contracts on any blockchain. %For a specific application, a system called Town Crier \cite{town-crier} provides an authenticated data feed, sourced from HTTPS-enabled data websites, for smart contracts on Ethereum. George and Lesaege \cite{oracle-real-value} construct an oracle that can estimate the value of a real quantity, such as $R$.  For application to prediction markets, there are Truthcoin system \cite{truthcoin-whitepaper} and Astraea, a trustless decentralized oracle \cite{astraea}. 
+
+Current blockchains such as Ethereum \cite{eth-whitepaper} and Tezos \cite{tezos-whitepaper} often offer RPC APIs and use loosely structured data, such as a JSON-based format that is difficult for a programmatic program to handle. As a result, there is increasing work to provide better programmatic interfaces to blockchains. Web3.js \cite{web3.js} provides an Ethereum JavaScript API and offers Java Script users a convenient interface to interact with the Etherum blockchain. Later, Web3.py \cite{web3.py}, derived from Web3.js, is developed to provide a Python library for interacting with Ethereum. Our typed API not only supports for programmatic programs, but also provides verifiable interaction with the Tezos smart contract platform.
+% Closely following our work, Nielsen and Spitters \cite{interact-coq} present a model-executable specification of smart-contract execution in Coq. Their formalizations target Ethereum and Tezos.  
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -1497,7 +1473,7 @@ Tezos blockchain. Our formalization enables us to establish basic
 properties of the interaction between ordinary programs and smart
 contracts. We see ample scope for future work to provide a
 higher-level interface that exploits the similarities between
-blockchain programming and concurrent programs.
+blockchain programming and concurrent programs. The next step will be to formalize the typing-related results. The formalization could connect with the Mi-Cho-Coq  formalization of Michelson contracts \cite{DBLP:conf/fm/BernardoCHPT19}. In the end, we would like to state and prove properties of a system that contains OCaml code (multi-threaded or distributed) connected to Michelson contracts on the Tezos blockchain via the typed API.
 
 
 \bibliographystyle{splncs04}
