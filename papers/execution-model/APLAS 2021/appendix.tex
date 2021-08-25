@@ -35,7 +35,7 @@
   \item If $\TYPE = \TINT$, then $\VAL = \INT$.
   \item If $\TYPE = \TUNIT$, then $\VAL = \SUNIT$.
   \item If $\TYPE = \TBOOL$, then $\VAL \in \{ \TRUE, \FALSE\}$.
-  \item If $\TYPE = \TSTRING$, then $\VAL = \STRING$ a string.
+  \item If $\TYPE = \TSTRING$, then $\VAL = \STRING$, a string.
   \item If $\TYPE = \TYPE\to\TYPEU$, then $\VAL = \lambda
     \VARIABLE. \EXPR$. 
   \item If $\TYPE = \TPAIR\ \TYPE\ \TYPEU$, then $\VAL = (\VAL',
@@ -262,7 +262,7 @@
     \OPH = \GENERATEOPH(\OP, \TIME) \\
     \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ }{ [\EC\OP :: \EXPRS,
     \ACCOUNTS
-    ] \| [\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \to \\
+    ] \| [\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \SystemTrans \\
     [\EC{\OPH} :: \EXPRS, \ACCOUNTS] \| [\OPH \mapsto \Angle{\OP,
       \TIME, \STATUSPENDING} ::\PENDING,
     \UPDATECOU(\MANAGERS,\PUK,\TRUE), \CONTRACTORS, \TIME] }$. 
@@ -478,7 +478,7 @@
       \OPH = \GENERATEOPH(\OP, \TIME) \\
       \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ }{ [\EC\OP :: \EXPRS,
       \ACCOUNTS
-      ] \| [\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \to \\
+      ] \| [\PENDING, \MANAGERS, \CONTRACTORS, \TIME] \SystemTrans \\
       [\EC{\OPH} :: \EXPRS, \ACCOUNTS] \| [\OPH \mapsto \Angle{\OP,
         \TIME, \STATUSPENDING} ::\PENDING,
       \UPDATECOU(\MANAGERS,\PUK,\TRUE), \CONTRACTORS, \TIME] }
