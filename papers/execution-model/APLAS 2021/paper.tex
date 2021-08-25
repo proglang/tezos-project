@@ -114,9 +114,8 @@ outside the blockchain.  Oracles
 contracts to obtain outside information. A contract registers a
 request and a callback with an oracle. The oracle invokes the callback
 as soon as an answer is available. %The issue of trustworthiness of the oracle arises because it is an entity outside of the blockchain, which njects information into an otherwise closed, trusted (or trustless) environment.
-%However, oracles are expensive and 
 
-There are other usecases for connecting a contract with traditional software. One example is
+However, oracles are expensive and there are other usecases for connecting a contract with traditional software. One example is
 automating procedures like managing an auction,  bidding in
 an auction, optimizing fees, or initiating delivery of goods to a
 customer. While some of these procedures are amenable to
@@ -461,7 +460,7 @@ that type, all values of \TOPH\ are valid.
   % expression contexts and operations.
 \end{definition}
 
-The execution model envisions off-chain programs interacting with smart contracts on the blockchain. The programs are defined using expression scripts, as shown in Figure~\ref{fig:syntax-expressions}. The off-chain scripts run on behalf of a single entity. 
+
 
 \begin{figure}[tp]
 \begin{align*}
@@ -514,7 +513,7 @@ expressions of type unit that run on the
 local node. Each program can send transactions on behalf of any
 account on the local node.  Figure~\ref{fig:syntax-expressions}
 defines the syntax of lambda calculus with sum, product, list, and option types, exceptions and fixpoint.
-Pattern matching is the only means to decompose values, cf.\ \PATTERN. 
+Pattern matching is the only means to decompose values, cf.\ \PATTERN. The execution model envisions off-chain programs interacting with smart contracts on the blockchain. The programs are defined using expression scripts. The off-chain scripts run on behalf of a single entity. 
 
 
 Domain-specific primitive types and constants \CONSTANT\ support blockchain
@@ -529,7 +528,7 @@ functions, pairs, lists, sums, and option types. These types are
 chosen to match with built-in types of Michelson. 
 There are domain specific types of public hashes $\TPUH$ and public keys $\TPUK$ subsumed by
 a type of addresses $\TADDR$. $\TCONTRACT\ \TYPE\ \TYPEU$ is the type of
-a contract with parameter type $\TYPE$ and storage type $\TYPEU$. $\CODE\ \TYPE\ \TYPEU$
+a contract with parameter type $\TYPE$ and storage type $\TYPEU$. $\TCODE\ \TYPE\ \TYPEU$
 indicates a Michelson program with parameter type $\TYPE$ and storage
 type $\TYPEU$. Tezos tokens have type $\TTEZ$. The type $\TOPH\ \TYPE\
 \TYPEU$ signifies operation hashes
@@ -997,10 +996,10 @@ blockchain. To this end, any local node may be selected.
     \OP = \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ    
   }{
     { [\EC\OP :: \EXPRS, \ACCOUNTS] \|
-      [\PENDING, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans \\
+      [\PENDING, \MANAGERS, \CONTRACTORS, \TIME] } \SystemTrans 
    { [\EC{\OPH}  :: \EXPRS, \ACCOUNTS] \|
      [ \OPH \mapsto \Angle{\OP, \TIME, \STATUSPENDING}
-     ::\PENDING,
+     ::\PENDING,} \\ {
      \UPDATECOU(\MANAGERS, \PUK, \TRUE),
      \CONTRACTORS,
      \TIME]
@@ -1008,9 +1007,9 @@ blockchain. To this end, any local node may be selected.
  }
 
   \inferrule[Node-Reject]{
-    \NEG\ \CHECKBAL (\BLOCKCHAIN.\MANAGERS, \OP.\PUK, \OP.\NTEZ, \OP.\MTEZ) \\
+    \NEG\ \CHECKBAL (\BLOCKCHAIN.\MANAGERS, \OP.\PUK, \OP.\NTEZ, \OP.\MTEZ) 
     }{
-    { [\EC\OP :: \EXPRS, \ACCOUNTS] \|
+    { [\EC\OP :: \EXPRS, \ACCOUNTS] \| 
       \BLOCKCHAIN
       } \SystemTrans
     { [\EC{\RAISE\ \ERRBAL} :: \EXPRS, \ACCOUNTS] \|
@@ -1040,10 +1039,10 @@ blockchain. To this end, any local node may be selected.
     {[\OPH \mapsto \Angle{\OP, \hat \TIME, \STATUSPENDING}
      ::\PENDING, \MANAGERS,
       \CONTRACTORS, \TIME]}
-    \BlockTrans \\
+    \BlockTrans 
     { 
       [\OPH \mapsto \Angle{\OP, \hat \TIME, \STATUSTIMEOUT}
-     :: \PENDING,  \UPDATECOU(\MANAGERS, \OP.\PUK, \FALSE),
+     :: \PENDING,} \\ {\UPDATECOU(\MANAGERS, \OP.\PUK, \FALSE),
       \CONTRACTORS, \TIME]}
   }
 \end{mathpar}
