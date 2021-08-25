@@ -812,8 +812,8 @@ and ${b}$ is its flag.   The counter is used internally to serialize transaction
 %\begin{definition}%[Contractor]
 A \emph{contractor} manages a single smart contract. Contractors are
 represented by a partial map $\CONTRACTORS : \TPUH \partialto
-\TCODE \times \TIME  \times \TBAL \times  \TSTORAGE$. If $\CONTRACTORS (\PUH) = \langle
-\CODE, \TIME, \BAL, \STORAGE \rangle $ is defined, then $\PUH$ is the
+\TCODE \times \TIME  \times \TBAL \times  \TSTORAGE$. If $\CONTRACTORS (\PUH)$ = $\langle
+\CODE,$ $\TIME, \BAL, \STORAGE \rangle $ is defined, then $\PUH$ is the
 public hash of a contract,
 $\CODE$ is its  code,
 $\TIME$ is the time when it was accepted,
@@ -1423,11 +1423,11 @@ Consider a blockchain state with $\JTypeBlockchain\Delta {[\PENDING, \MANAGERS, 
 For all $\OPH\in\DOM (\PENDING)$,
 if  $\PENDING (\OPH) =  \Angle{\OP, \hat\TIME, \STATUS}$
 \begin{itemize}
-\item if $\OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ$, then
-  $\PUK, \PUK' \in \DOM (\MANAGERS)$;
+\item if $\OP = \TRANSFER\NTEZ\PUK{\PUK'}\MTEZ$, then \\
+  $\PUK, \PUK'$ $\in$ $\DOM (\MANAGERS)$;
 \item if $\OP = \TRANSFER[\PARAMETER]\NTEZ\PUK\PUH\MTEZ$, then
   \begin{itemize}
-  \item $\PUK \in \DOM (\MANAGERS)$ and $\PUH\in\DOM (\CONTRACTORS)$,
+  \item $\PUK \in \DOM (\MANAGERS)$ and $\PUH\in$$\DOM (\CONTRACTORS)$,
   \item $\JTypeValue\PARAMETER{ \TYPE_p}$ where $\Delta (\PUH)  =\TPAIR\ \TYPE_p\ \TYPE_s$;
   \end{itemize}
 \item if $\OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ$ and $\STATUS =
