@@ -6,15 +6,17 @@
 % the third person 
 %
 \documentclass[runningheads]{llncs}
-\usepackage[english]{babel}
+\pdfoutput=1
+%\usepackage[english]{babel}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{amssymb}
-\usepackage{graphicx}
-\usepackage[colorinlistoftodos]{todonotes}
+%\usepackage{graphicx}
+%\usepackage[colorinlistoftodos]{todonotes}
 \usepackage{mathpartir}
-\usepackage{fixme}
-\usepackage{xcolor}
+%\usepackage{fixme}
+%\usepackage{xcolor}
+\usepackage{hyperref}
 \usepackage{listings}
 \lstdefinelanguage{michelson}{
   % basicstyle=\ttfamily,
@@ -45,19 +47,17 @@
 % If the paper title is too long for the running head, you can set
 % an abbreviated paper title here
 %
-% ANONYMOUS
-% \author{Thi Thu Ha Doan\orcidID{0000-0001-7524-4497}\and
-% Peter Thiemann\orcidID{0000-0002-9000-1239}}
+\author{Thi Thu Ha Doan\orcidID{0000-0001-7524-4497}\and
+  Peter Thiemann\orcidID{0000-0002-9000-1239}}
 
 %
-\authorrunning{~}
+\authorrunning{Ha Doan, P. Thiemann}
 % First names are abbreviated in the running head.
 % If there are more than two authors, 'et al.' is used.
 %
-% ANONYMOUS
-% \institute{University of Freiburg, Germany \\
-% \email{\{doanha,thiemann\}@informatik.uni-freiburg.de}
-% }
+\institute{University of Freiburg, Germany \\
+  \email{\{doanha,thiemann\}@informatik.uni-freiburg.de}
+}
 %
 \maketitle              % typeset the header of the contribution
 %
