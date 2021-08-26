@@ -115,7 +115,8 @@ contracts to obtain outside information. A contract registers a
 request and a callback with an oracle. The oracle invokes the callback
 as soon as an answer is available. %The issue of trustworthiness of the oracle arises because it is an entity outside of the blockchain, which njects information into an otherwise closed, trusted (or trustless) environment.
 
-However, oracles are expensive and there are other usecases for connecting a contract with traditional software. One example is
+%However, oracles are expensive and 
+There are other usecases for connecting a contract with traditional software. One example is
 automating procedures like managing an auction,  bidding in
 an auction, optimizing fees, or initiating delivery of goods to a
 customer. While some of these procedures are amenable to
@@ -381,7 +382,7 @@ low-level details, but relies on nondeterminism to describe
 the possible behaviors of the system. In particular, we do
 \textbf{not} formalize the execution of the smart contracts
 themselves, we rather consider them as black boxes and probe their
-observable behavior. Tezos' smart contract language Michelson and its
+observable behavior. Tezos's smart contract language Michelson and its
 properties have been formalized elsewhere \cite{DBLP:conf/fm/BernardoCHPT19}.
 
 We write $\emptyset$ for the empty set and $\mathbf{e :: s}$ to
@@ -1426,11 +1427,10 @@ if  $\PENDING (\OPH) =  \Angle{\OP, \hat\TIME, \STATUS}$
   $\PUK, \PUK'$ $\in$ $\DOM (\MANAGERS)$;
 \item if $\OP = \TRANSFER[\PARAMETER]\NTEZ\PUK\PUH\MTEZ$, then
   \begin{itemize}
-  \item $\PUK \in \DOM (\MANAGERS)$ and $\PUH\in$$\DOM (\CONTRACTORS)$,
+  \item $\PUK \in \DOM (\MANAGERS)$ and $\PUH \in\DOM (\CONTRACTORS)$,
   \item $\JTypeValue\PARAMETER{ \TYPE_p}$ where $\Delta (\PUH)  =\TPAIR\ \TYPE_p\ \TYPE_s$;
   \end{itemize}
-\item if $\OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ$ and $\STATUS =
-  \STATUSINCLUDED\ \TIME'$, then
+\item if $\OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ$ and $\STATUS = \STATUSINCLUDED\ \TIME'$, then
   \begin{itemize}
   \item $\PUK \in \DOM (\MANAGERS)$ and  $\PUH =\GENERATEHASH (\CODE, \TIME') \in \DOM (\CONTRACTORS)$,
   \item $\Delta (\PUH)  =\TPAIR\ \TYPE_p\ \TYPE_s$,  $\JTypeCode\CODE{
@@ -1448,8 +1448,7 @@ The inability to access external data sources limits the potential of
 smart contracts. Oracles
 \cite{oracle-patterns,call-action-oracle,oracles-study} can help
 overcome this limitation by providing a bridge between the outside
-sources and the blockchain network. A blockchain oracle is used to
-provide external data to smart contracts. There has been extensive research on providing oracle solutions for blockchain.  Adler et al
+sources and the blockchain network. A blockchain oracle is used to provide external data for smart contracts. When the external data is available, an oracle invokes a smart contract with that information. The invocation can conveniently be made through a programmatic interface. There has been extensive research on providing oracle solutions for blockchain.  Adler et al
 \cite{blockchain-oracles} propose a framework to explain blockchain
 oracles and various key aspects of oracles. This framework aims to
 provide developers with a guide for incorporating oracles into
