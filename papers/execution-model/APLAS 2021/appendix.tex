@@ -148,7 +148,7 @@
 
   We need to consider the cases for $\SystemTrans$.
 
-  \textbf{Subcase }$  \inferrule[Node-Inject]{
+  \bigskip\textbf{Subcase }$  \inferrule[Node-Inject]{
     \Angle{\PAK,\PUK} \in \ACCOUNTS \\
     \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
     \CHECKARG (\CONTRACTORS, \PUH, \PARAMETER) \\
@@ -216,7 +216,7 @@
   We conclude with Lemma~\ref{lemma:subterm-replacement} and
   reapplying \TirName{Config-System}.
 
-  \textbf{Subcase }$\inferrule[Contract-Yes]{
+  \bigskip\textbf{Subcase }$\inferrule[Contract-Yes]{
     \JTypeCode\CODE{\TPAIR\ \TYPE\ \TYPEU} \\
     \BLOCKCHAIN.\CONTRACTORS (\PUH) =  \Angle{\CODE, \tilde\TIME, \NTEZ', \STRING'}
     % 
@@ -233,7 +233,7 @@
   Immediate using Lemma~\ref{lemma:canonical-forms} and
   Lemma~\ref{lemma:subterm-replacement}.
 
-  \textbf{Subcase }$\inferrule[Contract-No]{
+  \bigskip\textbf{Subcase }$\inferrule[Contract-No]{
     % \ADDR \in \DOM (\BLOCKCHAIN.\MANAGERS) \Rightarrow \TYPE\ne\TUNIT \\
     \BLOCKCHAIN.\CONTRACTORS (\PUH) = \Angle{\CODE, \tilde\TIME,
       \NTEZ', \STRING'} \Rightarrow {}
@@ -251,7 +251,7 @@
   The typing rule for $\RAISE$ can return any type. Hence, this is
   immediate by Lemma~\ref{lemma:subterm-replacement}.
 
-  \textbf{Subcase }$\inferrule[Block-Originate]{
+  \bigskip\textbf{Subcase }$\inferrule[Block-Originate]{
     \Angle{\PAK,\PUK} \in \ACCOUNTS \\ \CHECKBAL (\MANAGERS, \PUK, \NTEZ, \MTEZ) \\
     \CHECKCOU (\MANAGERS, \PUK) \\
     \CHECKPRG (\CODE) \\
@@ -287,7 +287,7 @@
 
   
 
-  \textbf{Subcase }$\inferrule[Query-Balance-Implicit]{
+  \bigskip\textbf{Subcase }$\inferrule[Query-Balance-Implicit]{
     % \BLOCKCHAIN =
     % [\PENDING, \PUK \mapsto \Angle{\BAL, \COU} :: \MANAGERS,
     % \CONTRACTORS, \TIME]
@@ -299,7 +299,7 @@
   of the same type. Hence, the result is immediate by
   Lemma~\ref{lemma:subterm-replacement}.
 
-  \textbf{Subcase }$\inferrule[Query-Balance-Fail]{ \PUK \notin \DOM
+  \bigskip\textbf{Subcase }$\inferrule[Query-Balance-Fail]{ \PUK \notin \DOM
     (\BLOCKCHAIN.\MANAGERS) \ }{[\EC{\GETBALANCE\PUK} :: \EXPRS,
     \ACCOUNTS] \| \BLOCKCHAIN \SystemTrans {[\EC{\RAISE\ \ERRPUK}
       ::\EXPRS, \ACCOUNTS] \| \BLOCKCHAIN}}$.
@@ -316,7 +316,7 @@
 
   We need to considere cases for $\BlockTrans$.
 
-  \textbf{Subcase }$\inferrule[Block-Accept]{
+  \bigskip\textbf{Subcase }$\inferrule[Block-Accept]{
     \OP = \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ \\
     \TIME - \hat\TIME \le 60
   }{
@@ -334,7 +334,7 @@
 
   No typing-related properties are affected.
 
-  \textbf{Subcase }$\inferrule[Block-Originate-Accept]{
+  \bigskip\textbf{Subcase }$\inferrule[Block-Originate-Accept]{
     \OP = \ORIGINATE\NTEZ\PUK\CODE\STRING\MTEZ \\
     \PUH = \GENERATEHASH(\CODE, \TIME) \\
     \TIME-\hat\TIME  \le 60
@@ -352,7 +352,7 @@
   with a query operation via the operation hash $\OPH$, which is also
   connected to the parameter and storage types. 
 
-  \textbf{Subcase }$  \inferrule[Block-Timeout]{
+  \bigskip\textbf{Subcase }$  \inferrule[Block-Timeout]{
     \TIME-\hat\TIME > 60
   }{ 
     {[\OPH \mapsto \Angle{\OP, \hat \TIME, \STATUSPENDING}
@@ -431,7 +431,7 @@
   \item $\EXPR_{ij} = \EC{\EXPR}$ where $\EXPR$ is a blockchain operation.
   \end{itemize}
 
-  \textbf{Subcase } $\EXPR =
+  \bigskip\textbf{Subcase } $\EXPR =
   \TRANSFER[\PARAMETER]\NTEZ\PUK{\PUH}\MTEZ$. In this case, the
   \TirName{Node-Inject} reduction is in principle enabled:
   \begin{mathpar}
@@ -463,7 +463,7 @@
   then one of the \TirName{Node-Reject} transitions throws an
   exception, so the configuration steps in every case. 
 
-  \textbf{Subcase } $\EXPR = \ORIGINATE\NTEZ\PUK\CODE\INIT\MTEZ$. In
+  \bigskip\textbf{Subcase } $\EXPR = \ORIGINATE\NTEZ\PUK\CODE\INIT\MTEZ$. In
   this case, the \TirName{Block-Originate} reduction is in principle
   enabled:
   \begin{mathpar}
@@ -489,7 +489,7 @@
   then one of the \TirName{Node-Reject} transitions throws an
   exception, so the configuration steps in every case. 
   
-  \textbf{Subcase } $\EXPR = \QOP\ \VAL$. If $\EXPR =
+  \bigskip\textbf{Subcase } $\EXPR = \QOP\ \VAL$. If $\EXPR =
   \GETBALANCE\VAL$, then inversion tells us that $\JTypeExpr\cdot{
     \VAL}\TADDR$ and by canonical forms
   (Lemma~\ref{lemma:canonical-forms}), it must be that $\VAL$ has the
@@ -503,7 +503,7 @@
   Most queries behave like $\GETBALANCE\cdot$, except getting a
   contract handle from an operation hash:
 
-  \textbf{Subcase }$\EXPR = \GETCONTRACT\VAL$. This query is somewhat
+  \bigskip\textbf{Subcase }$\EXPR = \GETCONTRACT\VAL$. This query is somewhat
   special as it is handled with reduction
   \TirName{Block-Accept-Query}. By inversion and canonical forms
   (Lemma~\ref{lemma:canonical-forms}) we know that $\VAL = \OPH$ is a
@@ -521,7 +521,7 @@
   \TirName{Block-Timeout} can make a step to change the status to
   $\STATUSTIMEOUT$. In any case, the system as a whole can make a reduction.
 
-  \textbf{Subcase } $\EXPR = \CAST\VAL\TYPE\TYPEU$ where $\TYPEU \SubType \TYPE$.
+  \bigskip\textbf{Subcase } $\EXPR = \CAST\VAL\TYPE\TYPEU$ where $\TYPEU \SubType \TYPE$.
   As an example, we consider the reductions \TirName{Contract-Yes} and
   \TirName{Contract-No}, where a cast is applied to a value of type
   $\TPUH$. By canonical forms, we know that the value has the
