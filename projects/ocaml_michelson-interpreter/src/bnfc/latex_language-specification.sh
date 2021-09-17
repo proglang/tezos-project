@@ -1,0 +1,1 @@
+bnfc --latex -o language-specification michelson.cf

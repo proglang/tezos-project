@@ -117,9 +117,16 @@ type token =
   | KW_ISNAT
   | KW_INT
   | KW_IMPLICIT_ACCOUNT
+  | KW_IF_SOME
   | KW_IF_NONE
   | KW_IF_LEFT
   | KW_IF_CONS
+  | KW_IFCMPNEQ
+  | KW_IFCMPLT
+  | KW_IFCMPLE
+  | KW_IFCMPGT
+  | KW_IFCMPGE
+  | KW_IFCMPEQ
   | KW_IF
   | KW_HASH_KEY
   | KW_GT

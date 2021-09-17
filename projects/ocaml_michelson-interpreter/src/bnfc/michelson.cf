@@ -14,167 +14,198 @@ entrypoints Prog,  ; -- if other entrypoints are needed, create identifier for a
 
 -- empty contracts (not) allowed? how many instr needed for minimal contract?
 -- "Pair" (parameter, storage) instead of parameter/storage  ?
+_.        Prog ::= Prog ";" ; -- allow the ";" in "... code {...};"
 Contract. Prog ::= "parameter" Typ ";" "storage" Typ ";" "code" "{" [Instr] "}" ;
-Code.     Prog ::= [Instr] ;
+Code.     Prog ::= [Instr] ;  -- pure instruction(s) input
 
 
 -- User-Defined token types
--- FIXME Int wird wegen '-' als string gesehen. digit+ aber als int; reicht digit+ für positive/negative integer?
--- FIXME should be fixed in LexMichelson.mll und ParMichelson.mly und AbsMichelson; oder int_of_string erst beim interpretieren
---token Int '-'? digit+ ;
+-- FIXME custom tokens als string implementiert. Should be fixed in LexMichelson.mll und ParMichelson.mly und AbsMichelson; oder int_of_string/byte_of_string erst beim interpretieren
 token Str '"' ( (char - ["\"\\"]) | ('\\' ["\"\\rntb"]) )* '"' ; -- should be equivalent to (\" | \r | \n | \t | \b | \\ | [^"\])*
 token Hex '0''x' ( digit | ["abcdefABCDEF"] )+ ;
 
-IntPos.  Inta ::= Integer;
-IntNeg.  Inta ::= "-" Integer;
+-- Data
+terminator Data ";" ; -- FIXME empty data sequence allowed? else add noempty. muss letztes Data ein ";" haben? sonst change to separator
+DInt.            Data         ::= Inte ;
+DStr.            Data         ::= Str ;
+DByte.           Data         ::= Hex ;
+DUnit.           Data         ::= "Unit" ;
+DTrue.           Data         ::= "True" ;
+DFalse.          Data         ::= "False" ;
+DPair.           Data          ::= "Pair" Pair;
+DLeft.           Data         ::= "Left" Data ;
+DRight.          Data         ::= "Right" Data ;
+DSome.           Data         ::= "Some" Data ;
+DNone.           Data         ::= "None" ;
+DBlock.          Data         ::= "{" [Data] "}" ;
+DMap.            Data         ::= "{" [Map] "}" ;
+DInstruction.    Data         ::= Instr ;
 
--- Data D
-terminator Data ";" ; -- FIXME empty data sequence allowed? else add noempty. muss letztes Data ein ; haben? sonst separator
-DPairSeq1.   PairSeq  ::= Data Data ;
-DPairSeq2.   PairSeq  ::= Data PairSeq ;
-DMapSeq1.    MapSeq   ::= "Elt" Data Data ";" ;
-DMapSeq2.    MapSeq   ::= "Elt" Data Data ";" MapSeq ;
-DInt. Data         ::= Inta ;
-DStr. Data         ::= Str ;
-DByte. Data        ::= Hex ;
-DUnit. Data        ::= "Unit" ;
-DTrue. Data        ::= "True" ;
-DFalse. Data       ::= "False" ;
-DPair2. Data       ::= "Pair" PairSeq;
-DLeft.  Data       ::= "Left" Data ;
-DRight. Data       ::= "Right" Data ;
-DSome. Data        ::= "Some" Data ;
-DNone. Data        ::= "None" ;
-DBlock. Data       ::= "{" [Data] "}" ;
-DMap. Data         ::= "{" MapSeq "}" ;
-DInstr. Data ::= Instr ;
+terminator Pair "" ;
+DPairSeq1.       Pair         ::= Data Data ;
+DPairSeq2.       Pair         ::= Data [Data] ;
+separator Map ";" ;
+DMapSeq.         Map          ::= "Elt" Data Data ";" ;
+DIntPos.         Inte         ::= Integer;
+DIntNeg.         Inte         ::= "-" Integer;
 
 
-
--- I Instructions TODO: seperate into core instructions usw.. Also maybe add macros
+-- Instructions TODO: seperate into core instructions usw.. Also maybe add macros
 separator Instr ";" ; -- empty instruction sequence allowed, last instr does does not need to be terminated with ';'
-_.                      Instr ::= Instr ";" ; -- but last instr can be terminated with ';' -> remove additional ';'
-IBLOCK.                 Instr ::= "{" [Instr] "}" ;
-IDROP.                  Instr ::= "DROP" ;
-IDROP_N.                Instr ::= "DROP" Integer ;
-IDUP.                   Instr ::= "DUP" ;
-IDUP_N.                 Instr ::= "DUP" Integer ;
-ISWAP.                  Instr ::= "SWAP" ;
-IDIG_N.                 Instr ::= "DIG" Integer ;
-IDUG_N.                 Instr ::= "DUG" Integer ;
-IPUSH.                  Instr ::= "PUSH" Typ Data ;
-ISOME.                  Instr ::= "SOME" ;
-INONE.                  Instr ::= "NONE" Typ ;
-IUNIT.                  Instr ::= "UNIT" ;
-INEVER.                 Instr ::= "NEVER" ;
-IIF_NONE.               Instr ::= "IF_NONE" "{" [Instr] "}" "{" [Instr] "}" ;
-IPAIR.                  Instr ::= "PAIR" ;
-IPAIR_N.                Instr ::= "PAIR" Integer ;
-ICAR.                   Instr ::= "CAR" ;
-ICDR.                   Instr ::= "CDR" ;
-IUNPAIR.                Instr ::= "UNPAIR" ;
-IUNPAIR_N.              Instr ::= "UNPAIR" Integer ;
-ILEFT.                  Instr ::= "LEFT" Typ ;
-IRIGHT.                 Instr ::= "RIGHT" Typ ;
-IIF_LEFT.               Instr ::= "IF_LEFT" "{" [Instr] "}" "{" [Instr] "}" ;
-INIL.                   Instr ::= "NIL" Typ ;
-ICONS.                  Instr ::= "CONS" ;
-IIF_CONS.               Instr ::= "IF_CONS" "{" [Instr] "}" "{" [Instr] "}" ;
-ISIZE.                  Instr ::= "SIZE" ;
-IEMPTY_SET.             Instr ::= "EMPTY_SET" CTyp ;
-IEMPTY_MAP.             Instr ::= "EMPTY_MAP" CTyp Typ ;
-IEMPTY_BIG_MAP.         Instr ::= "EMPTY_BIG_MAP" CTyp Typ ;
-IMAP.                   Instr ::= "MAP" "{" [Instr] "}" ;
-IITER.                  Instr ::= "ITER" "{" [Instr] "}" ;
-IMEM.                   Instr ::= "MEM" ;
-IGET.                   Instr ::= "GET" ;
-IGET_N.                 Instr ::= "GET" Integer ;
-IUPDATE.                Instr ::= "UPDATE" ;
-IUPDATE_N.              Instr ::= "UPDATE" Integer ;
-IIF.                    Instr ::= "IF" "{" [Instr] "}" "{" [Instr] "}" ;
-ILOOP.                  Instr ::= "LOOP" "{" [Instr] "}" ;
-ILOOP_LEFT.             Instr ::= "LOOP_LEFT" "{" [Instr] "}" ;
-ILAMBDA.                Instr ::= "LAMBDA" Typ Typ "{" [Instr] "}" ;
-IEXEC.                  Instr ::= "EXEC" ;
-IAPPLY.                 Instr ::= "APPLY" ;
-IDIP.                   Instr ::= "DIP" "{" [Instr] "}" ;
-IDIP_N.                 Instr ::= "DIP" Integer "{" [Instr] "}" ;
-IFAILWITH.              Instr ::= "FAILWITH" ;
-ICAST.                  Instr ::= "CAST" ;
-IRENAME.                Instr ::= "RENAME" ;
-ICONCAT.                Instr ::= "CONCAT" ;
-ISLICE.                 Instr ::= "SLICE" ;
-IPACK.                  Instr ::= "PACK" ;
-IUNPACK.                Instr ::= "UNPACK" Typ ;
-IADD.                   Instr ::= "ADD" ;
-ISUB.                   Instr ::= "SUB" ;
-IMUL.                   Instr ::= "MUL" ;
-IEDIC.                  Instr ::= "EDIV" ;
-IABS.                   Instr ::= "ABS" ;
-ISNAT.                  Instr ::= "ISNAT" ;
-IINT.                   Instr ::= "INT" ;
-INEG.                   Instr ::= "NEG" ;
-ILSL.                   Instr ::= "LSL" ;
-ILSR.                   Instr ::= "LSR" ;
-IOR.                    Instr ::= "OR" ;
-IAND.                   Instr ::= "AND" ;
-IXOR.                   Instr ::= "XOR" ;
-INOT.                   Instr ::= "NOT" ;
-ICOMPARE.               Instr ::= "COMPARE" ;
--- TODO: what is with macro Instrs IFCMPEQ, ect?
--- IMACRO. Instr ::= Macro_Instr
--- MACRO_TOKEN= (CMPEQ | CMPNEQ | CMPLT | CMPGT | CMPLE | CMPGE | IFEQ | IFNEQ | IFLT | IFGT | IFLE | IFGE | IFCMPEQ | IFCMPNEQ | IFCMPLT | IFCMPGT | IFCMPLE | IFCMPGE | FAIL | ASSERT | ASSERT_EQ | ASSERT_NEQ | ASSERT_LT | ASSERT_LE | ASSERT_GT | ASSERT_GE | ASSERT_CMPEQ | ASSERT_CMPNEQ |ASSERT_CMPLT | ASSERT_CMPLE | ASSERT_CMPGT | ASSERT_CMPGE | ASSERT_NONE | ASSERT_SOME | ASSERT_LEFT | ASSERT_RIGHT | SET_CAR | SET_CDR | MAP_CAR | MAP_CDR | IF_SOME) | DII+P | DUU+P | P[AIP]+R | UNP[PAI]+R | C[AD]+R | SET_C[AD]+R | MAP_C[AD]+R
-IEQ.                    Instr ::= "EQ" ;
-INEQ.                   Instr ::= "NEQ" ;
-ILT.                    Instr ::= "LT" ;
-IGT.                    Instr ::= "GT" ;
-ILE.                    Instr ::= "LE" ;
-IGE.                    Instr ::= "GE" ;
-ISELF.                  Instr ::= "SELF" ;
-ISELF_ADDRESS.          Instr ::= "SELF_ADDRESS" ;
-ICONTRACT.              Instr ::= "CONTRACT" Typ ;
-ITRANSFER_TOKENS.       Instr ::= "TRANSFER_TOKENS" ;
-ISET_DELEGATE.          Instr ::= "SET_DELEGATE" ;
-ICREATE_CONTRACT.       Instr ::= "CREATE_CONTRACT" "{" [Instr] "}" ;
-IIMPLICIT_ACCOUNT.      Instr ::= "IMPLICIT_ACCOUNT" ;
-IVOTING_POWER.          Instr ::= "VOTING_POWER" ;
-INOW.                   Instr ::= "NOW" ;
-ILEVEL.                 Instr ::= "LEVEL" ;
-IAMOUNT.                Instr ::= "AMOUNT" ;
-IBALANCE.               Instr ::= "BALANCE" ;
-ICHECK_SIGNATURE.       Instr ::= "CHECK_SIGNATURE" ;
-IBLAKE2B.               Instr ::= "BLAKE2B" ;
-IKECCAK.                Instr ::= "KECCAK" ;
-ISHA3.                  Instr ::= "SHA3" ;
-ISHA256.                Instr ::= "SHA256" ;
-ISHA512.                Instr ::= "SHA512" ;
-IHASH_KEY.              Instr ::= "HASH_KEY" ;
-ISOURCE.                Instr ::= "SOURCE" ;
-ISENDER.                Instr ::= "SENDER" ;
-IADDRESS.               Instr ::= "ADDRESS" ;
-ICHAIN_ID.              Instr ::= "CHAIN_ID" ;
-ITOTAL_VOTING_POWER.    Instr ::= "TOTAL_VOTING_POWER" ;
-IPAIRING_CHECK.         Instr ::= "PAIRING_CHECK" ;
--- TODO: https://gitlab.com/morley-framework/morley/-/issues/380  SAPPLING NOT NEEDED?
-ISAPLING_EMPTY_STATE.   Instr ::= "SAPLING_EMPTY_STATE" Integer ;
-ISAPLING_VERIFY_UPDATE. Instr ::= "SAPLING_VERIFY_UPDATE" ;
-ITICKET.                Instr ::= "TICKET" ;
-IREAD_TICKET.           Instr ::= "READ_TICKET" ;
-ISPLIT_TICKET.          Instr ::= "SPLIT_TICKET" ;
-IJOIN_TICKETS.          Instr ::= "JOIN_TICKETS" ;
-IOPEN_CHEST.            Instr ::= "OPEN_CHEST" ;
+_.                     Instr ::= Instr ";" ; -- but last instr can be terminated with ';' -> remove additional ';'
+BLOCK.                 Instr ::= "{" [Instr] "}" ;
+DROP.                  Instr ::= "DROP" ;
+DROP_N.                Instr ::= "DROP" Integer ;
+DUP.                   Instr ::= "DUP" ;
+DUP_N.                 Instr ::= "DUP" Integer ;
+SWAP.                  Instr ::= "SWAP" ;
+DIG_N.                 Instr ::= "DIG" Integer ;
+DUG_N.                 Instr ::= "DUG" Integer ;
+PUSH.                  Instr ::= "PUSH" Typ Data ;
+SOME.                  Instr ::= "SOME" ;
+NONE.                  Instr ::= "NONE" Typ ;
+UNIT.                  Instr ::= "UNIT" ;
+NEVER.                 Instr ::= "NEVER" ;
+IF_NONE.               Instr ::= "IF_NONE" "{" [Instr] "}" "{" [Instr] "}" ;
+PAIR.                  Instr ::= "PAIR" ;
+PAIR_N.                Instr ::= "PAIR" Integer ;
+CAR.                   Instr ::= "CAR" ;
+CDR.                   Instr ::= "CDR" ;
+UNPAIR.                Instr ::= "UNPAIR" ;
+UNPAIR_N.              Instr ::= "UNPAIR" Integer ;
+LEFT.                  Instr ::= "LEFT" Typ ;
+RIGHT.                 Instr ::= "RIGHT" Typ ;
+IF_LEFT.               Instr ::= "IF_LEFT" "{" [Instr] "}" "{" [Instr] "}" ;
+NIL.                   Instr ::= "NIL" Typ ;
+CONS.                  Instr ::= "CONS" ;
+IF_CONS.               Instr ::= "IF_CONS" "{" [Instr] "}" "{" [Instr] "}" ;
+SIZE.                  Instr ::= "SIZE" ;
+EMPTY_SET.             Instr ::= "EMPTY_SET" CTyp ;
+EMPTY_MAP.             Instr ::= "EMPTY_MAP" CTyp Typ ;
+EMPTY_BIG_MAP.         Instr ::= "EMPTY_BIG_MAP" CTyp Typ ;
+MAP.                   Instr ::= "MAP" "{" [Instr] "}" ;
+ITER.                  Instr ::= "ITER" "{" [Instr] "}" ;
+MEM.                   Instr ::= "MEM" ;
+GET.                   Instr ::= "GET" ;
+GET_N.                 Instr ::= "GET" Integer ;
+UPDATE.                Instr ::= "UPDATE" ;
+UPDATE_N.              Instr ::= "UPDATE" Integer ;
+IF.                    Instr ::= "IF" "{" [Instr] "}" "{" [Instr] "}" ;
+LOOP.                  Instr ::= "LOOP" "{" [Instr] "}" ;
+LOOP_LEFT.             Instr ::= "LOOP_LEFT" "{" [Instr] "}" ;
+LAMBDA.                Instr ::= "LAMBDA" Typ Typ "{" [Instr] "}" ;
+EXEC.                  Instr ::= "EXEC" ;
+APPLY.                 Instr ::= "APPLY" ;
+DIP.                   Instr ::= "DIP" "{" [Instr] "}" ;
+DIP_N.                 Instr ::= "DIP" Integer "{" [Instr] "}" ;
+FAILWITH.              Instr ::= "FAILWITH" ;
+CAST.                  Instr ::= "CAST" ;
+RENAME.                Instr ::= "RENAME" ;
+CONCAT.                Instr ::= "CONCAT" ;
+SLICE.                 Instr ::= "SLICE" ;
+PACK.                  Instr ::= "PACK" ;
+UNPACK.                Instr ::= "UNPACK" Typ ;
+ADD.                   Instr ::= "ADD" ;
+SUB.                   Instr ::= "SUB" ;
+MUL.                   Instr ::= "MUL" ;
+EDIC.                  Instr ::= "EDIV" ;
+ABS.                   Instr ::= "ABS" ;
+SNAT.                  Instr ::= "ISNAT" ;
+INT.                   Instr ::= "INT" ;
+NEG.                   Instr ::= "NEG" ;
+LSL.                   Instr ::= "LSL" ;
+LSR.                   Instr ::= "LSR" ;
+OR.                    Instr ::= "OR" ;
+AND.                   Instr ::= "AND" ;
+XOR.                   Instr ::= "XOR" ;
+NOT.                   Instr ::= "NOT" ;
+COMPARE.               Instr ::= "COMPARE" ;
+EQ.                    Instr ::= "EQ" ;
+NEQ.                   Instr ::= "NEQ" ;
+LT.                    Instr ::= "LT" ;
+GT.                    Instr ::= "GT" ;
+LE.                    Instr ::= "LE" ;
+GE.                    Instr ::= "GE" ;
+SELF.                  Instr ::= "SELF" ;
+SELF_ADDRESS.          Instr ::= "SELF_ADDRESS" ;
+CONTRACT.              Instr ::= "CONTRACT" Typ ;
+TRANSFER_TOKENS.       Instr ::= "TRANSFER_TOKENS" ;
+SET_DELEGATE.          Instr ::= "SET_DELEGATE" ;
+CREATE_CONTRACT.       Instr ::= "CREATE_CONTRACT" "{" [Instr] "}" ;
+IMPLICIT_ACCOUNT.      Instr ::= "IMPLICIT_ACCOUNT" ;
+VOTING_POWER.          Instr ::= "VOTING_POWER" ;
+NOW.                   Instr ::= "NOW" ;
+LEVEL.                 Instr ::= "LEVEL" ;
+AMOUNT.                Instr ::= "AMOUNT" ;
+BALANCE.               Instr ::= "BALANCE" ;
+CHECK_SIGNATURE.       Instr ::= "CHECK_SIGNATURE" ;
+BLAKE2B.               Instr ::= "BLAKE2B" ;
+KECCAK.                Instr ::= "KECCAK" ;
+SHA3.                  Instr ::= "SHA3" ;
+SHA256.                Instr ::= "SHA256" ;
+SHA512.                Instr ::= "SHA512" ;
+HASH_KEY.              Instr ::= "HASH_KEY" ;
+SOURCE.                Instr ::= "SOURCE" ;
+SENDER.                Instr ::= "SENDER" ;
+ADDRESS.               Instr ::= "ADDRESS" ;
+CHAIN_ID.              Instr ::= "CHAIN_ID" ;
+TOTAL_VOTING_POWER.    Instr ::= "TOTAL_VOTING_POWER" ;
+PAIRING_CHECK.         Instr ::= "PAIRING_CHECK" ;
+SAPLING_EMPTY_STATE.   Instr ::= "SAPLING_EMPTY_STATE" Integer ; -- TODO: https://gitlab.com/morley-framework/morley/-/issues/380  SAPPLING NOT NEEDED?
+SAPLING_VERIFY_UPDATE. Instr ::= "SAPLING_VERIFY_UPDATE" ;
+TICKET.                Instr ::= "TICKET" ;
+READ_TICKET.           Instr ::= "READ_TICKET" ;
+SPLIT_TICKET.          Instr ::= "SPLIT_TICKET" ;
+JOIN_TICKETS.          Instr ::= "JOIN_TICKETS" ;
+OPEN_CHEST.            Instr ::= "OPEN_CHEST" ;
+-- MACRO_TOKENS = ( IFEQ | IFNEQ | IFLT | IFGT | IFLE | IFGE | IFCMPEQ | IFCMPNEQ | IFCMPLT | IFCMPGT | IFCMPLE | IFCMPGE | FAIL | ASSERT | ASSERT_EQ | ASSERT_NEQ | ASSERT_LT | ASSERT_LE | ASSERT_GT | ASSERT_GE | ASSERT_CMPEQ | ASSERT_CMPNEQ |ASSERT_CMPLT | ASSERT_CMPLE | ASSERT_CMPGT | ASSERT_CMPGE | ASSERT_NONE | ASSERT_SOME | ASSERT_LEFT | ASSERT_RIGHT | SET_CAR | SET_CDR | MAP_CAR | MAP_CDR | IF_SOME) | DII+P | DUU+P | P[AIP]+R | UNP[PAI]+R | C[AD]+R | SET_C[AD]+R | MAP_C[AD]+R
+-- Views
 
+-- Macros
+-- OP::= EQ|NEQ|LT|GT|LE|GE
+-- CMP(\op) / S  =>  COMPARE ; (\op) / S
+-- IF(\op) bt bf / S  =>  (\op) ; IF bt bf / S
+-- IFCMP(\op) / S  =>  COMPARE ; (\op) ; IF bt bf / S
+m_CMPEQ.    Instr ::= "CMPEQ" ;
+m_CMPNEQ.   Instr ::= "CMPNEQ" ;
+m_CMPLT.    Instr ::= "CMPLT" ;
+m_CMPGT.    Instr ::= "CMPGT" ;
+m_CMPLE.    Instr ::= "CMPLE" ;
+m_CMPGE.    Instr ::= "CMPGE" ;
+m_IFEQ.     Instr ::= "IFEQ" ;
+m_IFNEQ.    Instr ::= "IFNEQ" ;
+m_IFLT.     Instr ::= "IFLT" ;
+m_IFGT.     Instr ::= "IFGT" ;
+m_IFLE.     Instr ::= "IFLE" ;
+m_IFGE.     Instr ::= "IFGE" ;
+m_IFCMPEQ.  Instr ::= "IFCMPEQ" "{" [Instr] "}" "{" [Instr] "}" ;
+m_IFCMPNEQ. Instr ::= "IFCMPNEQ" "{" [Instr] "}" "{" [Instr] "}" ;
+m_IFCMPLT.  Instr ::= "IFCMPLT" "{" [Instr] "}" "{" [Instr] "}" ;
+m_IFCMPGT.  Instr ::= "IFCMPGT" "{" [Instr] "}" "{" [Instr] "}" ;
+m_IFCMPLE.  Instr ::= "IFCMPLE" "{" [Instr] "}" "{" [Instr] "}" ;
+m_IFCMPGE.  Instr ::= "IFCMPGE" "{" [Instr] "}" "{" [Instr] "}" ;
+m_FAIL.     Instr ::= "FAIL" ;
+m_IF_SOME.  Instr ::= "IF_SOME" "{" [Instr] "}" "{" [Instr] "}" ;
+
+define m_IFCMPEQ  bt bf = BLOCK[COMPARE, EQ, (IF bt bf)] ;
+define m_IFCMPNEQ bt bf = BLOCK[COMPARE, NEQ, (IF bt bf)] ;
+define m_IFCMPLT  bt bf = BLOCK[COMPARE, LT, (IF bt bf)] ;
+define m_IFCMPGT  bt bf = BLOCK[COMPARE, GT, (IF bt bf)] ;
+define m_IFCMPLE  bt bf = BLOCK[COMPARE, LE, (IF bt bf)] ;
+define m_IFCMPGE  bt bf = BLOCK[COMPARE, GE, (IF bt bf)] ;
+define m_FAIL           = BLOCK[UNIT, FAILWITH]
+define m_IF_SOME  bt bf = IF_NONE bt bf ;
 
 -- Types
 TTypSeq1.             TypeSeq  ::= Typ Typ ;
 TTypSeq2.             TypeSeq  ::= Typ TypeSeq ;
 _.                    Typ ::= "(" Typ ")" ;
 TCtype.               Typ ::= CTyp ;  -- TODO: drop token in interpreter (it seems not possible to stop the token from beeing created)
+TOperation.           Typ ::= "operation" ;
+TContract.            Typ ::= "contract" Typ ;
 TOption.              Typ ::= "option" Typ ;
 TList.                Typ ::= "list" Typ ;
 TSet.                 Typ ::= "set" CTyp ;
-TOperation.           Typ ::= "operation" ;
-TContract.            Typ ::= "contract" Typ ;
 TTicket.              Typ ::= "ticket" CTyp ;
 TPair.                Typ ::= "pair" TypeSeq ;
 TOr.                  Typ ::= "or" Typ Typ ;
