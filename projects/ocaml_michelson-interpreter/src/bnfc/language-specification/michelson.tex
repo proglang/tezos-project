@@ -51,51 +51,64 @@ The reserved words used in michelson are the following: \\
 \begin{tabular}{lll}
 {\reserved{ABS}} &{\reserved{ADD}} &{\reserved{ADDRESS}} \\
 {\reserved{AMOUNT}} &{\reserved{AND}} &{\reserved{APPLY}} \\
-{\reserved{BALANCE}} &{\reserved{BLAKE2B}} &{\reserved{CAR}} \\
-{\reserved{CAST}} &{\reserved{CDR}} &{\reserved{CHAIN\_ID}} \\
-{\reserved{CHECK\_SIGNATURE}} &{\reserved{COMPARE}} &{\reserved{CONCAT}} \\
-{\reserved{CONS}} &{\reserved{CONTRACT}} &{\reserved{CREATE\_CONTRACT}} \\
-{\reserved{DIG}} &{\reserved{DIP}} &{\reserved{DROP}} \\
-{\reserved{DUG}} &{\reserved{DUP}} &{\reserved{EDIV}} \\
-{\reserved{EMPTY\_BIG\_MAP}} &{\reserved{EMPTY\_MAP}} &{\reserved{EMPTY\_SET}} \\
-{\reserved{EQ}} &{\reserved{EXEC}} &{\reserved{Elt}} \\
+{\reserved{ASSERT}} &{\reserved{ASSERT\_CMPEQ}} &{\reserved{ASSERT\_CMPGE}} \\
+{\reserved{ASSERT\_CMPGT}} &{\reserved{ASSERT\_CMPLE}} &{\reserved{ASSERT\_CMPLT}} \\
+{\reserved{ASSERT\_CMPNEQ}} &{\reserved{ASSERT\_EQ}} &{\reserved{ASSERT\_GE}} \\
+{\reserved{ASSERT\_GT}} &{\reserved{ASSERT\_LE}} &{\reserved{ASSERT\_LEFT}} \\
+{\reserved{ASSERT\_LT}} &{\reserved{ASSERT\_NEQ}} &{\reserved{ASSERT\_NONE}} \\
+{\reserved{ASSERT\_RIGHT}} &{\reserved{ASSERT\_SOME}} &{\reserved{BALANCE}} \\
+{\reserved{BLAKE2B}} &{\reserved{CAR}} &{\reserved{CAST}} \\
+{\reserved{CDR}} &{\reserved{CHAIN\_ID}} &{\reserved{CHECK\_SIGNATURE}} \\
+{\reserved{CMPEQ}} &{\reserved{CMPGE}} &{\reserved{CMPGT}} \\
+{\reserved{CMPLE}} &{\reserved{CMPLT}} &{\reserved{CMPNEQ}} \\
+{\reserved{COMPARE}} &{\reserved{CONCAT}} &{\reserved{CONS}} \\
+{\reserved{CONTRACT}} &{\reserved{CREATE\_CONTRACT}} &{\reserved{DIG}} \\
+{\reserved{DIP}} &{\reserved{DROP}} &{\reserved{DUG}} \\
+{\reserved{DUP}} &{\reserved{EDIV}} &{\reserved{EMPTY\_BIG\_MAP}} \\
+{\reserved{EMPTY\_MAP}} &{\reserved{EMPTY\_SET}} &{\reserved{EQ}} \\
+{\reserved{EXEC}} &{\reserved{Elt}} &{\reserved{FAIL}} \\
 {\reserved{FAILWITH}} &{\reserved{False}} &{\reserved{GE}} \\
 {\reserved{GET}} &{\reserved{GT}} &{\reserved{HASH\_KEY}} \\
-{\reserved{IF}} &{\reserved{IF\_CONS}} &{\reserved{IF\_LEFT}} \\
-{\reserved{IF\_NONE}} &{\reserved{IMPLICIT\_ACCOUNT}} &{\reserved{INT}} \\
-{\reserved{ISNAT}} &{\reserved{ITER}} &{\reserved{JOIN\_TICKETS}} \\
-{\reserved{KECCAK}} &{\reserved{LAMBDA}} &{\reserved{LE}} \\
-{\reserved{LEFT}} &{\reserved{LEVEL}} &{\reserved{LOOP}} \\
-{\reserved{LOOP\_LEFT}} &{\reserved{LSL}} &{\reserved{LSR}} \\
-{\reserved{LT}} &{\reserved{Left}} &{\reserved{MAP}} \\
-{\reserved{MEM}} &{\reserved{MUL}} &{\reserved{NEG}} \\
-{\reserved{NEQ}} &{\reserved{NEVER}} &{\reserved{NIL}} \\
-{\reserved{NONE}} &{\reserved{NOT}} &{\reserved{NOW}} \\
-{\reserved{None}} &{\reserved{OPEN\_CHEST}} &{\reserved{OR}} \\
-{\reserved{PACK}} &{\reserved{PAIR}} &{\reserved{PAIRING\_CHECK}} \\
-{\reserved{PUSH}} &{\reserved{Pair}} &{\reserved{READ\_TICKET}} \\
-{\reserved{RENAME}} &{\reserved{RIGHT}} &{\reserved{Right}} \\
-{\reserved{SAPLING\_EMPTY\_STATE}} &{\reserved{SAPLING\_VERIFY\_UPDATE}} &{\reserved{SELF}} \\
-{\reserved{SELF\_ADDRESS}} &{\reserved{SENDER}} &{\reserved{SET\_DELEGATE}} \\
-{\reserved{SHA256}} &{\reserved{SHA3}} &{\reserved{SHA512}} \\
-{\reserved{SIZE}} &{\reserved{SLICE}} &{\reserved{SOME}} \\
-{\reserved{SOURCE}} &{\reserved{SPLIT\_TICKET}} &{\reserved{SUB}} \\
-{\reserved{SWAP}} &{\reserved{Some}} &{\reserved{TICKET}} \\
-{\reserved{TOTAL\_VOTING\_POWER}} &{\reserved{TRANSFER\_TOKENS}} &{\reserved{True}} \\
-{\reserved{UNIT}} &{\reserved{UNPACK}} &{\reserved{UNPAIR}} \\
-{\reserved{UPDATE}} &{\reserved{Unit}} &{\reserved{VOTING\_POWER}} \\
-{\reserved{XOR}} &{\reserved{address}} &{\reserved{big\_map}} \\
-{\reserved{bls12\_381\_fr}} &{\reserved{bls12\_381\_g1}} &{\reserved{bls12\_381\_g2}} \\
-{\reserved{bool}} &{\reserved{bytes}} &{\reserved{chain\_id}} \\
-{\reserved{chest}} &{\reserved{chest\_key}} &{\reserved{code}} \\
-{\reserved{contract}} &{\reserved{int}} &{\reserved{key}} \\
-{\reserved{key\_hash}} &{\reserved{lambda}} &{\reserved{list}} \\
-{\reserved{map}} &{\reserved{mutez}} &{\reserved{nat}} \\
-{\reserved{never}} &{\reserved{operation}} &{\reserved{option}} \\
-{\reserved{or}} &{\reserved{pair}} &{\reserved{parameter}} \\
-{\reserved{sapling\_state}} &{\reserved{sapling\_transaction}} &{\reserved{set}} \\
-{\reserved{signature}} &{\reserved{storage}} &{\reserved{string}} \\
-{\reserved{ticket}} &{\reserved{timestamp}} &{\reserved{unit}} \\
+{\reserved{IF}} &{\reserved{IFCMPEQ}} &{\reserved{IFCMPGE}} \\
+{\reserved{IFCMPGT}} &{\reserved{IFCMPLE}} &{\reserved{IFCMPLT}} \\
+{\reserved{IFCMPNEQ}} &{\reserved{IFEQ}} &{\reserved{IFGE}} \\
+{\reserved{IFGT}} &{\reserved{IFLE}} &{\reserved{IFLT}} \\
+{\reserved{IFNEQ}} &{\reserved{IF\_CONS}} &{\reserved{IF\_LEFT}} \\
+{\reserved{IF\_NONE}} &{\reserved{IF\_RIGHT}} &{\reserved{IF\_SOME}} \\
+{\reserved{IMPLICIT\_ACCOUNT}} &{\reserved{INT}} &{\reserved{ISNAT}} \\
+{\reserved{ITER}} &{\reserved{JOIN\_TICKETS}} &{\reserved{KECCAK}} \\
+{\reserved{LAMBDA}} &{\reserved{LE}} &{\reserved{LEFT}} \\
+{\reserved{LEVEL}} &{\reserved{LOOP}} &{\reserved{LOOP\_LEFT}} \\
+{\reserved{LSL}} &{\reserved{LSR}} &{\reserved{LT}} \\
+{\reserved{Left}} &{\reserved{MAP}} &{\reserved{MEM}} \\
+{\reserved{MUL}} &{\reserved{NEG}} &{\reserved{NEQ}} \\
+{\reserved{NEVER}} &{\reserved{NIL}} &{\reserved{NONE}} \\
+{\reserved{NOT}} &{\reserved{NOW}} &{\reserved{None}} \\
+{\reserved{OPEN\_CHEST}} &{\reserved{OR}} &{\reserved{PACK}} \\
+{\reserved{PAIR}} &{\reserved{PAIRING\_CHECK}} &{\reserved{PUSH}} \\
+{\reserved{Pair}} &{\reserved{READ\_TICKET}} &{\reserved{RENAME}} \\
+{\reserved{RIGHT}} &{\reserved{Right}} &{\reserved{SAPLING\_EMPTY\_STATE}} \\
+{\reserved{SAPLING\_VERIFY\_UPDATE}} &{\reserved{SELF}} &{\reserved{SELF\_ADDRESS}} \\
+{\reserved{SENDER}} &{\reserved{SET\_DELEGATE}} &{\reserved{SHA256}} \\
+{\reserved{SHA3}} &{\reserved{SHA512}} &{\reserved{SIZE}} \\
+{\reserved{SLICE}} &{\reserved{SOME}} &{\reserved{SOURCE}} \\
+{\reserved{SPLIT\_TICKET}} &{\reserved{SUB}} &{\reserved{SWAP}} \\
+{\reserved{Some}} &{\reserved{TICKET}} &{\reserved{TOTAL\_VOTING\_POWER}} \\
+{\reserved{TRANSFER\_TOKENS}} &{\reserved{True}} &{\reserved{UNIT}} \\
+{\reserved{UNPACK}} &{\reserved{UNPAIR}} &{\reserved{UPDATE}} \\
+{\reserved{Unit}} &{\reserved{VOTING\_POWER}} &{\reserved{XOR}} \\
+{\reserved{address}} &{\reserved{big\_map}} &{\reserved{bls12\_381\_fr}} \\
+{\reserved{bls12\_381\_g1}} &{\reserved{bls12\_381\_g2}} &{\reserved{bool}} \\
+{\reserved{bytes}} &{\reserved{chain\_id}} &{\reserved{chest}} \\
+{\reserved{chest\_key}} &{\reserved{code}} &{\reserved{contract}} \\
+{\reserved{int}} &{\reserved{key}} &{\reserved{key\_hash}} \\
+{\reserved{lambda}} &{\reserved{list}} &{\reserved{map}} \\
+{\reserved{mutez}} &{\reserved{nat}} &{\reserved{never}} \\
+{\reserved{operation}} &{\reserved{option}} &{\reserved{or}} \\
+{\reserved{pair}} &{\reserved{parameter}} &{\reserved{sapling\_state}} \\
+{\reserved{sapling\_transaction}} &{\reserved{set}} &{\reserved{signature}} \\
+{\reserved{storage}} &{\reserved{string}} &{\reserved{ticket}} \\
+{\reserved{timestamp}} &{\reserved{unit}} & \\
 \end{tabular}\\
 
 The symbols used in michelson are the following: \\
@@ -116,45 +129,57 @@ and {\emptyP} (empty rule) belong to the BNF notation.
 All other symbols are terminals.\\
 
 \begin{tabular}{lll}
-{\nonterminal{Prog}} & {\arrow}  &{\terminal{parameter}} {\nonterminal{Typ}} {\terminal{;}} {\terminal{storage}} {\nonterminal{Typ}} {\terminal{;}} {\terminal{code}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
+{\nonterminal{Prog}} & {\arrow}  &{\nonterminal{Prog}} {\terminal{;}}  \\
+ & {\delimit}  &{\terminal{parameter}} {\nonterminal{Typ}} {\terminal{;}} {\terminal{storage}} {\nonterminal{Typ}} {\terminal{;}} {\terminal{code}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
  & {\delimit}  &{\nonterminal{ListInstr}}  \\
 \end{tabular}\\
 
 \begin{tabular}{lll}
-{\nonterminal{Inta}} & {\arrow}  &{\nonterminal{Integer}}  \\
+{\nonterminal{Inte}} & {\arrow}  &{\nonterminal{Integer}}  \\
  & {\delimit}  &{\terminal{{$-$}}} {\nonterminal{Integer}}  \\
 \end{tabular}\\
 
 \begin{tabular}{lll}
 {\nonterminal{ListData}} & {\arrow}  &{\emptyP} \\
+ & {\delimit}  &{\nonterminal{Data}}  \\
  & {\delimit}  &{\nonterminal{Data}} {\terminal{;}} {\nonterminal{ListData}}  \\
 \end{tabular}\\
 
 \begin{tabular}{lll}
-{\nonterminal{PairSeq}} & {\arrow}  &{\nonterminal{Data}} {\nonterminal{Data}}  \\
- & {\delimit}  &{\nonterminal{Data}} {\nonterminal{PairSeq}}  \\
-\end{tabular}\\
-
-\begin{tabular}{lll}
-{\nonterminal{MapSeq}} & {\arrow}  &{\terminal{Elt}} {\nonterminal{Data}} {\nonterminal{Data}} {\terminal{;}}  \\
- & {\delimit}  &{\terminal{Elt}} {\nonterminal{Data}} {\nonterminal{Data}} {\terminal{;}} {\nonterminal{MapSeq}}  \\
-\end{tabular}\\
-
-\begin{tabular}{lll}
-{\nonterminal{Data}} & {\arrow}  &{\nonterminal{Inta}}  \\
+{\nonterminal{Data}} & {\arrow}  &{\terminal{(}} {\nonterminal{Data}} {\terminal{)}}  \\
+ & {\delimit}  &{\nonterminal{Inte}}  \\
  & {\delimit}  &{\nonterminal{Str}}  \\
  & {\delimit}  &{\nonterminal{Hex}}  \\
  & {\delimit}  &{\terminal{Unit}}  \\
  & {\delimit}  &{\terminal{True}}  \\
  & {\delimit}  &{\terminal{False}}  \\
- & {\delimit}  &{\terminal{Pair}} {\nonterminal{PairSeq}}  \\
+ & {\delimit}  &{\terminal{Pair}} {\nonterminal{ListPairSeq}}  \\
  & {\delimit}  &{\terminal{Left}} {\nonterminal{Data}}  \\
  & {\delimit}  &{\terminal{Right}} {\nonterminal{Data}}  \\
  & {\delimit}  &{\terminal{Some}} {\nonterminal{Data}}  \\
  & {\delimit}  &{\terminal{None}}  \\
  & {\delimit}  &{\terminal{\{}} {\nonterminal{ListData}} {\terminal{\}}}  \\
- & {\delimit}  &{\terminal{\{}} {\nonterminal{MapSeq}} {\terminal{\}}}  \\
+ & {\delimit}  &{\terminal{\{}} {\nonterminal{ListMapSeq}} {\terminal{\}}}  \\
  & {\delimit}  &{\nonterminal{Instr}}  \\
+\end{tabular}\\
+
+\begin{tabular}{lll}
+{\nonterminal{ListPairSeq}} & {\arrow}  &{\nonterminal{PairSeq}}  \\
+ & {\delimit}  &{\nonterminal{PairSeq}} {\nonterminal{ListPairSeq}}  \\
+\end{tabular}\\
+
+\begin{tabular}{lll}
+{\nonterminal{PairSeq}} & {\arrow}  &{\nonterminal{Data}}  \\
+\end{tabular}\\
+
+\begin{tabular}{lll}
+{\nonterminal{ListMapSeq}} & {\arrow}  &{\emptyP} \\
+ & {\delimit}  &{\nonterminal{MapSeq}}  \\
+ & {\delimit}  &{\nonterminal{MapSeq}} {\terminal{;}} {\nonterminal{ListMapSeq}}  \\
+\end{tabular}\\
+
+\begin{tabular}{lll}
+{\nonterminal{MapSeq}} & {\arrow}  &{\terminal{Elt}} {\nonterminal{Data}} {\nonterminal{Data}}  \\
 \end{tabular}\\
 
 \begin{tabular}{lll}
@@ -164,8 +189,7 @@ All other symbols are terminals.\\
 \end{tabular}\\
 
 \begin{tabular}{lll}
-{\nonterminal{Instr}} & {\arrow}  &{\nonterminal{Instr}} {\terminal{;}}  \\
- & {\delimit}  &{\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
+{\nonterminal{Instr}} & {\arrow}  &{\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
  & {\delimit}  &{\terminal{DROP}}  \\
  & {\delimit}  &{\terminal{DROP}} {\nonterminal{Integer}}  \\
  & {\delimit}  &{\terminal{DUP}}  \\
@@ -270,6 +294,44 @@ All other symbols are terminals.\\
  & {\delimit}  &{\terminal{SPLIT\_TICKET}}  \\
  & {\delimit}  &{\terminal{JOIN\_TICKETS}}  \\
  & {\delimit}  &{\terminal{OPEN\_CHEST}}  \\
+ & {\delimit}  &{\terminal{FAIL}}  \\
+ & {\delimit}  &{\terminal{CMPEQ}}  \\
+ & {\delimit}  &{\terminal{CMPNEQ}}  \\
+ & {\delimit}  &{\terminal{CMPLT}}  \\
+ & {\delimit}  &{\terminal{CMPGT}}  \\
+ & {\delimit}  &{\terminal{CMPLE}}  \\
+ & {\delimit}  &{\terminal{CMPGE}}  \\
+ & {\delimit}  &{\terminal{IFEQ}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
+ & {\delimit}  &{\terminal{IFNEQ}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
+ & {\delimit}  &{\terminal{IFLT}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
+ & {\delimit}  &{\terminal{IFGT}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
+ & {\delimit}  &{\terminal{IFLE}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
+ & {\delimit}  &{\terminal{IFGE}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
+ & {\delimit}  &{\terminal{IFCMPEQ}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
+ & {\delimit}  &{\terminal{IFCMPNEQ}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
+ & {\delimit}  &{\terminal{IFCMPLT}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
+ & {\delimit}  &{\terminal{IFCMPGT}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
+ & {\delimit}  &{\terminal{IFCMPLE}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
+ & {\delimit}  &{\terminal{IFCMPGE}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
+ & {\delimit}  &{\terminal{ASSERT}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_EQ}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_NEQ}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_LT}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_GT}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_LE}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_GE}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_CMPEQ}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_CMPNEQ}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_CMPLT}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_CMPGT}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_CMPLE}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_CMPGE}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_NONE}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_SOME}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_LEFT}}  \\
+ & {\delimit}  &{\terminal{ASSERT\_RIGHT}}  \\
+ & {\delimit}  &{\terminal{IF\_SOME}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
+ & {\delimit}  &{\terminal{IF\_RIGHT}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}} {\terminal{\{}} {\nonterminal{ListInstr}} {\terminal{\}}}  \\
 \end{tabular}\\
 
 \begin{tabular}{lll}
@@ -280,11 +342,11 @@ All other symbols are terminals.\\
 \begin{tabular}{lll}
 {\nonterminal{Typ}} & {\arrow}  &{\terminal{(}} {\nonterminal{Typ}} {\terminal{)}}  \\
  & {\delimit}  &{\nonterminal{CTyp}}  \\
+ & {\delimit}  &{\terminal{operation}}  \\
+ & {\delimit}  &{\terminal{contract}} {\nonterminal{Typ}}  \\
  & {\delimit}  &{\terminal{option}} {\nonterminal{Typ}}  \\
  & {\delimit}  &{\terminal{list}} {\nonterminal{Typ}}  \\
  & {\delimit}  &{\terminal{set}} {\nonterminal{CTyp}}  \\
- & {\delimit}  &{\terminal{operation}}  \\
- & {\delimit}  &{\terminal{contract}} {\nonterminal{Typ}}  \\
  & {\delimit}  &{\terminal{ticket}} {\nonterminal{CTyp}}  \\
  & {\delimit}  &{\terminal{pair}} {\nonterminal{TypeSeq}}  \\
  & {\delimit}  &{\terminal{or}} {\nonterminal{Typ}} {\nonterminal{Typ}}  \\

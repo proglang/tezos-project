@@ -1,58 +1,57 @@
 {-
     Michelson (L)BNF Grammar to be used with the BNF Converter https://github.com/BNFC/bnfc
-    Sources for the grammar:
-    --https://tezos.gitlab.io/shell/micheline.html#syntax TODO: remove
+    Grammar based on:
+    https://tezos.gitlab.io/shell/micheline.html#syntax
     https://tezos.gitlab.io/alpha/michelson.html#full-grammar
 -}
 
 
 -- RULES
 comment "#" ; -- line comment
---comment "*/" "*/" ; -- block comment
 
-entrypoints Prog,  ; -- if other entrypoints are needed, create identifier for all of them!
+entrypoints Prog ;
 
--- empty contracts (not) allowed? how many instr needed for minimal contract?
--- "Pair" (parameter, storage) instead of parameter/storage  ?
-_.        Prog ::= Prog ";" ; -- allow the ";" in "... code {...};"
+-- TODO empty contracts (not) allowed? how many instr needed for minimal contract?
+-- TODO "Pair" (parameter, storage) instead of parameter/storage  ?
+_.        Prog ::= Prog ";" ; -- allows the ";" in "... code {...};"
 Contract. Prog ::= "parameter" Typ ";" "storage" Typ ";" "code" "{" [Instr] "}" ;
-Code.     Prog ::= [Instr] ;  -- pure instruction(s) input
+Code.     Prog ::= [Instr] ;  -- pure input of (a list of) instructions
 
 
--- User-Defined token types
--- FIXME custom tokens als string implementiert. Should be fixed in LexMichelson.mll und ParMichelson.mly und AbsMichelson; oder int_of_string/byte_of_string erst beim interpretieren
+-- User-Defined regex-based token types FIXME: custom tokens als string implementiert. Should be fixed in LexMichelson.mll und ParMichelson.mly und AbsMichelson; oder byte_of_string erst beim interpretieren
 token Str '"' ( (char - ["\"\\"]) | ('\\' ["\"\\rntb"]) )* '"' ; -- should be equivalent to (\" | \r | \n | \t | \b | \\ | [^"\])*
 token Hex '0''x' ( digit | ["abcdefABCDEF"] )+ ;
+-- TODO: add regex for other allowed integer notations like 10_00, 1000.00, ect. --0, +0, -0, 0001
+
+DIntPos. Inte ::= Integer;
+DIntNeg. Inte ::= "-" Integer;
+
 
 -- Data
-terminator Data ";" ; -- FIXME empty data sequence allowed? else add noempty. muss letztes Data ein ";" haben? sonst change to separator
+separator Data ";" ; -- FIXME muss letztes Data mit ";" abgeschlossen werden? dann zu terminator wechseln
+_.               Data         ::= "(" Data ")" ; -- https://tezos.gitlab.io/alpha/michelson.html#format-of-patterns
 DInt.            Data         ::= Inte ;
 DStr.            Data         ::= Str ;
 DByte.           Data         ::= Hex ;
 DUnit.           Data         ::= "Unit" ;
 DTrue.           Data         ::= "True" ;
 DFalse.          Data         ::= "False" ;
-DPair.           Data          ::= "Pair" Pair;
+DPair.           Data          ::= "Pair" [PairSeq] ;
 DLeft.           Data         ::= "Left" Data ;
 DRight.          Data         ::= "Right" Data ;
 DSome.           Data         ::= "Some" Data ;
 DNone.           Data         ::= "None" ;
 DBlock.          Data         ::= "{" [Data] "}" ;
-DMap.            Data         ::= "{" [Map] "}" ;
+DMap.            Data         ::= "{" [MapSeq] "}" ;
 DInstruction.    Data         ::= Instr ;
 
-terminator Pair "" ;
-DPairSeq1.       Pair         ::= Data Data ;
-DPairSeq2.       Pair         ::= Data [Data] ;
-separator Map ";" ;
-DMapSeq.         Map          ::= "Elt" Data Data ";" ;
-DIntPos.         Inte         ::= Integer;
-DIntNeg.         Inte         ::= "-" Integer;
+terminator nonempty PairSeq "" ;
+DPairSeq.   PairSeq ::= Data ;
+separator MapSeq ";" ;
+DMapSeq. MapSeq ::= "Elt" Data Data ;
 
-
--- Instructions TODO: seperate into core instructions usw.. Also maybe add macros
-separator Instr ";" ; -- empty instruction sequence allowed, last instr does does not need to be terminated with ';'
-_.                     Instr ::= Instr ";" ; -- but last instr can be terminated with ';' -> remove additional ';'
+-- Instructions TODO: seperate into core instructions usw.
+separator Instr ";" ; -- empty instruction sequence allowed! Last 'Instr' does does not >need< to be terminated with ';'!
 BLOCK.                 Instr ::= "{" [Instr] "}" ;
 DROP.                  Instr ::= "DROP" ;
 DROP_N.                Instr ::= "DROP" Integer ;
@@ -158,43 +157,113 @@ READ_TICKET.           Instr ::= "READ_TICKET" ;
 SPLIT_TICKET.          Instr ::= "SPLIT_TICKET" ;
 JOIN_TICKETS.          Instr ::= "JOIN_TICKETS" ;
 OPEN_CHEST.            Instr ::= "OPEN_CHEST" ;
--- MACRO_TOKENS = ( IFEQ | IFNEQ | IFLT | IFGT | IFLE | IFGE | IFCMPEQ | IFCMPNEQ | IFCMPLT | IFCMPGT | IFCMPLE | IFCMPGE | FAIL | ASSERT | ASSERT_EQ | ASSERT_NEQ | ASSERT_LT | ASSERT_LE | ASSERT_GT | ASSERT_GE | ASSERT_CMPEQ | ASSERT_CMPNEQ |ASSERT_CMPLT | ASSERT_CMPLE | ASSERT_CMPGT | ASSERT_CMPGE | ASSERT_NONE | ASSERT_SOME | ASSERT_LEFT | ASSERT_RIGHT | SET_CAR | SET_CDR | MAP_CAR | MAP_CDR | IF_SOME) | DII+P | DUU+P | P[AIP]+R | UNP[PAI]+R | C[AD]+R | SET_C[AD]+R | MAP_C[AD]+R
--- Views
 
--- Macros
--- OP::= EQ|NEQ|LT|GT|LE|GE
--- CMP(\op) / S  =>  COMPARE ; (\op) / S
--- IF(\op) bt bf / S  =>  (\op) ; IF bt bf / S
--- IFCMP(\op) / S  =>  COMPARE ; (\op) ; IF bt bf / S
+-- MACRO INSTRUCTIONS
+-- Fail
+m_FAIL.     Instr ::= "FAIL" ;
+define m_FAIL = BLOCK[UNIT, FAILWITH] ;  -- TODO: BLOCK is equivalent to "{" [Instr] "}". Is there a solution without (ask support)?
+-- Compare
 m_CMPEQ.    Instr ::= "CMPEQ" ;
 m_CMPNEQ.   Instr ::= "CMPNEQ" ;
 m_CMPLT.    Instr ::= "CMPLT" ;
 m_CMPGT.    Instr ::= "CMPGT" ;
 m_CMPLE.    Instr ::= "CMPLE" ;
 m_CMPGE.    Instr ::= "CMPGE" ;
-m_IFEQ.     Instr ::= "IFEQ" ;
-m_IFNEQ.    Instr ::= "IFNEQ" ;
-m_IFLT.     Instr ::= "IFLT" ;
-m_IFGT.     Instr ::= "IFGT" ;
-m_IFLE.     Instr ::= "IFLE" ;
-m_IFGE.     Instr ::= "IFGE" ;
+m_IFEQ.     Instr ::= "IFEQ" "{" [Instr] "}" "{" [Instr] "}" ;
+m_IFNEQ.    Instr ::= "IFNEQ" "{" [Instr] "}" "{" [Instr] "}" ;
+m_IFLT.     Instr ::= "IFLT" "{" [Instr] "}" "{" [Instr] "}" ;
+m_IFGT.     Instr ::= "IFGT" "{" [Instr] "}" "{" [Instr] "}" ;
+m_IFLE.     Instr ::= "IFLE" "{" [Instr] "}" "{" [Instr] "}" ;
+m_IFGE.     Instr ::= "IFGE" "{" [Instr] "}" "{" [Instr] "}" ;
 m_IFCMPEQ.  Instr ::= "IFCMPEQ" "{" [Instr] "}" "{" [Instr] "}" ;
 m_IFCMPNEQ. Instr ::= "IFCMPNEQ" "{" [Instr] "}" "{" [Instr] "}" ;
 m_IFCMPLT.  Instr ::= "IFCMPLT" "{" [Instr] "}" "{" [Instr] "}" ;
 m_IFCMPGT.  Instr ::= "IFCMPGT" "{" [Instr] "}" "{" [Instr] "}" ;
 m_IFCMPLE.  Instr ::= "IFCMPLE" "{" [Instr] "}" "{" [Instr] "}" ;
 m_IFCMPGE.  Instr ::= "IFCMPGE" "{" [Instr] "}" "{" [Instr] "}" ;
-m_FAIL.     Instr ::= "FAIL" ;
+define m_CMPEQ          = BLOCK[COMPARE, EQ] ;
+define m_CMPNEQ         = BLOCK[COMPARE, NEQ] ;
+define m_CMPLT          = BLOCK[COMPARE, LT] ;
+define m_CMPGT          = BLOCK[COMPARE, GT] ;
+define m_CMPLE          = BLOCK[COMPARE, LE] ;
+define m_CMPGE          = BLOCK[COMPARE, GE] ;
+define m_IFEQ bt bf     = BLOCK[EQ, (IF bt bf)] ;
+define m_IFNEQ bt bf    = BLOCK[NEQ, (IF bt bf)] ;
+define m_IFLT bt bf     = BLOCK[LT, (IF bt bf)] ;
+define m_IFGT bt bf     = BLOCK[GT, (IF bt bf)] ;
+define m_IFLE bt bf     = BLOCK[LE, (IF bt bf)] ;
+define m_IFGE bt bf     = BLOCK[GE, (IF bt bf)] ;
+define m_IFCMPEQ  bt bf = BLOCK[m_CMPEQ, (IF bt bf)] ;
+define m_IFCMPNEQ bt bf = BLOCK[m_CMPNEQ, (IF bt bf)] ;
+define m_IFCMPLT bt bf  = BLOCK[m_CMPLT, (IF bt bf)] ;
+define m_IFCMPGT bt bf  = BLOCK[m_CMPGT, (IF bt bf)] ;
+define m_IFCMPLE bt bf  = BLOCK[m_CMPLE, (IF bt bf)] ;
+define m_IFCMPGE bt bf  = BLOCK[m_CMPGE, (IF bt bf)] ;
+-- Assertions
+m_ASSERT.        Instr ::= "ASSERT" ;
+m_ASSERT_EQ.     Instr ::= "ASSERT_EQ" ;
+m_ASSERT_NEQ.    Instr ::= "ASSERT_NEQ" ;
+m_ASSERT_LT.     Instr ::= "ASSERT_LT" ;
+m_ASSERT_GT.     Instr ::= "ASSERT_GT" ;
+m_ASSERT_LE.     Instr ::= "ASSERT_LE" ;
+m_ASSERT_GE.     Instr ::= "ASSERT_GE" ;
+m_ASSERT_CMPEQ.  Instr ::= "ASSERT_CMPEQ" ;
+m_ASSERT_CMPNEQ. Instr ::= "ASSERT_CMPNEQ" ;
+m_ASSERT_CMPLT.  Instr ::= "ASSERT_CMPLT" ;
+m_ASSERT_CMPGT.  Instr ::= "ASSERT_CMPGT" ;
+m_ASSERT_CMPLE.  Instr ::= "ASSERT_CMPLE" ;
+m_ASSERT_CMPGE.  Instr ::= "ASSERT_CMPGE" ;
+m_ASSERT_NONE.   Instr ::= "ASSERT_NONE" ;
+m_ASSERT_SOME.   Instr ::= "ASSERT_SOME" ;
+m_ASSERT_LEFT.   Instr ::= "ASSERT_LEFT" ;
+m_ASSERT_RIGHT.  Instr ::= "ASSERT_RIGHT" ;
+define m_ASSERT        = (IF [] [m_FAIL]) ;
+define m_ASSERT_EQ     = (m_IFEQ [] [m_FAIL]) ;
+define m_ASSERT_NEQ    = (m_IFNEQ [] [m_FAIL]) ;
+define m_ASSERT_LT     = (m_IFLT [] [m_FAIL]) ;
+define m_ASSERT_GT     = (m_IFGT [] [m_FAIL]) ;
+define m_ASSERT_LE     = (m_IFLE [] [m_FAIL]) ;
+define m_ASSERT_GE     = (m_IFGE [] [m_FAIL]) ;
+define m_ASSERT_CMPEQ  = (m_IFCMPEQ [] [m_FAIL]) ;
+define m_ASSERT_CMPNEQ = (m_IFCMPNEQ [] [m_FAIL]) ;
+define m_ASSERT_CMPLT  = (m_IFCMPLT [] [m_FAIL]) ;
+define m_ASSERT_CMPGT  = (m_IFCMPGT [] [m_FAIL]) ;
+define m_ASSERT_CMPLE  = (m_IFCMPLE [] [m_FAIL]) ;
+define m_ASSERT_CMPGE  = (m_IFCMPGE [] [m_FAIL]) ;
+define m_ASSERT_NONE   = (IF_NONE [] [m_FAIL]) ;
+define m_ASSERT_SOME   = (IF_NONE [m_FAIL] [RENAME]) ; -- FIXME missing annotations
+define m_ASSERT_LEFT   = (IF_LEFT [RENAME] [m_FAIL]) ; -- FIXME missing annotations
+define m_ASSERT_RIGHT  = (IF_LEFT [m_FAIL] [RENAME]) ; -- FIXME missing annotations
+-- Syntactic Conveniences
+-- P(\left=A|P(\left)(\right))(\right=I|P(\left)(\right))R
+-- UNP(\left=A|P(\left)(\right))(\right=I|P(\left)(\right))R
+-- C[AD]+R
+-- m_CAR_K.
+-- m_CDR_K.
 m_IF_SOME.  Instr ::= "IF_SOME" "{" [Instr] "}" "{" [Instr] "}" ;
-
-define m_IFCMPEQ  bt bf = BLOCK[COMPARE, EQ, (IF bt bf)] ;
-define m_IFCMPNEQ bt bf = BLOCK[COMPARE, NEQ, (IF bt bf)] ;
-define m_IFCMPLT  bt bf = BLOCK[COMPARE, LT, (IF bt bf)] ;
-define m_IFCMPGT  bt bf = BLOCK[COMPARE, GT, (IF bt bf)] ;
-define m_IFCMPLE  bt bf = BLOCK[COMPARE, LE, (IF bt bf)] ;
-define m_IFCMPGE  bt bf = BLOCK[COMPARE, GE, (IF bt bf)] ;
-define m_FAIL           = BLOCK[UNIT, FAILWITH]
 define m_IF_SOME  bt bf = IF_NONE bt bf ;
+m_IF_RIGHT. Instr ::= "IF_RIGHT" "{" [Instr] "}" "{" [Instr] "}" ;
+define m_IF_RIGHT bt bf = IF_LEFT bf bt ;
+-- m_SET_CAR.
+-- m_SET_CDR.
+-- SET_C[AD]+R
+-- m_MAP_CAR.
+-- m_MAP_CDR.
+-- MAP_C[AD]+R
+
+
+
+-- ANNOTATIONS
+-- possibly just remove them?
+-- Type annotations
+-- Variable annotations
+-- Field and constructor annotations
+-- Syntax
+-- Annotations and macros
+-- Special annotations
+
+-- Views
+
 
 -- Types
 TTypSeq1.             TypeSeq  ::= Typ Typ ;
@@ -219,7 +288,6 @@ TSapling_transaction. Typ ::= "sapling_transaction" Integer ;
 TSapling_state.       Typ ::= "sapling_state" Integer ;
 TChest.               Typ ::= "chest" ;
 TChest_key.           Typ ::= "chest_key" ;
-
 
 -- Comparable Types
 CTypSeq1.   CTypeSeq ::= CTyp CTyp ;

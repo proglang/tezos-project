@@ -1,5 +1,5 @@
-(executables
- (names main)
+(executable
+ (name main)
  (libraries michelson core stdio)
  (preprocess (pps ppx_jane))
  )
