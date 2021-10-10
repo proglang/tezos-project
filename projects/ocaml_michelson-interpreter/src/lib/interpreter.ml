@@ -69,6 +69,7 @@ let comparator (v : value) =
 
 (*let rec typeof (v : value) =
   match v with
+  *)
 
 (*let comparable : AbsMichelson.cTyp list = [
   CUnit ;
