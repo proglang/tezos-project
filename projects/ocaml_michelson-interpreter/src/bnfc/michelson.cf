@@ -13,16 +13,18 @@ entrypoints Prog ;
 
 -- TODO empty contracts (not) allowed? how many instr needed for minimal contract?
 -- TODO "Pair" (parameter, storage) instead of parameter/storage  ?
-_.        Prog ::= Prog ";" ; -- allows the ";" in "... code {...};"
-Contract. Prog ::= "parameter" Typ ";" "storage" Typ ";" "code" "{" [Instr] "}" ;
-Code.     Prog ::= [Instr] ;  -- pure input of (a list of) instructions
+_.        Prog ::= Prog ";" ; -- allow the ";" in "... code {...};"
+Contract. Prog ::= "parameter" Typ ";" "storage" Typ ";" "code" "{" [Instr] "}" ; -- full contract
+--Code.     Prog ::= [Instr] ;  -- pure input of (a list of) instructions
+--Argument. Prog ::= Data ; -- for input / storage arguments
 
-
--- User-Defined regex-based token types FIXME: custom tokens als string implementiert. Should be fixed in LexMichelson.mll und ParMichelson.mly und AbsMichelson; oder byte_of_string erst beim interpretieren
+-- User-Defined regex-based token types
 token Str '"' ( (char - ["\"\\"]) | ('\\' ["\"\\rntb"]) )* '"' ; -- should be equivalent to (\" | \r | \n | \t | \b | \\ | [^"\])*
 token Hex '0''x' ( digit | ["abcdefABCDEF"] )+ ;
--- TODO: add regex for other allowed integer notations like 10_00, 1000.00, ect. --0, +0, -0, 0001
+token Nat digit+ ;
 
+-- TODO: add regex for other allowed integer notations like 10_00, 1000.00, ect. --0, +0, -0, 0001
+-- TODO: but give this notations other tokens (as strings) to interpret seperately
 DIntPos. Inte ::= Integer;
 DIntNeg. Inte ::= "-" Integer;
 
@@ -32,21 +34,21 @@ separator Data ";" ; -- FIXME muss letztes Data mit ";" abgeschlossen werden? da
 _.               Data         ::= "(" Data ")" ; -- https://tezos.gitlab.io/alpha/michelson.html#format-of-patterns
 DInt.            Data         ::= Inte ;
 DStr.            Data         ::= Str ;
-DByte.           Data         ::= Hex ;
+DBytes.          Data         ::= Hex ;
 DUnit.           Data         ::= "Unit" ;
 DTrue.           Data         ::= "True" ;
 DFalse.          Data         ::= "False" ;
-DPair.           Data          ::= "Pair" [PairSeq] ;
-DLeft.           Data         ::= "Left" Data ;
-DRight.          Data         ::= "Right" Data ;
+DPair.           Data         ::= "(" "Pair" Data [PairSeq] ")" ; -- FIXME: klammern pflicht?
+DLeft.           Data         ::= "(" "Left" Data ")" ;  -- FIXME: klammern pflicht?
+DRight.          Data         ::= "(" "Right" Data ")" ;  -- FIXME: klammern pflicht?
 DSome.           Data         ::= "Some" Data ;
 DNone.           Data         ::= "None" ;
-DBlock.          Data         ::= "{" [Data] "}" ;
+DBlock.          Data         ::= "{" [Data] "}" ;  -- list or set
 DMap.            Data         ::= "{" [MapSeq] "}" ;
 DInstruction.    Data         ::= Instr ;
 
 terminator nonempty PairSeq "" ;
-DPairSeq.   PairSeq ::= Data ;
+DPairSeq. PairSeq ::= Data ;
 separator MapSeq ";" ;
 DMapSeq. MapSeq ::= "Elt" Data Data ;
 
@@ -107,7 +109,7 @@ UNPACK.                Instr ::= "UNPACK" Typ ;
 ADD.                   Instr ::= "ADD" ;
 SUB.                   Instr ::= "SUB" ;
 MUL.                   Instr ::= "MUL" ;
-EDIC.                  Instr ::= "EDIV" ;
+EDIV.                  Instr ::= "EDIV" ;
 ABS.                   Instr ::= "ABS" ;
 SNAT.                  Instr ::= "ISNAT" ;
 INT.                   Instr ::= "INT" ;
@@ -264,10 +266,9 @@ define m_IF_RIGHT bt bf = IF_LEFT bf bt ;
 
 -- Views
 
+-- Entrypoints
 
 -- Types
-TTypSeq1.             TypeSeq  ::= Typ Typ ;
-TTypSeq2.             TypeSeq  ::= Typ TypeSeq ;
 _.                    Typ ::= "(" Typ ")" ;
 TCtype.               Typ ::= CTyp ;  -- TODO: drop token in interpreter (it seems not possible to stop the token from beeing created)
 TOperation.           Typ ::= "operation" ;
@@ -276,22 +277,25 @@ TOption.              Typ ::= "option" Typ ;
 TList.                Typ ::= "list" Typ ;
 TSet.                 Typ ::= "set" CTyp ;
 TTicket.              Typ ::= "ticket" CTyp ;
-TPair.                Typ ::= "pair" TypeSeq ;
+TPair.                Typ ::= "(" "pair" Typ [TypeSeq] ")"; -- FIXME: Klammern pflicht oder nicht?
 TOr.                  Typ ::= "or" Typ Typ ;
 TLambda.              Typ ::= "lambda" Typ Typ ;
 TMap.                 Typ ::= "map" CTyp Typ ;
 TBig_map.             Typ ::= "big_map" CTyp Typ ;
-TBls_g1.              Typ ::= "bls12_381_g1" ;
-TBls_g2.              Typ ::= "bls12_381_g2" ;
-TBls_fr.              Typ ::= "bls12_381_fr" ;
+TBls_381_g1.          Typ ::= "bls12_381_g1" ;
+TBls_381_g2.          Typ ::= "bls12_381_g2" ;
+TBls_381_fr.          Typ ::= "bls12_381_fr" ;
 TSapling_transaction. Typ ::= "sapling_transaction" Integer ;
 TSapling_state.       Typ ::= "sapling_state" Integer ;
 TChest.               Typ ::= "chest" ;
 TChest_key.           Typ ::= "chest_key" ;
+terminator nonempty TypeSeq "" ;
+TypeSeq0. TypeSeq ::= Typ ;
+--TTypSeq1.             TypeSeq  ::= Typ Typ ;
+--TTypSeq2.             TypeSeq  ::= Typ TypeSeq ;
 
 -- Comparable Types
-CTypSeq1.   CTypeSeq ::= CTyp CTyp ;
-CTypSeq2.   CTypeSeq ::= CTyp CTypeSeq ;
+
 CUnit.      CTyp ::= "unit" ;
 CNever.     CTyp ::= "never" ;
 CBool.      CTyp ::= "bool" ;
@@ -308,4 +312,8 @@ CTimestamp. CTyp ::= "timestamp" ;
 CAddress.   CTyp ::= "address" ;
 COption.    CTyp ::= "option" CTyp ;
 COr.        CTyp ::= "or" CTyp CTyp ;
-CPair.      CTyp ::= "pair" CTypeSeq ;
+CPair.      CTyp ::= "(" "pair" CTyp [CTypeSeq] ")" ;
+terminator nonempty CTypeSeq "" ;
+CTypeSeq0. CTypeSeq ::= CTyp ;
+--CTypSeq1.   CTypeSeq ::= CTyp CTyp ;
+--CTypSeq2.   CTypeSeq ::= CTyp CTypeSeq ;

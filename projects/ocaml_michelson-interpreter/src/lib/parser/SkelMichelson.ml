@@ -16,9 +16,12 @@ and transHex (x : hex) : result = match x with
     Hex string -> failure x
 
 
+and transNat (x : nat) : result = match x with
+    Nat string -> failure x
+
+
 and transProg (x : prog) : result = match x with
     Contract (typ0, typ, instrs) -> failure x
-  | Code instrs -> failure x
 
 
 and transInte (x : inte) : result = match x with
@@ -29,11 +32,11 @@ and transInte (x : inte) : result = match x with
 and transData (x : data) : result = match x with
     DInt inte -> failure x
   | DStr str -> failure x
-  | DByte hex -> failure x
+  | DBytes hex -> failure x
   | DUnit  -> failure x
   | DTrue  -> failure x
   | DFalse  -> failure x
-  | DPair pairseqs -> failure x
+  | DPair (data, pairseqs) -> failure x
   | DLeft data -> failure x
   | DRight data -> failure x
   | DSome data -> failure x
@@ -107,7 +110,7 @@ and transInstr (x : instr) : result = match x with
   | ADD  -> failure x
   | SUB  -> failure x
   | MUL  -> failure x
-  | EDIC  -> failure x
+  | EDIV  -> failure x
   | ABS  -> failure x
   | SNAT  -> failure x
   | INT  -> failure x
@@ -159,11 +162,6 @@ and transInstr (x : instr) : result = match x with
   | OPEN_CHEST  -> failure x
 
 
-and transTypeSeq (x : typeSeq) : result = match x with
-    TTypSeq1 (typ0, typ) -> failure x
-  | TTypSeq2 (typ, typeseq) -> failure x
-
-
 and transTyp (x : typ) : result = match x with
     TCtype ctyp -> failure x
   | TOperation  -> failure x
@@ -172,23 +170,22 @@ and transTyp (x : typ) : result = match x with
   | TList typ -> failure x
   | TSet ctyp -> failure x
   | TTicket ctyp -> failure x
-  | TPair typeseq -> failure x
+  | TPair (typ, typeseqs) -> failure x
   | TOr (typ0, typ) -> failure x
   | TLambda (typ0, typ) -> failure x
   | TMap (ctyp, typ) -> failure x
   | TBig_map (ctyp, typ) -> failure x
-  | TBls_g1  -> failure x
-  | TBls_g2  -> failure x
-  | TBls_fr  -> failure x
+  | TBls_381_g1  -> failure x
+  | TBls_381_g2  -> failure x
+  | TBls_381_fr  -> failure x
   | TSapling_transaction integer -> failure x
   | TSapling_state integer -> failure x
   | TChest  -> failure x
   | TChest_key  -> failure x
 
 
-and transCTypeSeq (x : cTypeSeq) : result = match x with
-    CTypSeq1 (ctyp0, ctyp) -> failure x
-  | CTypSeq2 (ctyp, ctypeseq) -> failure x
+and transTypeSeq (x : typeSeq) : result = match x with
+    TypeSeq0 typ -> failure x
 
 
 and transCTyp (x : cTyp) : result = match x with
@@ -208,7 +205,11 @@ and transCTyp (x : cTyp) : result = match x with
   | CAddress  -> failure x
   | COption ctyp -> failure x
   | COr (ctyp0, ctyp) -> failure x
-  | CPair ctypeseq -> failure x
+  | CPair (ctyp, ctypeseqs) -> failure x
+
+
+and transCTypeSeq (x : cTypeSeq) : result = match x with
+    CTypeSeq0 ctyp -> failure x
 
 
 

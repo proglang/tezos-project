@@ -40,10 +40,10 @@ let showFloat (f:float) : showable = s2s (string_of_float f)
 
 let rec showStr (AbsMichelson.Str i) : showable = s2s "Str " >> showString i
 let rec showHex (AbsMichelson.Hex i) : showable = s2s "Hex " >> showString i
+let rec showNat (AbsMichelson.Nat i) : showable = s2s "Nat " >> showString i
 
 let rec showProg (e : AbsMichelson.prog) : showable = match e with
        AbsMichelson.Contract (typ0, typ, instrs) -> s2s "Contract" >> c2s ' ' >> c2s '(' >> showTyp typ0  >> s2s ", " >>  showTyp typ  >> s2s ", " >>  showList showInstr instrs >> c2s ')'
-  |    AbsMichelson.Code instrs -> s2s "Code" >> c2s ' ' >> c2s '(' >> showList showInstr instrs >> c2s ')'
 
 
 and showInte (e : AbsMichelson.inte) : showable = match e with
@@ -54,11 +54,11 @@ and showInte (e : AbsMichelson.inte) : showable = match e with
 and showData (e : AbsMichelson.data) : showable = match e with
        AbsMichelson.DInt inte -> s2s "DInt" >> c2s ' ' >> c2s '(' >> showInte inte >> c2s ')'
   |    AbsMichelson.DStr str -> s2s "DStr" >> c2s ' ' >> c2s '(' >> showStr str >> c2s ')'
-  |    AbsMichelson.DByte hex -> s2s "DByte" >> c2s ' ' >> c2s '(' >> showHex hex >> c2s ')'
+  |    AbsMichelson.DBytes hex -> s2s "DBytes" >> c2s ' ' >> c2s '(' >> showHex hex >> c2s ')'
   |    AbsMichelson.DUnit  -> s2s "DUnit"
   |    AbsMichelson.DTrue  -> s2s "DTrue"
   |    AbsMichelson.DFalse  -> s2s "DFalse"
-  |    AbsMichelson.DPair pairseqs -> s2s "DPair" >> c2s ' ' >> c2s '(' >> showList showPairSeq pairseqs >> c2s ')'
+  |    AbsMichelson.DPair (data, pairseqs) -> s2s "DPair" >> c2s ' ' >> c2s '(' >> showData data  >> s2s ", " >>  showList showPairSeq pairseqs >> c2s ')'
   |    AbsMichelson.DLeft data -> s2s "DLeft" >> c2s ' ' >> c2s '(' >> showData data >> c2s ')'
   |    AbsMichelson.DRight data -> s2s "DRight" >> c2s ' ' >> c2s '(' >> showData data >> c2s ')'
   |    AbsMichelson.DSome data -> s2s "DSome" >> c2s ' ' >> c2s '(' >> showData data >> c2s ')'
@@ -132,7 +132,7 @@ and showInstr (e : AbsMichelson.instr) : showable = match e with
   |    AbsMichelson.ADD  -> s2s "ADD"
   |    AbsMichelson.SUB  -> s2s "SUB"
   |    AbsMichelson.MUL  -> s2s "MUL"
-  |    AbsMichelson.EDIC  -> s2s "EDIC"
+  |    AbsMichelson.EDIV  -> s2s "EDIV"
   |    AbsMichelson.ABS  -> s2s "ABS"
   |    AbsMichelson.SNAT  -> s2s "SNAT"
   |    AbsMichelson.INT  -> s2s "INT"
@@ -184,11 +184,6 @@ and showInstr (e : AbsMichelson.instr) : showable = match e with
   |    AbsMichelson.OPEN_CHEST  -> s2s "OPEN_CHEST"
 
 
-and showTypeSeq (e : AbsMichelson.typeSeq) : showable = match e with
-       AbsMichelson.TTypSeq1 (typ0, typ) -> s2s "TTypSeq1" >> c2s ' ' >> c2s '(' >> showTyp typ0  >> s2s ", " >>  showTyp typ >> c2s ')'
-  |    AbsMichelson.TTypSeq2 (typ, typeseq) -> s2s "TTypSeq2" >> c2s ' ' >> c2s '(' >> showTyp typ  >> s2s ", " >>  showTypeSeq typeseq >> c2s ')'
-
-
 and showTyp (e : AbsMichelson.typ) : showable = match e with
        AbsMichelson.TCtype ctyp -> s2s "TCtype" >> c2s ' ' >> c2s '(' >> showCTyp ctyp >> c2s ')'
   |    AbsMichelson.TOperation  -> s2s "TOperation"
@@ -197,23 +192,22 @@ and showTyp (e : AbsMichelson.typ) : showable = match e with
   |    AbsMichelson.TList typ -> s2s "TList" >> c2s ' ' >> c2s '(' >> showTyp typ >> c2s ')'
   |    AbsMichelson.TSet ctyp -> s2s "TSet" >> c2s ' ' >> c2s '(' >> showCTyp ctyp >> c2s ')'
   |    AbsMichelson.TTicket ctyp -> s2s "TTicket" >> c2s ' ' >> c2s '(' >> showCTyp ctyp >> c2s ')'
-  |    AbsMichelson.TPair typeseq -> s2s "TPair" >> c2s ' ' >> c2s '(' >> showTypeSeq typeseq >> c2s ')'
+  |    AbsMichelson.TPair (typ, typeseqs) -> s2s "TPair" >> c2s ' ' >> c2s '(' >> showTyp typ  >> s2s ", " >>  showList showTypeSeq typeseqs >> c2s ')'
   |    AbsMichelson.TOr (typ0, typ) -> s2s "TOr" >> c2s ' ' >> c2s '(' >> showTyp typ0  >> s2s ", " >>  showTyp typ >> c2s ')'
   |    AbsMichelson.TLambda (typ0, typ) -> s2s "TLambda" >> c2s ' ' >> c2s '(' >> showTyp typ0  >> s2s ", " >>  showTyp typ >> c2s ')'
   |    AbsMichelson.TMap (ctyp, typ) -> s2s "TMap" >> c2s ' ' >> c2s '(' >> showCTyp ctyp  >> s2s ", " >>  showTyp typ >> c2s ')'
   |    AbsMichelson.TBig_map (ctyp, typ) -> s2s "TBig_map" >> c2s ' ' >> c2s '(' >> showCTyp ctyp  >> s2s ", " >>  showTyp typ >> c2s ')'
-  |    AbsMichelson.TBls_g1  -> s2s "TBls_g1"
-  |    AbsMichelson.TBls_g2  -> s2s "TBls_g2"
-  |    AbsMichelson.TBls_fr  -> s2s "TBls_fr"
+  |    AbsMichelson.TBls_381_g1  -> s2s "TBls_381_g1"
+  |    AbsMichelson.TBls_381_g2  -> s2s "TBls_381_g2"
+  |    AbsMichelson.TBls_381_fr  -> s2s "TBls_381_fr"
   |    AbsMichelson.TSapling_transaction integer -> s2s "TSapling_transaction" >> c2s ' ' >> c2s '(' >> showInt integer >> c2s ')'
   |    AbsMichelson.TSapling_state integer -> s2s "TSapling_state" >> c2s ' ' >> c2s '(' >> showInt integer >> c2s ')'
   |    AbsMichelson.TChest  -> s2s "TChest"
   |    AbsMichelson.TChest_key  -> s2s "TChest_key"
 
 
-and showCTypeSeq (e : AbsMichelson.cTypeSeq) : showable = match e with
-       AbsMichelson.CTypSeq1 (ctyp0, ctyp) -> s2s "CTypSeq1" >> c2s ' ' >> c2s '(' >> showCTyp ctyp0  >> s2s ", " >>  showCTyp ctyp >> c2s ')'
-  |    AbsMichelson.CTypSeq2 (ctyp, ctypeseq) -> s2s "CTypSeq2" >> c2s ' ' >> c2s '(' >> showCTyp ctyp  >> s2s ", " >>  showCTypeSeq ctypeseq >> c2s ')'
+and showTypeSeq (e : AbsMichelson.typeSeq) : showable = match e with
+       AbsMichelson.TypeSeq0 typ -> s2s "TypeSeq0" >> c2s ' ' >> c2s '(' >> showTyp typ >> c2s ')'
 
 
 and showCTyp (e : AbsMichelson.cTyp) : showable = match e with
@@ -233,7 +227,11 @@ and showCTyp (e : AbsMichelson.cTyp) : showable = match e with
   |    AbsMichelson.CAddress  -> s2s "CAddress"
   |    AbsMichelson.COption ctyp -> s2s "COption" >> c2s ' ' >> c2s '(' >> showCTyp ctyp >> c2s ')'
   |    AbsMichelson.COr (ctyp0, ctyp) -> s2s "COr" >> c2s ' ' >> c2s '(' >> showCTyp ctyp0  >> s2s ", " >>  showCTyp ctyp >> c2s ')'
-  |    AbsMichelson.CPair ctypeseq -> s2s "CPair" >> c2s ' ' >> c2s '(' >> showCTypeSeq ctypeseq >> c2s ')'
+  |    AbsMichelson.CPair (ctyp, ctypeseqs) -> s2s "CPair" >> c2s ' ' >> c2s '(' >> showCTyp ctyp  >> s2s ", " >>  showList showCTypeSeq ctypeseqs >> c2s ')'
+
+
+and showCTypeSeq (e : AbsMichelson.cTypeSeq) : showable = match e with
+       AbsMichelson.CTypeSeq0 ctyp -> s2s "CTypeSeq0" >> c2s ' ' >> c2s '(' >> showCTyp ctyp >> c2s ')'
 
 
 

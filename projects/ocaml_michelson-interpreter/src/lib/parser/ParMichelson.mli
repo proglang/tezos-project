@@ -4,6 +4,7 @@
 type token = 
   | TOK_String of (string)
   | TOK_Str of (string)
+  | TOK_Nat of (string)
   | TOK_Integer of (int)
   | TOK_Ident of (string)
   | TOK_Hex of (string)

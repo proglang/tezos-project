@@ -24,6 +24,7 @@ open Lexing
 %token <string> TOK_String
 %token <string> TOK_Str
 %token <string> TOK_Hex
+%token <string> TOK_Nat
 
 %start pProg
 %type <AbsMichelson.prog> pProg
@@ -36,7 +37,6 @@ pProg : prog TOK_EOF { $1 }
 
 prog : prog SYMB1 {  $1 }
   | KW_parameter typ SYMB1 KW_storage typ SYMB1 KW_code SYMB2 instr_list SYMB3 { Contract ($2, $5, $9) }
-  | instr_list { Code $1 }
 ;
 
 inte : int { DIntPos $1 }
@@ -51,13 +51,13 @@ data_list : /* empty */ { []  }
 data : SYMB5 data SYMB6 {  $2 }
   | inte { DInt $1 }
   | str { DStr $1 }
-  | hex { DByte $1 }
+  | hex { DBytes $1 }
   | KW_Unit { DUnit  }
   | KW_True { DTrue  }
   | KW_False { DFalse  }
-  | KW_Pair pairSeq_list { DPair $2 }
-  | KW_Left data { DLeft $2 }
-  | KW_Right data { DRight $2 }
+  | SYMB5 KW_Pair data pairSeq_list SYMB6 { DPair ($3, $4) }
+  | SYMB5 KW_Left data SYMB6 { DLeft $3 }
+  | SYMB5 KW_Right data SYMB6 { DRight $3 }
   | KW_Some data { DSome $2 }
   | KW_None { DNone  }
   | SYMB2 data_list SYMB3 { DBlock $2 }
@@ -140,7 +140,7 @@ instr : SYMB2 instr_list SYMB3 { BLOCK $2 }
   | KW_ADD { ADD  }
   | KW_SUB { SUB  }
   | KW_MUL { MUL  }
-  | KW_EDIV { EDIC  }
+  | KW_EDIV { EDIV  }
   | KW_ABS { ABS  }
   | KW_ISNAT { SNAT  }
   | KW_INT { INT  }
@@ -230,10 +230,6 @@ instr : SYMB2 instr_list SYMB3 { BLOCK $2 }
   | KW_IF_RIGHT SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IF_RIGHT ($3, $6) }
 ;
 
-typeSeq : typ typ { TTypSeq1 ($1, $2) }
-  | typ typeSeq { TTypSeq2 ($1, $2) }
-;
-
 typ : SYMB5 typ SYMB6 {  $2 }
   | cTyp { TCtype $1 }
   | KW_operation { TOperation  }
@@ -242,22 +238,25 @@ typ : SYMB5 typ SYMB6 {  $2 }
   | KW_list typ { TList $2 }
   | KW_set cTyp { TSet $2 }
   | KW_ticket cTyp { TTicket $2 }
-  | KW_pair typeSeq { TPair $2 }
+  | SYMB5 KW_pair typ typeSeq_list SYMB6 { TPair ($3, $4) }
   | KW_or typ typ { TOr ($2, $3) }
   | KW_lambda typ typ { TLambda ($2, $3) }
   | KW_map cTyp typ { TMap ($2, $3) }
   | KW_big_map cTyp typ { TBig_map ($2, $3) }
-  | KW_bls12_381_g1 { TBls_g1  }
-  | KW_bls12_381_g2 { TBls_g2  }
-  | KW_bls12_381_fr { TBls_fr  }
+  | KW_bls12_381_g1 { TBls_381_g1  }
+  | KW_bls12_381_g2 { TBls_381_g2  }
+  | KW_bls12_381_fr { TBls_381_fr  }
   | KW_sapling_transaction int { TSapling_transaction $2 }
   | KW_sapling_state int { TSapling_state $2 }
   | KW_chest { TChest  }
   | KW_chest_key { TChest_key  }
 ;
 
-cTypeSeq : cTyp cTyp { CTypSeq1 ($1, $2) }
-  | cTyp cTypeSeq { CTypSeq2 ($1, $2) }
+typeSeq_list : typeSeq { (fun x -> [x]) $1 }
+  | typeSeq typeSeq_list { (fun (x,xs) -> x::xs) ($1, $2) }
+;
+
+typeSeq : typ { TypeSeq0 $1 }
 ;
 
 cTyp : KW_unit { CUnit  }
@@ -276,12 +275,20 @@ cTyp : KW_unit { CUnit  }
   | KW_address { CAddress  }
   | KW_option cTyp { COption $2 }
   | KW_or cTyp cTyp { COr ($2, $3) }
-  | KW_pair cTypeSeq { CPair $2 }
+  | SYMB5 KW_pair cTyp cTypeSeq_list SYMB6 { CPair ($3, $4) }
+;
+
+cTypeSeq_list : cTypeSeq { (fun x -> [x]) $1 }
+  | cTypeSeq cTypeSeq_list { (fun (x,xs) -> x::xs) ($1, $2) }
+;
+
+cTypeSeq : cTyp { CTypeSeq0 $1 }
 ;
 
 
 int :  TOK_Integer  { $1 };
 str : TOK_Str { Str ($1)};
 hex : TOK_Hex { Hex ($1)};
+nat : TOK_Nat { Nat ($1)};
 
 

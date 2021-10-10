@@ -2,9 +2,9 @@
 
 type str = Str of string
 and hex = Hex of string
+and nat = Nat of string
 and prog =
    Contract of typ * typ * instr list
- | Code of instr list
 
 and inte =
    DIntPos of int
@@ -13,11 +13,11 @@ and inte =
 and data =
    DInt of inte
  | DStr of str
- | DByte of hex
+ | DBytes of hex
  | DUnit
  | DTrue
  | DFalse
- | DPair of pairSeq list
+ | DPair of data * pairSeq list
  | DLeft of data
  | DRight of data
  | DSome of data
@@ -88,7 +88,7 @@ and instr =
  | ADD
  | SUB
  | MUL
- | EDIC
+ | EDIV
  | ABS
  | SNAT
  | INT
@@ -139,10 +139,6 @@ and instr =
  | JOIN_TICKETS
  | OPEN_CHEST
 
-and typeSeq =
-   TTypSeq1 of typ * typ
- | TTypSeq2 of typ * typeSeq
-
 and typ =
    TCtype of cTyp
  | TOperation
@@ -151,22 +147,21 @@ and typ =
  | TList of typ
  | TSet of cTyp
  | TTicket of cTyp
- | TPair of typeSeq
+ | TPair of typ * typeSeq list
  | TOr of typ * typ
  | TLambda of typ * typ
  | TMap of cTyp * typ
  | TBig_map of cTyp * typ
- | TBls_g1
- | TBls_g2
- | TBls_fr
+ | TBls_381_g1
+ | TBls_381_g2
+ | TBls_381_fr
  | TSapling_transaction of int
  | TSapling_state of int
  | TChest
  | TChest_key
 
-and cTypeSeq =
-   CTypSeq1 of cTyp * cTyp
- | CTypSeq2 of cTyp * cTypeSeq
+and typeSeq =
+   TypeSeq0 of typ
 
 and cTyp =
    CUnit
@@ -185,7 +180,10 @@ and cTyp =
  | CAddress
  | COption of cTyp
  | COr of cTyp * cTyp
- | CPair of cTypeSeq
+ | CPair of cTyp * cTypeSeq list
+
+and cTypeSeq =
+   CTypeSeq0 of cTyp
 
 (* defined constructors *)
 

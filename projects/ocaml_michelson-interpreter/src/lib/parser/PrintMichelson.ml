@@ -86,10 +86,12 @@ let rec prtStr _ (AbsMichelson.Str i) : doc = render i
 let rec prtHex _ (AbsMichelson.Hex i) : doc = render i
 
 
+let rec prtNat _ (AbsMichelson.Nat i) : doc = render i
+
+
 
 let rec prtProg (i:int) (e : AbsMichelson.prog) : doc = match e with
        AbsMichelson.Contract (typ1, typ2, instrs) -> prPrec i 0 (concatD [render "parameter" ; prtTyp 0 typ1 ; render ";" ; render "storage" ; prtTyp 0 typ2 ; render ";" ; render "code" ; render "{" ; prtInstrListBNFC 0 instrs ; render "}"])
-  |    AbsMichelson.Code instrs -> prPrec i 0 (concatD [prtInstrListBNFC 0 instrs])
 
 
 and prtInte (i:int) (e : AbsMichelson.inte) : doc = match e with
@@ -100,13 +102,13 @@ and prtInte (i:int) (e : AbsMichelson.inte) : doc = match e with
 and prtData (i:int) (e : AbsMichelson.data) : doc = match e with
        AbsMichelson.DInt inte -> prPrec i 0 (concatD [prtInte 0 inte])
   |    AbsMichelson.DStr str -> prPrec i 0 (concatD [prtStr 0 str])
-  |    AbsMichelson.DByte hex -> prPrec i 0 (concatD [prtHex 0 hex])
+  |    AbsMichelson.DBytes hex -> prPrec i 0 (concatD [prtHex 0 hex])
   |    AbsMichelson.DUnit  -> prPrec i 0 (concatD [render "Unit"])
   |    AbsMichelson.DTrue  -> prPrec i 0 (concatD [render "True"])
   |    AbsMichelson.DFalse  -> prPrec i 0 (concatD [render "False"])
-  |    AbsMichelson.DPair pairseqs -> prPrec i 0 (concatD [render "Pair" ; prtPairSeqListBNFC 0 pairseqs])
-  |    AbsMichelson.DLeft data -> prPrec i 0 (concatD [render "Left" ; prtData 0 data])
-  |    AbsMichelson.DRight data -> prPrec i 0 (concatD [render "Right" ; prtData 0 data])
+  |    AbsMichelson.DPair (data, pairseqs) -> prPrec i 0 (concatD [render "(" ; render "Pair" ; prtData 0 data ; prtPairSeqListBNFC 0 pairseqs ; render ")"])
+  |    AbsMichelson.DLeft data -> prPrec i 0 (concatD [render "(" ; render "Left" ; prtData 0 data ; render ")"])
+  |    AbsMichelson.DRight data -> prPrec i 0 (concatD [render "(" ; render "Right" ; prtData 0 data ; render ")"])
   |    AbsMichelson.DSome data -> prPrec i 0 (concatD [render "Some" ; prtData 0 data])
   |    AbsMichelson.DNone  -> prPrec i 0 (concatD [render "None"])
   |    AbsMichelson.DBlock datas -> prPrec i 0 (concatD [render "{" ; prtDataListBNFC 0 datas ; render "}"])
@@ -187,7 +189,7 @@ and prtInstr (i:int) (e : AbsMichelson.instr) : doc = match e with
   |    AbsMichelson.ADD  -> prPrec i 0 (concatD [render "ADD"])
   |    AbsMichelson.SUB  -> prPrec i 0 (concatD [render "SUB"])
   |    AbsMichelson.MUL  -> prPrec i 0 (concatD [render "MUL"])
-  |    AbsMichelson.EDIC  -> prPrec i 0 (concatD [render "EDIV"])
+  |    AbsMichelson.EDIV  -> prPrec i 0 (concatD [render "EDIV"])
   |    AbsMichelson.ABS  -> prPrec i 0 (concatD [render "ABS"])
   |    AbsMichelson.SNAT  -> prPrec i 0 (concatD [render "ISNAT"])
   |    AbsMichelson.INT  -> prPrec i 0 (concatD [render "INT"])
@@ -242,11 +244,6 @@ and prtInstrListBNFC i es : doc = match (i, es) with
     (_,[]) -> (concatD [])
   | (_,[x]) -> (concatD [prtInstr 0 x])
   | (_,x::xs) -> (concatD [prtInstr 0 x ; render ";" ; prtInstrListBNFC 0 xs])
-and prtTypeSeq (i:int) (e : AbsMichelson.typeSeq) : doc = match e with
-       AbsMichelson.TTypSeq1 (typ1, typ2) -> prPrec i 0 (concatD [prtTyp 0 typ1 ; prtTyp 0 typ2])
-  |    AbsMichelson.TTypSeq2 (typ, typeseq) -> prPrec i 0 (concatD [prtTyp 0 typ ; prtTypeSeq 0 typeseq])
-
-
 and prtTyp (i:int) (e : AbsMichelson.typ) : doc = match e with
        AbsMichelson.TCtype ctyp -> prPrec i 0 (concatD [prtCTyp 0 ctyp])
   |    AbsMichelson.TOperation  -> prPrec i 0 (concatD [render "operation"])
@@ -255,25 +252,27 @@ and prtTyp (i:int) (e : AbsMichelson.typ) : doc = match e with
   |    AbsMichelson.TList typ -> prPrec i 0 (concatD [render "list" ; prtTyp 0 typ])
   |    AbsMichelson.TSet ctyp -> prPrec i 0 (concatD [render "set" ; prtCTyp 0 ctyp])
   |    AbsMichelson.TTicket ctyp -> prPrec i 0 (concatD [render "ticket" ; prtCTyp 0 ctyp])
-  |    AbsMichelson.TPair typeseq -> prPrec i 0 (concatD [render "pair" ; prtTypeSeq 0 typeseq])
+  |    AbsMichelson.TPair (typ, typeseqs) -> prPrec i 0 (concatD [render "(" ; render "pair" ; prtTyp 0 typ ; prtTypeSeqListBNFC 0 typeseqs ; render ")"])
   |    AbsMichelson.TOr (typ1, typ2) -> prPrec i 0 (concatD [render "or" ; prtTyp 0 typ1 ; prtTyp 0 typ2])
   |    AbsMichelson.TLambda (typ1, typ2) -> prPrec i 0 (concatD [render "lambda" ; prtTyp 0 typ1 ; prtTyp 0 typ2])
   |    AbsMichelson.TMap (ctyp, typ) -> prPrec i 0 (concatD [render "map" ; prtCTyp 0 ctyp ; prtTyp 0 typ])
   |    AbsMichelson.TBig_map (ctyp, typ) -> prPrec i 0 (concatD [render "big_map" ; prtCTyp 0 ctyp ; prtTyp 0 typ])
-  |    AbsMichelson.TBls_g1  -> prPrec i 0 (concatD [render "bls12_381_g1"])
-  |    AbsMichelson.TBls_g2  -> prPrec i 0 (concatD [render "bls12_381_g2"])
-  |    AbsMichelson.TBls_fr  -> prPrec i 0 (concatD [render "bls12_381_fr"])
+  |    AbsMichelson.TBls_381_g1  -> prPrec i 0 (concatD [render "bls12_381_g1"])
+  |    AbsMichelson.TBls_381_g2  -> prPrec i 0 (concatD [render "bls12_381_g2"])
+  |    AbsMichelson.TBls_381_fr  -> prPrec i 0 (concatD [render "bls12_381_fr"])
   |    AbsMichelson.TSapling_transaction integer -> prPrec i 0 (concatD [render "sapling_transaction" ; prtInt 0 integer])
   |    AbsMichelson.TSapling_state integer -> prPrec i 0 (concatD [render "sapling_state" ; prtInt 0 integer])
   |    AbsMichelson.TChest  -> prPrec i 0 (concatD [render "chest"])
   |    AbsMichelson.TChest_key  -> prPrec i 0 (concatD [render "chest_key"])
 
 
-and prtCTypeSeq (i:int) (e : AbsMichelson.cTypeSeq) : doc = match e with
-       AbsMichelson.CTypSeq1 (ctyp1, ctyp2) -> prPrec i 0 (concatD [prtCTyp 0 ctyp1 ; prtCTyp 0 ctyp2])
-  |    AbsMichelson.CTypSeq2 (ctyp, ctypeseq) -> prPrec i 0 (concatD [prtCTyp 0 ctyp ; prtCTypeSeq 0 ctypeseq])
+and prtTypeSeq (i:int) (e : AbsMichelson.typeSeq) : doc = match e with
+       AbsMichelson.TypeSeq0 typ -> prPrec i 0 (concatD [prtTyp 0 typ])
 
-
+and prtTypeSeqListBNFC i es : doc = match (i, es) with
+    (_,[]) -> (concatD [])
+  | (_,[x]) -> (concatD [prtTypeSeq 0 x])
+  | (_,x::xs) -> (concatD [prtTypeSeq 0 x ; prtTypeSeqListBNFC 0 xs])
 and prtCTyp (i:int) (e : AbsMichelson.cTyp) : doc = match e with
        AbsMichelson.CUnit  -> prPrec i 0 (concatD [render "unit"])
   |    AbsMichelson.CNever  -> prPrec i 0 (concatD [render "never"])
@@ -291,7 +290,14 @@ and prtCTyp (i:int) (e : AbsMichelson.cTyp) : doc = match e with
   |    AbsMichelson.CAddress  -> prPrec i 0 (concatD [render "address"])
   |    AbsMichelson.COption ctyp -> prPrec i 0 (concatD [render "option" ; prtCTyp 0 ctyp])
   |    AbsMichelson.COr (ctyp1, ctyp2) -> prPrec i 0 (concatD [render "or" ; prtCTyp 0 ctyp1 ; prtCTyp 0 ctyp2])
-  |    AbsMichelson.CPair ctypeseq -> prPrec i 0 (concatD [render "pair" ; prtCTypeSeq 0 ctypeseq])
+  |    AbsMichelson.CPair (ctyp, ctypeseqs) -> prPrec i 0 (concatD [render "(" ; render "pair" ; prtCTyp 0 ctyp ; prtCTypeSeqListBNFC 0 ctypeseqs ; render ")"])
 
 
+and prtCTypeSeq (i:int) (e : AbsMichelson.cTypeSeq) : doc = match e with
+       AbsMichelson.CTypeSeq0 ctyp -> prPrec i 0 (concatD [prtCTyp 0 ctyp])
+
+and prtCTypeSeqListBNFC i es : doc = match (i, es) with
+    (_,[]) -> (concatD [])
+  | (_,[x]) -> (concatD [prtCTypeSeq 0 x])
+  | (_,x::xs) -> (concatD [prtCTypeSeq 0 x ; prtCTypeSeqListBNFC 0 xs])
 
