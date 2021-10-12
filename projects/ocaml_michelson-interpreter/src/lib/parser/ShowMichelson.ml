@@ -40,7 +40,6 @@ let showFloat (f:float) : showable = s2s (string_of_float f)
 
 let rec showStr (AbsMichelson.Str i) : showable = s2s "Str " >> showString i
 let rec showHex (AbsMichelson.Hex i) : showable = s2s "Hex " >> showString i
-let rec showNat (AbsMichelson.Nat i) : showable = s2s "Nat " >> showString i
 
 let rec showProg (e : AbsMichelson.prog) : showable = match e with
        AbsMichelson.Contract (typ0, typ, instrs) -> s2s "Contract" >> c2s ' ' >> c2s '(' >> showTyp typ0  >> s2s ", " >>  showTyp typ  >> s2s ", " >>  showList showInstr instrs >> c2s ')'

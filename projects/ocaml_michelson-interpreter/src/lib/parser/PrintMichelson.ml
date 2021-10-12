@@ -86,9 +86,6 @@ let rec prtStr _ (AbsMichelson.Str i) : doc = render i
 let rec prtHex _ (AbsMichelson.Hex i) : doc = render i
 
 
-let rec prtNat _ (AbsMichelson.Nat i) : doc = render i
-
-
 
 let rec prtProg (i:int) (e : AbsMichelson.prog) : doc = match e with
        AbsMichelson.Contract (typ1, typ2, instrs) -> prPrec i 0 (concatD [render "parameter" ; prtTyp 0 typ1 ; render ";" ; render "storage" ; prtTyp 0 typ2 ; render ";" ; render "code" ; render "{" ; prtInstrListBNFC 0 instrs ; render "}"])

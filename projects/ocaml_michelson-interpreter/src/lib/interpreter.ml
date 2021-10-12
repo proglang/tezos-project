@@ -15,25 +15,27 @@ type tx_data = { (* transaction parameters *)
 
 type union = L | R
 type value =
-  | IOperation
-  | IContract of string
-  | IOption of value option (* * AbsMichelson.typ ?*) (* some and none ?? *)
-  | IList of AbsMichelson.typ * value list
-  | ISet of AbsMichelson.typ * value list (* FIXME set with comparator witness for all ctypes?*)
-  | ITicket of value * value * value (* TODO: first value should be IPair *)
-  | IPair of value * value
-  | IPair_n of value list
-  | IOr of AbsMichelson.typ * union * value (* typ is the type of the other union side *)
-  | ILambda of (AbsMichelson.typ * AbsMichelson.typ) * AbsMichelson.instr list
-  | IMap of (AbsMichelson.typ * AbsMichelson.typ) * (value * value) list (* FIXME use Map? comparator witness for each key ctyp?*)
-  | IBig_map of (AbsMichelson.typ * AbsMichelson.typ) * (value * value) list
-  | IBls_381_g1 of string (* ?? *)
+  | IOperation of typ (* TODO: contract type? *)
+  | IContract of typ * string (* TODO: Contract type? *)
+  | IList of typ * value list
+  | ISet of typ * value list (* FIXME set with comparator witness for all ctypes?*)
+  | ITicket of value * value * value (* TODO: first 'value'=IPair *)
+  | ILambda of (typ * typ) * instr list
+  | IMap of (typ * typ) * (value * value) list (* FIXME use Map? comparator witness for each key ctyp?*)
+  | IBig_map of (typ * typ) * (value * value) list
+  | IBls_381_g1 of string (* FIXME types and operations on this values *)
   | IBls_381_g2 of string
   | IBls_381_fr of string
-  | ISapling_transaction
+  | ISapling_transaction (* TODO: saplings are maybe to be removed? *)
   | ISapling_state
-  | IChest
-  | IChest_key
+  | IChest of value * value (* TODO bytes * 'parameters to open it' *)
+  | IChest_key of value (* TODO Key or Key_hash ? *)
+  (* dual types *)
+  | IOption of typ * value option
+  | IPair of value * value
+  | IPair_n of value list (*TODO: maybe as a tree for right combs? or just use Pair(Pair(Pair...))) or some structure (set) with access in O(1) *)
+  | IOr of typ * union * value (* typ is the type of the other/unused union side *)
+  (* comparable types *)
   | IUnit
   | INever
   | IBool of bool
@@ -48,74 +50,351 @@ type value =
   | ISignature of string
   | ITimestamp of Z.t
   | IAddress of string
+type typ =
+  | TOperation of typ
+  | TContract of typ
+  | TList of typ
+  | TSet of typ
+  | TTicket (* TODO *)
+  | TLambda of typ * typ
+  | TMap of typ * typ
+  | TBig_map of typ * typ
+  | TBls_381_g1
+  | TBls_381_g2
+  | TBls_381_fr
+  | TSapling_transaction
+  | TSapling_state
+  | TChest
+  | TChest_key
+  (* dual (comparable/not comparable) types *)
+  | TOption of typ
+  | TPair of typ * typ
+  | TPair_n (* TODO: typ list for 'Pair n' or ignore types ? *)
+  | TOr of typ * typ
+  (* comparable types *)
+  | TUnit
+  | TNever
+  | TBool
+  | TInt
+  | TNat
+  | TString
+  | TChain_id
+  | TBytes
+  | TMutez
+  | TKey_hash
+  | TKey
+  | TSignature
+  | TTimestamp
+  | TAddress
 
-type typ = ... (* FIXME typ or AbsMichelson.typ ? *)
-
-(*
-First try to include comparators
-maybe it would be the best to create three variants:
-type nvalue = ... (like type value above)
-type cvlaue = | Cint | ...
-type value = nvalue | cvalue
-in order to work with comnparable types / comparisons
-or maybe it is easier to add new comparable type in the value variant (having e.g. two types of pairs there))
-*)
-let comparator (v : value) =
-  if (List.exists comparable ~f:(fun x -> x <> v) then None
-  else match v with
-  | ICint(_) -> module String
-  | ICPair(____) -> moduel Pair
-
-
-(*let rec typeof (v : value) =
+let rec typeof (v : value) =
   match v with
-  *)
+  | IOperation(ty)        -> TOperation(ty)
+  | IContract(ty, _)      -> TContract(ty)
+  | IOption(ty, _)        -> TOption(ty)
+  | IList(ty, _)          -> IList(ty)
+  | ISet(ty, _)           -> TSet(ty)
+  | ITicket(_)            -> TTicket
+  | IPair(v0, v)          -> TPair(typeof(v0), typeof(v))
+  | IPair_n(_)            -> TPair_n
+  | IOr(ty, union, x)     -> TOr(ty, typeof(x))
+  | ILambda(ty0, ty)      -> TLambda(ty0, ty)
+  | IMap(ty0, ty)         -> TMap(ty0, ty)
+  | IBig_map(ty0, ty)     -> TBig_map(ty0, ty)
+  | IBls_381_g1(_)        -> TBls_381_g1
+  | IBls_381_g2(_)        -> TBls_381_g2
+  | IBls_381_fr(_)        -> TBls_381_fr
+  | ISapling_transaction  -> TSapling_transaction
+  | ISapling_state        -> TSapling_state
+  | IChest(_)             -> TChest
+  | IChest_key(_)         -> TChest_key
+  (* comparable types *)
+  | IUnit                 -> TUnit
+  | INever                -> TNever
+  | IBool(_)              -> TBool
+  | IInt(_)               -> TInt
+  | INat(_)               -> TNat
+  | IString(_)            -> TString
+  | IChain_id(_)          -> TChain_id
+  | IBytes(_)             -> TBytes
+  | IMutez(_)             -> TMutez
+  | IKey_hash(_)          -> TKey_hash
+  | IKey(_)               -> TKey
+  | ISignature(_)         -> TSignature
+  | ITimestamp(_)         -> TTimestamp
+  | IAddress(_)           -> TAddress
 
-(*let comparable : AbsMichelson.cTyp list = [
-  CUnit ;
-  CNever ;
-  CBool ;
-  CInt ;
-  CNat ;
-  CString ;
-  CChain_id ;
-  CBytes ;
-  CMutez ;
-  CKey_hash ;
-  CKey ;
-  CSignature ;
-  CTimestamp ;
-  CAddress ;
-  COption ;
-  COr ;
-  CPair ;
-]
+(* TODO First try of a function that returns comparators/the modules for comparable types (needed for Sets and Maps) *)
+(*let comparator (t : typ) =
+  else match v with
+  | TOption(ty) -> comparable ty
+  | TOr(ty0, ty)
+  | TPair(ty0, ty) -> comparable ty0 && ty
+  | TPair_n
+  | TUnit
+  | TNever
+  | TBool
+  | TInt -> module Int
+  | TNat ->
+  | TString
+  | TChain_id
+  | TBytes
+  | TMutez
+  | TKey_hash
+  | TKey
+  | TSignature
+  | TTimestamp
+  | TAddress -> true
+  | _ -> raise failwith "comparator casted for not comparable type"*)
 
-let is_comparable token1 token2 : bool =
-  if (token1 = token2 and List.mem token1 comparable) then true
-  else false (* TODO: raise exception *)*)
+(* Type class membership checker functions *)
+(* FIXME: (e.g.) operation is not storable, but NIL operation (list of type operation) is to be stored at the end of the contract
+ -> does that mean that some types are 'part' of a class as long as they are wrapped in a pair/list/... ?
+ https://tezos.gitlab.io/michelson-reference/#type-operation *)
+let rec comparable (t : typ) : bool =
+  match t with
+  | TOption(ty) -> comparable ty
+  | TOr(ty0, ty)
+  | TPair(ty0, ty) -> comparable ty0 && ty
+  | TPair_n
+  | TUnit
+  | TNever
+  | TBool
+  | TInt
+  | TNat
+  | TString
+  | TChain_id
+  | TBytes
+  | TMutez
+  | TKey_hash
+  | TKey
+  | TSignature
+  | TTimestamp
+  | TAddress -> true
+  | _ -> false
+let rec duplicable (t: typ) : bool =
+  match t with
+  (* all types except ticket are duplicable *)
+  | TOperation(ty)
+  | TContract(ty)
+  | TList(ty)
+  | TSet(ty) -> duplicable ty
+  | TLambda(ty0, ty)
+  | TMap(ty0, ty)
+  | TBig_map(ty0, ty) -> duplicable ty0 && duplicable ty
+  | TBls_381_g1
+  | TBls_381_g2
+  | TBls_381_fr
+  | TSapling_transaction
+  | TSapling_state
+  | TChest
+  | TChest_key -> true
+  | TOption(ty) -> duplicable ty
+  | TOr(ty0, ty)
+  | TPair(ty0, ty) -> duplicable ty0 && ty
+  | TPair_n
+  | TUnit
+  | TNever
+  | TBool
+  | TInt
+  | TNat
+  | TString
+  | TChain_id
+  | TBytes
+  | TMutez
+  | TKey_hash
+  | TKey
+  | TSignature
+  | TTimestamp
+  | TAddress -> true
+  | _ -> false
+let rec packable (t : typ) : bool =
+  match t with
+  | TContract(ty)
+  | TList(ty)
+  | TSet(ty) -> packable ty
+  | TLambda(ty0, ty)
+  | TMap(ty0, ty) -> packable ty0 && ty
+  | TBls_381_g1
+  | TBls_381_g2
+  | TBls_381_fr
+  | TSapling_transaction
+  | TChest
+  | TChest_key -> true
+  | TOption(ty) -> packable ty
+  | TOr(ty0, ty)
+  | TPair(ty0, ty) -> packable ty0 && ty
+  | TPair_n
+  | TUnit
+  | TNever
+  | TBool
+  | TInt
+  | TNat
+  | TString
+  | TChain_id
+  | TBytes
+  | TMutez
+  | TKey_hash
+  | TKey
+  | TSignature
+  | TTimestamp
+  | TAddress -> true
+  | _ -> false
+let rec pushable (t: typ) : bool =
+  match t with
+  | TList(ty)
+  | TSet(ty) -> packable ty
+  | TLambda(ty0, ty)
+  | TMap(ty0, ty) -> packable ty0 && ty
+  | TBls_381_g1
+  | TBls_381_g2
+  | TBls_381_fr
+  | TSapling_transaction
+  | TChest
+  | TChest_key -> true
+  | TOption(ty) -> packable ty
+  | TOr(ty0, ty)
+  | TPair(ty0, ty) -> packable ty0 && ty
+  | TPair_n
+  | TUnit
+  | TNever
+  | TBool
+  | TInt
+  | TNat
+  | TString
+  | TChain_id
+  | TBytes
+  | TMutez
+  | TKey_hash
+  | TKey
+  | TSignature
+  | TTimestamp
+  | TAddress -> true
+  | _ -> false
+let rec storable (t: typ) : bool =
+  match t with
+  (* all types except contract and operation are duplicable *)
+  | TTicket -> true
+  | TList(ty)
+  | TSet(ty) -> duplicable ty
+  | TLambda(ty0, ty)
+  | TMap(ty0, ty)
+  | TBig_map(ty0, ty) -> duplicable ty0 && duplicable ty
+  | TBls_381_g1
+  | TBls_381_g2
+  | TBls_381_fr
+  | TSapling_transaction
+  | TSapling_state
+  | TChest
+  | TChest_key -> true
+  | TOption(ty) -> duplicable ty
+  | TOr(ty0, ty)
+  | TPair(ty0, ty) -> duplicable ty0 && ty
+  | TPair_n
+  | TUnit
+  | TNever
+  | TBool
+  | TInt
+  | TNat
+  | TString
+  | TChain_id
+  | TBytes
+  | TMutez
+  | TKey_hash
+  | TKey
+  | TSignature
+  | TTimestamp
+  | TAddress -> true
+  | _ -> false
+let passable (t: typ) : bool =
+  match t with
+  | TContract(ty)
+  | TList(ty)
+  | TSet(ty) -> duplicable ty
+  | TLambda(ty0, ty)
+  | TMap(ty0, ty) -> duplicable ty0 && duplicable ty
+  | TBls_381_g1
+  | TBls_381_g2
+  | TBls_381_fr
+  | TSapling_transaction
+  | TChest
+  | TChest_key -> true
+  | TOption(ty) -> duplicable ty
+  | TOr(ty0, ty)
+  | TPair(ty0, ty) -> duplicable ty0 && ty
+  | TPair_n (* TODO *)
+  | TUnit
+  | TNever
+  | TBool
+  | TInt
+  | TNat
+  | TString
+  | TChain_id
+  | TBytes
+  | TMutez
+  | TKey_hash
+  | TKey
+  | TSignature
+  | TTimestamp
+  | TAddress -> true
+  | _ -> false
+let big_map_domain (t: typ) : bool =
+  match t with
+  | TTicket -> true
+  | TList(ty)
+  | TSet(ty) -> duplicable ty
+  | TLambda(ty0, ty)
+  | TMap(ty0, ty) -> duplicable ty0 && duplicable ty
+  | TBls_381_g1
+  | TBls_381_g2
+  | TBls_381_fr
+  | TSapling_transaction
+  | TChest
+  | TChest_key -> true
+  | TOption(ty) -> duplicable ty
+  | TOr(ty0, ty)
+  | TPair(ty0, ty) -> duplicable ty0 && ty
+  | TPair_n
+  | TUnit
+  | TNever
+  | TBool
+  | TInt
+  | TNat
+  | TString
+  | TChain_id
+  | TBytes
+  | TMutez
+  | TKey_hash
+  | TKey
+  | TSignature
+  | TTimestamp
+  | TAddress -> true
+  | _ -> false
 
-
-(*let rec drop n lst =
-   if n = 0 then lst else (drop n-1 (match lst with _ :: tl -> tl))
-let dup n lst =
-   if n = 0 then lst else
-    match lst with
-      x :: tl -> List.init n ~f(fun y -> x)
-      [] -> assert*)
 
 exception Illegal_Instruction of string * AbsMichelson.instr
-exception InstrTypeError of string * AbsMichelson.instr * value list
-exception TypeError of string * AbsMichelson.instr * AbsMichelson.typ * AbsMichelson.typ
+exception StackTypeError of string * AbsMichelson.instr * typ list
+let raise_InstrValue_Mismatch (instr : AbsMichelson.instr) (x : value list) = raise StackTypeError ("Instr & Stack value type mismatch", instr, List.map x ~f:(fun x -> typeof(x)))
+exception TypeError of string * AbsMichelson.instr * (typ * typ)
 exception Failwith of string * value
 (* TODO: error reporting with stack typing *)
-let raise_InstrValue_Mismatch (instr : AbsMichelson.instr) (x : value list) = raise InstrTypeError ("Instr & Stack value type mismatch", instr, x)
 
 (* minor evaluation/helper functions *)
+let drop_n (n : int) (lst : value list) : value =
+   if n = 0 then lst
+   else if (List.length lst < n) then raise Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.DROP_N (n))
+   else List.drop stack integer
+let dup_n (n : int) (x : value) (lst : value list) : value =
+  if n = 0 then raise Illegal_Instruction ("'n'=0 is illegal", AbsMichelson.DUP_N)
+  else if (pushable(typeof(x))) then
+    match List.nth lst (n - 1) with
+    | Some x -> x
+    | None -> raise Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.DUP_N (n))
+  else raise_InstrValue_Mismatch instr [x]
 let dig_n (n : int) (lst : value list) : value list =
   let (fst, snd) = List.split_n lst n in
   match (fst, snd) with
-  | ([], _) -> raise Illegal_Instruction ("DIG 0 is illegal", AbsMichelson.DIG_N (n)))
+  | ([], _) -> raise Illegal_Instruction ("DIG 0 is illegal", AbsMichelson.DIG_N (n))
   | (fst, (x :: st)) -> x :: (fst @ st)
   | (_, []) -> raise Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.DIG_N (n))
 let dug_n (n : int) (lst : value list) : value list =
@@ -125,11 +404,13 @@ let dug_n (n : int) (lst : value list) : value list =
   | ((x :: st), snd) -> st @ (x :: snd)
   | ([], _) -> raise Illegal_Instruction ("DUG 0 is illegal", AbsMichelson.DUG_N (n))
 let pair_n (n : int) (lst : value list) : value list =
-  let (fst, snd) = List.split_n lst n in
-  match (fst, snd) with
-  | (_, []) -> raise Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.PAIR_N (n))
-  | ([], _) -> raise Illegal_Instruction ("PAIR 0 is illegal", AbsMichelson.PAIR_N (n))
-  | (fst, snd) -> IPair_n (fst) :: snd
+  if (n <= 1) then raise Illegal_Instruction ("'n' needs to be higher then 1", AbsMichelson.PAIR_N (n))
+  else
+    let (fst, snd) = List.split_n lst n in
+    match (fst, snd) with
+    | (_, []) -> raise Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.PAIR_N (n))
+    (* Note: case ([], _) does not happen because of the if(n<=1) before*)
+    | (fst, snd) -> IPair_n (fst) :: snd
 let unpair_n (n : int) (lst : value list) (values : value list) : value list =
   if (List.length values <> n) then raise Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.UNPAIR_N (n))
   else if (n <= 1) then raise Illegal_Instruction ("'n' needs to be higher then 1", AbsMichelson.UNPAIR_N (n))
@@ -158,7 +439,7 @@ let map_list (instrs : AbsMichelson.instr list) typ (lst : value list) (st : val
     )
     in
     let (new_st, lst) = List.fold_map lst ~init:st ~f:(f instrs data) in (* val fold_map : 'a t -> init:'b -> f:('b -> 'a -> 'b * 'c) -> 'b * 'c t *)
-    IList(typeof((List.hd lst), lst) :: new_st
+    IList(typeof(List.hd lst), lst) :: new_st
 let map_map (instrs : AbsMichelson.instr list) typ (lst : value list) (st : value list) (data : tx_data) : value list =
   (* key value pairs are handeled as pairs! *)
   if (List.is_empty lst) then IMap(typ, lst) :: st
@@ -169,7 +450,7 @@ let map_map (instrs : AbsMichelson.instr list) typ (lst : value list) (st : valu
     )
     in
     let (new_st, new_lst) = List.fold_map lst ~init:st ~f:(f instrs data) in
-    IMap(typeof((List.hd new_lst), new_lst) :: new_st
+    IMap(typeof(List.hd new_lst), new_lst) :: new_st
 (* ITER instr *)
 let iter_list (instrs : AbsMichelson.instr list) typ (lst : value list) (st : value list) (data : tx_data) : value list =
   if (List.is_empty lst) then st
@@ -184,7 +465,7 @@ let iter_map (instrs : AbsMichelson.instr list) typ (lst : value list) (st : val
   if (List.is_empty lst) then IMap(typ, lst) :: st
   else
     let f instrs data  = ( fun acc el ->
-      evalList evalInstr instrs (IPair(fst el, snd el) :: acc) data in
+      evalList evalInstr instrs (IPair(fst el, snd el) :: acc) data
     )
     in
     List.fold lst ~init:st ~f:(f instrs data)
@@ -203,14 +484,16 @@ let mem_big_map (instrs : AbsMichelson.instr list) (x : value) typ (lst : value 
   IBool(bool) :: st
 (* GET instr*)
 let get_map (instrs : AbsMichelson.instr list) (x : value) typ (lst : value list) (st : value list) (data : tx_data) : value list =
+  ()
   (* TODO: implementation depending on if map is implemented as List or Map
   maybe using List.find_map?
-  returns IOption(None/Some z):: st
+  returns IOption(evalTyp typ, None/Some z):: st
   *)
 let get_big_map (instrs : AbsMichelson.instr list) (x : value) typ (lst : value list) (st : value list) (data : tx_data) : value list =
+  ()
   (* TODO: implementation depending on if big_map is implemented as List or Map
   maybe using List.find_map?
-  returns IOption(None/Some z):: st
+  returns IOption(evalTyp typ, None/Some z):: st
   *)
 
 (*(* LOOP instr *)
@@ -230,16 +513,16 @@ let rec loop_left (instrs : AbsMichelson.instr list) (st : value list) (data : t
 
 (* EXEC instr *)
 let exec (x : value) (y : value) (data : tx_data) : value =
-  let f (instrs : AbsMichelson.instrs list) (ty : AbsMichelson.typ * AbsMichelson.typ) (data : tx_data) =
-    if (typeof(x) = fst ty) then
+  let f (instrs : AbsMichelson.instrs list) (tys : AbsMichelson.typ * AbsMichelson.typ) (data : tx_data) =
+    if (typeof(x) = fst tys) then
       let st = evalList evalInstr instrs [x] data in
       match st with
-      | [z] -> if (typeof(z) = snd ty) then z else raise TypeError ("Lambda output type mismatch", AbsMichelson.EXEC, typeof(rst), snd ty)
+      | [z] -> if (typeof(z) = snd tys) then z else raise TypeError ("Lambda output type mismatch", AbsMichelson.EXEC, (typeof(rst), snd tys))
       | _ -> raise Illegal_Instruction ("Lambda output should be exactly one value", AbsMichelson.EXEC)
-    else raise TypeError ("Lambda input type mismatch", AbsMichelson.EXEC, typeof(x), fst ty)
+    else raise TypeError ("Lambda input type mismatch", AbsMichelson.EXEC, (typeof(x), fst tys))
   in
   match y with
-  | ILambda(ty, instrs) -> f instrs ty data
+  | ILambda(tys, instrs) -> f instrs tys data
   | _ -> raise_InstrValue_Mismatch AbsMichelson.EXEC [x; y]
 
 (* DIP_n instr *)
@@ -254,7 +537,7 @@ let dip_n (instrs : AbsMichelson.instr list) (n : int) (st : value list) (data :
 
 
 (* main evaluation functions *)
-let evalList (evalFun : 'a -> (stack : value list) (data : tx_data) -> value list (*FIXME: possibly more polymorphism needed*)) (xs : 'a list) (st : value list) (data : tx_data) : value list =
+let evalList (evalFun : 'a -> (stack : value list) -> (data : tx_data) -> value list (*FIXME: possibly more polymorphism needed?*)) (xs : 'a list) (st : value list) (data : tx_data) : value list =
   let rec f ys stack data = match ys with
     | [] -> st
     | [y] -> evalFun y st data
@@ -263,28 +546,31 @@ let evalList (evalFun : 'a -> (stack : value list) (data : tx_data) -> value lis
   f xs st data;
 
 let rec evalInstr (instr : AbsMichelson.instr) (st : value list) (data : tx_data) : value list =
-  (* if an instruction works on an existing stack, then these match cases are programmed such that they either
-   do not match if the stack does not contain the expected number of values
+  (* Error Reporting: if an instruction works on an existing stack, then these match cases are programmed such that they either
+   do not match if the stack does not contain the expected number of values (wich causes the last match case to throw an exception)
    or they match, but raise an error in the subsequent evaluation if the number of values is not enough
-   and if they match an errors is thrown for illegal value types *)
+   and if they match, then an error is thrown for illegal value types *)
   match (instr, stack) with
   | (AbsMichelson.BLOCK instrs, _) ->  evalList evalInstr instrs stack data
   | (AbsMichelson.DROP, (_ :: st)) -> st
-  | (AbsMichelson.DROP_N integer, _) -> List.drop stack integer (* if Ocaml.typeof(integer)=string use int_of_string(integer) *)
-  | (AbsMichelson.DUP, (x :: _)) -> x :: stack
-  | (AbsMichelson.DUP_N integer, (x :: _)) -> (List.init n ~f(fun _ -> x)) @ stack
+  | (AbsMichelson.DROP_N integer, _) -> drop_n integer stack
+  | (AbsMichelson.DUP, (x :: _)) -> dup_n 1 x stack @ stack
+  | (AbsMichelson.DUP_N integer, (x :: _)) -> dup_n integer x stack @ stack
   | (AbsMichelson.SWAP, (x :: y :: st)) -> y :: x :: st
   | (AbsMichelson.DIG_N integer, _) -> dig_n integer stack
   | (AbsMichelson.DUG_N integer, _) ->  dug_n integer stack
-  | (AbsMichelson.PUSH (typ, data), _) -> (evalValue typ data) :: stack)
-  | (AbsMichelson.SOME, (x :: st)) ->  IOption (Some x) :: st
-  | (AbsMichelson.NONE typ, st) ->  IOption None :: st (* TODO add type annotation (IOption (evalValue typ AbsMichelson.DNone, None)) *)
-  | (AbsMichelson.UNIT, _) -> (evalValue AbsMichelson.CUnit, AbsMichelson.DUnit) :: st
+  | (AbsMichelson.PUSH (typ, data), _) ->
+    let value = evalTyp typ data in
+    if (pushable(typeof(value)) then (value :: stack)
+    else raise Illegal_Instruction ("type to be pushed is not Pushable", instr)
+  | (AbsMichelson.SOME, (x :: st)) ->  IOption (typeof(x), Some x) :: st
+  | (AbsMichelson.NONE typ, st) ->  IOption(evalTyp typ, None) :: st
+  | (AbsMichelson.UNIT, _) -> IUnit :: st
   | (AbsMichelson.NEVER, _) ->  INever :: stack
-  | (AbsMichelson.IF_NONE (instrs0, instrs), ((IOption (x)) :: st)) ->
+  | (AbsMichelson.IF_NONE (instrs0, instrs), ((IOption (_, x)) :: st)) ->
     match x with
     | Some y -> evalList evalInstr instrs0 (y :: st) data
-    | None -> evalList evalInstr instrs st data
+    | None   -> evalList evalInstr instrs st data
     | _ -> raise_InstrValue_Mismatch instr, [x]
   | (AbsMichelson.PAIR, (x :: y :: st)) -> IPair (x, y) :: st
   | (AbsMichelson.PAIR_N integer, _) -> pair_n integer stack
@@ -304,14 +590,14 @@ let rec evalInstr (instr : AbsMichelson.instr) (st : value list) (data : tx_data
      match x with
      | IPair_n (x) -> unpair_n integer stack x
      | _ -> raise_InstrValue_Mismatch instr [x]
-  | (AbsMichelson.LEFT typ, (x :: st)) -> IOr (typ , L, x) (* FIXME: typ -> ctyp? interpreter.typ ? evalTyp typ?*)
-  | (AbsMichelson.RIGHT typ, (x :: st)) ->  IOr (typ, R, x)
+  | (AbsMichelson.LEFT typ, (x :: st)) -> IOr (evalTyp typ , L, x) (* FIXME: typ -> ctyp? interpreter.typ ? evalTyp typ?*)
+  | (AbsMichelson.RIGHT typ, (x :: st)) ->  IOr (evalTyp typ, R, x)
   | (AbsMichelson.IF_LEFT (instrs0, instrs), (x :: st)) ->
     match x with
     | IOr (_, L, y) -> evalList evalInstr instrs0 (y :: st) data
     | IOr (_, R, y) -> evalList evalInstr instrs (y :: st) data
-    | _ -> raise_InstrValue_Mismatch instr [x] (* TODO/Problem: IF_RIGHT is macro of IF_LEFT and will return errors of IF_LEFT*)
-  | (AbsMichelson.NIL typ, _) ->  IList (typ, []) :: stack
+    | _ -> raise_InstrValue_Mismatch instr [x] (* TODO/Problem: IF_RIGHT is macro of IF_LEFT and therefore will return errors of IF_LEFT*)
+  | (AbsMichelson.NIL typ, _) ->  IList (evalTyp typ, []) :: stack
   | (AbsMichelson.CONS, (x :: y :: st)) ->
     match (x, y) with
     | (x, IList(typeof(x), lst)) -> IList(typeof(x), (x :: lst)) :: st
@@ -323,48 +609,48 @@ let rec evalInstr (instr : AbsMichelson.instr) (st : value list) (data : tx_data
     | _ -> raise_InstrValue_Mismatch instr [x]
   | (AbsMichelson.SIZE, (x :: st)) ->
     match x with
-    | IString y -> INat(String.length y) :: st
-    | IBytes y -> INat(String.length y) :: st
-    | ISet (_, lst) -> INat(List.length lst) :: st
+    | IString y      -> INat(String.length y) :: st
+    | IBytes y       -> INat(String.length y) :: st
+    | ISet (_, lst)  -> INat(List.length lst) :: st
     | IList (_, lst) -> INat(List.length lst) :: st
-    | IMap (_, lst) -> INat(String.length lst) :: st
+    | IMap (_, lst)  -> INat(String.length lst) :: st
     | _ -> raise_InstrValue_Mismatch instr [x]
-  | (AbsMichelson.EMPTY_SET ctyp, _) -> ISet (ctyp, []) :: stack (* FIXME: or evalCtyp ctyp -> typ ? *)
-  | (AbsMichelson.EMPTY_MAP (ctyp, typ), _) ->  IMap ((ctyp, typ), []) :: stack (*Map.empty with given types?? would need a reversed evalTyp typ function *))
-  | (AbsMichelson.EMPTY_BIG_MAP (ctyp, typ), _) ->  IBig_map ((ctyp, typ), []) :: stack
+  | (AbsMichelson.EMPTY_SET ctyp, _) -> ISet (evalTyp  ctyp, []) :: stack (* FIXME: or evalCtyp ctyp -> typ ? *)
+  | (AbsMichelson.EMPTY_MAP (ctyp, typ), _) ->  IMap ((evalTyp ctyp, evalTyp typ), []) :: stack (*Map.empty with given types?? would need a reversed evalTyp typ function *))
+  | (AbsMichelson.EMPTY_BIG_MAP (ctyp, typ), _) ->  IBig_map ((evalTyp ctyp, evalTyp typ), []) :: stack
   | (AbsMichelson.MAP instrs, (x :: st)) ->
     match x with
     | IList (typ, lst) -> map_list instrs typ lst st data
-    | IMap (typ, lst) -> map_map instrs typ lst st data
+    | IMap (typ, lst)  -> map_map instrs typ lst st data
     | _ -> raise_InstrValue_Mismatch instr [x]
   | (AbsMichelson.ITER instrs, (x :: st)) ->
     match x with
     | IList (typ, lst) -> iter_list instrs typ lst st data
-    | IMap (typ, lst) -> iter_map instrs typ lst st data
-    | ISet (typ, lst) -> iter_set instrs typ lst st data
+    | IMap (typ, lst)  -> iter_map instrs typ lst st data
+    | ISet (typ, lst)  -> iter_set instrs typ lst st data
     | _ -> raise_InstrValue_Mismatch instr [x]
   | (AbsMichelson.MEM, (x :: y :: st)) ->
     match y with
-    | ISet (typ, lst) -> mem_set instrs x typ lst st data
-    | IMap (typ, lst) -> mem_map instrs x typ lst st data
+    | ISet (typ, lst)     -> mem_set instrs x typ lst st data
+    | IMap (typ, lst)     -> mem_map instrs x typ lst st data
     | IBig_map (typ, lst) -> mem_big_map instrs x typ lst st data
     | _ -> raise_InstrValue_Mismatch instr [x; y]
   | (AbsMichelson.GET, (x :: y :: st)) ->
     match y with
-    | IMap (typ, lst) -> get_map instrs x typ lst st data
+    | IMap (typ, lst)     -> get_map instrs x typ lst st data
     | IBig_map (typ, lst) -> get_big_map instrs x typ lst st data
     | _ -> raise_InstrValue_Mismatch instr [x; y]
   | (AbsMichelson.GET_N integer, (x :: y :: st)) -> st(*TODO*)
-  | (AbsMichelson.UPDATE, ( :: st)) -> st(*TODO*)
+  | (AbsMichelson.UPDATE, (x :: y :: st)) -> st(*TODO handle types carefully! *)
   | (AbsMichelson.UPDATE_N integer, ( :: st)) ->  st(*TODO*)
   | (AbsMichelson.IF (instrs0, instrs), (x :: st)) ->
     match x with
-    | IBool true -> evalList evalInstr instrs0 st data
+    | IBool true  -> evalList evalInstr instrs0 st data
     | IBool false -> evalList evalInstr instrs st data
     | _ -> raise_InstrValue_Mismatch instr [x]
   | (AbsMichelson.LOOP instrs, (x :: st)) -> (*loop instrs stack data*)
     match x with
-    | IBool true -> evalInstr (AbsMichelson.LOOP_LEFT instrs) (evalList evalInstr instrs st data) data (* not sure if loop-function is more efficient then recursively evaluating evalInstr *)
+    | IBool true  -> evalInstr (AbsMichelson.LOOP_LEFT instrs) (evalList evalInstr instrs st data) data (* not sure if loop-function is more efficient then recursively evaluating evalInstr *)
     | IBool false -> st
     | _ -> raise_InstrValue_Mismatch instr [x]
   | (AbsMichelson.LOOP_LEFT instrs, (x :: st)) -> (*loop_left instrs stack data*)
@@ -372,7 +658,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (st : value list) (data : tx_data
     | IOr (_, L, y) -> evalInstr (AbsMichelson.LOOP_LEFT instrs) (evalList evalInstr instrs (y :: st) data) data
     | IOr (_, R, y) -> y :: st
     | _ -> raise_InstrValue_Mismatch instr [x]
-  | (AbsMichelson.LAMBDA (typ0, typ, instrs), _) -> ILambda(typ0, typ, instrs) :: stack
+  | (AbsMichelson.LAMBDA (typ0, typ, instrs), _) -> ILambda(evalTyp typ0, evalTyp typ, instrs) :: stack
   | (AbsMichelson.EXEC, (x :: y :: st)) -> (exec x y data) :: st
   | (AbsMichelson.APPLY, ( :: st)) ->  st (* TODO Values that are not both pushable and storable (values of type operation, contract _ and big_map _ _) cannot be captured by APPLY (cannot appear in ty1).*)
   | (AbsMichelson.DIP instrs, (x :: st)) -> x :: (evalList evalInstr instrs st data)
@@ -382,57 +668,57 @@ let rec evalInstr (instr : AbsMichelson.instr) (st : value list) (data : tx_data
   | (AbsMichelson.RENAME, ( :: st)) ->  st(* TODO: depends on variable annotations*)
   | (AbsMichelson.CONCAT, (x :: y :: st)) ->
     match (x, y) with
-    | (IString(s0), IString(s))) -> IString(s0 ^ s) :: st
+    | (IString(s0), IString(s)))            -> IString(s0 ^ s) :: st
     | (IList(AbsMichelson.CString, lst), _) -> IString(String.concat lst) :: st (* includes case where lst=[] (adds empty string) *)
-    | (IBytes(b0), IBytes(b))) -> IBytes(b0 ^ b) :: st
-    | (IList(AbsMichelson.CBytes, []), _) -> IBytes("0x") :: st
-    | (IList(AbsMichelson.CBytes, lst), _) -> IBytes(String.concat lst) :: st
+    | (IBytes(b0), IBytes(b)))              -> IBytes(b0 ^ b) :: st
+    | (IList(AbsMichelson.CBytes, []), _)   -> IBytes("0x") :: st
+    | (IList(AbsMichelson.CBytes, lst), _)  -> IBytes(String.concat lst) :: st
     | _ -> raise_InstrValue_Mismatch instr [x; y]
   | (AbsMichelson.SLICE, (x :: y :: z :: st)) ->
     match (x, y, z) with
     | (INat(offset), INat(len), IString(s)) -> slice_str offset len s :: st
-    | (INat(offset), INat(len), IBytes(b)) -> slice_bytes offset len s :: st
+    | (INat(offset), INat(len), IBytes(b))  -> slice_bytes offset len s :: st
     | _ -> raise_InstrValue_Mismatch instr [x; y; z]
   | (AbsMichelson.PACK, (x :: st)) ->  st (*TODO*)
-  | (AbsMichelson.UNPACK typ, (x :: st)) ->  st (*TODO*)
+  | (AbsMichelson.UNPACK typ, (x :: st)) ->  evalTyp typ :: st (*TODO*)
   | (AbsMichelson.ADD, x :: y :: st)) ->
     match (x, y) with
-    | (INat (x) :: INat (y)) -> INat (Z.add x y) :: st
+    | (INat (x) :: INat (y))               -> INat (Z.add x y) :: st
     | (INat (x) :: IInt (y))
     | (IInt (x) :: INat (y))
-    | (IInt (x) :: IInt (y)) -> IInt (Z.add x y) :: st
+    | (IInt (x) :: IInt (y))               -> IInt (Z.add x y) :: st
     | (IInt (x) :: ITimestamp (y))
-    | (ITimestamp (x) :: IInt (y)) -> ITimestamp (Z.add x y) :: st
-    | (IMutez (x) :: IMutez (y)) -> IMutez (Z.add x y) :: st
+    | (ITimestamp (x) :: IInt (y))         -> ITimestamp (Z.add x y) :: st
+    | (IMutez (x) :: IMutez (y))           -> IMutez (Z.add x y) :: st
     | (IBls_381_g1 (x) :: IBls_381_g1 (y)) -> IBls_381_g1 (Z.add x y) :: st (*TODO https://tezos.gitlab.io/alpha/michelson.html#bls12-381-primitives*)
     | (IBls_381_g2 (x) :: IBls_381_g2 (y)) -> IBls_381_g2 (Z.add x y) :: st (*TODO*)
     | (IBls_381_fr (x) :: IBls_381_fr (y)) -> IBls_381_fr (Z.add x y) :: st (*TODO*)
     | _ -> raise_InstrValue_Mismatch instr [x; y]
   | (AbsMichelson.SUB, (x :: y :: st)) ->
     match (x, y) with
-    | (INat (x) :: INat (y)) -> INat (Z.sub x y) :: st
+    | (INat (x) :: INat (y))               -> INat (Z.sub x y) :: st
     | (INat (x) :: IInt (y))
     | (IInt (x) :: INat (y))
-    | (IInt (x) :: IInt (y)) -> IInt (Z.sub x y) :: st
-    | (ITimestamp (x) :: IInt (y)) -> ITimestamp (Z.sub x y) :: st
-    | (ITimestamp (x) :: ITimestamp (y)) -> IInt (Z.sub x y) :: st
-    | (IMutez (x) :: IMutez (y)) -> if (Z.sub x y >= 0) then IMutez (Z.sub x y) :: st else failwith "Result of mutez substraction is negative"
+    | (IInt (x) :: IInt (y))               -> IInt (Z.sub x y) :: st
+    | (ITimestamp (x) :: IInt (y))         -> ITimestamp (Z.sub x y) :: st
+    | (ITimestamp (x) :: ITimestamp (y))   -> IInt (Z.sub x y) :: st
+    | (IMutez (x) :: IMutez (y))           -> if (Z.sub x y >= 0) then IMutez (Z.sub x y) :: st else failwith "Result of mutez substraction is negative"
     | _ -> raise_InstrValue_Mismatch instr [x; y]
   | (AbsMichelson.MUL, (x :: y :: st)) ->
     match (x, y) with
-    | (INat (x) :: INat (y)) -> INat (Z.mul x y) :: st
+    | (INat (x) :: INat (y))               -> INat (Z.mul x y) :: st
     | (INat (x) :: IInt (y))
     | (IInt (x) :: INat (y))
-    | (IInt (x) :: IInt (y)) -> IInt (Z.mul x y) :: st
+    | (IInt (x) :: IInt (y))               -> IInt (Z.mul x y) :: st
     | (IMutez (x) :: INat (y))
-    | (INat (x) :: IMutez (y)) -> IMutez (Z.mul x y) :: st (* TODO: run-time error if the product overflows *)
+    | (INat (x) :: IMutez (y))             -> IMutez (Z.mul x y) :: st (* TODO: run-time error if the product overflows *)
     | (IBls_381_g1 (x) :: IBls_381_fr (y)) -> IBls_381_g1 (Z.mul x y) :: st (*TODO*)
     | (IBls_381_g2 (x) :: IBls_381_fr (y)) -> IBls_381_g2 (Z.mul x y) :: st (*TODO*)
     | (IBls_381_fr (x) :: IBls_381_fr (y)) -> IBls_381_fr (Z.mul x y) :: st (*TODO*)
-    | (INat (x) :: IBls_381_fr (y)) -> IBls_381_fr (Z.mul x y) :: st (*TODO*)
-    | (IInt (x) :: IBls_381_fr (y)) -> IBls_381_fr (Z.mul x y) :: st (*TODO*)
-    | (IBls_381_fr (x) :: INat (y)) -> IBls_381_fr (Z.mul x y) :: st (*TODO*)
-    | (IBls_381_fr (x) :: IInt (y)) -> IBls_381_fr (Z.mul x y) :: st (*TODO*)
+    | (INat (x) :: IBls_381_fr (y))        -> IBls_381_fr (Z.mul x y) :: st (*TODO*)
+    | (IInt (x) :: IBls_381_fr (y))        -> IBls_381_fr (Z.mul x y) :: st (*TODO*)
+    | (IBls_381_fr (x) :: INat (y))        -> IBls_381_fr (Z.mul x y) :: st (*TODO*)
+    | (IBls_381_fr (x) :: IInt (y))        -> IBls_381_fr (Z.mul x y) :: st (*TODO*)
     | _ -> raise_InstrValue_Mismatch instr [x; y]
   | (AbsMichelson.EDIV, (x :: y :: st)) ->
   | (AbsMichelson.ABS, (x :: st)) ->
@@ -454,7 +740,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (st : value list) (data : tx_data
   | (AbsMichelson.GE, (x :: st)) ->
   | (AbsMichelson.SELF, _) ->
   | (AbsMichelson.SELF_ADDRESS, _) ->
-  | (AbsMichelson.CONTRACT typ, ( :: st)) ->
+  | (AbsMichelson.CONTRACT typ, ( :: st)) -> evalTyp typ
   | (AbsMichelson.TRANSFER_TOKENS, ( :: st)) ->
   | (AbsMichelson.SET_DELEGATE, ( :: st)) ->
   | (AbsMichelson.CREATE_CONTRACT instrs, ( :: st)) -> " evalList evalInstr instrs"
@@ -488,7 +774,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (st : value list) (data : tx_data
 
 and evalTyp (typ : AbsMichelson.typ) (st : value list): value = match (instr, st) with
   | AbsMichelson.TCtype ctyp -> evalCTyp ctyp
-  | AbsMichelson.TOperation  -> IOperation :: st)
+  | AbsMichelson.TOperation  -> IOperation :: st) (* typ not value here!!! *)
   | AbsMichelson.TContract typ -> IContract (evalTyp typ) :: st)
   | AbsMichelson.TOption typ -> IOption (evalTyp typ) :: st)
   | AbsMichelson.TList typ -> IList (evalTyp typ) :: st)

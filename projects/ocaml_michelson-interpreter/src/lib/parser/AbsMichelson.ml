@@ -2,7 +2,6 @@
 
 type str = Str of string
 and hex = Hex of string
-and nat = Nat of string
 and prog =
    Contract of typ * typ * instr list
 

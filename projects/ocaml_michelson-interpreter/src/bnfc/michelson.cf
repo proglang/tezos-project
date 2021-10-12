@@ -21,10 +21,10 @@ Contract. Prog ::= "parameter" Typ ";" "storage" Typ ";" "code" "{" [Instr] "}" 
 -- User-Defined regex-based token types
 token Str '"' ( (char - ["\"\\"]) | ('\\' ["\"\\rntb"]) )* '"' ; -- should be equivalent to (\" | \r | \n | \t | \b | \\ | [^"\])*
 token Hex '0''x' ( digit | ["abcdefABCDEF"] )+ ;
-token Nat digit+ ;
 
+--token Nat digit+ ;
 -- TODO: add regex for other allowed integer notations like 10_00, 1000.00, ect. --0, +0, -0, 0001
--- TODO: but give this notations other tokens (as strings) to interpret seperately
+-- TODO: and remove _, . with string functions bevore converting to integer (in Interpreter.evalData)
 DIntPos. Inte ::= Integer;
 DIntNeg. Inte ::= "-" Integer;
 

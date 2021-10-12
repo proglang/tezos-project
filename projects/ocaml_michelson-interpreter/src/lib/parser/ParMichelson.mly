@@ -24,7 +24,6 @@ open Lexing
 %token <string> TOK_String
 %token <string> TOK_Str
 %token <string> TOK_Hex
-%token <string> TOK_Nat
 
 %start pProg
 %type <AbsMichelson.prog> pProg
@@ -289,6 +288,5 @@ cTypeSeq : cTyp { CTypeSeq0 $1 }
 int :  TOK_Integer  { $1 };
 str : TOK_Str { Str ($1)};
 hex : TOK_Hex { Hex ($1)};
-nat : TOK_Nat { Nat ($1)};
 
 

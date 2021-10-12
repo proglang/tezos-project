@@ -16,10 +16,6 @@ and transHex (x : hex) : result = match x with
     Hex string -> failure x
 
 
-and transNat (x : nat) : result = match x with
-    Nat string -> failure x
-
-
 and transProg (x : prog) : result = match x with
     Contract (typ0, typ, instrs) -> failure x
 

@@ -38,7 +38,7 @@ let interpret (prog : AbsMichelson.prog) (parameter : string) (storage : string)
     | _ -> assert "interpret: Not a contract"
 
 let run source parameter storage (data : Interpreter.tx_data) =
-  printf "Source:\n'%s' \nParameter: '%s' \nStorage: '%s' \n%!" source parameter storage
+  let () = printf "Source:\n'%s' \nParameter: '%s' \nStorage: '%s' \n%!" source parameter storage in
   let prog = parse source in
   interpret prog parameter storage data;
 
