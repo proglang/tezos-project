@@ -22,18 +22,6 @@ let run_file filename parameter storage =
   in
 (*  printf "Source: '%s'\n%!" source;*)
   Michelson.run source parameter storage)
-  (* TODO: better error propagation: raise exceptions/failwith and try/with clauses *)
-(*  if Error.had_error then failwith "had error";
-  if Error.had_runtime_error then failwith "had runtime error"*)
-
-
-(* test if given Arg_type is string of michelson Data type *)
-(*let data_type =
-  Command.Arg_type.create (fun string ->
-      let token = parse string ...
-      match token with
-      | Interpreter.DataType. ....*)
-
 
 let contract_data =
   Command.Arg_type.create (fun data ->

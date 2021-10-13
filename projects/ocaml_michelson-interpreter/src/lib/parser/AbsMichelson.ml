@@ -6,11 +6,11 @@ and prog =
    Contract of typ * typ * instr list
 
 and inte =
-   DIntPos of int
- | DIntNeg of int
+   DIntNeg of int
 
 and data =
    DInt of inte
+ | DNat of int
  | DStr of str
  | DBytes of hex
  | DUnit
@@ -110,7 +110,7 @@ and instr =
  | CONTRACT of typ
  | TRANSFER_TOKENS
  | SET_DELEGATE
- | CREATE_CONTRACT of instr list
+ | CREATE_CONTRACT of typ * typ * instr list
  | IMPLICIT_ACCOUNT
  | VOTING_POWER
  | NOW

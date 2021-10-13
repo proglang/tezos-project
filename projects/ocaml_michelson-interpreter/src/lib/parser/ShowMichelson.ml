@@ -46,12 +46,12 @@ let rec showProg (e : AbsMichelson.prog) : showable = match e with
 
 
 and showInte (e : AbsMichelson.inte) : showable = match e with
-       AbsMichelson.DIntPos integer -> s2s "DIntPos" >> c2s ' ' >> c2s '(' >> showInt integer >> c2s ')'
-  |    AbsMichelson.DIntNeg integer -> s2s "DIntNeg" >> c2s ' ' >> c2s '(' >> showInt integer >> c2s ')'
+       AbsMichelson.DIntNeg integer -> s2s "DIntNeg" >> c2s ' ' >> c2s '(' >> showInt integer >> c2s ')'
 
 
 and showData (e : AbsMichelson.data) : showable = match e with
        AbsMichelson.DInt inte -> s2s "DInt" >> c2s ' ' >> c2s '(' >> showInte inte >> c2s ')'
+  |    AbsMichelson.DNat integer -> s2s "DNat" >> c2s ' ' >> c2s '(' >> showInt integer >> c2s ')'
   |    AbsMichelson.DStr str -> s2s "DStr" >> c2s ' ' >> c2s '(' >> showStr str >> c2s ')'
   |    AbsMichelson.DBytes hex -> s2s "DBytes" >> c2s ' ' >> c2s '(' >> showHex hex >> c2s ')'
   |    AbsMichelson.DUnit  -> s2s "DUnit"
@@ -154,7 +154,7 @@ and showInstr (e : AbsMichelson.instr) : showable = match e with
   |    AbsMichelson.CONTRACT typ -> s2s "CONTRACT" >> c2s ' ' >> c2s '(' >> showTyp typ >> c2s ')'
   |    AbsMichelson.TRANSFER_TOKENS  -> s2s "TRANSFER_TOKENS"
   |    AbsMichelson.SET_DELEGATE  -> s2s "SET_DELEGATE"
-  |    AbsMichelson.CREATE_CONTRACT instrs -> s2s "CREATE_CONTRACT" >> c2s ' ' >> c2s '(' >> showList showInstr instrs >> c2s ')'
+  |    AbsMichelson.CREATE_CONTRACT (typ0, typ, instrs) -> s2s "CREATE_CONTRACT" >> c2s ' ' >> c2s '(' >> showTyp typ0  >> s2s ", " >>  showTyp typ  >> s2s ", " >>  showList showInstr instrs >> c2s ')'
   |    AbsMichelson.IMPLICIT_ACCOUNT  -> s2s "IMPLICIT_ACCOUNT"
   |    AbsMichelson.VOTING_POWER  -> s2s "VOTING_POWER"
   |    AbsMichelson.NOW  -> s2s "NOW"

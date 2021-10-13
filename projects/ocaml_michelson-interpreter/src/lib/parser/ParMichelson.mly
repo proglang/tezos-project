@@ -38,8 +38,7 @@ prog : prog SYMB1 {  $1 }
   | KW_parameter typ SYMB1 KW_storage typ SYMB1 KW_code SYMB2 instr_list SYMB3 { Contract ($2, $5, $9) }
 ;
 
-inte : int { DIntPos $1 }
-  | SYMB4 int { DIntNeg $2 }
+inte : SYMB4 int { DIntNeg $2 }
 ;
 
 data_list : /* empty */ { []  }
@@ -49,6 +48,7 @@ data_list : /* empty */ { []  }
 
 data : SYMB5 data SYMB6 {  $2 }
   | inte { DInt $1 }
+  | int { DNat $1 }
   | str { DStr $1 }
   | hex { DBytes $1 }
   | KW_Unit { DUnit  }
@@ -162,7 +162,7 @@ instr : SYMB2 instr_list SYMB3 { BLOCK $2 }
   | KW_CONTRACT typ { CONTRACT $2 }
   | KW_TRANSFER_TOKENS { TRANSFER_TOKENS  }
   | KW_SET_DELEGATE { SET_DELEGATE  }
-  | KW_CREATE_CONTRACT SYMB2 instr_list SYMB3 { CREATE_CONTRACT $3 }
+  | KW_CREATE_CONTRACT SYMB2 KW_parameter typ SYMB1 KW_storage typ SYMB1 KW_code instr_list SYMB3 { CREATE_CONTRACT ($4, $7, $10) }
   | KW_IMPLICIT_ACCOUNT { IMPLICIT_ACCOUNT  }
   | KW_VOTING_POWER { VOTING_POWER  }
   | KW_NOW { NOW  }

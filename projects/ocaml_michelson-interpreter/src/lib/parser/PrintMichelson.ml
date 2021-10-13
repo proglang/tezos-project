@@ -92,12 +92,12 @@ let rec prtProg (i:int) (e : AbsMichelson.prog) : doc = match e with
 
 
 and prtInte (i:int) (e : AbsMichelson.inte) : doc = match e with
-       AbsMichelson.DIntPos integer -> prPrec i 0 (concatD [prtInt 0 integer])
-  |    AbsMichelson.DIntNeg integer -> prPrec i 0 (concatD [render "-" ; prtInt 0 integer])
+       AbsMichelson.DIntNeg integer -> prPrec i 0 (concatD [render "-" ; prtInt 0 integer])
 
 
 and prtData (i:int) (e : AbsMichelson.data) : doc = match e with
        AbsMichelson.DInt inte -> prPrec i 0 (concatD [prtInte 0 inte])
+  |    AbsMichelson.DNat integer -> prPrec i 0 (concatD [prtInt 0 integer])
   |    AbsMichelson.DStr str -> prPrec i 0 (concatD [prtStr 0 str])
   |    AbsMichelson.DBytes hex -> prPrec i 0 (concatD [prtHex 0 hex])
   |    AbsMichelson.DUnit  -> prPrec i 0 (concatD [render "Unit"])
@@ -209,7 +209,7 @@ and prtInstr (i:int) (e : AbsMichelson.instr) : doc = match e with
   |    AbsMichelson.CONTRACT typ -> prPrec i 0 (concatD [render "CONTRACT" ; prtTyp 0 typ])
   |    AbsMichelson.TRANSFER_TOKENS  -> prPrec i 0 (concatD [render "TRANSFER_TOKENS"])
   |    AbsMichelson.SET_DELEGATE  -> prPrec i 0 (concatD [render "SET_DELEGATE"])
-  |    AbsMichelson.CREATE_CONTRACT instrs -> prPrec i 0 (concatD [render "CREATE_CONTRACT" ; render "{" ; prtInstrListBNFC 0 instrs ; render "}"])
+  |    AbsMichelson.CREATE_CONTRACT (typ1, typ2, instrs) -> prPrec i 0 (concatD [render "CREATE_CONTRACT" ; render "{" ; render "parameter" ; prtTyp 0 typ1 ; render ";" ; render "storage" ; prtTyp 0 typ2 ; render ";" ; render "code" ; prtInstrListBNFC 0 instrs ; render "}"])
   |    AbsMichelson.IMPLICIT_ACCOUNT  -> prPrec i 0 (concatD [render "IMPLICIT_ACCOUNT"])
   |    AbsMichelson.VOTING_POWER  -> prPrec i 0 (concatD [render "VOTING_POWER"])
   |    AbsMichelson.NOW  -> prPrec i 0 (concatD [render "NOW"])

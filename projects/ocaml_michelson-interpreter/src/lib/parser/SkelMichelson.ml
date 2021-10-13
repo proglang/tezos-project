@@ -21,12 +21,12 @@ and transProg (x : prog) : result = match x with
 
 
 and transInte (x : inte) : result = match x with
-    DIntPos integer -> failure x
-  | DIntNeg integer -> failure x
+    DIntNeg integer -> failure x
 
 
 and transData (x : data) : result = match x with
     DInt inte -> failure x
+  | DNat integer -> failure x
   | DStr str -> failure x
   | DBytes hex -> failure x
   | DUnit  -> failure x
@@ -129,7 +129,7 @@ and transInstr (x : instr) : result = match x with
   | CONTRACT typ -> failure x
   | TRANSFER_TOKENS  -> failure x
   | SET_DELEGATE  -> failure x
-  | CREATE_CONTRACT instrs -> failure x
+  | CREATE_CONTRACT (typ0, typ, instrs) -> failure x
   | IMPLICIT_ACCOUNT  -> failure x
   | VOTING_POWER  -> failure x
   | NOW  -> failure x
