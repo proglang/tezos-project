@@ -21,18 +21,21 @@ Contract. Prog ::= "parameter" Typ ";" "storage" Typ ";" "code" "{" [Instr] "}" 
 -- User-Defined regex-based token types
 token Str '"' ( (char - ["\"\\"]) | ('\\' ["\"\\rntb"]) )* '"' ; -- should be equivalent to (\" | \r | \n | \t | \b | \\ | [^"\])*
 token Hex '0''x' ( digit | ["abcdefABCDEF"] )+ ;
-
---token Nat digit+ ;
 -- TODO: add regex for other allowed integer notations like 10_00, 1000.00, ect. --0, +0, -0, 0001
--- TODO: and remove _, . with string functions bevore converting to integer (in Interpreter.evalData)
-DIntPos. Inte ::= Integer;
-DIntNeg. Inte ::= "-" Integer;
-
+-- TODO: and remove _, . with string functions before converting to Z.t (_ is allowed, only . has to be removed) (in Interpreter.evalData)
+DIntNeg. Inte ::= "-" Integer ; -- FIXME: rename to Neg or something like that instead of Int
+--DIntUnderscore. Inte ::= "-" (digit | "_")+ ....;
+--DIntDot. Inte ::= "-" ...;
+{- DInt evtl doch als subsequenz of both Nat and Neg -}
+--DNat. Nat ::= Integer
+--DNatUnderscore. Nat ::=
+--DNatDot. Nat ::=
 
 -- Data
 separator Data ";" ; -- FIXME muss letztes Data mit ";" abgeschlossen werden? dann zu terminator wechseln
 _.               Data         ::= "(" Data ")" ; -- https://tezos.gitlab.io/alpha/michelson.html#format-of-patterns
 DInt.            Data         ::= Inte ;
+DNat.            Data         ::= Integer ;
 DStr.            Data         ::= Str ;
 DBytes.          Data         ::= Hex ;
 DUnit.           Data         ::= "Unit" ;
@@ -43,9 +46,9 @@ DLeft.           Data         ::= "(" "Left" Data ")" ;  -- FIXME: klammern pfli
 DRight.          Data         ::= "(" "Right" Data ")" ;  -- FIXME: klammern pflicht?
 DSome.           Data         ::= "Some" Data ;
 DNone.           Data         ::= "None" ;
-DBlock.          Data         ::= "{" [Data] "}" ;  -- list or set
+DBlock.          Data         ::= "{" [Data] "}" ;  -- list or set or block of instructions (lambda typ)
 DMap.            Data         ::= "{" [MapSeq] "}" ;
-DInstruction.    Data         ::= Instr ;
+DInstruction.    Data         ::= Instr ;  -- in DBlock's [Data] for lambda typ
 
 terminator nonempty PairSeq "" ;
 DPairSeq. PairSeq ::= Data ;
@@ -132,7 +135,7 @@ SELF_ADDRESS.          Instr ::= "SELF_ADDRESS" ;
 CONTRACT.              Instr ::= "CONTRACT" Typ ;
 TRANSFER_TOKENS.       Instr ::= "TRANSFER_TOKENS" ;
 SET_DELEGATE.          Instr ::= "SET_DELEGATE" ;
-CREATE_CONTRACT.       Instr ::= "CREATE_CONTRACT" "{" [Instr] "}" ;
+CREATE_CONTRACT.       Instr ::= "CREATE_CONTRACT" "{" "parameter" Typ ";" "storage" Typ ";" "code" [Instr] "}" ;
 IMPLICIT_ACCOUNT.      Instr ::= "IMPLICIT_ACCOUNT" ;
 VOTING_POWER.          Instr ::= "VOTING_POWER" ;
 NOW.                   Instr ::= "NOW" ;
