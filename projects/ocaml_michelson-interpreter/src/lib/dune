@@ -1,5 +1,5 @@
 (library
  (public_name michelson)
-  (libraries base core stdio ptime zarith)
+  (libraries base core stdio ptime zarith mutez)
   (preprocess (pps ppx_deriving.show ppx_deriving.eq))
 )
