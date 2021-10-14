@@ -16,16 +16,16 @@ and transHex (x : hex) : result = match x with
     Hex string -> failure x
 
 
+and transNeg (x : neg) : result = match x with
+    Neg string -> failure x
+
+
 and transProg (x : prog) : result = match x with
     Contract (typ0, typ, instrs) -> failure x
 
 
-and transInte (x : inte) : result = match x with
-    DIntNeg integer -> failure x
-
-
 and transData (x : data) : result = match x with
-    DInt inte -> failure x
+    DNeg neg -> failure x
   | DNat integer -> failure x
   | DStr str -> failure x
   | DBytes hex -> failure x

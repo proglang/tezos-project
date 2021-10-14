@@ -7,9 +7,9 @@
 open ParMichelson
 open Lexing
 
-let symbol_table = Hashtbl.create 6
+let symbol_table = Hashtbl.create 5
 let _ = List.iter (fun (kwd, tok) -> Hashtbl.add symbol_table kwd tok)
-                  [(";", SYMB1);("{", SYMB2);("}", SYMB3);("-", SYMB4);("(", SYMB5);(")", SYMB6)]
+                  [(";", SYMB1);("{", SYMB2);("}", SYMB3);("(", SYMB4);(")", SYMB5)]
 
 let resword_table = Hashtbl.create 179
 let _ = List.iter (fun (kwd, tok) -> Hashtbl.add resword_table kwd tok)
@@ -52,11 +52,12 @@ let _idchar = _letter | _digit | ['_' '\'']         (*  identifier character *)
 let _universal = _                                  (* universal: any character *)
 
 (* reserved words consisting of special symbols *)
-let rsyms = ";" | "{" | "}" | "-" | "(" | ")"
+let rsyms = ";" | "{" | "}" | "(" | ")"
 
 (* user-defined token types *)
 let str = '"' ([^ '"' '\\']| '\\' ('"' | '\\' | 'b' | 'n' | 'r' | 't')) * '"'
 let hex = "0x" ('A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | _digit)+
+let neg = '-' _digit +
 
 (* lexing rules *)
 rule token =
@@ -65,6 +66,7 @@ rule token =
       | rsyms   { let x = lexeme lexbuf in try Hashtbl.find symbol_table x with Not_found -> failwith ("internal lexer error: reserved symbol " ^ x ^ " not found in hashtable") }
       | str     { let l = lexeme lexbuf in try Hashtbl.find resword_table l with Not_found -> TOK_Str l }
       | hex     { let l = lexeme lexbuf in try Hashtbl.find resword_table l with Not_found -> TOK_Hex l }
+      | neg     { let l = lexeme lexbuf in try Hashtbl.find resword_table l with Not_found -> TOK_Neg l }
       | _letter _idchar*
                 { let l = lexeme lexbuf in try Hashtbl.find resword_table l with Not_found -> TOK_Ident l }
       | _digit+ { TOK_Integer (int_of_string (lexeme lexbuf)) }

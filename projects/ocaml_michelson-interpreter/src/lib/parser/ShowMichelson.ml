@@ -40,17 +40,14 @@ let showFloat (f:float) : showable = s2s (string_of_float f)
 
 let rec showStr (AbsMichelson.Str i) : showable = s2s "Str " >> showString i
 let rec showHex (AbsMichelson.Hex i) : showable = s2s "Hex " >> showString i
+let rec showNeg (AbsMichelson.Neg i) : showable = s2s "Neg " >> showString i
 
 let rec showProg (e : AbsMichelson.prog) : showable = match e with
        AbsMichelson.Contract (typ0, typ, instrs) -> s2s "Contract" >> c2s ' ' >> c2s '(' >> showTyp typ0  >> s2s ", " >>  showTyp typ  >> s2s ", " >>  showList showInstr instrs >> c2s ')'
 
 
-and showInte (e : AbsMichelson.inte) : showable = match e with
-       AbsMichelson.DIntNeg integer -> s2s "DIntNeg" >> c2s ' ' >> c2s '(' >> showInt integer >> c2s ')'
-
-
 and showData (e : AbsMichelson.data) : showable = match e with
-       AbsMichelson.DInt inte -> s2s "DInt" >> c2s ' ' >> c2s '(' >> showInte inte >> c2s ')'
+       AbsMichelson.DNeg neg -> s2s "DNeg" >> c2s ' ' >> c2s '(' >> showNeg neg >> c2s ')'
   |    AbsMichelson.DNat integer -> s2s "DNat" >> c2s ' ' >> c2s '(' >> showInt integer >> c2s ')'
   |    AbsMichelson.DStr str -> s2s "DStr" >> c2s ' ' >> c2s '(' >> showStr str >> c2s ')'
   |    AbsMichelson.DBytes hex -> s2s "DBytes" >> c2s ' ' >> c2s '(' >> showHex hex >> c2s ')'

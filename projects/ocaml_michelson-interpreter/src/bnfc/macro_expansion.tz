@@ -1,21 +1,24 @@
-# Marcoexpansion test only, broken types
-FAIL;
-IF_SOME {ADD;} {ADD;};
+ # Marcoexpansion test only
+parameter unit;
+storage unit;
+code {
 
-IFEQ {ADD;} {ADD;};
-IFNEQ {ADD;} {ADD;};
-IFLE {ADD;} {ADD;};
-IFLT {ADD;} {ADD;};
-IFGT {ADD;} {ADD;};
-IFGE {ADD;} {ADD;};
-IFCMPEQ {ADD;} {ADD;};
-IFCMPNEQ {ADD;} {ADD;};
-IFCMPLE {ADD;} {ADD;};
-IFCMPLT {ADD;} {ADD;};
-IFCMPGT {ADD;} {ADD;};
-IFCMPGE {ADD;} {ADD;};
+ FAIL;
+ IF_SOME {ADD;} {ADD;};
 
-ASSERT;
+ IFEQ {ADD;} {ADD;};
+ IFNEQ {ADD;} {ADD;};
+ IFLE {ADD;} {ADD;};
+ IFLT {ADD;} {ADD;};
+ IFGT {ADD;} {ADD;};
+ IFGE {ADD;} {ADD;};
+ IFCMPEQ {ADD;} {ADD;};
+ IFCMPNEQ {ADD;} {ADD;};
+ IFCMPLE {ADD;} {ADD;};
+ IFCMPLT {ADD;} {ADD;};
+ IFCMPGT {ADD;} {ADD;};
+ IFCMPGE {ADD;} {ADD;};
 
-
+ ASSERT;
+};
 

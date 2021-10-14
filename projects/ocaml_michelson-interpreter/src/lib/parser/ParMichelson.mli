@@ -4,13 +4,13 @@
 type token = 
   | TOK_String of (string)
   | TOK_Str of (string)
+  | TOK_Neg of (string)
   | TOK_Integer of (int)
   | TOK_Ident of (string)
   | TOK_Hex of (string)
   | TOK_EOF
   | TOK_Double of (float)
   | TOK_Char of (char)
-  | SYMB6
   | SYMB5
   | SYMB4
   | SYMB3

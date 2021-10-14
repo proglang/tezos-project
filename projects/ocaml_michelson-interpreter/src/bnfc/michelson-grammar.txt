@@ -1,3 +1,5 @@
+# Original Grammar as defined on https://tezos.gitlab.io/alpha/michelson.html
+
 <data> ::=
   | <int constant>
   | <string constant>

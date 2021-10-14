@@ -12,9 +12,8 @@ open Lexing
 %token SYMB1 /* ; */
 %token SYMB2 /* { */
 %token SYMB3 /* } */
-%token SYMB4 /* - */
-%token SYMB5 /* ( */
-%token SYMB6 /* ) */
+%token SYMB4 /* ( */
+%token SYMB5 /* ) */
 
 %token TOK_EOF
 %token <string> TOK_Ident
@@ -24,6 +23,7 @@ open Lexing
 %token <string> TOK_String
 %token <string> TOK_Str
 %token <string> TOK_Hex
+%token <string> TOK_Neg
 
 %start pProg
 %type <AbsMichelson.prog> pProg
@@ -38,25 +38,22 @@ prog : prog SYMB1 {  $1 }
   | KW_parameter typ SYMB1 KW_storage typ SYMB1 KW_code SYMB2 instr_list SYMB3 { Contract ($2, $5, $9) }
 ;
 
-inte : SYMB4 int { DIntNeg $2 }
-;
-
 data_list : /* empty */ { []  }
   | data { (fun x -> [x]) $1 }
   | data SYMB1 data_list { (fun (x,xs) -> x::xs) ($1, $3) }
 ;
 
-data : SYMB5 data SYMB6 {  $2 }
-  | inte { DInt $1 }
+data : SYMB4 data SYMB5 {  $2 }
+  | neg { DNeg $1 }
   | int { DNat $1 }
   | str { DStr $1 }
   | hex { DBytes $1 }
   | KW_Unit { DUnit  }
   | KW_True { DTrue  }
   | KW_False { DFalse  }
-  | SYMB5 KW_Pair data pairSeq_list SYMB6 { DPair ($3, $4) }
-  | SYMB5 KW_Left data SYMB6 { DLeft $3 }
-  | SYMB5 KW_Right data SYMB6 { DRight $3 }
+  | SYMB4 KW_Pair data pairSeq_list SYMB5 { DPair ($3, $4) }
+  | SYMB4 KW_Left data SYMB5 { DLeft $3 }
+  | SYMB4 KW_Right data SYMB5 { DRight $3 }
   | KW_Some data { DSome $2 }
   | KW_None { DNone  }
   | SYMB2 data_list SYMB3 { DBlock $2 }
@@ -229,7 +226,7 @@ instr : SYMB2 instr_list SYMB3 { BLOCK $2 }
   | KW_IF_RIGHT SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IF_RIGHT ($3, $6) }
 ;
 
-typ : SYMB5 typ SYMB6 {  $2 }
+typ : SYMB4 typ SYMB5 {  $2 }
   | cTyp { TCtype $1 }
   | KW_operation { TOperation  }
   | KW_contract typ { TContract $2 }
@@ -237,7 +234,7 @@ typ : SYMB5 typ SYMB6 {  $2 }
   | KW_list typ { TList $2 }
   | KW_set cTyp { TSet $2 }
   | KW_ticket cTyp { TTicket $2 }
-  | SYMB5 KW_pair typ typeSeq_list SYMB6 { TPair ($3, $4) }
+  | SYMB4 KW_pair typ typeSeq_list SYMB5 { TPair ($3, $4) }
   | KW_or typ typ { TOr ($2, $3) }
   | KW_lambda typ typ { TLambda ($2, $3) }
   | KW_map cTyp typ { TMap ($2, $3) }
@@ -274,7 +271,7 @@ cTyp : KW_unit { CUnit  }
   | KW_address { CAddress  }
   | KW_option cTyp { COption $2 }
   | KW_or cTyp cTyp { COr ($2, $3) }
-  | SYMB5 KW_pair cTyp cTypeSeq_list SYMB6 { CPair ($3, $4) }
+  | SYMB4 KW_pair cTyp cTypeSeq_list SYMB5 { CPair ($3, $4) }
 ;
 
 cTypeSeq_list : cTypeSeq { (fun x -> [x]) $1 }
@@ -288,5 +285,6 @@ cTypeSeq : cTyp { CTypeSeq0 $1 }
 int :  TOK_Integer  { $1 };
 str : TOK_Str { Str ($1)};
 hex : TOK_Hex { Hex ($1)};
+neg : TOK_Neg { Neg ($1)};
 
 

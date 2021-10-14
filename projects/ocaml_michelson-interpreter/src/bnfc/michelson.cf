@@ -1,8 +1,6 @@
 {-
     Michelson (L)BNF Grammar to be used with the BNF Converter https://github.com/BNFC/bnfc
-    Grammar based on:
-    https://tezos.gitlab.io/shell/micheline.html#syntax
-    https://tezos.gitlab.io/alpha/michelson.html#full-grammar
+    Grammar based on: https://tezos.gitlab.io/alpha/michelson.html#full-grammar
 -}
 
 
@@ -10,9 +8,7 @@
 comment "#" ; -- line comment
 
 entrypoints Prog ;
-
--- TODO empty contracts (not) allowed? how many instr needed for minimal contract?
--- TODO "Pair" (parameter, storage) instead of parameter/storage  ?
+-- TODO are empty contracts allowed? how many instr needed for minimal contract?
 _.        Prog ::= Prog ";" ; -- allow the ";" in "... code {...};"
 Contract. Prog ::= "parameter" Typ ";" "storage" Typ ";" "code" "{" [Instr] "}" ; -- full contract
 --Code.     Prog ::= [Instr] ;  -- pure input of (a list of) instructions
@@ -21,41 +17,33 @@ Contract. Prog ::= "parameter" Typ ";" "storage" Typ ";" "code" "{" [Instr] "}" 
 -- User-Defined regex-based token types
 token Str '"' ( (char - ["\"\\"]) | ('\\' ["\"\\rntb"]) )* '"' ; -- should be equivalent to (\" | \r | \n | \t | \b | \\ | [^"\])*
 token Hex '0''x' ( digit | ["abcdefABCDEF"] )+ ;
--- TODO: add regex for other allowed integer notations like 10_00, 1000.00, ect. --0, +0, -0, 0001
--- TODO: and remove _, . with string functions before converting to Z.t (_ is allowed, only . has to be removed) (in Interpreter.evalData)
-DIntNeg. Inte ::= "-" Integer ; -- FIXME: rename to Neg or something like that instead of Int
---DIntUnderscore. Inte ::= "-" (digit | "_")+ ....;
---DIntDot. Inte ::= "-" ...;
-{- DInt evtl doch als subsequenz of both Nat and Neg -}
---DNat. Nat ::= Integer
---DNatUnderscore. Nat ::=
---DNatDot. Nat ::=
+token Neg '-' (digit+) ;  -- negative natural numbers. Neg is handled as string in the parser, unlike Integer!
 
 -- Data
-separator Data ";" ; -- FIXME muss letztes Data mit ";" abgeschlossen werden? dann zu terminator wechseln
+separator Data ";" ;
 _.               Data         ::= "(" Data ")" ; -- https://tezos.gitlab.io/alpha/michelson.html#format-of-patterns
-DInt.            Data         ::= Inte ;
-DNat.            Data         ::= Integer ;
+DNeg.            Data         ::= Neg ; -- negative natural numbers
+DNat.            Data         ::= Integer ;  -- Integer is the same as digit+ -> natural number, not acutally an integer
 DStr.            Data         ::= Str ;
 DBytes.          Data         ::= Hex ;
 DUnit.           Data         ::= "Unit" ;
 DTrue.           Data         ::= "True" ;
 DFalse.          Data         ::= "False" ;
-DPair.           Data         ::= "(" "Pair" Data [PairSeq] ")" ; -- FIXME: klammern pflicht?
-DLeft.           Data         ::= "(" "Left" Data ")" ;  -- FIXME: klammern pflicht?
-DRight.          Data         ::= "(" "Right" Data ")" ;  -- FIXME: klammern pflicht?
+DPair.           Data         ::= "(" "Pair" Data [PairSeq] ")" ;
+DLeft.           Data         ::= "(" "Left" Data ")" ;
+DRight.          Data         ::= "(" "Right" Data ")" ;
 DSome.           Data         ::= "Some" Data ;
 DNone.           Data         ::= "None" ;
 DBlock.          Data         ::= "{" [Data] "}" ;  -- list or set or block of instructions (lambda typ)
 DMap.            Data         ::= "{" [MapSeq] "}" ;
-DInstruction.    Data         ::= Instr ;  -- in DBlock's [Data] for lambda typ
+DInstruction.    Data         ::= Instr ;  -- used in DBlock's [Data] for lambda typ
 
 terminator nonempty PairSeq "" ;
 DPairSeq. PairSeq ::= Data ;
 separator MapSeq ";" ;
 DMapSeq. MapSeq ::= "Elt" Data Data ;
 
--- Instructions TODO: seperate into core instructions usw.
+-- Instructions (possible TODO: seperate instructions into control, stack manipulation, arithmetic, ect. instructions)
 separator Instr ";" ; -- empty instruction sequence allowed! Last 'Instr' does does not >need< to be terminated with ';'!
 BLOCK.                 Instr ::= "{" [Instr] "}" ;
 DROP.                  Instr ::= "DROP" ;
@@ -155,7 +143,7 @@ ADDRESS.               Instr ::= "ADDRESS" ;
 CHAIN_ID.              Instr ::= "CHAIN_ID" ;
 TOTAL_VOTING_POWER.    Instr ::= "TOTAL_VOTING_POWER" ;
 PAIRING_CHECK.         Instr ::= "PAIRING_CHECK" ;
-SAPLING_EMPTY_STATE.   Instr ::= "SAPLING_EMPTY_STATE" Integer ; -- TODO: https://gitlab.com/morley-framework/morley/-/issues/380  SAPPLING NOT NEEDED?
+SAPLING_EMPTY_STATE.   Instr ::= "SAPLING_EMPTY_STATE" Integer ; -- TODO: https://gitlab.com/morley-framework/morley/-/issues/380  SAPPLING to be removed?
 SAPLING_VERIFY_UPDATE. Instr ::= "SAPLING_VERIFY_UPDATE" ;
 TICKET.                Instr ::= "TICKET" ;
 READ_TICKET.           Instr ::= "READ_TICKET" ;
@@ -166,7 +154,7 @@ OPEN_CHEST.            Instr ::= "OPEN_CHEST" ;
 -- MACRO INSTRUCTIONS
 -- Fail
 m_FAIL.     Instr ::= "FAIL" ;
-define m_FAIL = BLOCK[UNIT, FAILWITH] ;  -- TODO: BLOCK is equivalent to "{" [Instr] "}". Is there a solution without (ask support)?
+define m_FAIL = BLOCK[UNIT, FAILWITH] ;
 -- Compare
 m_CMPEQ.    Instr ::= "CMPEQ" ;
 m_CMPNEQ.   Instr ::= "CMPNEQ" ;
@@ -269,18 +257,18 @@ define m_IF_RIGHT bt bf = IF_LEFT bf bt ;
 
 -- Views
 
--- Entrypoints
+-- ENTRYPOINTS
 
 -- Types
 _.                    Typ ::= "(" Typ ")" ;
-TCtype.               Typ ::= CTyp ;  -- TODO: drop token in interpreter (it seems not possible to stop the token from beeing created)
+TCtype.               Typ ::= CTyp ;
 TOperation.           Typ ::= "operation" ;
 TContract.            Typ ::= "contract" Typ ;
 TOption.              Typ ::= "option" Typ ;
 TList.                Typ ::= "list" Typ ;
 TSet.                 Typ ::= "set" CTyp ;
 TTicket.              Typ ::= "ticket" CTyp ;
-TPair.                Typ ::= "(" "pair" Typ [TypeSeq] ")"; -- FIXME: Klammern pflicht oder nicht?
+TPair.                Typ ::= "(" "pair" Typ [TypeSeq] ")";
 TOr.                  Typ ::= "or" Typ Typ ;
 TLambda.              Typ ::= "lambda" Typ Typ ;
 TMap.                 Typ ::= "map" CTyp Typ ;

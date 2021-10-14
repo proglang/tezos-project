@@ -2,14 +2,12 @@
 
 type str = Str of string
 and hex = Hex of string
+and neg = Neg of string
 and prog =
    Contract of typ * typ * instr list
 
-and inte =
-   DIntNeg of int
-
 and data =
-   DInt of inte
+   DNeg of neg
  | DNat of int
  | DStr of str
  | DBytes of hex

@@ -86,17 +86,16 @@ let rec prtStr _ (AbsMichelson.Str i) : doc = render i
 let rec prtHex _ (AbsMichelson.Hex i) : doc = render i
 
 
+let rec prtNeg _ (AbsMichelson.Neg i) : doc = render i
+
+
 
 let rec prtProg (i:int) (e : AbsMichelson.prog) : doc = match e with
        AbsMichelson.Contract (typ1, typ2, instrs) -> prPrec i 0 (concatD [render "parameter" ; prtTyp 0 typ1 ; render ";" ; render "storage" ; prtTyp 0 typ2 ; render ";" ; render "code" ; render "{" ; prtInstrListBNFC 0 instrs ; render "}"])
 
 
-and prtInte (i:int) (e : AbsMichelson.inte) : doc = match e with
-       AbsMichelson.DIntNeg integer -> prPrec i 0 (concatD [render "-" ; prtInt 0 integer])
-
-
 and prtData (i:int) (e : AbsMichelson.data) : doc = match e with
-       AbsMichelson.DInt inte -> prPrec i 0 (concatD [prtInte 0 inte])
+       AbsMichelson.DNeg neg -> prPrec i 0 (concatD [prtNeg 0 neg])
   |    AbsMichelson.DNat integer -> prPrec i 0 (concatD [prtInt 0 integer])
   |    AbsMichelson.DStr str -> prPrec i 0 (concatD [prtStr 0 str])
   |    AbsMichelson.DBytes hex -> prPrec i 0 (concatD [prtHex 0 hex])

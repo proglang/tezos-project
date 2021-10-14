@@ -1,0 +1,1 @@
+This folder contains (all) michelson contracts to be found in the [Tezos Octez implementation](https://gitlab.com/tezos/tezos), except the duplicate contracts of older protocols.
