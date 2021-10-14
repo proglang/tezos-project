@@ -1,42 +1,70 @@
-(* Z.t Documentation https://antoinemine.github.io/Zarith/doc/latest/Z.html*)
+(*
+Z.t Documentation https://antoinemine.github.io/Zarith/doc/latest/Z.html
 
-module Mutez = struct
-  type t = { value : Z.t }
+Mutez (micro-Tez) are internally represented by 64-bit signed integers.
+These are restricted to prevent creating a negative amount of mutez.
+Instructions are limited to prevent overflow and mixing them with other numerical types by mistake.
+They are also mandatorily checked for overflows.
+*)
 
-  exception Overflow of string * Z.t * Z.t
+module Mutez : sig
+    type t = { value : Z.t; }
+    exception Overflow of string * string * string
+    exception NegativeMutez of string * string * string
+    val of_int : int -> t
+    val of_int64 : int64 -> t
+    val of_string : string -> t
+    val to_int : t -> int
+    val to_int64 : t -> int64
+    val to_string : t -> string
+    val add : t -> t -> t
+    val sub : t -> t -> t
+    val mul : t -> t -> t
+    val ediv : t -> t -> (t * t) option
+  end = struct
+    type t = { value : Z.t; }
 
-  let min_t = { value = Z.of_string "-9223372036854775808"};;
-  let max_t = { value = Z.of_string "9223372036854775807"};;
+    exception Overflow of string * string * string
+    exception NegativeMutez of string * string * string
 
-  let of_int (x : int) = { value = Z.of_int x }
-  let of_string (x : string) = { value = Z.of_string x }
+    let min_t = Z.of_int 0
+    let max_t = Z.of_string "9223372036854775807"
 
-  let add (x : t) (y : t) : t =
-    let value = Z.add x.value y.value in
-    if (value < min_int || value > max_int) then
-      raise (Overflow ("Overflow when adding values", x.value, y.value))
-    else
-      { value }
+    let of_int (x : int) = { value = Z.of_int x }
+    let of_int64 (x : int64) = { value = Z.of_int64 x }
+    let of_string (s : string) =
+      let value = Z.of_string s in
+      if (value < min_t || value > max_t) then
+        raise (Overflow ("Mutez.of_string: Overflow", s, ""))
+      else { value }
 
-  let sub (x : t) (y : t) : t =
-    let value = Z.sub x.value y.value in
-    if (value < min_int || value > max_int) then
-      raise (Overflow ("Overflow when substracting values", x.value, y.value))
-    else
-      { value }
+    let to_int (x : t) = Z.to_int x.value (* may raise Z.Overflow *)
+    let to_int64 (x : t) = Z.to_int64 x.value
+    let to_string (x : t) = Z.to_string x.value
 
-  let mul (x : t) (y : t) : t =
-    let value = Z.mul x.value y.value in
-    if (value < min_int || value > max_int) then
-      raise (Overflow ("Overflow when multiplying values", x.value, y.value))
-    else
-      { value }
+    let add (x : t) (y : t) : t =
+      let value = Z.add x.value y.value in
+      if (value > max_t) then
+        raise (Overflow ("Mutez.add: Overflow", Z.to_string(x.value), Z.to_string(y.value)))
+      else { value }
 
-  let ediv (x : t) (y : t) : (t * t) option =
-    try
-    	let (fst, snd) = Z.ediv_rem x.value y.value in (* Z.ediv_rem raises Divison_by_zero if y = 0*)
-      Some ({ value = fst }, { value = snd })
-    with Division_by_zero -> None
+    let sub (x : t) (y : t) : t =
+      let value = Z.sub x.value y.value in
+      if (value < min_t) then
+        raise (NegativeMutez ("Mutez.sub: Mutez can not be negative", Z.to_string(x.value), Z.to_string(y.value)))
+      else { value }
+
+    let mul (x : t) (y : t) : t =
+      let value = Z.mul x.value y.value in
+      if (value > max_t) then
+        raise (Overflow ("Mutez.mul: Overflow", Z.to_string(x.value), Z.to_string(y.value)))
+      else { value }
+
+    let ediv (x : t) (y : t) : (t * t) option =
+      try
+        let (fst, snd) = Z.ediv_rem x.value y.value in (* Z.ediv_rem raises Divison_by_zero if y = 0*)
+        Some ({ value = fst }, { value = snd })
+      with Division_by_zero -> None
 
 end;;
 
