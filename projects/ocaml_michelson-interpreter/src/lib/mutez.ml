@@ -8,19 +8,23 @@ They are also mandatorily checked for overflows.
 *)
 
 module Mutez : sig
-    type t = { value : Z.t; }
+    type t
     exception Overflow of string * string * string
     exception NegativeMutez of string * string * string
     val of_int : int -> t
     val of_int64 : int64 -> t
+    val of_Zt : Z.t -> t
     val of_string : string -> t
     val to_int : t -> int
     val to_int64 : t -> int64
+    val to_Zt : t -> Z.t
     val to_string : t -> string
     val add : t -> t -> t
     val sub : t -> t -> t
     val mul : t -> t -> t
     val ediv : t -> t -> (t * t) option
+    val value : t -> Z.t
+    (*val format : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'b -> 'a -> unit*)
   end = struct
     type t = { value : Z.t; }
 
@@ -32,6 +36,7 @@ module Mutez : sig
 
     let of_int (x : int) = { value = Z.of_int x }
     let of_int64 (x : int64) = { value = Z.of_int64 x }
+    let of_Zt (x : Z.t) = { value = x }
     let of_string (s : string) =
       let value = Z.of_string s in
       if (value < min_t || value > max_t) then
@@ -40,6 +45,7 @@ module Mutez : sig
 
     let to_int (x : t) = Z.to_int x.value (* may raise Z.Overflow *)
     let to_int64 (x : t) = Z.to_int64 x.value
+    let to_Zt (x : t) = x.value
     let to_string (x : t) = Z.to_string x.value
 
     let add (x : t) (y : t) : t =
@@ -66,15 +72,8 @@ module Mutez : sig
         Some ({ value = fst }, { value = snd })
       with Division_by_zero -> None
 
+    let value x = x.value (* 'pretty printer' for now *)
+    (*let format fmt_elt fmt x = (fun x -> Format.fprintf fmt "%a" x)*)
+
 end;;
-
-
-(*
-  let arithmetic (f : (Z.t -> Z.t -> Z.t)) (x : t) (y : t) : option t =
-    let value = f x.value y.value in
-    if (value < min_int || value > max_int) then
-      raise MutezOverflow ("no idea how to include the right arithmetic function in this exception message", x, y)
-    else
-      { value }
-*)
 

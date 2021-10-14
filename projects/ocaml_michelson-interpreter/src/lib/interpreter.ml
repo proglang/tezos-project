@@ -13,13 +13,14 @@ type tx_data = { (* transaction parameters *)
 }
 (*[@@deriving eq, show { with_path = false }]*)
 
+
 type union = L | R
 type value =
-  | IOperation of typ (* TODO: contract type? *)
+  | IOperation of typ (* TODO: type? *)
   | IContract of typ * string option (* TODO: string = contract address?? *)
   | IList of typ * value list
   | ISet of typ * value list (* FIXME set with comparator witness for all ctypes?*)
-  | ITicket of value * value * value (* TODO: first 'value'=IPair *)
+  | ITicket of value * value * value (* address, typ, nat *)
   | ILambda of (typ * typ) * instr list
   | IMap of (typ * typ) * (value * value) list (* FIXME use Map? comparator witness for each key ctyp?*)
   | IBig_map of (typ * typ) * (value * value) list
@@ -42,8 +43,8 @@ type value =
   | INat of Z.t
   | IString of string
   | IChain_id of string
-  | IBytes of bytes (* FIXME: string or bytes? conersion? fix byte instructions *)
-  | IMutez of int64
+  | IBytes of bytes (* FIXME: raw byte, fix byte instructions *)
+  | IMutez of Mutez.t
   | IKey_hash of string
   | IKey of string
   | ISignature of string
@@ -142,7 +143,7 @@ let rec typeof (v : value) =
   | TSignature
   | TTimestamp
   | TAddress
-  | _ -> raise failwith "comparator casted for not comparable type"*)
+  | _ -> failwith "comparator casted for not comparable type"*)
 
 (* Type class membership checker functions
    based on table at https://tezos.gitlab.io/michelson-reference/#types *)
@@ -369,48 +370,48 @@ let comparable_pair (t0, t : typ * typ) : bool =
 
 exception Illegal_Instruction of string * AbsMichelson.instr
 exception StackTypeError of string * AbsMichelson.instr * typ list
-let raise_InstrValue_Mismatch (instr : AbsMichelson.instr) (x : value list) : unit = raise StackTypeError ("Instr & Stack value type mismatch", instr, List.map x ~f:(fun x -> typeof(x)))
+let raise_InstrValue_Mismatch (instr : AbsMichelson.instr) (x : value list) : unit = raise (StackTypeError ("Instr & Stack value type mismatch", instr, List.map x ~f:(fun x -> typeof(x))))
 exception TypeInstrError of string * AbsMichelson.instr * (typ * typ)
 exception TypeError of string * typ
 exception TypeDataError of string * typ * AbsMichelson.data
 exception Failwith of string * value
 
-
+(* TODO Funktionsübergaben als pointers? *)
 (* minor evaluation/helper functions *)
 let drop_n (n : int) (lst : value list) : value =
    if n = 0 then lst
-   else if (List.length lst < n) then raise Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.DROP_N (n))
+   else if (List.length lst < n) then raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.DROP_N (n)))
    else List.drop stack integer
 let dup_n (n : int) (x : value) (lst : value list) : value =
-  if n = 0 then raise Illegal_Instruction ("'n'=0 is illegal", AbsMichelson.DUP_N)
+  if n = 0 then raise (Illegal_Instruction ("'n'=0 is illegal", AbsMichelson.DUP_N))
   else if (pushable(typeof(x))) then
     match List.nth lst (n - 1) with
     | Some x -> x
-    | None -> raise Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.DUP_N (n))
+    | None -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.DUP_N (n)))
   else raise_InstrValue_Mismatch instr [x]
 let dig_n (n : int) (lst : value list) : value list =
   let (fst, snd) = List.split_n lst n in
   match (fst, snd) with
-  | ([], _) -> raise Illegal_Instruction ("DIG 0 is illegal", AbsMichelson.DIG_N (n))
+  | ([], _) -> raise (Illegal_Instruction ("DIG 0 is illegal", AbsMichelson.DIG_N (n)))
   | (fst, (x :: st)) -> x :: (fst @ st)
-  | (_, []) -> raise Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.DIG_N (n))
+  | (_, []) -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.DIG_N (n)))
 let dug_n (n : int) (lst : value list) : value list =
   let (fst, snd) = List.split_n lst (n + 1) in
   match (fst, snd) with
-  | (_, []) -> raise Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.DUG_N (n))
+  | (_, []) -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.DUG_N (n)))
   | ((x :: st), snd) -> st @ (x :: snd)
-  | ([], _) -> raise Illegal_Instruction ("DUG 0 is illegal", AbsMichelson.DUG_N (n))
+  | ([], _) -> raise (Illegal_Instruction ("DUG 0 is illegal", AbsMichelson.DUG_N (n)))
 let pair_n (n : int) (lst : value list) : value list =
-  if (n <= 1) then raise Illegal_Instruction ("'n' needs to be higher then 1", AbsMichelson.PAIR_N (n))
+  if (n <= 1) then raise (Illegal_Instruction ("'n' needs to be higher then 1", AbsMichelson.PAIR_N (n)))
   else
     let (fst, snd) = List.split_n lst n in
     match (fst, snd) with
-    | (_, []) -> raise Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.PAIR_N (n))
+    | (_, []) -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.PAIR_N (n)))
     (* Note: case ([], _) does not happen because of the if(n<=1) before*)
     | (fst, snd) -> IPair_n (fst) :: snd
 let unpair_n (n : int) (lst : value list) (values : value list) : value list =
-  if (List.length values <> n) then raise Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.UNPAIR_N (n))
-  else if (n <= 1) then raise Illegal_Instruction ("'n' needs to be higher then 1", AbsMichelson.UNPAIR_N (n))
+  if (List.length values <> n) then raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.UNPAIR_N (n)))
+  else if (n <= 1) then raise (Illegal_Instruction ("'n' needs to be higher then 1", AbsMichelson.UNPAIR_N (n)))
   else values @ lst
 let slice_str (offset : value (*INat*)) (len : value (*INat*)) (str : string) : value =
   (* String.sub implements the same rules regarding offset & len bounds but throws errors instead of returning an string option *)
@@ -514,9 +515,9 @@ let exec (x : value) (y : value) (data : tx_data) : value =
     if (typeof(x) = fst tys) then
       let st = evalList evalInstr instrs [x] data in
       match st with
-      | [z] -> if (typeof(z) = snd tys) then z else raise TypeInstrError ("Lambda output type mismatch", AbsMichelson.EXEC, (typeof(rst), snd tys))
-      | _ -> raise Illegal_Instruction ("Lambda output should be exactly one value", AbsMichelson.EXEC)
-    else raise TypeInstrError ("Lambda input type mismatch", AbsMichelson.EXEC, (typeof(x), fst tys))
+      | [z] -> if (typeof(z) = snd tys) then z else raise (TypeInstrError ("Lambda output type mismatch", AbsMichelson.EXEC, (typeof(rst), snd tys)))
+      | _ -> raise (Illegal_Instruction ("Lambda output should be exactly one value", AbsMichelson.EXEC))
+    else raise (TypeInstrError ("Lambda input type mismatch", AbsMichelson.EXEC, (typeof(x), fst tys)))
   in
   match y with
   | ILambda(tys, instrs) -> f instrs tys data
@@ -526,7 +527,7 @@ let exec (x : value) (y : value) (data : tx_data) : value =
 let dip_n (instrs : AbsMichelson.instr list) (n : int) (st : value list) (data : tx_data) : value list =
   let (fst, snd) = List.split_n instrs n in
   match (fst, snd) with
-  | (_, []) -> raise Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.DIP_N (n))
+  | (_, []) -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.DIP_N (n)))
   | (fst, snd) -> fst @ (evalList evalInstr instr snd data) (* this case also matches n=0 *)
 
 
@@ -559,7 +560,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (st : value list) (data : tx_data
   | (AbsMichelson.PUSH (typ, data), _) ->
     let value = evalValue (evalTyp typ) data in
     if (pushable(typeof(value))) then (value :: stack)
-    else raise Illegal_Instruction ("value type to be pushed is not pushable", instr)
+    else raise (Illegal_Instruction ("value type to be pushed is not pushable", instr))
   | (AbsMichelson.SOME, (x :: st)) ->  IOption (typeof(x), Some x) :: st
   | (AbsMichelson.NONE typ, st) ->  IOption(evalTyp typ, None) :: st
   | (AbsMichelson.UNIT, _) -> IUnit :: st
@@ -647,7 +648,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (st : value list) (data : tx_data
     | _ -> raise_InstrValue_Mismatch instr [x]
   | (AbsMichelson.LOOP instrs, (x :: st)) -> (*loop instrs stack data*)
     match x with
-    | IBool true  -> evalInstr (AbsMichelson.LOOP_LEFT instrs) (evalList evalInstr instrs st data) data (* TODO not sure if loop-function is more efficient then recursively evaluating evalInstr *)
+    | IBool true  -> evalInstr (AbsMichelson.LOOP instrs) (evalList evalInstr instrs st data) data (* TODO not sure if loop-function is more efficient then recursively evaluating evalInstr *)
     | IBool false -> st
     | _ -> raise_InstrValue_Mismatch instr [x]
   | (AbsMichelson.LOOP_LEFT instrs, (x :: st)) -> (*loop_left instrs stack data*)
@@ -660,7 +661,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (st : value list) (data : tx_data
   | (AbsMichelson.APPLY, (x :: st)) ->  st (* TODO Values that are not both pushable and storable (values of type operation, contract _ and big_map _ _) cannot be captured by APPLY (cannot appear in ty1).*)
   | (AbsMichelson.DIP instrs, (x :: st)) -> x :: (evalList evalInstr instrs st data)
   | (AbsMichelson.DIP_N (integer, instrs), _) ->  dip_n instrs n stack data
-  | (AbsMichelson.FAILWITH, (x :: st)) -> raise Failwith ("Evaluation failed with FAILWITH instruction", x)
+  | (AbsMichelson.FAILWITH, (x :: st)) -> raise (Failwith ("Evaluation failed with FAILWITH instruction", x))
   | (AbsMichelson.CAST, (x :: st)) -> st(* TODO: 1. shouldnt it be 'CAST typ'? 2. What are two different compatible types? only e.g. CPair -> TPair?  *)
   | (AbsMichelson.RENAME, (x :: st)) ->  st(* TODO: depends on variable annotations*)
   | (AbsMichelson.CONCAT, (x :: y :: st)) ->
@@ -707,7 +708,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (st : value list) (data : tx_data
     | (INat (x) :: IInt (y))
     | (IInt (x) :: INat (y))
     | (IInt (x) :: IInt (y))               -> IInt (Z.mul x y) :: st
-    | (IMutez (x) :: INat (y))             -> IMutez (Int64.add x (Z.to_int64 y)) :: st (* Z.to_int64 my raise Overflow TODO: run-time error if the product overflows *)
+    | (IMutez (x) :: INat (y))             -> IMutez (Int64.add x (Z.to_int64 y)) :: st (* Z.to_int64 my raise (Overflow TODO: run-time error if the product overflows *))
     | (INat (x) :: IMutez (y))             -> IMutez (Int64.add (Z.to_int64 x) y) :: st (* TODO: run-time error if the product overflows...or just use Z.int instead *)
     | (IBls_381_g1 (x) :: IBls_381_fr (y)) -> IBls_381_g1 ( x y) :: st (*TODO*)
     | (IBls_381_g2 (x) :: IBls_381_fr (y)) -> IBls_381_g2 ( x y) :: st (*TODO*)
@@ -771,7 +772,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (st : value list) (data : tx_data
   | (AbsMichelson.JOIN_TICKETS, (x :: st)) -> (* TODO: Contract related*)
   | (AbsMichelson.OPEN_CHEST, (x :: st)) -> (* TODO: Contract related*)
   (* raise exception for instructions that need one or more elements on the stack but the stack does not contain this much values *)
-  | (_, []) -> raise Illegal_Instruction ("Stack does not contain the necessary amount of values" instr)
+  | (_, []) -> raise (Illegal_Instruction ("Stack does not contain the necessary amount of values" instr))
 
 and evalTyp (ty : AbsMichelson.typ) : typ = match ty with
   | AbsMichelson.TCtype ctyp                  -> evalCType ctyp
@@ -781,7 +782,7 @@ and evalTyp (ty : AbsMichelson.typ) : typ = match ty with
   | AbsMichelson.TList typ                    -> TList (evalType typ)
   | AbsMichelson.TSet ctyp                    -> TSet (evalCType ctyp)
   | AbsMichelson.TTicket ctyp                 -> TTicket (evalCType ctyp)
-  | AbsMichelson.TPair (typ, typeseqs)        -> TPair (evalType typ, evalTypeSeq evalTyp typeseqs)
+  | AbsMichelson.TPair (typ, typeseqs)        -> TPair (evalType typ, evalTypePair evalTyp typeseqs)
   | AbsMichelson.TOr (typ0, typ)              -> TOr (evalType typ0, evalType typ)
   | AbsMichelson.TLambda (typ0, typ)          -> TLambda (evalType typ0, evalType typ)
   | AbsMichelson.TMap (ctyp, typ)             -> TMap (evalCType ctyp, evalType typ)
@@ -793,7 +794,7 @@ and evalTyp (ty : AbsMichelson.typ) : typ = match ty with
   | AbsMichelson.TSapling_state _             -> TSapling_state
   | AbsMichelson.TChest                       -> TChest
   | AbsMichelson.TChest_key                   -> TChest_key
-  | _ -> raise TypeError ("Type not implemented in Interpreter", ty)
+  | _ -> raise (TypeError ("Type not implemented in Interpreter", ty))
 and evalCTyp (ty : AbsMichelson.cTyp) : typ = match ty with
   | AbsMichelson.CUnit                   -> TUnit
   | AbsMichelson.CNever                  -> TNever
@@ -811,13 +812,13 @@ and evalCTyp (ty : AbsMichelson.cTyp) : typ = match ty with
   | AbsMichelson.CAddress                -> TAddress
   | AbsMichelson.COption ctyp            -> TOption (evalCTyp ctyp)
   | AbsMichelson.COr (ctyp0, ctyp)       -> TOr (evalCTyp ctyp0, evalCTyp ctyp)
-  | AbsMichelson.CPair (ctyp, ctypeseqs) -> TPair (evalCTyp ctyp0, evalTypeSeq evalCType ctypeseqs)
-  | _ -> raise TypeError ("Type not implemented in Interpreter", ty)
-and evalTypeSeq (evalFun : ('a -> typ)) 'a : typ = (* evaluates sequences of AbsMichelson.typ and AbsMichelson.cTyp *)
+  | AbsMichelson.CPair (ctyp, ctypeseqs) -> TPair (evalCTyp ctyp0, evalTypePair evalCType ctypeseqs)
+  | _ -> raise (TypeError ("Type not implemented in Interpreter", ty))
+and evalTypePair (evalFun : ('a -> typ)) 'a : typ = (* evaluates sequences of AbsMichelson.typ and AbsMichelson.cTyp *)
   let rec f ys = match ys with
   | [y] -> evalFun y
   | y :: ys -> TPair(evalFun y, f ys)
-  | [] -> failwith "" (* does not happen as there is no recursive call that invokes this case and a:typSeq/cTypeSeq is nonempty *)
+  | [] -> failwith "Interpreter.evalTypeSeq impossible match happend" (* never happens as there is no recursive call that invokes this case and 'a:typSeq/cTypeSeq is nonempty *)
   in
   f a;
 
@@ -851,21 +852,22 @@ and evalValue (t : typ) (e : AbsMichelson.data) : value =
     | (TNever, )                                             -> (* FIXME *)
     | (TBool, AbsMichelson.DTrue)                            -> IBool true
     | (TBool, AbsMichelson.DFalse)                           -> IBool false
-    | (TInt, AbsMichelson.DInt inte)                         -> evalInt inte
-    | (TInt, AbsMichelson.DNat nat)                          -> evalNat nat
-    | (TNat, AbsMichelson.DNat nat)                          -> evalNat nat
+    | (TInt, AbsMichelson.DNat nat)                          -> IInt (Z.of_int nat)
+    | (TInt, AbsMichelson.DNeg net)                          -> IInt (Z.of_string neg)
+    | (TNat, AbsMichelson.DNat nat)                          -> INat (Z.of_int nat)
     | (TString, AbsMichelson.DStr str)                       -> IString str
     | (TChain_id, AbsMichelson.DStr str)                     -> IChain_id str
     | (TBytes, AbsMichelson.DBytes b)                        -> (* TODO:  *)
-    | (TMutez, AbsMichelson.DInt inte)                       -> IMutez (Int64.of_int (evalInt inte))
-    | (TMutez, AbsMichelson.DNat nat)                        -> IMutez (Int64.of_int (evalNat nat))
+    | (TMutez, AbsMichelson.DNat nat)                        -> IMutez (Mutez.of_int nat)
+    | (TMutez, AbsMichelson.DNeg neg)                        -> IMutez (Mutez.of_string neg)
     | (TKey_hash, AbsMichelson.DStr str)                     -> IKey_hash str
     | (TKey, AbsMichelson.DStr str)                          -> IKey str
     | (TSignature, AbsMichelson.DStr str)                    -> ISignature str
     | (TTimestamp, AbsMichelson.DNat nat)                    -> ITimestamp nat
+    | (TTimestamp, AbsMichelson.DStr str)                    -> ITimestamp (tstamp timestamp) -- timestamp given in RFC3339 format
     | (TAddress, AbsMichelson.DStr str)                      -> IAddress str
     (* non pushable *)
-    | _ -> raise TypeDataError ("Expected type does not match given data", t, e)
+    | _ -> raise (TypeDataError ("Expected type does not match given data", t, e))
 
 and evalDataList (lst : AbsMichelson.data list) (ty : typ) : value list =
   let f (ty : typ) = (fun x ->
@@ -887,21 +889,14 @@ and evalDataMap (lst : AbsMichelson.mapseq list) (ty0, ty : typ * typ) : value (
   let lst_of_pairs = List.map lst ~f:(f ty) in
   Map.of_lst lst_of_pairs (module given by ty0) (oder so!)  (* FIXME: implement as Map.t *)
 and evalDataPair = (lst : AbsMichelson.pairseq list) (t : typ) : value (*IPair*) =
-  let rec f t ps = match (t, ps) with
-  | (ty, [p])                   -> evalValue p ty
-  | (TPair (ty0, ty), (p :: ps) -> IPair(evalValue p ty0, f ps ty)
-  | _ -> failwith "The length of the given pair types & pair values is not equal"
+  let rec f t lst = match (t, lst) with
+  | (ty, [AbsMichelson.DPairSeq data]) -> evalValue data ty (* FIXME: is of token 'AbsMichelson.DPairSeq' -> does this match work?*)
+  | (TPair (ty0, ty), (AbsMichelson.DPairSeq data :: lst)     -> IPair(evalValue data ty0, f ps ty)
+  | _ -> failwith "The lengths of the given pair types & pair values are not equal"
   in
   f t lst;
 
 
-
-let (rec)) evalInt (e : AbsMichelson.inte) : value = match e with (* TODO *)
-  | AbsMichelson.DIntPos integer ->
-  | AbsMichelson.D
-let (rec) evalNat (e : AbsMichelson.nat) : value = match e with
-  | AbsMichelson.DIntPos integer ->
-  | AbsMichelson.DIntNeg integer ->
 
 let showInt (i:int) : showable = s2s (Int.to_string i)
 let showFloat (f:float) : showable = s2s (string_of_float f)
