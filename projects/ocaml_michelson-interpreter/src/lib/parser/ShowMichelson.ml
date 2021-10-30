@@ -44,6 +44,7 @@ let rec showNeg (AbsMichelson.Neg i) : showable = s2s "Neg " >> showString i
 
 let rec showProg (e : AbsMichelson.prog) : showable = match e with
        AbsMichelson.Contract (typ0, typ, instrs) -> s2s "Contract" >> c2s ' ' >> c2s '(' >> showTyp typ0  >> s2s ", " >>  showTyp typ  >> s2s ", " >>  showList showInstr instrs >> c2s ')'
+  |    AbsMichelson.Argument data -> s2s "Argument" >> c2s ' ' >> c2s '(' >> showData data >> c2s ')'
 
 
 and showData (e : AbsMichelson.data) : showable = match e with

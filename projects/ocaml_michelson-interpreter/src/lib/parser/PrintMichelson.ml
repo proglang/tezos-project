@@ -92,6 +92,7 @@ let rec prtNeg _ (AbsMichelson.Neg i) : doc = render i
 
 let rec prtProg (i:int) (e : AbsMichelson.prog) : doc = match e with
        AbsMichelson.Contract (typ1, typ2, instrs) -> prPrec i 0 (concatD [render "parameter" ; prtTyp 0 typ1 ; render ";" ; render "storage" ; prtTyp 0 typ2 ; render ";" ; render "code" ; render "{" ; prtInstrListBNFC 0 instrs ; render "}"])
+  |    AbsMichelson.Argument data -> prPrec i 0 (concatD [prtData 0 data])
 
 
 and prtData (i:int) (e : AbsMichelson.data) : doc = match e with

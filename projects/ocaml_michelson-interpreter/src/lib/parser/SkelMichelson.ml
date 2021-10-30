@@ -22,6 +22,7 @@ and transNeg (x : neg) : result = match x with
 
 and transProg (x : prog) : result = match x with
     Contract (typ0, typ, instrs) -> failure x
+  | Argument data -> failure x
 
 
 and transData (x : data) : result = match x with

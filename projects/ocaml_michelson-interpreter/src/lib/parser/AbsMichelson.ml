@@ -5,6 +5,7 @@ and hex = Hex of string
 and neg = Neg of string
 and prog =
    Contract of typ * typ * instr list
+ | Argument of data
 
 and data =
    DNeg of neg
@@ -135,6 +136,7 @@ and instr =
  | SPLIT_TICKET
  | JOIN_TICKETS
  | OPEN_CHEST
+[@@deriving eq]
 
 and typ =
    TCtype of cTyp

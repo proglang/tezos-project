@@ -8,11 +8,10 @@
 comment "#" ; -- line comment
 
 entrypoints Prog ;
--- TODO are empty contracts allowed? how many instr needed for minimal contract?
 _.        Prog ::= Prog ";" ; -- allow the ";" in "... code {...};"
 Contract. Prog ::= "parameter" Typ ";" "storage" Typ ";" "code" "{" [Instr] "}" ; -- full contract
 --Code.     Prog ::= [Instr] ;  -- pure input of (a list of) instructions
---Argument. Prog ::= Data ; -- for input / storage arguments
+Argument. Prog ::= Data ; -- for input / storage arguments
 
 -- User-Defined regex-based token types
 token Str '"' ( (char - ["\"\\"]) | ('\\' ["\"\\rntb"]) )* '"' ; -- should be equivalent to (\" | \r | \n | \t | \b | \\ | [^"\])*
@@ -43,7 +42,7 @@ DPairSeq. PairSeq ::= Data ;
 separator MapSeq ";" ;
 DMapSeq. MapSeq ::= "Elt" Data Data ;
 
--- Instructions (possible TODO: seperate instructions into control, stack manipulation, arithmetic, ect. instructions)
+-- Instructions
 separator Instr ";" ; -- empty instruction sequence allowed! Last 'Instr' does does not >need< to be terminated with ';'!
 BLOCK.                 Instr ::= "{" [Instr] "}" ;
 DROP.                  Instr ::= "DROP" ;
@@ -82,6 +81,7 @@ GET.                   Instr ::= "GET" ;
 GET_N.                 Instr ::= "GET" Integer ;
 UPDATE.                Instr ::= "UPDATE" ;
 UPDATE_N.              Instr ::= "UPDATE" Integer ;
+--GET_AND_UPDATE could also be just a macro of GET and UPDATE? TODO
 IF.                    Instr ::= "IF" "{" [Instr] "}" "{" [Instr] "}" ;
 LOOP.                  Instr ::= "LOOP" "{" [Instr] "}" ;
 LOOP_LEFT.             Instr ::= "LOOP_LEFT" "{" [Instr] "}" ;
@@ -246,7 +246,7 @@ define m_IF_RIGHT bt bf = IF_LEFT bf bt ;
 
 
 
--- ANNOTATIONS
+-- ANNOTATIONS TODO
 -- possibly just remove them?
 -- Type annotations
 -- Variable annotations

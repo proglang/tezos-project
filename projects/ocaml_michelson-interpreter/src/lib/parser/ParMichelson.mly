@@ -36,6 +36,7 @@ pProg : prog TOK_EOF { $1 }
 
 prog : prog SYMB1 {  $1 }
   | KW_parameter typ SYMB1 KW_storage typ SYMB1 KW_code SYMB2 instr_list SYMB3 { Contract ($2, $5, $9) }
+  | data { Argument $1 }
 ;
 
 data_list : /* empty */ { []  }
