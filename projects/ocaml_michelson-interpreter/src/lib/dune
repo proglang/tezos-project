@@ -1,16 +1,8 @@
 (include_subdirs unqualified)
 
-
-;(library
- ;(name michelson)
- ; (modules absMichelson)
-  ;(libraries base core stdio ptime zarith)
-  ;(preprocess (pps ppx_deriving.show ppx_deriving.eq ppx_jane))
-;)
-
 (library
  (name michelson)
  ; (modules absMichelson)
-  (libraries base core stdio ptime zarith) ; tezos-crypto
+  (libraries base core stdio ptime zarith tezos-crypto)
   (preprocess (pps ppx_deriving.show ppx_deriving.eq )) ; ppx_jane -allow-unannotated-ignores
 )

@@ -718,5 +718,5 @@ let interpret (prog : AbsMichelson.prog) (parameter : AbsMichelson.prog) (storag
     if (equal_typ (typeof x) ty1) then x
     else failwith "Interpreter.interpret: Wrong output type"
   | [] -> failwith "Interpreter.interpret: Stack empty"
-  | _ -> failwith "Interpreter.interpret: Stack contains more then one value"
+  | _ -> failwith "Interpreter.interpret: Stack contains more then one value" (* TODO: return/show topmost stack?*)
   (* TODO: instr 'FAILWITH' abfangen *)

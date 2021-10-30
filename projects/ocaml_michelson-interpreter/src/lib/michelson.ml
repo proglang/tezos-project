@@ -1,6 +1,5 @@
 open Core
 open Lexing
-open Value
 
 let parse (source : string) : AbsMichelson.prog =
   ParMichelson.pProg LexMichelson.token (Lexing.from_string source)
@@ -10,8 +9,8 @@ let run source parameter storage env =
   let prog = parse source in
   let param = parse parameter in
   let stor = parse storage in
-  let new_storage : value  = Interpreter.interpret prog param stor env in
-  show_value new_storage;
+  let new_storage : Value.value  = Interpreter.interpret prog param stor env in
+  print_endline (Value.show_value new_storage);
 
 (*    Lexer.newLexer source
     |> Lexer.generateTokens

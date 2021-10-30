@@ -82,8 +82,6 @@ and value =
   | IAddress of string
 [@@deriving eq, show]
 
-let print_value (v : value) : unit = show_value v
-
 let rec typeof (v : value) =
   match v with
   | IOperation (op)           -> TOperation
