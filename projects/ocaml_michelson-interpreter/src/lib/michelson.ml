@@ -1,15 +1,17 @@
 open Core
 open Lexing
+open Value
 
 let parse (source : string) : AbsMichelson.prog =
   ParMichelson.pProg LexMichelson.token (Lexing.from_string source)
 
-let run source parameter storage (data : Interpreter.tx_data) =
+let run source parameter storage env =
   let () = printf "Source:\n'%s' \nParameter: '%s' \nStorage: '%s' \n%!" source parameter storage in
   let prog = parse source in
-  let param = parse param in
-  let stor = parse store in
-  Interpreter.interpret prog param stor data;
+  let param = parse parameter in
+  let stor = parse storage in
+  let new_storage : value  = Interpreter.interpret prog param stor env in
+  show_value new_storage;
 
 (*    Lexer.newLexer source
     |> Lexer.generateTokens

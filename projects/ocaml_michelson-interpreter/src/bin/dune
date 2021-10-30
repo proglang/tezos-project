@@ -1,4 +1,5 @@
 (executable
+ (public_name michelson_interpreter)
  (name main)
  (libraries michelson core stdio)
  (preprocess (pps ppx_jane))

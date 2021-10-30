@@ -10,7 +10,9 @@ depends: [
         "ocaml"
         "base"
         "core"
-        (*  "ppx_deriving"
-        "fmt"
+        "ptime"
+        "zarith"
+        "ppx_deriving"
+        (* "fmt"
         "alcotest" {test} *)
         ]

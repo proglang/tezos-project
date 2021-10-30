@@ -1,0 +1,4 @@
+(env
+  (dev
+    (flags (:standard -w -27-39-33)))) ; global warning settings
+    ; should not be disabled globally but only for bin/parser subfolder that is generically generated resulting in these errors!
