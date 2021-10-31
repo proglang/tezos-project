@@ -37,14 +37,14 @@ type typ =
   | TSignature
   | TTimestamp
   | TAddress
-[@@deriving eq]
+[@@deriving eq, show]
 type union = L | R
-[@@deriving eq]
+[@@deriving eq, show]
 type op =
   | Create_contract of string * value * value * value (* contract-code * key_hash * mutez * address *)
   | Transfer_tokens of typ * value * value (* 'p * mutez * contract 'p *)
   | Set_delegate of value (* key_hash *)
-[@@deriving eq]
+[@@deriving eq, show]
 and value =
   | IOperation of op
   | IContract of typ * string (* parameter 'p * address *)
@@ -82,7 +82,8 @@ and value =
   | IAddress of string
 [@@deriving eq, show]
 
-let rec typeof (v : value) =
+
+let rec typeof (v : value) : typ =
   match v with
   | IOperation (op)           -> TOperation
   | IContract (ty, _)         -> TContract ty
