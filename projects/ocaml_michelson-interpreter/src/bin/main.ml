@@ -39,7 +39,7 @@ let command =
     filename: the contract file
     parameter: the parameter value
     storage: the current storage of the contract
-    env: environment parameters given as a string in the form 'source, sender, self_address, balance, amount, timestamp, chain_id, level, tot_voting_power'
+    env: environment parameters given as a string in the form 'source;sender;self_address;balance;amount;timestamp;chain_id;level;tot_voting_power'
     ")
 (*    Command.Param.(
          map (anon (maybe ("filename" %: Filename.arg_type)))

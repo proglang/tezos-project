@@ -1,11 +1,9 @@
 parameter unit;
-storage unit;
+storage int;
 code {
-  DROP;
-  ADD;
-  DROP;
+  CAR;
   PUSH int -5;
-  PUSH int 1
+  ADD;
+  NIL operation;
+  PAIR;
 };
-
-

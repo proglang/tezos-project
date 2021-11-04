@@ -39,20 +39,20 @@ type typ =
   | TAddress
 [@@deriving eq, show]
 type union = L | R
-[@@deriving eq, show]
+[@@deriving eq, show, ord]
 type op =
   | Create_contract of string * value * value * value (* contract-code * key_hash * mutez * address *)
   | Transfer_tokens of typ * value * value (* 'p * mutez * contract 'p *)
   | Set_delegate of value (* key_hash *)
-[@@deriving eq, show]
+[@@deriving eq(*, show*)]
 and value =
   | IOperation of op
   | IContract of typ * string (* parameter 'p * address *)
   | IList of typ * value list
-  | ISet of typ * value list (* FIXME set with comparator witness for all ctypes?*)
+  | ISet of typ * value list
   | ITicket of value * value * value (* comparable value * address  * nat *)
   | ILambda of (typ * typ) * AbsMichelson.instr list
-  | IMap of (typ * typ) * (value * value) list (* FIXME use Map? comparator witness for each key ctyp?*)
+  | IMap of (typ * typ) * (value * value) list
   | IBig_map of (typ * typ) * (value * value) list
   | IBls_381_g1 of bytes (* FIXME types and operations on this values *)
   | IBls_381_g2 of bytes
@@ -64,7 +64,7 @@ and value =
   (* dual (comparable/not comparable) values *)
   | IOption of typ * value option
   | IPair of value * value
-  | IOr of typ * union * value (* typ is the type of the other/unused union side *)
+  | IOr of typ * typ * union * value (* Left type, Right type, union, value *)
   (* comparable values *)
   | IUnit
   | INever
@@ -75,12 +75,12 @@ and value =
   | IChain_id of string
   | IBytes of bytes (* FIXME: raw byte, fix byte instructions, de- and serialization? *)
   | IMutez of Mutez.t
-  | IKey_hash of string
+  | IKey_hash of string (* https://tezos.stackexchange.com/questions/2311/what-are-the-differences-between-key-key-hash-address-contract-and-signature *)
   | IKey of string
   | ISignature of string
   | ITimestamp of Z.t
   | IAddress of string
-[@@deriving eq, show]
+[@@deriving eq, show, ord]
 
 
 let rec typeof (v : value) : typ =
@@ -103,7 +103,7 @@ let rec typeof (v : value) : typ =
   (* dual (comparable/not comparable) types *)
   | IOption (ty, _)           -> TOption ty
   | IPair(v0, v)              -> TPair (typeof(v0), typeof(v))
-  | IOr (ty, union, x)        -> TOr (ty, typeof(x))
+  | IOr (ty0, ty1, union, v)  -> TOr (ty0, ty1)
   (* comparable types *)
   | IUnit                     -> TUnit
   | INever                    -> TNever
@@ -125,9 +125,6 @@ let typ_of_lst (lst: value list) : typ list =
 
 (* Type class membership checker functions
    based on table at https://tezos.gitlab.io/michelson-reference/#types *)
-(* FIXME: (e.g.) operation is not storable, but NIL operation (list of type operation) is to be stored at the end of the contract
- -> does that mean that some types are 'part' of a class as long as they are wrapped in a pair/list/... ?
- https://tezos.gitlab.io/michelson-reference/#type-operation *)
 let rec comparable (t : typ (* comparable typ *)) : bool =
   match t with
   | TOption ty -> comparable ty
@@ -341,7 +338,49 @@ let rec big_map_domain (t: typ) : bool =
   | TAddress -> true
   | _ -> false
 
-let comparable_pair (t0, t : typ * typ) : bool =
-  comparable t0 && comparable t
+let comparable (t0 : typ) (t1 : typ) : bool =
+  (comparable t0 && equal_typ t0 t1)
 
+(*
+let compare_union (u0 : union) (u1 : union) : int =
+  match (u0, u1) with
+  | (L, L) | (R, R) -> 0
+  | (L, R) -> -1
+  | (R, L) -> 1
+*)
 
+let rec compare (v0 : value) (v1 : value) : int =
+  (* compares two values v0, v1 that are and have the same type *)
+  match (v0, v1) with
+  (* dual (comparable/not comparable) values *)
+  | (IOption (t0, o0), IOption (t1, o1)) -> Option.compare (fun x y -> compare x y) o0 o1
+  | (IPair (v0, v1), IPair (v2, v3))              ->
+    let first = compare v0 v1 in
+    if (first = 0) then compare v1 v3
+    else first
+  | (IOr (_, _, u0, v0), IOr (_, _, u1, v1))  ->
+    (match compare_union u0 u1 with
+    | 0 -> compare v0 v1
+    | x -> x (* 1 or -1 *)
+    )
+  (* comparable values *)
+  | (IUnit, IUnit)                                -> 0
+  | (INever, INever)                              -> 0
+  | (IBool b0, IBool b1)                          -> Bool.compare b0 b1
+  | (IInt z0, IInt z1)
+  | (INat z0, INat z1)
+  | (ITimestamp z0, ITimestamp z1)                -> Z.compare z0 z1
+  | (IMutez m0, IMutez m1)                        -> Mutez.compare m0 m1
+  | (IString s0, IString s1)
+  | (IChain_id s0, IChain_id s1)
+  | (IKey_hash s0, IKey_hash s1)
+  | (IKey s0, IKey s1)
+  | (ISignature s0, ISignature s1)                -> String.compare s0 s1
+  | (IAddress s0, IAddress s1) ->
+    (match (String.prefix s0 2, String.prefix s1 2) with
+    | ("tz", "tz") | ("KT", "KT") -> String.compare s0 s1
+    | ("tz", "KT") -> -1
+    | ("KT", "tz") -> 1
+    | _ -> failwith "Value.Compare: Impossible case where IAddress does not contain an address"
+    )
+  | _ -> failwith "Value.Compare: Impossible case of non comparable value pair"
