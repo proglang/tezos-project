@@ -68,6 +68,7 @@ and instr =
  | GET_N of int
  | UPDATE
  | UPDATE_N of int
+ | GET_AND_UPDATE
  | IF of instr list * instr list
  | LOOP of instr list
  | LOOP_LEFT of instr list

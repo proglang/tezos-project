@@ -111,6 +111,7 @@ and showInstr (e : AbsMichelson.instr) : showable = match e with
   |    AbsMichelson.GET_N integer -> s2s "GET_N" >> c2s ' ' >> c2s '(' >> showInt integer >> c2s ')'
   |    AbsMichelson.UPDATE  -> s2s "UPDATE"
   |    AbsMichelson.UPDATE_N integer -> s2s "UPDATE_N" >> c2s ' ' >> c2s '(' >> showInt integer >> c2s ')'
+  |    AbsMichelson.GET_AND_UPDATE  -> s2s "GET_AND_UPDATE"
   |    AbsMichelson.IF (instrs0, instrs) -> s2s "IF" >> c2s ' ' >> c2s '(' >> showList showInstr instrs0  >> s2s ", " >>  showList showInstr instrs >> c2s ')'
   |    AbsMichelson.LOOP instrs -> s2s "LOOP" >> c2s ' ' >> c2s '(' >> showList showInstr instrs >> c2s ')'
   |    AbsMichelson.LOOP_LEFT instrs -> s2s "LOOP_LEFT" >> c2s ' ' >> c2s '(' >> showList showInstr instrs >> c2s ')'

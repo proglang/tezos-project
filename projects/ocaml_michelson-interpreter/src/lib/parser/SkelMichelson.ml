@@ -89,6 +89,7 @@ and transInstr (x : instr) : result = match x with
   | GET_N integer -> failure x
   | UPDATE  -> failure x
   | UPDATE_N integer -> failure x
+  | GET_AND_UPDATE  -> failure x
   | IF (instrs0, instrs) -> failure x
   | LOOP instrs -> failure x
   | LOOP_LEFT instrs -> failure x

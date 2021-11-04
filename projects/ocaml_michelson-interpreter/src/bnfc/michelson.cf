@@ -81,7 +81,7 @@ GET.                   Instr ::= "GET" ;
 GET_N.                 Instr ::= "GET" Integer ;
 UPDATE.                Instr ::= "UPDATE" ;
 UPDATE_N.              Instr ::= "UPDATE" Integer ;
---GET_AND_UPDATE could also be just a macro of GET and UPDATE? TODO
+GET_AND_UPDATE.        Instr ::= "GET_AND_UPDATE" ;
 IF.                    Instr ::= "IF" "{" [Instr] "}" "{" [Instr] "}" ;
 LOOP.                  Instr ::= "LOOP" "{" [Instr] "}" ;
 LOOP_LEFT.             Instr ::= "LOOP_LEFT" "{" [Instr] "}" ;

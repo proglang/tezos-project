@@ -137,6 +137,7 @@ type token =
   | KW_IF
   | KW_HASH_KEY
   | KW_GT
+  | KW_GET_AND_UPDATE
   | KW_GET
   | KW_GE
   | KW_False

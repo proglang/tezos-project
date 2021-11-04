@@ -168,6 +168,7 @@ and prtInstr (i:int) (e : AbsMichelson.instr) : doc = match e with
   |    AbsMichelson.GET_N integer -> prPrec i 0 (concatD [render "GET" ; prtInt 0 integer])
   |    AbsMichelson.UPDATE  -> prPrec i 0 (concatD [render "UPDATE"])
   |    AbsMichelson.UPDATE_N integer -> prPrec i 0 (concatD [render "UPDATE" ; prtInt 0 integer])
+  |    AbsMichelson.GET_AND_UPDATE  -> prPrec i 0 (concatD [render "GET_AND_UPDATE"])
   |    AbsMichelson.IF (instrs1, instrs2) -> prPrec i 0 (concatD [render "IF" ; render "{" ; prtInstrListBNFC 0 instrs1 ; render "}" ; render "{" ; prtInstrListBNFC 0 instrs2 ; render "}"])
   |    AbsMichelson.LOOP instrs -> prPrec i 0 (concatD [render "LOOP" ; render "{" ; prtInstrListBNFC 0 instrs ; render "}"])
   |    AbsMichelson.LOOP_LEFT instrs -> prPrec i 0 (concatD [render "LOOP_LEFT" ; render "{" ; prtInstrListBNFC 0 instrs ; render "}"])

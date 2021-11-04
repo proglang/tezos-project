@@ -52,3 +52,7 @@ The functionality of the parser can be (visually) tested with three prepared she
 - However, some of the contracts are also ill_typed on purpose! Type Errors are only found on runtime of the interpreter, not by the parser. 
 
 **Errors:** The parser returns two errors, a Parser_error and a Lexing_error
+
+### Building a language specification
+`latex_language-specification.sh` creates a latex file containing a readable language specification in folder 
+`language-specification`, based on `michelson.cf`
