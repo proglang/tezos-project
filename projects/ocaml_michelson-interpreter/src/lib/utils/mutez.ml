@@ -38,10 +38,11 @@ let mul (x : t) (y : t) : t =
   else value
 
 let ediv (x : t) (y : t) : (t * t) option =
-  try
+  if (Z.equal y Z.zero) then
+    None
+  else
     let (fst, snd) = Z.ediv_rem x y (*(Mutez.of_Zt y)*) in (* Z.ediv_rem raises Divison_by_zero if y = 0*)
     Some (fst, snd)
-  with Division_by_zero -> None
 
 let compare (x : t) (y : t) : int = Z.compare (to_Zt x) (to_Zt y)
 let equal x y = Z.equal x y
