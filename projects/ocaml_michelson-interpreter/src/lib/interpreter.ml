@@ -435,7 +435,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : env_
   | (AbsMichelson.EDIV, (x :: y :: st)) ->
     (match (x, y) with
     | (INat (x), INat (y))     -> ediv_natnat x y :: st
-    | (INat (x), IInt (y))^
+    | (INat (x), IInt (y))
     | (IInt (x), INat (y))
     | (IInt (x), IInt (y))     -> ediv_with_int x y :: st
     | (IMutez (x), INat (y))   -> ediv_muteznat x y :: st

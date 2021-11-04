@@ -1,4 +1,4 @@
-parameter unit;
+parameter nat;
 storage int;
 code {
   CAR;
