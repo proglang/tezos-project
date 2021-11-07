@@ -28,7 +28,6 @@ let evalStrLength str (l : int) : string = (* eval other strings depending on th
   if ((String.length str) >= (*TODO: should be =*) l) then str else failwith "Interpreter.evalValue: given string does not match its supposed type"
 
 
-
 (* INSTRUCTION EVALUATION HELPER FUNCTIONS *)
 let drop_n (n : int) (lst : value list) : value list =
    if n = 0 then lst
@@ -66,12 +65,10 @@ let pair_n (n : int) (lst : value list) : value list =
     | _ -> failwith "Interpreter.pair_n: this case should be impossible"
   in
   if (n <= 1) then raise (Illegal_Instruction ("'n' needs to be higher then 1", AbsMichelson.PAIR_N (n)))
+  else if (n > List.length lst) then raise (Illegal_Instruction ("'n' greater then Stack size", AbsMichelson.PAIR_N (n)))
   else
     let (fst, snd) = List.split_n lst n in
-    match (fst, snd) with
-    | (_, []) -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.PAIR_N (n)))
-    (* Note: case ([], _) does not happen because of the if(n<=1) before*)
-    | (fst, snd) -> (f fst) :: snd
+    (f fst) :: snd
 
 let rec unpair_n (n : int) (x : value (*IPair*)) : value list =
     (* not tail recursive *)
@@ -115,8 +112,15 @@ let get_map (v : value) (lst : (value * value) list) : value =
   match List.Assoc.find lst ~equal:equal_value v with
   | None -> IOption(TUnit, None)
   | Some x -> IOption(typeof x, Some x)
-
 let get_big_map (v : value) (lst : (value * value) list) : value = get_map v lst
+
+let rec get_n (n : int) (p : value (*right comb*)) : value =
+  match (n, p) with
+  | (0, x) -> x
+  | (1, IPair (x, _)) -> x
+  | (x (*x>1*), IPair (_, p)) -> get_n (n-2) p
+  | _ -> raise (Illegal_Instruction ("'n' greater then right comb.", AbsMichelson.GET_N (n)))
+
 
 (* UPDATE instr *)
 let update_set t lst (key : value) (b : bool) : value (*ISet*) =
@@ -132,6 +136,14 @@ let update_big_map t lst (key : value) (o : value option) : value (*IBig_map*) =
   match o with
   | Some v  -> IBig_map (t, List.Assoc.add lst ~equal:equal_value key v)
   | None    -> IBig_map (t, List.Assoc.remove lst ~equal:equal_value key)
+
+let rec update_n (n : int) (v : value) (p : value (*right comb*)) : value =
+  (* not tail recursive! *)
+  match (n, v, p) with
+  | (0, v, _) -> v
+  | (1, v, IPair (_, u)) -> IPair (v, u)
+  | (n (*n>1*), v, IPair (u, p)) -> IPair (u, update_n (n-2) v p)
+  | _ -> raise (Illegal_Instruction ("'n' greater then right comb.", AbsMichelson.UPDATE_N (n)))
 
 let get_update_map (t0, t1) lst (key : value) (o : value option) : value list (*IMap*) =
   match o with
@@ -176,7 +188,7 @@ let concat_b_lst (lst : value list) : value (*IBytes*) =  (*TODO real bytes impl
   | _ -> IBytes(Stdlib.Bytes.concat Stdlib.Bytes.empty (List.map lst ~f:(f)))
 
 (* PACK / UNPACK instrs *)
-let pack (ty : typ) (v : value) : value (*IOption*) =
+let pack (v : value) : value (*Bytes*) =
   IBytes(Stdlib.Bytes.empty) (*TODO: serialization of values, also serialize the value, not Value.value *)
 let unpack (ty : typ) (b : bytes) : value (*IOption*) =
   let deser = INat (Z.zero) (*TODO: deserialize bytes *)
@@ -206,3 +218,22 @@ let ediv_mutezmutez x y : value =
   match (Mutez.ediv x y) with
   | None -> IOption(TPair (TNat, TMutez), None)
   | Some (fst, snd) -> IOption(TPair (TNat, TMutez), Some (IPair (INat (Mutez.to_Zt fst), IMutez snd)))
+
+let contract ty s : value (*IOption*) =
+  (* TODO for Environment-Wrapper: check if address exists, its type is KT1 or not and the parameter types match *)
+  if (String.equal (String.prefix s 3) "KT1") then
+    if passable ty then IOption(TContract ty, Some (IContract (ty, s)))
+    else IOption(TContract ty, None)
+  else (*if (String.equal (String.prefix s 2) "tz") then*)
+    if equal_typ TUnit ty then IOption(TContract ty, Some (IContract (ty, s)))
+    else IOption(TContract ty, None)
+
+let create_address : string = "KT1aaaaaaaaaaaaaaa"(* TODO: use given contract data to generate an address *)
+let create_implicit s : string = "tz1aaaaaaaaaaaaa" (* TODO: use key_hash to generate an address. Any funds deposited in this contract can immediately be spent by the holder of the private key*)
+
+let rec solve_partial_apply vs x : value list =
+  (* prepare initial stack of lambda for execution while appling previously partially applied values (APPLY instr) *)
+  (* vs is in reversed order of the application of the "PUSH value, PAIR" instructions. I.e. the first value has to be applied first *)
+  match vs with
+  | [] -> [x]
+  | v :: tl -> solve_partial_apply tl (IPair (v, x))

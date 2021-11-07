@@ -44,9 +44,9 @@ and un_to_str u =
   | R -> "R"
 and op_to_str op =
   match op with
-  | Create_contract (s, v0, v1, v2) -> "Create_contract (" ^ s  ^ ", " ^ (val_to_str v0) ^ ", " ^ (val_to_str v1) ^ ", " ^ (val_to_str v2) ^ ")"
-  | Transfer_tokens (t, v0, v1) -> "Transfer_tokens (" ^( ty_to_str t)  ^ ", " ^ (val_to_str v0) ^ ", " ^ (val_to_str v1) ^ ")"
-  | Set_delegate v -> "Set_delegate (" ^ (val_to_str v) ^ ")"
+  | OCreate_contract (((t0, t1), _ (*TODO: AbsMichelson.instr list*)), v0, v1, v2, v3) -> "OCreate_contract (((" ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1) ^ "), _)," ^ (val_to_str v0) ^ ", " ^ (val_to_str v1) ^ ", " ^ (val_to_str v2) ^ ", " ^ (val_to_str v2) ^ ")"
+  | OTransfer_tokens (v0, v1, v2) -> "OTransfer_tokens (" ^( val_to_str v0)  ^ ", " ^ (val_to_str v1) ^ ", " ^ (val_to_str v2) ^ ")"
+  | OSet_delegate v -> "OSet_delegate (" ^ (val_to_str v) ^ ")"
 and val_to_str v =
   match v with
   | IOperation op -> "IOperation " ^ (op_to_str op)
@@ -54,7 +54,7 @@ and val_to_str v =
   | IList (t, vs) -> "IList (" ^ (ty_to_str t) ^ ", [" ^ (ls_to_str vs) ^ "])"
   | ISet (t, vs) -> "ISet (" ^ (ty_to_str t) ^ ", " ^ (ls_to_str vs) ^ ")"
   | ITicket (v0, v1, v2) -> "ITicket (" ^ (val_to_str v0)  ^ ", " ^ (val_to_str v1) ^ ", " ^ (val_to_str v2) ^ ")"
-  | ILambda ((t0, t1), _ (*TODO: AbsMichelson.instr list*)) -> "ILambda ((" ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1) ^ "), _)"
+  | ILambda ((t0, t1), _ (*TODO: AbsMichelson.instr list*), vs) -> "ILambda ((" ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1) ^ "), _, " ^ (ls_to_str vs) ^ ")"
   | IMap ((t0, t1), vs) -> "IMap ((" ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1) ^ "), (" ^ (map_to_str vs) ^ "))"
   | IBig_map ((t0, t1), vs) -> "IBig_map ((" ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1) ^ "), (" ^ (map_to_str vs) ^ "))"
   | IBls_381_g1 b -> "IBls_381_g1 " ^ (Bytes.to_string b)

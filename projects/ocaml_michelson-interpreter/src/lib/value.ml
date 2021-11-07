@@ -1,5 +1,3 @@
-(*open Lexing
-open AbsMichelson*)
 open Base
 
 type typ =
@@ -37,21 +35,22 @@ type typ =
   | TSignature
   | TTimestamp
   | TAddress
-[@@deriving eq, show]
-type union = L | R
-[@@deriving eq, show, ord]
+[@@deriving eq]
+
+type union = L | R [@@deriving eq, ord]
+
 type op =
-  | Create_contract of string * value * value * value (* contract-code * key_hash * mutez * address *)
-  | Transfer_tokens of typ * value * value (* 'p * mutez * contract 'p *)
-  | Set_delegate of value (* key_hash *)
-[@@deriving eq(*, show*)]
+  | OCreate_contract of ((typ * typ) * AbsMichelson.instr list) * value * value * value * value (* contract-code * key_hash * mutez * initial storage * address *)
+  | OTransfer_tokens of value * value * value (* 'p * mutez * contract 'p *)
+  | OSet_delegate of value (* key_hash *)
+[@@deriving eq] (* show*)
 and value =
   | IOperation of op
   | IContract of typ * string (* parameter 'p * address *)
   | IList of typ * value list
   | ISet of typ * value list
-  | ITicket of value * value * value (* comparable value * address  * nat *)
-  | ILambda of (typ * typ) * AbsMichelson.instr list
+  | ITicket of value * value * value (* address * comparable value * nat *)
+  | ILambda of (typ * typ) * AbsMichelson.instr list * value list (* value list is used when evaluating the APPLY instruction *)
   | IMap of (typ * typ) * (value * value) list
   | IBig_map of (typ * typ) * (value * value) list
   | IBls_381_g1 of bytes (* FIXME types and operations on this values *)
@@ -80,7 +79,7 @@ and value =
   | ISignature of string
   | ITimestamp of Z.t
   | IAddress of string
-[@@deriving eq, show, ord]
+[@@deriving eq, ord]
 
 
 let rec typeof (v : value) : typ =
@@ -90,7 +89,7 @@ let rec typeof (v : value) : typ =
   | IList (ty, _)             -> TList ty
   | ISet (ty, _)              -> TSet ty
   | ITicket (v, _, _)         -> TTicket (typeof(v))
-  | ILambda ((ty0, ty), _)    -> TLambda (ty0, ty)
+  | ILambda ((ty0, ty), _, _)    -> TLambda (ty0, ty)
   | IMap ((ty0, ty), _)       -> TMap (ty0, ty)
   | IBig_map ((ty0, ty), _)   -> TBig_map (ty0, ty)
   | IBls_381_g1 _             -> TBls_381_g1
