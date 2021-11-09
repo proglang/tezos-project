@@ -1,8 +1,4 @@
-parameter unit;
-storage unit;
-code {
-  DROP;
-  PUSH int -5;
-  PUSH int 1;
-  ADD;
-};
+parameter bool;
+storage (pair (bool @2 %c :t ) (nat ));
+code { DUP; PUSH string @b_a012 "loltest"; CAR; DIP{CDR}; SWAP;
+       NIL operation; PAIR };

@@ -88,7 +88,7 @@ let rec typeof (v : value) : typ =
   | IContract (ty, _)         -> TContract ty
   | IList (ty, _)             -> TList ty
   | ISet (ty, _)              -> TSet ty
-  | ITicket (v, _, _)         -> TTicket (typeof(v))
+  | ITicket (_, v, _)         -> TTicket (typeof(v))
   | ILambda ((ty0, ty), _, _)    -> TLambda (ty0, ty)
   | IMap ((ty0, ty), _)       -> TMap (ty0, ty)
   | IBig_map ((ty0, ty), _)   -> TBig_map (ty0, ty)

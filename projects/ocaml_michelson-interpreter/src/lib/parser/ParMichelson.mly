@@ -21,9 +21,12 @@ open Lexing
 %token <float> TOK_Double
 %token <int> TOK_Integer
 %token <string> TOK_String
-%token <string> TOK_Str
-%token <string> TOK_Hex
-%token <string> TOK_Neg
+%token <(int * int) * string> TOK_Str
+%token <(int * int) * string> TOK_Bt
+%token <(int * int) * string> TOK_Neg
+%token <(int * int) * string> TOK_TypeAnnotation
+%token <(int * int) * string> TOK_VariableAnnotation
+%token <(int * int) * string> TOK_FieldAnnotation
 
 %start pProg
 %type <AbsMichelson.prog> pProg
@@ -36,6 +39,7 @@ pProg : prog TOK_EOF { $1 }
 
 prog : prog SYMB1 {  $1 }
   | KW_parameter typ SYMB1 KW_storage typ SYMB1 KW_code SYMB2 instr_list SYMB3 { Contract ($2, $5, $9) }
+  | KW_storage typ SYMB1 KW_parameter typ SYMB1 KW_code SYMB2 instr_list SYMB3 { contract2 ($2, $5, $9) }
   | data { Argument $1 }
 ;
 
@@ -48,7 +52,7 @@ data : SYMB4 data SYMB5 {  $2 }
   | neg { DNeg $1 }
   | int { DNat $1 }
   | str { DStr $1 }
-  | hex { DBytes $1 }
+  | bt { DBytes $1 }
   | KW_Unit { DUnit  }
   | KW_True { DTrue  }
   | KW_False { DFalse  }
@@ -82,7 +86,9 @@ instr_list : /* empty */ { []  }
   | instr SYMB1 instr_list { (fun (x,xs) -> x::xs) ($1, $3) }
 ;
 
-instr : SYMB2 instr_list SYMB3 { BLOCK $2 }
+instr : instr annotation { ANNOT ($1, $2) }
+  | SYMB2 instr SYMB3 {  $2 }
+  | SYMB2 instr_list SYMB3 { BLOCK $2 }
   | KW_DROP { DROP  }
   | KW_DROP int { DROP_N $2 }
   | KW_DUP { DUP  }
@@ -162,6 +168,7 @@ instr : SYMB2 instr_list SYMB3 { BLOCK $2 }
   | KW_TRANSFER_TOKENS { TRANSFER_TOKENS  }
   | KW_SET_DELEGATE { SET_DELEGATE  }
   | KW_CREATE_CONTRACT SYMB2 KW_parameter typ SYMB1 KW_storage typ SYMB1 KW_code instr_list SYMB3 { CREATE_CONTRACT ($4, $7, $10) }
+  | KW_CREATE_CONTRACT SYMB2 KW_storage typ SYMB1 KW_parameter typ SYMB1 KW_code instr_list SYMB3 { cREATE_CONTRACT2 ($4, $7, $10) }
   | KW_IMPLICIT_ACCOUNT { IMPLICIT_ACCOUNT  }
   | KW_VOTING_POWER { VOTING_POWER  }
   | KW_NOW { NOW  }
@@ -188,48 +195,55 @@ instr : SYMB2 instr_list SYMB3 { BLOCK $2 }
   | KW_SPLIT_TICKET { SPLIT_TICKET  }
   | KW_JOIN_TICKETS { JOIN_TICKETS  }
   | KW_OPEN_CHEST { OPEN_CHEST  }
-  | KW_FAIL { m_FAIL  }
-  | KW_CMPEQ { m_CMPEQ  }
-  | KW_CMPNEQ { m_CMPNEQ  }
-  | KW_CMPLT { m_CMPLT  }
-  | KW_CMPGT { m_CMPGT  }
-  | KW_CMPLE { m_CMPLE  }
-  | KW_CMPGE { m_CMPGE  }
-  | KW_IFEQ SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IFEQ ($3, $6) }
-  | KW_IFNEQ SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IFNEQ ($3, $6) }
-  | KW_IFLT SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IFLT ($3, $6) }
-  | KW_IFGT SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IFGT ($3, $6) }
-  | KW_IFLE SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IFLE ($3, $6) }
-  | KW_IFGE SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IFGE ($3, $6) }
-  | KW_IFCMPEQ SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IFCMPEQ ($3, $6) }
-  | KW_IFCMPNEQ SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IFCMPNEQ ($3, $6) }
-  | KW_IFCMPLT SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IFCMPLT ($3, $6) }
-  | KW_IFCMPGT SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IFCMPGT ($3, $6) }
-  | KW_IFCMPLE SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IFCMPLE ($3, $6) }
-  | KW_IFCMPGE SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IFCMPGE ($3, $6) }
-  | KW_ASSERT { m_ASSERT  }
-  | KW_ASSERT_EQ { m_ASSERT_EQ  }
-  | KW_ASSERT_NEQ { m_ASSERT_NEQ  }
-  | KW_ASSERT_LT { m_ASSERT_LT  }
-  | KW_ASSERT_GT { m_ASSERT_GT  }
-  | KW_ASSERT_LE { m_ASSERT_LE  }
-  | KW_ASSERT_GE { m_ASSERT_GE  }
-  | KW_ASSERT_CMPEQ { m_ASSERT_CMPEQ  }
-  | KW_ASSERT_CMPNEQ { m_ASSERT_CMPNEQ  }
-  | KW_ASSERT_CMPLT { m_ASSERT_CMPLT  }
-  | KW_ASSERT_CMPGT { m_ASSERT_CMPGT  }
-  | KW_ASSERT_CMPLE { m_ASSERT_CMPLE  }
-  | KW_ASSERT_CMPGE { m_ASSERT_CMPGE  }
-  | KW_ASSERT_NONE { m_ASSERT_NONE  }
-  | KW_ASSERT_SOME { m_ASSERT_SOME  }
-  | KW_ASSERT_LEFT { m_ASSERT_LEFT  }
-  | KW_ASSERT_RIGHT { m_ASSERT_RIGHT  }
-  | KW_IF_SOME SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IF_SOME ($3, $6) }
-  | KW_IF_RIGHT SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { m_IF_RIGHT ($3, $6) }
+  | KW_FAIL { d_FAIL  }
+  | KW_CMPEQ { d_CMPEQ  }
+  | KW_CMPNEQ { d_CMPNEQ  }
+  | KW_CMPLT { d_CMPLT  }
+  | KW_CMPGT { d_CMPGT  }
+  | KW_CMPLE { d_CMPLE  }
+  | KW_CMPGE { d_CMPGE  }
+  | KW_IFEQ SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { d_IFEQ ($3, $6) }
+  | KW_IFNEQ SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { d_IFNEQ ($3, $6) }
+  | KW_IFLT SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { d_IFLT ($3, $6) }
+  | KW_IFGT SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { d_IFGT ($3, $6) }
+  | KW_IFLE SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { d_IFLE ($3, $6) }
+  | KW_IFGE SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { d_IFGE ($3, $6) }
+  | KW_IFCMPEQ SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { d_IFCMPEQ ($3, $6) }
+  | KW_IFCMPNEQ SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { d_IFCMPNEQ ($3, $6) }
+  | KW_IFCMPLT SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { d_IFCMPLT ($3, $6) }
+  | KW_IFCMPGT SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { d_IFCMPGT ($3, $6) }
+  | KW_IFCMPLE SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { d_IFCMPLE ($3, $6) }
+  | KW_IFCMPGE SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { d_IFCMPGE ($3, $6) }
+  | KW_ASSERT { d_ASSERT  }
+  | KW_ASSERT_EQ { d_ASSERT_EQ  }
+  | KW_ASSERT_NEQ { d_ASSERT_NEQ  }
+  | KW_ASSERT_LT { d_ASSERT_LT  }
+  | KW_ASSERT_GT { d_ASSERT_GT  }
+  | KW_ASSERT_LE { d_ASSERT_LE  }
+  | KW_ASSERT_GE { d_ASSERT_GE  }
+  | KW_ASSERT_CMPEQ { d_ASSERT_CMPEQ  }
+  | KW_ASSERT_CMPNEQ { d_ASSERT_CMPNEQ  }
+  | KW_ASSERT_CMPLT { d_ASSERT_CMPLT  }
+  | KW_ASSERT_CMPGT { d_ASSERT_CMPGT  }
+  | KW_ASSERT_CMPLE { d_ASSERT_CMPLE  }
+  | KW_ASSERT_CMPGE { d_ASSERT_CMPGE  }
+  | KW_ASSERT_NONE { d_ASSERT_NONE  }
+  | KW_ASSERT_SOME { d_ASSERT_SOME  }
+  | KW_ASSERT_LEFT { d_ASSERT_LEFT  }
+  | KW_ASSERT_RIGHT { d_ASSERT_RIGHT  }
+  | KW_IF_SOME SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { d_IF_SOME ($3, $6) }
+  | KW_IF_RIGHT SYMB2 instr_list SYMB3 SYMB2 instr_list SYMB3 { d_IF_RIGHT ($3, $6) }
+;
+
+annotation : typeAnnotation { ATypeA $1 }
+  | variableAnnotation { AVariableA $1 }
+  | fieldAnnotation { AFieldA $1 }
 ;
 
 typ : SYMB4 typ SYMB5 {  $2 }
   | cTyp { TCtype $1 }
+  | typ annotation { TAnnot1 ($1, $2) }
+  | annotation typ { TAnnot2 ($1, $2) }
   | KW_operation { TOperation  }
   | KW_contract typ { TContract $2 }
   | KW_option typ { TOption $2 }
@@ -257,7 +271,9 @@ typeSeq_list : typeSeq { (fun x -> [x]) $1 }
 typeSeq : typ { TypeSeq0 $1 }
 ;
 
-cTyp : KW_unit { CUnit  }
+cTyp : cTyp annotation { CAnnot1 ($1, $2) }
+  | annotation cTyp { CAnnot2 ($1, $2) }
+  | KW_unit { CUnit  }
   | KW_never { CNever  }
   | KW_bool { CBool  }
   | KW_int { CInt  }
@@ -286,7 +302,10 @@ cTypeSeq : cTyp { CTypeSeq0 $1 }
 
 int :  TOK_Integer  { $1 };
 str : TOK_Str { Str ($1)};
-hex : TOK_Hex { Hex ($1)};
+bt : TOK_Bt { Bt ($1)};
 neg : TOK_Neg { Neg ($1)};
+typeAnnotation : TOK_TypeAnnotation { TypeAnnotation ($1)};
+variableAnnotation : TOK_VariableAnnotation { VariableAnnotation ($1)};
+fieldAnnotation : TOK_FieldAnnotation { FieldAnnotation ($1)};
 
 

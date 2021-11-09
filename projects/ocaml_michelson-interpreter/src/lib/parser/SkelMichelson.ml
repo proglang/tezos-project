@@ -12,12 +12,24 @@ let rec transStr (x : str) : result = match x with
     Str string -> failure x
 
 
-and transHex (x : hex) : result = match x with
-    Hex string -> failure x
+and transBt (x : bt) : result = match x with
+    Bt string -> failure x
 
 
 and transNeg (x : neg) : result = match x with
     Neg string -> failure x
+
+
+and transTypeAnnotation (x : typeAnnotation) : result = match x with
+    TypeAnnotation string -> failure x
+
+
+and transVariableAnnotation (x : variableAnnotation) : result = match x with
+    VariableAnnotation string -> failure x
+
+
+and transFieldAnnotation (x : fieldAnnotation) : result = match x with
+    FieldAnnotation string -> failure x
 
 
 and transProg (x : prog) : result = match x with
@@ -29,7 +41,7 @@ and transData (x : data) : result = match x with
     DNeg neg -> failure x
   | DNat integer -> failure x
   | DStr str -> failure x
-  | DBytes hex -> failure x
+  | DBytes bt -> failure x
   | DUnit  -> failure x
   | DTrue  -> failure x
   | DFalse  -> failure x
@@ -52,7 +64,8 @@ and transMapSeq (x : mapSeq) : result = match x with
 
 
 and transInstr (x : instr) : result = match x with
-    BLOCK instrs -> failure x
+    ANNOT (instr, annotation) -> failure x
+  | BLOCK instrs -> failure x
   | DROP  -> failure x
   | DROP_N integer -> failure x
   | DUP  -> failure x
@@ -160,8 +173,16 @@ and transInstr (x : instr) : result = match x with
   | OPEN_CHEST  -> failure x
 
 
+and transAnnotation (x : annotation) : result = match x with
+    ATypeA typeannotation -> failure x
+  | AVariableA variableannotation -> failure x
+  | AFieldA fieldannotation -> failure x
+
+
 and transTyp (x : typ) : result = match x with
     TCtype ctyp -> failure x
+  | TAnnot1 (typ, annotation) -> failure x
+  | TAnnot2 (annotation, typ) -> failure x
   | TOperation  -> failure x
   | TContract typ -> failure x
   | TOption typ -> failure x
@@ -187,7 +208,9 @@ and transTypeSeq (x : typeSeq) : result = match x with
 
 
 and transCTyp (x : cTyp) : result = match x with
-    CUnit  -> failure x
+    CAnnot1 (ctyp, annotation) -> failure x
+  | CAnnot2 (annotation, ctyp) -> failure x
+  | CUnit  -> failure x
   | CNever  -> failure x
   | CBool  -> failure x
   | CInt  -> failure x

@@ -80,13 +80,22 @@ let rec prtString (_:int) (s:string) : doc = render ("\"" ^ String.escaped s ^ "
 
 
 
-let rec prtStr _ (AbsMichelson.Str i) : doc = render i
+let rec prtStr _ (AbsMichelson.Str (_,i)) : doc = render i
 
 
-let rec prtHex _ (AbsMichelson.Hex i) : doc = render i
+let rec prtBt _ (AbsMichelson.Bt (_,i)) : doc = render i
 
 
-let rec prtNeg _ (AbsMichelson.Neg i) : doc = render i
+let rec prtNeg _ (AbsMichelson.Neg (_,i)) : doc = render i
+
+
+let rec prtTypeAnnotation _ (AbsMichelson.TypeAnnotation (_,i)) : doc = render i
+
+
+let rec prtVariableAnnotation _ (AbsMichelson.VariableAnnotation (_,i)) : doc = render i
+
+
+let rec prtFieldAnnotation _ (AbsMichelson.FieldAnnotation (_,i)) : doc = render i
 
 
 
@@ -99,7 +108,7 @@ and prtData (i:int) (e : AbsMichelson.data) : doc = match e with
        AbsMichelson.DNeg neg -> prPrec i 0 (concatD [prtNeg 0 neg])
   |    AbsMichelson.DNat integer -> prPrec i 0 (concatD [prtInt 0 integer])
   |    AbsMichelson.DStr str -> prPrec i 0 (concatD [prtStr 0 str])
-  |    AbsMichelson.DBytes hex -> prPrec i 0 (concatD [prtHex 0 hex])
+  |    AbsMichelson.DBytes bt -> prPrec i 0 (concatD [prtBt 0 bt])
   |    AbsMichelson.DUnit  -> prPrec i 0 (concatD [render "Unit"])
   |    AbsMichelson.DTrue  -> prPrec i 0 (concatD [render "True"])
   |    AbsMichelson.DFalse  -> prPrec i 0 (concatD [render "False"])
@@ -131,7 +140,8 @@ and prtMapSeqListBNFC i es : doc = match (i, es) with
   | (_,[x]) -> (concatD [prtMapSeq 0 x])
   | (_,x::xs) -> (concatD [prtMapSeq 0 x ; render ";" ; prtMapSeqListBNFC 0 xs])
 and prtInstr (i:int) (e : AbsMichelson.instr) : doc = match e with
-       AbsMichelson.BLOCK instrs -> prPrec i 0 (concatD [render "{" ; prtInstrListBNFC 0 instrs ; render "}"])
+       AbsMichelson.ANNOT (instr, annotation) -> prPrec i 0 (concatD [prtInstr 0 instr ; prtAnnotation 0 annotation])
+  |    AbsMichelson.BLOCK instrs -> prPrec i 0 (concatD [render "{" ; prtInstrListBNFC 0 instrs ; render "}"])
   |    AbsMichelson.DROP  -> prPrec i 0 (concatD [render "DROP"])
   |    AbsMichelson.DROP_N integer -> prPrec i 0 (concatD [render "DROP" ; prtInt 0 integer])
   |    AbsMichelson.DUP  -> prPrec i 0 (concatD [render "DUP"])
@@ -242,8 +252,16 @@ and prtInstrListBNFC i es : doc = match (i, es) with
     (_,[]) -> (concatD [])
   | (_,[x]) -> (concatD [prtInstr 0 x])
   | (_,x::xs) -> (concatD [prtInstr 0 x ; render ";" ; prtInstrListBNFC 0 xs])
+and prtAnnotation (i:int) (e : AbsMichelson.annotation) : doc = match e with
+       AbsMichelson.ATypeA typeannotation -> prPrec i 0 (concatD [prtTypeAnnotation 0 typeannotation])
+  |    AbsMichelson.AVariableA variableannotation -> prPrec i 0 (concatD [prtVariableAnnotation 0 variableannotation])
+  |    AbsMichelson.AFieldA fieldannotation -> prPrec i 0 (concatD [prtFieldAnnotation 0 fieldannotation])
+
+
 and prtTyp (i:int) (e : AbsMichelson.typ) : doc = match e with
        AbsMichelson.TCtype ctyp -> prPrec i 0 (concatD [prtCTyp 0 ctyp])
+  |    AbsMichelson.TAnnot1 (typ, annotation) -> prPrec i 0 (concatD [prtTyp 0 typ ; prtAnnotation 0 annotation])
+  |    AbsMichelson.TAnnot2 (annotation, typ) -> prPrec i 0 (concatD [prtAnnotation 0 annotation ; prtTyp 0 typ])
   |    AbsMichelson.TOperation  -> prPrec i 0 (concatD [render "operation"])
   |    AbsMichelson.TContract typ -> prPrec i 0 (concatD [render "contract" ; prtTyp 0 typ])
   |    AbsMichelson.TOption typ -> prPrec i 0 (concatD [render "option" ; prtTyp 0 typ])
@@ -272,7 +290,9 @@ and prtTypeSeqListBNFC i es : doc = match (i, es) with
   | (_,[x]) -> (concatD [prtTypeSeq 0 x])
   | (_,x::xs) -> (concatD [prtTypeSeq 0 x ; prtTypeSeqListBNFC 0 xs])
 and prtCTyp (i:int) (e : AbsMichelson.cTyp) : doc = match e with
-       AbsMichelson.CUnit  -> prPrec i 0 (concatD [render "unit"])
+       AbsMichelson.CAnnot1 (ctyp, annotation) -> prPrec i 0 (concatD [prtCTyp 0 ctyp ; prtAnnotation 0 annotation])
+  |    AbsMichelson.CAnnot2 (annotation, ctyp) -> prPrec i 0 (concatD [prtAnnotation 0 annotation ; prtCTyp 0 ctyp])
+  |    AbsMichelson.CUnit  -> prPrec i 0 (concatD [render "unit"])
   |    AbsMichelson.CNever  -> prPrec i 0 (concatD [render "never"])
   |    AbsMichelson.CBool  -> prPrec i 0 (concatD [render "bool"])
   |    AbsMichelson.CInt  -> prPrec i 0 (concatD [render "int"])

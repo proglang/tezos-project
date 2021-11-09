@@ -2,15 +2,18 @@
 (* The type of tokens. *)
 
 type token = 
+  | TOK_VariableAnnotation of ((int * int) * string)
+  | TOK_TypeAnnotation of ((int * int) * string)
   | TOK_String of (string)
-  | TOK_Str of (string)
-  | TOK_Neg of (string)
+  | TOK_Str of ((int * int) * string)
+  | TOK_Neg of ((int * int) * string)
   | TOK_Integer of (int)
   | TOK_Ident of (string)
-  | TOK_Hex of (string)
+  | TOK_FieldAnnotation of ((int * int) * string)
   | TOK_EOF
   | TOK_Double of (float)
   | TOK_Char of (char)
+  | TOK_Bt of ((int * int) * string)
   | SYMB5
   | SYMB4
   | SYMB3

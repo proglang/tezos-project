@@ -55,11 +55,14 @@ exception TypeDataError of string * typ * AbsMichelson.data
 exception Failwith of string * value
 
 
+
 (* TODO Funktionsübergaben als pointers? *)
 
 (* TYPE EVALUATION FUNCTIONS *)
 (* Type and Value evaluations *)
 let rec evalTyp (ty : AbsMichelson.typ) : typ = match ty with
+  | AbsMichelson.TAnnot1 (typ, _)             -> evalTyp typ (* discard annotations *)
+  | AbsMichelson.TAnnot2 (_, typ)             -> evalTyp typ (* discard annotations *)
   | AbsMichelson.TCtype ctyp                  -> evalCTyp ctyp
   | AbsMichelson.TOperation                   -> TOperation
   | AbsMichelson.TContract typ                -> TContract (evalTyp typ)
@@ -80,6 +83,8 @@ let rec evalTyp (ty : AbsMichelson.typ) : typ = match ty with
   | AbsMichelson.TChest                       -> TChest
   | AbsMichelson.TChest_key                   -> TChest_key
 and evalCTyp (ty : AbsMichelson.cTyp) : typ = match ty with
+  | AbsMichelson.CAnnot1 (ctyp, _)         -> evalCTyp ctyp (* discard annotations *)
+  | AbsMichelson.CAnnot2 (_, ctyp)         -> evalCTyp ctyp (* discard annotations *)
   | AbsMichelson.CUnit                   -> TUnit
   | AbsMichelson.CNever                  -> TNever
   | AbsMichelson.CBool                   -> TBool
@@ -124,6 +129,9 @@ and evalCTypePair (evalFun : (AbsMichelson.cTypeSeq -> typ)) (lst : AbsMichelson
 and evalTypSeq (AbsMichelson.TypeSeq0 ty) = evalTyp ty
 and evalCTypSeq (AbsMichelson.CTypeSeq0 ty) = evalCTyp ty
 
+
+
+
 (* VALUE/DATA EVALUATION FUNCTIONS *)
 let rec evalValue (t : typ) (e : AbsMichelson.data) : value =
   (*
@@ -135,7 +143,7 @@ let rec evalValue (t : typ) (e : AbsMichelson.data) : value =
   *)
   match (t, e) with
     | (TContract ty, AbsMichelson.DStr str)                  -> IContract (ty, (evalAddress (evalStr str)))
-    | (TTicket ty, AbsMichelson.DPair (data, pairseqs))      ->
+    | (TTicket ty, AbsMichelson.DPair (data, pairseqs))      -> (* FIXME *)
       (match pairseqs with
       | [AbsMichelson.DPairSeq x; AbsMichelson.DPairSeq y] -> ITicket (evalValue TAddress data, evalValue ty x, evalValue TNat y)
       | _ -> failwith "Interpreter.evalValue: Given Pair data is not a Ticket"
@@ -213,10 +221,6 @@ and evalDataPair (t : typ) (lst : AbsMichelson.pairSeq list) : value (*IPair*) =
 
 
 
-
-
-
-
 (* INSTRUCTION EVALUATION FUNCTIONS *)
 let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : env_var) : value list =
   (* Error Reporting: if an instruction works on an existing stack, then these match cases are programmed such that they either
@@ -224,6 +228,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : env_
    or they match, but raise an error in the subsequent evaluation if the number of values is not enough
    and if they match, then an error is thrown for illegal value types *)
   match (instr, stack) with
+  | (AbsMichelson.ANNOT (instr, _), _) ->  evalInstr instr stack data (* discard annotations *)
   | (AbsMichelson.BLOCK instrs, _) ->  evalList instrs stack data
   | (AbsMichelson.DROP, (_ :: st)) -> st
   | (AbsMichelson.DROP_N integer, _) -> drop_n integer stack
@@ -381,8 +386,8 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : env_
   | (AbsMichelson.DIP instrs, (x :: st)) -> x :: (evalList instrs st data)
   | (AbsMichelson.DIP_N (integer, instrs), _) ->  dip_n instrs integer stack data
   | (AbsMichelson.FAILWITH, (x :: st)) -> raise (Failwith ("Evaluation failed with FAILWITH instruction", x))
-  | (AbsMichelson.CAST, (x :: st)) -> st(* TODO: 1. shouldnt it be 'CAST typ'? 2. What are two different compatible types? only e.g. CPair -> TPair?  *)
-  | (AbsMichelson.RENAME, (x :: st)) ->  st(* TODO: depends on variable annotations*)
+  | (AbsMichelson.CAST, _) -> stack (* discard CAST instr *)
+  | (AbsMichelson.RENAME, _) ->  stack (* discard RENAME instr *)
   | (AbsMichelson.CONCAT, (x :: y :: st)) ->
     (match (x, y) with
     | (IString(s0), IString(s))             -> IString(s0 ^ s) :: st
@@ -588,7 +593,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : env_
   | (AbsMichelson.CHECK_SIGNATURE, (x :: st)) -> st (*TODO*)
   | (AbsMichelson.VOTING_POWER, (x :: st)) ->
     (match x with
-    | IKey_hash s -> st (* TODO: iterate through map and return voting power of contract*)
+    | IKey_hash s -> st (* TODO: Return the voting power of a given contract. This voting power coincides with the weight of the contract in the voting listings (i.e., the rolls count) which is calculated at the beginning of every voting period.*)
     | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", instr, typ_of_lst [x]))
     )
   | (AbsMichelson.BLAKE2B, (x :: st)) -> st (*TODO*)
@@ -618,22 +623,36 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : env_
     )
   | (AbsMichelson.SAPLING_EMPTY_STATE integer, (x :: st)) ->  st (*TODO*)
   | (AbsMichelson.SAPLING_VERIFY_UPDATE, (x :: st)) -> st  (*TODO*)
-  | (AbsMichelson.TICKET, (x :: st)) -> st (*TODO*)
-  | (AbsMichelson.READ_TICKET, (x :: st)) -> st (*TODO*)
-  | (AbsMichelson.SPLIT_TICKET, (x :: st)) -> st (*TODO*)
-  | (AbsMichelson.JOIN_TICKETS, (x :: st)) -> st (*TODO*)
+  | (AbsMichelson.TICKET, (x :: y :: st)) ->
+    (match (x, y) with
+    | (_, INat _) -> ITicket (data.self_address, x, y) :: st
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", instr, typ_of_lst [x; y]))
+    )
+  | (AbsMichelson.READ_TICKET, (x :: st)) ->
+    (match x with
+    | ITicket (a, v, n) -> IPair (a, IPair (v, n)) :: stack
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", instr, typ_of_lst [x]))
+    )
+  | (AbsMichelson.SPLIT_TICKET, (x :: y :: st)) ->
+    (match (x, y) with
+    | (ITicket (a, v, INat n), IPair (INat n1, INat n2)) ->
+      if (Z.equal Z.(n1 + n2) n) then IOption (TPair (typeof x, typeof x), Some (IPair (ITicket (a, v, INat n1), ITicket (a, v, INat n2)))) :: st
+      else IOption (typeof x, None) :: st
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", instr, typ_of_lst [x; y]))
+    )
+  | (AbsMichelson.JOIN_TICKETS, (x :: st)) ->
+    (match x with
+    | IPair (ITicket (a1, v1, INat x), ITicket (a2, v2, INat y)) ->
+      if (equal_value a1 a2 && equal_value v1 v2) then IOption (TTicket (typeof v1), Some (ITicket (a1, v1, INat Z.(x + y)))) :: st
+      else IOption (TTicket (typeof v1), None) :: st
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", instr, typ_of_lst [x]))
+    )
   | (AbsMichelson.OPEN_CHEST, (x :: st)) -> st (*TODO*)
   (* raise exception for instructions that need one or more elements on the stack but the stack does not contain this much values *)
-  | _ -> raise (Illegal_Instruction ("Stack does not contain the necessary amount of values", instr))
+  | _ -> raise (Illegal_Instruction ("Stack does not contain the necessary amount of values", instr)) (* Careful, this also matches new cases of Instructions *)
 
 (* SECONDARY INSTRUCTION EVALUATION FUNCTIONS (These evaluate lists of instructions) *)
 and evalList (instrs : AbsMichelson.instr list) (st : value list) (data : env_var) : value list =
-(*  let rec f ys stack data = match ys with
-    | y :: ys -> f ys (evalInstr y stack data) data
-    | [y]     -> evalInstr y stack data
-    | []      -> stack (* case needed as empty instruction-lists are allowed *)
-  in
-  f instrs st data;*)
   match instrs with
   | []      -> st (* case needed as empty instruction-lists are allowed *)
   | [y]     -> evalInstr y st data (* case actually not necessary *)
@@ -654,7 +673,7 @@ and map_list (instrs : AbsMichelson.instr list) typ (lst : value list) (st : val
     | Some x -> IList((typeof x), lst) :: new_st
     | None   -> failwith "Interpreter.map_list: this case should be impossible"
 and map_map (instrs : AbsMichelson.instr list) typ (lst : (value * value) list) (st : value list) (data : env_var) : value list =
-  (* key value pairs are handeled as pairs! *)
+  (* key value pairs are handeled as ocaml pairs! *)
   if (List.is_empty lst) then IMap(typ, lst) :: st
   else
     let f instrs data  = ( fun acc el ->
@@ -761,7 +780,7 @@ let interpret (prog : AbsMichelson.prog) (parameter : AbsMichelson.prog) (storag
   | [x] ->
     (match x with
     | IPair (IList (TOperation, _ (*y*)), z) ->
-      if (equal_typ (typeof z) ty1) then x (* TODO: pass operationlist y and storage z seperately to be handled in michelson.ml *)
+      if (equal_typ (typeof z) ty1) then x (* TODO: pass operationlist y and storage z seperately to be handled in michelson.ml / or return updated wrapper data / or... *)
       else failwith "Interpreter.interpret: Wrong output type"
     | _ -> failwith "Interpreter.interpret: Illegal contract output"
     )

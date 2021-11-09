@@ -8,9 +8,9 @@ exception Illegal_Instruction of string * AbsMichelson.instr
 exception StackTypeError of string * AbsMichelson.instr * typ list
 
 (* VALUE/DATA EVALUATION FUNCTIONS *)
-let evalStr (AbsMichelson.Str s) : string = s
-let evalBytes (AbsMichelson.Hex b) : bytes = Bytes.of_string b  (*TODO; do bytes really always start with 0x? *)
-let evalNeg (AbsMichelson.Neg n) : Z.t = Z.of_string n
+let evalStr (AbsMichelson.Str (_,s)) : string = String.chop_prefix_exn ~prefix:"\"" s |> String.chop_suffix_exn ~suffix:"\"" (* quotation marks need to be removed *)
+let evalBytes (AbsMichelson.Bt (_,b)) : bytes = Bytes.of_string b  (*TODO; do bytes really always start with 0x? / remove it? *)
+let evalNeg (AbsMichelson.Neg (_,n)) : Z.t = Z.of_string n
 let evalNat nat : Z.t = Z.of_int nat
 
 (* invariants of addresses and other on-chain data *)

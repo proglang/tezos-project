@@ -6,25 +6,33 @@
 
 -- RULES
 comment "#" ; -- line comment
+comment "/*" "*/" ; -- block comment
 
 entrypoints Prog ;
 _.        Prog ::= Prog ";" ; -- allow the ";" in "... code {...};"
+--_.        Prog ::= "{" Prog "}" ; -- FIXME!
 Contract. Prog ::= "parameter" Typ ";" "storage" Typ ";" "code" "{" [Instr] "}" ; -- full contract
+contract2. Prog ::= "storage" Typ ";" "parameter" Typ ";" "code" "{" [Instr] "}" ;
+define contract2 t0 t1 instrs = Contract t1 t0 instrs ;
 --Code.     Prog ::= [Instr] ;  -- pure input of (a list of) instructions
 Argument. Prog ::= Data ; -- for input / storage arguments
 
 -- User-Defined regex-based token types
-token Str '"' ( (char - ["\"\\"]) | ('\\' ["\"\\rntb"]) )* '"' ; -- should be equivalent to (\" | \r | \n | \t | \b | \\ | [^"\])*
-token Hex '0''x' ( digit | ["abcdefABCDEF"] )+ ;
-token Neg '-' (digit+) ;  -- negative natural numbers. Neg is handled as string in the parser, unlike Integer!
+position token Str '"' ( (char - ["\"\\"]) | ('\\' ["\"\\rntb"]) )* '"' ; -- should be equivalent to (\" | \r | \n | \t | \b | \\ | [^"\])*
+position token Bt {"0x"} ( digit | ["abcdefABCDEF"] )+ ;
+position token Neg '-' (digit+) ;  -- negative natural numbers. Neg is handled as string in the parser, unlike Integer!
+--position token Integer digit+ ;
+position token TypeAnnotation ':' (('_' | letter | digit) (["_.%@"] | letter | digit)* )? ; -- letter also accepts other chars then a-zA-Z, which it actually should not
+position token VariableAnnotation '@' ( '%' | {"%%"} | ('_' | letter | digit) (["_.%@"] | letter | digit)* )? ;
+position token FieldAnnotation '%' ( '@' | ('_' | letter | digit) (["_.%@"] | letter | digit)* )? ;
 
 -- Data
 separator Data ";" ;
 _.               Data         ::= "(" Data ")" ; -- https://tezos.gitlab.io/alpha/michelson.html#format-of-patterns
 DNeg.            Data         ::= Neg ; -- negative natural numbers
 DNat.            Data         ::= Integer ;  -- Integer is the same as digit+ -> natural number, not acutally an integer
-DStr.            Data         ::= Str ;
-DBytes.          Data         ::= Hex ;
+DStr.            Data         ::= Str ; -- TODO: possibly contains '"' '"' as part of the string -> strip it!
+DBytes.          Data         ::= Bt ;
 DUnit.           Data         ::= "Unit" ;
 DTrue.           Data         ::= "True" ;
 DFalse.          Data         ::= "False" ;
@@ -42,8 +50,13 @@ DPairSeq. PairSeq ::= Data ;
 separator MapSeq ";" ;
 DMapSeq. MapSeq ::= "Elt" Data Data ;
 
+
 -- Instructions
 separator Instr ";" ; -- empty instruction sequence allowed! Last 'Instr' does does not >need< to be terminated with ';'!
+--TA.                    Instr ::= Instr TypeAnnotation ;
+--VA.                    Instr ::= Instr VariableAnnotation ;
+ANNOT.                 Instr ::= Instr Annotation ; -- trailing annotations
+_.                     Instr ::= "{" Instr "}" ;
 BLOCK.                 Instr ::= "{" [Instr] "}" ;
 DROP.                  Instr ::= "DROP" ;
 DROP_N.                Instr ::= "DROP" Integer ;
@@ -91,7 +104,7 @@ APPLY.                 Instr ::= "APPLY" ;
 DIP.                   Instr ::= "DIP" "{" [Instr] "}" ;
 DIP_N.                 Instr ::= "DIP" Integer "{" [Instr] "}" ;
 FAILWITH.              Instr ::= "FAILWITH" ;
-CAST.                  Instr ::= "CAST" ;
+CAST.                  Instr ::= "CAST" ; -- TODO: https://tezos.gitlab.io/alpha/michelson.html#type-annotations
 RENAME.                Instr ::= "RENAME" ;
 CONCAT.                Instr ::= "CONCAT" ;
 SLICE.                 Instr ::= "SLICE" ;
@@ -124,6 +137,8 @@ CONTRACT.              Instr ::= "CONTRACT" Typ ;
 TRANSFER_TOKENS.       Instr ::= "TRANSFER_TOKENS" ;
 SET_DELEGATE.          Instr ::= "SET_DELEGATE" ;
 CREATE_CONTRACT.       Instr ::= "CREATE_CONTRACT" "{" "parameter" Typ ";" "storage" Typ ";" "code" [Instr] "}" ;
+cREATE_CONTRACT2.       Instr ::= "CREATE_CONTRACT" "{" "storage" Typ ";" "parameter" Typ ";" "code" [Instr] "}" ;
+define cREATE_CONTRACT2 t0 t1 instrs = CREATE_CONTRACT t1 t0 instrs ;
 IMPLICIT_ACCOUNT.      Instr ::= "IMPLICIT_ACCOUNT" ;
 VOTING_POWER.          Instr ::= "VOTING_POWER" ;
 NOW.                   Instr ::= "NOW" ;
@@ -153,90 +168,90 @@ OPEN_CHEST.            Instr ::= "OPEN_CHEST" ;
 
 -- MACRO INSTRUCTIONS
 -- Fail
-m_FAIL.     Instr ::= "FAIL" ;
-define m_FAIL = BLOCK[UNIT, FAILWITH] ;
+d_FAIL.     Instr ::= "FAIL" ;
+define d_FAIL = BLOCK[UNIT, FAILWITH] ;
 -- Compare
-m_CMPEQ.    Instr ::= "CMPEQ" ;
-m_CMPNEQ.   Instr ::= "CMPNEQ" ;
-m_CMPLT.    Instr ::= "CMPLT" ;
-m_CMPGT.    Instr ::= "CMPGT" ;
-m_CMPLE.    Instr ::= "CMPLE" ;
-m_CMPGE.    Instr ::= "CMPGE" ;
-m_IFEQ.     Instr ::= "IFEQ" "{" [Instr] "}" "{" [Instr] "}" ;
-m_IFNEQ.    Instr ::= "IFNEQ" "{" [Instr] "}" "{" [Instr] "}" ;
-m_IFLT.     Instr ::= "IFLT" "{" [Instr] "}" "{" [Instr] "}" ;
-m_IFGT.     Instr ::= "IFGT" "{" [Instr] "}" "{" [Instr] "}" ;
-m_IFLE.     Instr ::= "IFLE" "{" [Instr] "}" "{" [Instr] "}" ;
-m_IFGE.     Instr ::= "IFGE" "{" [Instr] "}" "{" [Instr] "}" ;
-m_IFCMPEQ.  Instr ::= "IFCMPEQ" "{" [Instr] "}" "{" [Instr] "}" ;
-m_IFCMPNEQ. Instr ::= "IFCMPNEQ" "{" [Instr] "}" "{" [Instr] "}" ;
-m_IFCMPLT.  Instr ::= "IFCMPLT" "{" [Instr] "}" "{" [Instr] "}" ;
-m_IFCMPGT.  Instr ::= "IFCMPGT" "{" [Instr] "}" "{" [Instr] "}" ;
-m_IFCMPLE.  Instr ::= "IFCMPLE" "{" [Instr] "}" "{" [Instr] "}" ;
-m_IFCMPGE.  Instr ::= "IFCMPGE" "{" [Instr] "}" "{" [Instr] "}" ;
-define m_CMPEQ          = BLOCK[COMPARE, EQ] ;
-define m_CMPNEQ         = BLOCK[COMPARE, NEQ] ;
-define m_CMPLT          = BLOCK[COMPARE, LT] ;
-define m_CMPGT          = BLOCK[COMPARE, GT] ;
-define m_CMPLE          = BLOCK[COMPARE, LE] ;
-define m_CMPGE          = BLOCK[COMPARE, GE] ;
-define m_IFEQ bt bf     = BLOCK[EQ, (IF bt bf)] ;
-define m_IFNEQ bt bf    = BLOCK[NEQ, (IF bt bf)] ;
-define m_IFLT bt bf     = BLOCK[LT, (IF bt bf)] ;
-define m_IFGT bt bf     = BLOCK[GT, (IF bt bf)] ;
-define m_IFLE bt bf     = BLOCK[LE, (IF bt bf)] ;
-define m_IFGE bt bf     = BLOCK[GE, (IF bt bf)] ;
-define m_IFCMPEQ  bt bf = BLOCK[m_CMPEQ, (IF bt bf)] ;
-define m_IFCMPNEQ bt bf = BLOCK[m_CMPNEQ, (IF bt bf)] ;
-define m_IFCMPLT bt bf  = BLOCK[m_CMPLT, (IF bt bf)] ;
-define m_IFCMPGT bt bf  = BLOCK[m_CMPGT, (IF bt bf)] ;
-define m_IFCMPLE bt bf  = BLOCK[m_CMPLE, (IF bt bf)] ;
-define m_IFCMPGE bt bf  = BLOCK[m_CMPGE, (IF bt bf)] ;
+d_CMPEQ.    Instr ::= "CMPEQ" ;
+d_CMPNEQ.   Instr ::= "CMPNEQ" ;
+d_CMPLT.    Instr ::= "CMPLT" ;
+d_CMPGT.    Instr ::= "CMPGT" ;
+d_CMPLE.    Instr ::= "CMPLE" ;
+d_CMPGE.    Instr ::= "CMPGE" ;
+d_IFEQ.     Instr ::= "IFEQ" "{" [Instr] "}" "{" [Instr] "}" ;
+d_IFNEQ.    Instr ::= "IFNEQ" "{" [Instr] "}" "{" [Instr] "}" ;
+d_IFLT.     Instr ::= "IFLT" "{" [Instr] "}" "{" [Instr] "}" ;
+d_IFGT.     Instr ::= "IFGT" "{" [Instr] "}" "{" [Instr] "}" ;
+d_IFLE.     Instr ::= "IFLE" "{" [Instr] "}" "{" [Instr] "}" ;
+d_IFGE.     Instr ::= "IFGE" "{" [Instr] "}" "{" [Instr] "}" ;
+d_IFCMPEQ.  Instr ::= "IFCMPEQ" "{" [Instr] "}" "{" [Instr] "}" ;
+d_IFCMPNEQ. Instr ::= "IFCMPNEQ" "{" [Instr] "}" "{" [Instr] "}" ;
+d_IFCMPLT.  Instr ::= "IFCMPLT" "{" [Instr] "}" "{" [Instr] "}" ;
+d_IFCMPGT.  Instr ::= "IFCMPGT" "{" [Instr] "}" "{" [Instr] "}" ;
+d_IFCMPLE.  Instr ::= "IFCMPLE" "{" [Instr] "}" "{" [Instr] "}" ;
+d_IFCMPGE.  Instr ::= "IFCMPGE" "{" [Instr] "}" "{" [Instr] "}" ;
+define d_CMPEQ          = BLOCK[COMPARE, EQ] ;
+define d_CMPNEQ         = BLOCK[COMPARE, NEQ] ;
+define d_CMPLT          = BLOCK[COMPARE, LT] ;
+define d_CMPGT          = BLOCK[COMPARE, GT] ;
+define d_CMPLE          = BLOCK[COMPARE, LE] ;
+define d_CMPGE          = BLOCK[COMPARE, GE] ;
+define d_IFEQ bt bf     = BLOCK[EQ, (IF bt bf)] ;
+define d_IFNEQ bt bf    = BLOCK[NEQ, (IF bt bf)] ;
+define d_IFLT bt bf     = BLOCK[LT, (IF bt bf)] ;
+define d_IFGT bt bf     = BLOCK[GT, (IF bt bf)] ;
+define d_IFLE bt bf     = BLOCK[LE, (IF bt bf)] ;
+define d_IFGE bt bf     = BLOCK[GE, (IF bt bf)] ;
+define d_IFCMPEQ  bt bf = BLOCK[d_CMPEQ, (IF bt bf)] ;
+define d_IFCMPNEQ bt bf = BLOCK[d_CMPNEQ, (IF bt bf)] ;
+define d_IFCMPLT bt bf  = BLOCK[d_CMPLT, (IF bt bf)] ;
+define d_IFCMPGT bt bf  = BLOCK[d_CMPGT, (IF bt bf)] ;
+define d_IFCMPLE bt bf  = BLOCK[d_CMPLE, (IF bt bf)] ;
+define d_IFCMPGE bt bf  = BLOCK[d_CMPGE, (IF bt bf)] ;
 -- Assertions
-m_ASSERT.        Instr ::= "ASSERT" ;
-m_ASSERT_EQ.     Instr ::= "ASSERT_EQ" ;
-m_ASSERT_NEQ.    Instr ::= "ASSERT_NEQ" ;
-m_ASSERT_LT.     Instr ::= "ASSERT_LT" ;
-m_ASSERT_GT.     Instr ::= "ASSERT_GT" ;
-m_ASSERT_LE.     Instr ::= "ASSERT_LE" ;
-m_ASSERT_GE.     Instr ::= "ASSERT_GE" ;
-m_ASSERT_CMPEQ.  Instr ::= "ASSERT_CMPEQ" ;
-m_ASSERT_CMPNEQ. Instr ::= "ASSERT_CMPNEQ" ;
-m_ASSERT_CMPLT.  Instr ::= "ASSERT_CMPLT" ;
-m_ASSERT_CMPGT.  Instr ::= "ASSERT_CMPGT" ;
-m_ASSERT_CMPLE.  Instr ::= "ASSERT_CMPLE" ;
-m_ASSERT_CMPGE.  Instr ::= "ASSERT_CMPGE" ;
-m_ASSERT_NONE.   Instr ::= "ASSERT_NONE" ;
-m_ASSERT_SOME.   Instr ::= "ASSERT_SOME" ;
-m_ASSERT_LEFT.   Instr ::= "ASSERT_LEFT" ;
-m_ASSERT_RIGHT.  Instr ::= "ASSERT_RIGHT" ;
-define m_ASSERT        = (IF [] [m_FAIL]) ;
-define m_ASSERT_EQ     = (m_IFEQ [] [m_FAIL]) ;
-define m_ASSERT_NEQ    = (m_IFNEQ [] [m_FAIL]) ;
-define m_ASSERT_LT     = (m_IFLT [] [m_FAIL]) ;
-define m_ASSERT_GT     = (m_IFGT [] [m_FAIL]) ;
-define m_ASSERT_LE     = (m_IFLE [] [m_FAIL]) ;
-define m_ASSERT_GE     = (m_IFGE [] [m_FAIL]) ;
-define m_ASSERT_CMPEQ  = (m_IFCMPEQ [] [m_FAIL]) ;
-define m_ASSERT_CMPNEQ = (m_IFCMPNEQ [] [m_FAIL]) ;
-define m_ASSERT_CMPLT  = (m_IFCMPLT [] [m_FAIL]) ;
-define m_ASSERT_CMPGT  = (m_IFCMPGT [] [m_FAIL]) ;
-define m_ASSERT_CMPLE  = (m_IFCMPLE [] [m_FAIL]) ;
-define m_ASSERT_CMPGE  = (m_IFCMPGE [] [m_FAIL]) ;
-define m_ASSERT_NONE   = (IF_NONE [] [m_FAIL]) ;
-define m_ASSERT_SOME   = (IF_NONE [m_FAIL] [RENAME]) ; -- FIXME missing annotations
-define m_ASSERT_LEFT   = (IF_LEFT [RENAME] [m_FAIL]) ; -- FIXME missing annotations
-define m_ASSERT_RIGHT  = (IF_LEFT [m_FAIL] [RENAME]) ; -- FIXME missing annotations
+d_ASSERT.        Instr ::= "ASSERT" ;
+d_ASSERT_EQ.     Instr ::= "ASSERT_EQ" ;
+d_ASSERT_NEQ.    Instr ::= "ASSERT_NEQ" ;
+d_ASSERT_LT.     Instr ::= "ASSERT_LT" ;
+d_ASSERT_GT.     Instr ::= "ASSERT_GT" ;
+d_ASSERT_LE.     Instr ::= "ASSERT_LE" ;
+d_ASSERT_GE.     Instr ::= "ASSERT_GE" ;
+d_ASSERT_CMPEQ.  Instr ::= "ASSERT_CMPEQ" ;
+d_ASSERT_CMPNEQ. Instr ::= "ASSERT_CMPNEQ" ;
+d_ASSERT_CMPLT.  Instr ::= "ASSERT_CMPLT" ;
+d_ASSERT_CMPGT.  Instr ::= "ASSERT_CMPGT" ;
+d_ASSERT_CMPLE.  Instr ::= "ASSERT_CMPLE" ;
+d_ASSERT_CMPGE.  Instr ::= "ASSERT_CMPGE" ;
+d_ASSERT_NONE.   Instr ::= "ASSERT_NONE" ;
+d_ASSERT_SOME.   Instr ::= "ASSERT_SOME" ;
+d_ASSERT_LEFT.   Instr ::= "ASSERT_LEFT" ;
+d_ASSERT_RIGHT.  Instr ::= "ASSERT_RIGHT" ;
+define d_ASSERT        = (IF [] [d_FAIL]) ;
+define d_ASSERT_EQ     = (d_IFEQ [] [d_FAIL]) ;
+define d_ASSERT_NEQ    = (d_IFNEQ [] [d_FAIL]) ;
+define d_ASSERT_LT     = (d_IFLT [] [d_FAIL]) ;
+define d_ASSERT_GT     = (d_IFGT [] [d_FAIL]) ;
+define d_ASSERT_LE     = (d_IFLE [] [d_FAIL]) ;
+define d_ASSERT_GE     = (d_IFGE [] [d_FAIL]) ;
+define d_ASSERT_CMPEQ  = (d_IFCMPEQ [] [d_FAIL]) ;
+define d_ASSERT_CMPNEQ = (d_IFCMPNEQ [] [d_FAIL]) ;
+define d_ASSERT_CMPLT  = (d_IFCMPLT [] [d_FAIL]) ;
+define d_ASSERT_CMPGT  = (d_IFCMPGT [] [d_FAIL]) ;
+define d_ASSERT_CMPLE  = (d_IFCMPLE [] [d_FAIL]) ;
+define d_ASSERT_CMPGE  = (d_IFCMPGE [] [d_FAIL]) ;
+define d_ASSERT_NONE   = (IF_NONE [] [d_FAIL]) ;
+define d_ASSERT_SOME   = (IF_NONE [d_FAIL] [RENAME]) ; -- FIXME missing annotations
+define d_ASSERT_LEFT   = (IF_LEFT [RENAME] [d_FAIL]) ; -- FIXME missing annotations
+define d_ASSERT_RIGHT  = (IF_LEFT [d_FAIL] [RENAME]) ; -- FIXME missing annotations
 -- Syntactic Conveniences
 -- P(\left=A|P(\left)(\right))(\right=I|P(\left)(\right))R
 -- UNP(\left=A|P(\left)(\right))(\right=I|P(\left)(\right))R
 -- C[AD]+R
 -- m_CAR_K.
 -- m_CDR_K.
-m_IF_SOME.  Instr ::= "IF_SOME" "{" [Instr] "}" "{" [Instr] "}" ;
-define m_IF_SOME  bt bf = IF_NONE bt bf ;
-m_IF_RIGHT. Instr ::= "IF_RIGHT" "{" [Instr] "}" "{" [Instr] "}" ;
-define m_IF_RIGHT bt bf = IF_LEFT bf bt ;
+d_IF_SOME.  Instr ::= "IF_SOME" "{" [Instr] "}" "{" [Instr] "}" ;
+define d_IF_SOME bt bf = IF_NONE bt bf ;
+d_IF_RIGHT. Instr ::= "IF_RIGHT" "{" [Instr] "}" "{" [Instr] "}" ;
+define d_IF_RIGHT bt bf = IF_LEFT bf bt ;
 -- m_SET_CAR.
 -- m_SET_CDR.
 -- SET_C[AD]+R
@@ -246,10 +261,11 @@ define m_IF_RIGHT bt bf = IF_LEFT bf bt ;
 
 
 
--- ANNOTATIONS TODO
--- possibly just remove them?
--- Type annotations
--- Variable annotations
+-- ANNOTATIONS
+ATypeA.     Annotation ::= TypeAnnotation ;
+AVariableA. Annotation ::= VariableAnnotation ;
+AFieldA.    Annotation ::= FieldAnnotation ;
+
 -- Field and constructor annotations
 -- Syntax
 -- Annotations and macros
@@ -262,6 +278,12 @@ define m_IF_RIGHT bt bf = IF_LEFT bf bt ;
 -- Types
 _.                    Typ ::= "(" Typ ")" ;
 TCtype.               Typ ::= CTyp ;
+--TTA1.                 Typ ::= TypeAnnotation Typ ; -- matches "INSTR :t Typ"
+--TTA2.                 Typ ::= Typ TypeAnnotation ; -- matches "Typ :t"
+--TVA1.                 Typ ::= VariableAnnotation Typ ; -- matches "INSTR @v Typ" (and recursively "INSTR @v @v Typ" and so on)
+--TFA2.                 Typ ::= Typ FieldAnnotation ; -- matches "Typ :t"
+TAnnot1.              Typ ::= Typ Annotation ;
+TAnnot2.              Typ ::= Annotation Typ ;
 TOperation.           Typ ::= "operation" ;
 TContract.            Typ ::= "contract" Typ ;
 TOption.              Typ ::= "option" Typ ;
@@ -287,6 +309,8 @@ TypeSeq0. TypeSeq ::= Typ ;
 
 -- Comparable Types
 
+CAnnot1.    CTyp ::= CTyp Annotation ;
+CAnnot2.    CTyp ::= Annotation CTyp ;
 CUnit.      CTyp ::= "unit" ;
 CNever.     CTyp ::= "never" ;
 CBool.      CTyp ::= "bool" ;
@@ -308,3 +332,4 @@ terminator nonempty CTypeSeq "" ;
 CTypeSeq0. CTypeSeq ::= CTyp ;
 --CTypSeq1.   CTypeSeq ::= CTyp CTyp ;
 --CTypSeq2.   CTypeSeq ::= CTyp CTypeSeq ;
+

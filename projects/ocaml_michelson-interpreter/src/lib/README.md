@@ -1,6 +1,6 @@
 # Implemention State
 
-### yet to be implemented:
+### TODO / yet to be implemented:
 
 #### interpreter
 
@@ -10,7 +10,6 @@
 - everything regarding ballistic curves
 - everything regarding Saplings 
 - everything regarding Chests / Timelock
-- everything regarding tickets
 - Bytes in general and PACK/UNPACK
 - CAST/RENAME
 

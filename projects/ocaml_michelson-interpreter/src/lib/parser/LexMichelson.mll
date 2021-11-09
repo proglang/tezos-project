@@ -56,17 +56,28 @@ let rsyms = ";" | "{" | "}" | "(" | ")"
 
 (* user-defined token types *)
 let str = '"' ([^ '"' '\\']| '\\' ('"' | '\\' | 'b' | 'n' | 'r' | 't')) * '"'
-let hex = "0x" ('A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | _digit)+
+let bt = "0x" ('A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | _digit)+
 let neg = '-' _digit +
+let typeAnnotation = ':' (('_' | (_digit | _letter)) ('%' | '.' | '@' | '_' | (_digit | _letter)) *)?
+let variableAnnotation = '@' ('%' | "%%" | ('_' | (_digit | _letter)) ('%' | '.' | '@' | '_' | (_digit | _letter)) *)?
+let fieldAnnotation = '%' ('@' | ('_' | (_digit | _letter)) ('%' | '.' | '@' | '_' | (_digit | _letter)) *)?
 
 (* lexing rules *)
 rule token =
   parse "#" (_ # '\n')*
                 { token lexbuf }
+      | "/*" [^ '*']* '*' ([^ '*' '/'][^ '*']* '*' | '*')* '/'
+                { token lexbuf }
       | rsyms   { let x = lexeme lexbuf in try Hashtbl.find symbol_table x with Not_found -> failwith ("internal lexer error: reserved symbol " ^ x ^ " not found in hashtable") }
-      | str     { let l = lexeme lexbuf in try Hashtbl.find resword_table l with Not_found -> TOK_Str l }
-      | hex     { let l = lexeme lexbuf in try Hashtbl.find resword_table l with Not_found -> TOK_Hex l }
-      | neg     { let l = lexeme lexbuf in try Hashtbl.find resword_table l with Not_found -> TOK_Neg l }
+      | str     { let l = lexeme lexbuf in try Hashtbl.find resword_table l with Not_found -> TOK_Str ((lexeme_start lexbuf, lexeme_end lexbuf), l) }
+      | bt      { let l = lexeme lexbuf in try Hashtbl.find resword_table l with Not_found -> TOK_Bt ((lexeme_start lexbuf, lexeme_end lexbuf), l) }
+      | neg     { let l = lexeme lexbuf in try Hashtbl.find resword_table l with Not_found -> TOK_Neg ((lexeme_start lexbuf, lexeme_end lexbuf), l) }
+      | typeAnnotation
+                { let l = lexeme lexbuf in try Hashtbl.find resword_table l with Not_found -> TOK_TypeAnnotation ((lexeme_start lexbuf, lexeme_end lexbuf), l) }
+      | variableAnnotation
+                { let l = lexeme lexbuf in try Hashtbl.find resword_table l with Not_found -> TOK_VariableAnnotation ((lexeme_start lexbuf, lexeme_end lexbuf), l) }
+      | fieldAnnotation
+                { let l = lexeme lexbuf in try Hashtbl.find resword_table l with Not_found -> TOK_FieldAnnotation ((lexeme_start lexbuf, lexeme_end lexbuf), l) }
       | _letter _idchar*
                 { let l = lexeme lexbuf in try Hashtbl.find resword_table l with Not_found -> TOK_Ident l }
       | _digit+ { TOK_Integer (int_of_string (lexeme lexbuf)) }
