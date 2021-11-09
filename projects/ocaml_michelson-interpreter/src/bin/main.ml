@@ -60,8 +60,7 @@ let () = Command.run ~version:"0.1" command
 
 
 (* BASIC CLI with the Argc Libray *)
-(*
-let () =
+(*let () =
   let argc = Array.length (Sys.get_argv ()) in
   printf "%d\n" argc;
   if argc > 2
@@ -72,5 +71,4 @@ let () =
     then (
       let filename = (Sys.get_argv ()).(1) in
       run_file filename)
-  else run_repl
-;;*)
+  else run_repl*)

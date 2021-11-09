@@ -17,14 +17,15 @@ let evalNat nat : Z.t = Z.of_int nat
 let evalAddress str : string =
 (* TODO: addresses should be checked for their syntactical validity (length, prefix)
  Might also need to be represented in bytes instead of strings ( Base58Check )?
- Might also only be allowed if they are known in the given enironment data.
- This implementation here is currently only a placeholder *)
+ Might also only be allowed if they are known in the given enironment data (of the wrapper).
+
+ This implementation currently only validates the prefix of the address *)
   match (String.prefix str 3) with
-  | "tz1" | "tz2"| "tz3" | "KT1" when String.length str - 3 >= 4 (*TODO right length*) -> str
+  | "tz1" | "tz2"| "tz3" | "KT1" when String.length str - 3 >= 4 (*TODO correct length*) -> str
   | _ -> failwith "Interpreter.evalValue: Given string is not an Address"
 
 let evalStrLength str (l : int) : string = (* eval other strings depending on their length invariant l *)
-  (* TODO: same as evalAddress*)
+  (* TODO: strings should be checked for their syntactical validity (length, ?) depending on what they symbolize (i.e. cryptographic values)*)
   if ((String.length str) >= (*TODO: should be =*) l) then str else failwith "Interpreter.evalValue: given string does not match its supposed type"
 
 
@@ -87,7 +88,7 @@ let slice_str (offset : Z.t) (len : Z.t) (s : string) : value =
   with
   	| _ -> IOption(TString, None)
 let slice_bytes (offset : Z.t) (len : Z.t) (b : bytes) : value =
-  (* String.sub implements the same rules regarding offset & len bounds but throws errors instead of returning an string option *)
+  (* Bytes.sub implements the same rules regarding offset & len bounds but throws errors instead of returning an string option *)
   try
   	IOption (TBytes, Some(IBytes(Bytes.sub b ~pos:(Z.to_int offset) ~len:(Z.to_int len))))
   with
@@ -95,20 +96,15 @@ let slice_bytes (offset : Z.t) (len : Z.t) (b : bytes) : value =
 
 (* MEM instr *)
 let mem_set (v : value) (lst : value list) : value =
-(*  let bool = List.exists lst ~f:(fun key -> equal_value v key) in (* val exists : 'a t -> f:('a -> bool) -> bool *)*)
   let bool = List.mem lst v ~equal:equal_value in
   IBool(bool)
 let mem_map (v : value) (lst : (value * value) list) : value =
-(*  let bool = List.exists lst ~f:(fun (key, _) -> equal_value v key) in*)
   let bool = List.Assoc.mem lst ~equal:equal_value v in
   IBool(bool)
 let mem_big_map (v : value) (lst : (value * value) list) : value = mem_map v lst
 
 (* GET instr *)
 let get_map (v : value) (lst : (value * value) list) : value =
-  (*  match List.find lst ~f:(fun (key, _) -> equal_value v key) with (* val List.find : 'a t -> f:('a -> bool) -> 'a option*)
-  | None -> IOption (TUnit, None)
-  | Some x -> IOption (typeof (snd x), Some (snd x))*)
   match List.Assoc.find lst ~equal:equal_value v with
   | None -> IOption(TUnit, None)
   | Some x -> IOption(typeof x, Some x)
@@ -151,7 +147,6 @@ let get_update_map (t0, t1) lst (key : value) (o : value option) : value list (*
     IOption(t1, List.Assoc.find lst ~equal:equal_value key);
     IMap ((t0, t1), List.Assoc.add lst ~equal:equal_value key v)
     ]
-(*| Some v  -> IMap (t, List.dedup_and_sort ((key, v) :: lst) ~compare:(fun (k, v) -> Value.compare key k) *)
   | None    -> [
     IOption(t1, List.Assoc.find lst ~equal:equal_value key);
     IMap ((t0, t1), List.Assoc.remove lst ~equal:equal_value key)

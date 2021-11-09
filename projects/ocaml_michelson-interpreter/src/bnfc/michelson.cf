@@ -21,7 +21,7 @@ Argument. Prog ::= Data ; -- for input / storage arguments
 position token Str '"' ( (char - ["\"\\"]) | ('\\' ["\"\\rntb"]) )* '"' ; -- should be equivalent to (\" | \r | \n | \t | \b | \\ | [^"\])*
 position token Bt {"0x"} ( digit | ["abcdefABCDEF"] )+ ;
 position token Neg '-' (digit+) ;  -- negative natural numbers. Neg is handled as string in the parser, unlike Integer!
---position token Integer digit+ ;
+--position token Integer digit+ ; -- TODO: currently interger does not contain position information
 position token TypeAnnotation ':' (('_' | letter | digit) (["_.%@"] | letter | digit)* )? ; -- letter also accepts other chars then a-zA-Z, which it actually should not
 position token VariableAnnotation '@' ( '%' | {"%%"} | ('_' | letter | digit) (["_.%@"] | letter | digit)* )? ;
 position token FieldAnnotation '%' ( '@' | ('_' | letter | digit) (["_.%@"] | letter | digit)* )? ;
@@ -31,7 +31,7 @@ separator Data ";" ;
 _.               Data         ::= "(" Data ")" ; -- https://tezos.gitlab.io/alpha/michelson.html#format-of-patterns
 DNeg.            Data         ::= Neg ; -- negative natural numbers
 DNat.            Data         ::= Integer ;  -- Integer is the same as digit+ -> natural number, not acutally an integer
-DStr.            Data         ::= Str ; -- TODO: possibly contains '"' '"' as part of the string -> strip it!
+DStr.            Data         ::= Str ;
 DBytes.          Data         ::= Bt ;
 DUnit.           Data         ::= "Unit" ;
 DTrue.           Data         ::= "True" ;
@@ -261,19 +261,20 @@ define d_IF_RIGHT bt bf = IF_LEFT bf bt ;
 
 
 
--- ANNOTATIONS
+-- Annotations
 ATypeA.     Annotation ::= TypeAnnotation ;
 AVariableA. Annotation ::= VariableAnnotation ;
 AFieldA.    Annotation ::= FieldAnnotation ;
-
--- Field and constructor annotations
 -- Syntax
 -- Annotations and macros
 -- Special annotations
 
+
 -- Views
 
--- ENTRYPOINTS
+
+-- Entrypoints
+
 
 -- Types
 _.                    Typ ::= "(" Typ ")" ;
