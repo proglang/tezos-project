@@ -11,10 +11,10 @@
 - everything regarding Saplings 
 - everything regarding Chests / Timelock
 - Bytes in general and PACK/UNPACK
-- CAST/RENAME
+
 
 #### parser & interpreter
-- Annotations (or the discarding of them), Entrypoints, Views
+- Entrypoints, Views
 - a few Macros
 
 #### testing via existing contracts!
@@ -30,4 +30,4 @@ Is connected to/needed for VOTING_POWER, SET_DELEGATE, TRANSFER_TOCKENS, CREATE_
   - same exceptions
   - same outputs
   - same input
-- 
+- Annotations are currently discarded in the interpreter, just as CAST/RENAME instructions

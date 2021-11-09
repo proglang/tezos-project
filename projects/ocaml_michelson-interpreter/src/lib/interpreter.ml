@@ -102,7 +102,7 @@ and evalCTyp (ty : AbsMichelson.cTyp) : typ = match ty with
   | AbsMichelson.COption ctyp            -> TOption (evalCTyp ctyp)
   | AbsMichelson.COr (ctyp0, ctyp)       -> TOr (evalCTyp ctyp0, evalCTyp ctyp)
   | AbsMichelson.CPair (ctyp, ctypeseqs) -> TPair (evalCTyp ctyp, evalCTypePair evalCTypSeq ctypeseqs)
-(*and evalTypePair (evalFun : ('a -> typ)) (lst : 'a list) : typ = (* TODO: (should, but polymorphism does not work) evaluates sequences of AbsMichelson.typeSeq and AbsMichelson.cTypeSeq  *)
+(*and evalTypePair (evalFun : ('a -> typ)) (lst : 'a list) : typ = (* evaluates sequences of AbsMichelson.typeSeq and AbsMichelson.cTypeSeq TODO: (This polymorphism does not work)   *)
   let rec f ys =
     match ys with
     | [y] -> evalFun y
@@ -651,6 +651,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : env_
   (* raise exception for instructions that need one or more elements on the stack but the stack does not contain this much values *)
   | _ -> raise (Illegal_Instruction ("Stack does not contain the necessary amount of values", instr)) (* Careful, this also matches new cases of Instructions *)
 
+
 (* SECONDARY INSTRUCTION EVALUATION FUNCTIONS (These evaluate lists of instructions) *)
 and evalList (instrs : AbsMichelson.instr list) (st : value list) (data : env_var) : value list =
   match instrs with
@@ -708,20 +709,7 @@ and iter_map (instrs : AbsMichelson.instr list) typ (lst : (value * value) list)
 and iter_set (instrs : AbsMichelson.instr list) typ (lst : value list) (st : value list) (data : env_var) : value list =
   iter_list instrs typ lst st data
 
-(*(* LOOP instr *)
-and loop (instrs : AbsMichelson.instr list) (st : value list) (data : tx_data) : value list =
-  match st with
-  | IBool true :: st -> loop instrs (evalList instrs st data) data
-  | IBool false :: st -> st
-  | x :: st -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.LOOP,typ_of_lst [x]))
-  | [] ->
-(* LOOP_LEFT instr *)
-and loop_left (instrs : AbsMichelson.instr list) (st : value list) (data : tx_data) : value list =
-  match st with
-  | IOr (_, _, L, x) :: st -> loop_left instrs (evalList instrs (x :: st) data) data
-  | IOr (_, _, R, x) :: st -> x :: st
-  | x :: st -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.LOOP_LEFT,typ_of_lst [x]))
-  | [] -> *)
+
 
 (* EXEC instr *)
 and exec (x : value) (y : value) (data : env_var) : value =

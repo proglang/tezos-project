@@ -25,16 +25,3 @@ let run source parameter storage env =
   let stor = parse storage "Storage" in
   let new_storage : value  = Interpreter.interpret prog param stor env in
   print_endline (Print.val_to_str new_storage);
-
-(*    Lexer.newLexer source
-    |> Lexer.generateTokens
-
-    let tokens = Lexer.generateTokens source in
-(*    for i=0 to (List.length tokens - 1) do
-        printf "%" tokens.
-    done*)
-    print_tokens tokens*)
-
-
-
-
