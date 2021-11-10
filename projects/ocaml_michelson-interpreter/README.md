@@ -21,7 +21,7 @@
 - everything regarding Saplings 
 - everything regarding Chests / Timelock
 - Bytes in general and PACK/UNPACK
-
+- Exceptions do not show the values -> missing show functions?
 
 #### parser & interpreter
 - Entrypoints, Views

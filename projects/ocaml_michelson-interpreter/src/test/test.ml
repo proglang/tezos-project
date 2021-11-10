@@ -8,8 +8,7 @@ open Core
 open Base
 open Lexing
 
-open Michelson
-(*open Value*)
+open Value
 
 let parse (source : string) (err : string) : AbsMichelson.prog =
   try
@@ -41,4 +40,5 @@ let run_file filename parameter storage env =
 let%expect_test "op_codes" =
   let env = "1;2;3;4;5;6;7;8;9" in
   print_endline (run_file "./test_files/contracts_alpha/opcodes/and.tz" "Pair True False" "Some True" env);
-  [test ]*)
+
+*)

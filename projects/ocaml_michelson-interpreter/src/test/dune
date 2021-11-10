@@ -1,13 +1,15 @@
 ;(include_subdirs unqualified)
 
+;(copy_files# ../lib/value.ml)
+
 ;(rule
 ;(deps (glob_files_rec /lib/))
 ;(action (run %{deps}))
 ;)
 
-;(library
-;  (name test)
-;  (libraries michelson base core stdio) ; alcotest, fmt
-; ; (inline_tests (deps (glob_files_rec *.tz)))
-;  (preprocess (pps ppx_jane))
-;)
+(library
+  (name test)
+  (libraries michelson base core stdio) ; alcotest, fmt
+  (inline_tests (deps glob_files_rec *.tz))
+  (preprocess (pps ppx_jane ppx_deriving.std))
+)
