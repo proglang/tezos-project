@@ -53,9 +53,9 @@ and value =
   | ILambda of (typ * typ) * AbsMichelson.instr list * value list (* value list is used when evaluating the APPLY instruction *)
   | IMap of (typ * typ) * (value * value) list
   | IBig_map of (typ * typ) * (value * value) list
-  | IBls_381_g1 of bytes (* FIXME types and operations on this values *)
-  | IBls_381_g2 of bytes
-  | IBls_381_fr of bytes
+  | IBls_381_g1 of Bytes.t (*TODO*)
+  | IBls_381_g2 of Bytes.t (*TODO*)
+  | IBls_381_fr of Bytes.t (*TODO, not of bytes?*)
   | ISapling_transaction
   | ISapling_state
   | IChest of bytes * string (* TODO bytes * 'parameters to open it' *)
@@ -72,14 +72,14 @@ and value =
   | INat of Z.t
   | IString of string
   | IChain_id of string
-  | IBytes of bytes (* FIXME: raw byte, fix byte instructions, de- and serialization? *)
+  | IBytes of Bytes.t (* FIXME: raw byte, fix byte instructions, de- and serialization? *)
   | IMutez of Mutez.t
   | IKey_hash of string (* https://tezos.stackexchange.com/questions/2311/what-are-the-differences-between-key-key-hash-address-contract-and-signature *)
   | IKey of string
   | ISignature of string
   | ITimestamp of Z.t
   | IAddress of string
-[@@deriving eq, ord]
+[@@deriving eq, show]
 
 
 let rec typeof (v : value) : typ =
@@ -349,14 +349,15 @@ let compare_union (u0 : union) (u1 : union) : int =
 *)
 
 let rec compare (v0 : value) (v1 : value) : int =
-  (* compares two values v0, v1 that are and have the same type *)
+  (* expects two comparable values v0, v1 of the same type and compares their values *)
   match (v0, v1) with
   (* dual (comparable/not comparable) values *)
   | (IOption (t0, o0), IOption (t1, o1)) -> Option.compare (fun x y -> compare x y) o0 o1
-  | (IPair (v0, v1), IPair (v2, v3))              ->
-    let first = compare v0 v1 in
-    if (first = 0) then compare v1 v3
-    else first
+  | (IPair (v0, v1), IPair (v2, v3)) ->
+    (match compare v0 v2 with
+    | 0 -> compare v1 v3
+    | x -> x (* 1 or -1 *)
+    )
   | (IOr (_, _, u0, v0), IOr (_, _, u1, v1))  ->
     (match compare_union u0 u1 with
     | 0 -> compare v0 v1

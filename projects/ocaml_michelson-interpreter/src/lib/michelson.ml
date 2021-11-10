@@ -1,5 +1,6 @@
 open Core
 open Lexing
+
 open Value
 
 let parse (source : string) (err : string) : AbsMichelson.prog =
@@ -24,4 +25,4 @@ let run source parameter storage env =
   let param = parse parameter "Parameter" in
   let stor = parse storage "Storage" in
   let new_storage : value  = Interpreter.interpret prog param stor env in
-  print_endline (Print.val_to_str new_storage);
+  print_endline (Print.val_to_str new_storage);  (*print_endline (show_value new_storage);*)

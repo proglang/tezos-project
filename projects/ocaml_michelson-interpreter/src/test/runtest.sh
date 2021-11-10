@@ -1,1 +1,1 @@
-dune runtest
+dune runtest #--auto-promote

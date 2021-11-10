@@ -10,7 +10,7 @@ comment "/*" "*/" ; -- block comment
 
 entrypoints Prog ;
 _.        Prog ::= Prog ";" ; -- allow the ";" in "... code {...};"
---_.        Prog ::= "{" Prog "}" ; -- FIXME!
+_.        Prog ::= "{" Prog "}" ;
 Contract. Prog ::= "parameter" Typ ";" "storage" Typ ";" "code" "{" [Instr] "}" ; -- full contract
 contract2. Prog ::= "storage" Typ ";" "parameter" Typ ";" "code" "{" [Instr] "}" ;
 define contract2 t0 t1 instrs = Contract t1 t0 instrs ;
@@ -56,7 +56,7 @@ separator Instr ";" ; -- empty instruction sequence allowed! Last 'Instr' does d
 --TA.                    Instr ::= Instr TypeAnnotation ;
 --VA.                    Instr ::= Instr VariableAnnotation ;
 ANNOT.                 Instr ::= Instr Annotation ; -- trailing annotations
-_.                     Instr ::= "{" Instr "}" ;
+_.                     Instr ::= "{" Instr ";" "}" ; -- ';' is needed so that code like {{{{};};};}; will not be parsed as nested BLOCKs
 BLOCK.                 Instr ::= "{" [Instr] "}" ;
 DROP.                  Instr ::= "DROP" ;
 DROP_N.                Instr ::= "DROP" Integer ;

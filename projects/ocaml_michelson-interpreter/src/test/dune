@@ -1,4 +1,13 @@
-(test
-  (name test)
-  (libraries michelson base) ; alcotest, fmt
-  )
+;(include_subdirs unqualified)
+
+;(rule
+;(deps (glob_files_rec /lib/))
+;(action (run %{deps}))
+;)
+
+;(library
+;  (name test)
+;  (libraries michelson base core stdio) ; alcotest, fmt
+; ; (inline_tests (deps (glob_files_rec *.tz)))
+;  (preprocess (pps ppx_jane))
+;)

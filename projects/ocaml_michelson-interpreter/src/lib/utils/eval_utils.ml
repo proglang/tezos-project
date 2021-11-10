@@ -121,7 +121,7 @@ let rec get_n (n : int) (p : value (*right comb*)) : value =
 (* UPDATE instr *)
 let update_set t lst (key : value) (b : bool) : value (*ISet*) =
   match b with
-  | true -> ISet (t, List.dedup_and_sort (key :: lst) ~compare:Value.compare (*FIXME: compare_value??*))
+  | true -> ISet (t, List.dedup_and_sort (key :: lst) ~compare:Value.compare)
   | false -> ISet (t, List.filter lst ~f:(fun el -> not (equal_value key el)))
 let update_map t lst (key : value) (o : value option) : value (*IMap*) =
   match o with

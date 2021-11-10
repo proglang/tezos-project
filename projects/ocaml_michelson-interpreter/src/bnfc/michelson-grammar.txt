@@ -1,4 +1,5 @@
-# Original Grammar as defined on https://tezos.gitlab.io/alpha/michelson.html
+# Michelson Grammar as defined on https://tezos.gitlab.io/alpha/michelson.html.
+# This is not complete!
 
 <data> ::=
   | <int constant>

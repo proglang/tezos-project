@@ -50,7 +50,7 @@ let parse_env env contract_typ : env_var =
 exception Illegal_Instruction of string * AbsMichelson.instr
 exception StackTypeError of string * AbsMichelson.instr * typ list
 exception TypeInstrError of string * AbsMichelson.instr * (typ * typ)
-exception TypeError of string * typ
+exception TypeError of string * typ (*FIXME: deriving hier hinzufügen? *)
 exception TypeDataError of string * typ * AbsMichelson.data
 exception Failwith of string * value
 
@@ -527,7 +527,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : env_
     | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", instr, typ_of_lst [x]))
     )
   | (AbsMichelson.COMPARE, (x :: y :: st)) ->
-    if comparable (typeof x) (typeof y)
+    if comparable (typeof x) (typeof y) && equal_typ (typeof x) (typeof y)
     then IInt (Z.of_int(compare x y)) :: st
     else raise (StackTypeError ("Instr & stack value type mismatch.", instr, typ_of_lst [x]))
   | (AbsMichelson.EQ, (x :: st)) ->
@@ -576,7 +576,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : env_
     )
   | (AbsMichelson.SET_DELEGATE, (x :: st)) ->
     (match x with
-    | IOption (TKey_hash, _) -> (*OSet_delegate x :: *)st (* TODO: Wrapper and: The operation fails if kh (key_hash) is the current delegate of the contract or if kh is not a registered delegate.*)
+    | IOption (TKey_hash, _) -> IOperation (OSet_delegate x) :: st (* TODO: Wrapper and: The operation fails if kh (key_hash) is the current delegate of the contract or if kh is not a registered delegate.*)
     | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", instr, typ_of_lst [x]))
     )
   | (AbsMichelson.CREATE_CONTRACT (typ0, typ, instrs), (x :: y :: z :: st)) ->
