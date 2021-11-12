@@ -53,7 +53,7 @@ let command =
       and storage   = anon (("storage" %: string (*unparsed value*)))
       and env       = anon (("env" %: string (*contract_env*) )) (* contract specific information / environment *)
       in
-      fun () -> run_file filename parameter storage env
+      fun () -> print_endline (run_file filename parameter storage env)
     )
 
 let () = Command.run ~version:"0.1" command

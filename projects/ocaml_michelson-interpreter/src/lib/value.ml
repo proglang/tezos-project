@@ -84,7 +84,7 @@ and value =
 
 let rec typeof (v : value) : typ =
   match v with
-  | IOperation (op)           -> TOperation
+  | IOperation (_)           -> TOperation
   | IContract (ty, _)         -> TContract ty
   | IList (ty, _)             -> TList ty
   | ISet (ty, _)              -> TSet ty
@@ -102,7 +102,7 @@ let rec typeof (v : value) : typ =
   (* dual (comparable/not comparable) types *)
   | IOption (ty, _)           -> TOption ty
   | IPair(v0, v)              -> TPair (typeof(v0), typeof(v))
-  | IOr (ty0, ty1, union, v)  -> TOr (ty0, ty1)
+  | IOr (ty0, ty1, _, _)  -> TOr (ty0, ty1)
   (* comparable types *)
   | IUnit                     -> TUnit
   | INever                    -> TNever
@@ -349,10 +349,10 @@ let compare_union (u0 : union) (u1 : union) : int =
 *)
 
 let rec compare (v0 : value) (v1 : value) : int =
-  (* expects two comparable values v0, v1 of the same type and compares their values *)
+  (* expects two comparable values v0, v1 of the same type (recursively) and compares their values *)
   match (v0, v1) with
   (* dual (comparable/not comparable) values *)
-  | (IOption (t0, o0), IOption (t1, o1)) -> Option.compare (fun x y -> compare x y) o0 o1
+  | (IOption (_, o0), IOption (_, o1)) -> Option.compare (fun x y -> compare x y) o0 o1
   | (IPair (v0, v1), IPair (v2, v3)) ->
     (match compare v0 v2 with
     | 0 -> compare v1 v3

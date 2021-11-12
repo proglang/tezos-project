@@ -13,6 +13,8 @@ depends: [
         "ptime"
         "zarith"
         "ppx_deriving"
+        (*"tezos-crypto"*)
+        "menhir"
         (* "fmt"
         "alcotest" {test} *)
         ]

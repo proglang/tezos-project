@@ -1,8 +1,9 @@
 (include_subdirs unqualified)
 
 (library
- (name michelson)
- ; (modules absMichelson)
-  (libraries base core stdio ptime zarith tezos-crypto)
+  (public_name michelson)
+  (name michelson)
+  ; (modules absMichelson)
+  (libraries base core ptime zarith ) ;tezos-crypto
   (preprocess (pps ppx_deriving.std )) ; ppx_jane -allow-unannotated-ignores
 )

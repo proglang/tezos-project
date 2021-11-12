@@ -3,47 +3,9 @@ open Base
 open Lexing
 
 open Value
+open Configuration
 open Eval_utils
 
-type env_var = { (* transaction parameters *)
-  source : value ; (* IAdress *)
-  sender : value ; (* IAdress *)
-  self : value ; (* IContract *)
-  self_address : value ; (* IAdress *)
-  balance : value ; (* IMutez  *)
-  amount : value ; (* IMutez *)
-  timestamp : value ; (* ITimestamp, (minimal injection time for the current block +60s, used in the NOW instruction) *)
-  chain_id : value ; (* bytes? *)
-  level : value ; (* INat *)
-  tot_voting_power : value ; (* nat? *)
-  (*chain-data : ? ;*) (* map of environment contract data *)
-}
-
-let parse_env env contract_typ : env_var =
-  try
-    let env = String.split env ~on:';' in
-    match env with
-    | source :: sender :: self_address :: balance :: amount :: timestamp :: chain_id :: level :: tot_voting_power :: [] ->
-      {
-        source = IAddress source;
-        sender = IAddress sender;
-        self = IContract (contract_typ, self_address);
-        self_address = IAddress self_address;
-        balance = IMutez (Mutez.of_string balance);
-        amount = IMutez (Mutez.of_string amount);
-        timestamp = ITimestamp (Tstamp.of_rfc3339 timestamp);
-        chain_id = IBytes (Bytes.of_string chain_id)  ;
-        level = INat (Z.of_string level) ;
-        tot_voting_power = INat (Z.of_string tot_voting_power) ;
-        (*chain-data : ? ;*) (* map of environment contract data *)
-      }
-    | _ -> failwith "Interpreter.parse_env: Illegal input"
-  with
-    | e -> raise e
-(*
-    | Invalid_argument s -> failwith "..."
-*)
-(*  	| _ -> failwith "Unknown"*)
 
 
 
@@ -56,35 +18,36 @@ exception Failwith of string * value
 
 
 
-(* TODO Funktionsübergaben als pointers? *)
+
 
 (* TYPE EVALUATION FUNCTIONS *)
 (* Type and Value evaluations *)
 let rec evalTyp (ty : AbsMichelson.typ) : typ = match ty with
-  | AbsMichelson.TAnnot1 (typ, _)             -> evalTyp typ (* discard annotations *)
-  | AbsMichelson.TAnnot2 (_, typ)             -> evalTyp typ (* discard annotations *)
-  | AbsMichelson.TCtype ctyp                  -> evalCTyp ctyp
-  | AbsMichelson.TOperation                   -> TOperation
-  | AbsMichelson.TContract typ                -> TContract (evalTyp typ)
-  | AbsMichelson.TOption typ                  -> TOption (evalTyp typ)
-  | AbsMichelson.TList typ                    -> TList (evalTyp typ)
-  | AbsMichelson.TSet ctyp                    -> TSet (evalCTyp ctyp)
-  | AbsMichelson.TTicket ctyp                 -> TTicket (evalCTyp ctyp)
-  | AbsMichelson.TPair (typ, typeseqs)        -> TPair (evalTyp typ, evalTypePair evalTypSeq typeseqs)
-  | AbsMichelson.TOr (typ0, typ)              -> TOr (evalTyp typ0, evalTyp typ)
-  | AbsMichelson.TLambda (typ0, typ)          -> TLambda (evalTyp typ0, evalTyp typ)
-  | AbsMichelson.TMap (ctyp, typ)             -> TMap (evalCTyp ctyp, evalTyp typ)
-  | AbsMichelson.TBig_map (ctyp, typ)         -> TBig_map (evalCTyp ctyp, evalTyp typ)
-  | AbsMichelson.TBls_381_g1                  -> TBls_381_g1
-  | AbsMichelson.TBls_381_g2                  -> TBls_381_g2
-  | AbsMichelson.TBls_381_fr                  -> TBls_381_fr
-  | AbsMichelson.TSapling_transaction _       -> TSapling_transaction
-  | AbsMichelson.TSapling_state _             -> TSapling_state
-  | AbsMichelson.TChest                       -> TChest
-  | AbsMichelson.TChest_key                   -> TChest_key
+  (* onky passable, storeable or pushable types need to be evaluated *)
+  | AbsMichelson.TAnnot1 (typ, _)       -> evalTyp typ (* discard annotations *)
+  | AbsMichelson.TAnnot2 (_, typ)       -> evalTyp typ (* discard annotations *)
+  | AbsMichelson.TCtype ctyp            -> evalCTyp ctyp
+  | AbsMichelson.TOperation             -> failwith "Interpreter.evalTyp: TOperation should not need to be evaluated."
+  | AbsMichelson.TContract typ          -> TContract (evalTyp typ)
+  | AbsMichelson.TOption typ            -> TOption (evalTyp typ)
+  | AbsMichelson.TList typ              -> TList (evalTyp typ)
+  | AbsMichelson.TSet ctyp              -> TSet (evalCTyp ctyp)
+  | AbsMichelson.TTicket ctyp           -> TTicket (evalCTyp ctyp)
+  | AbsMichelson.TPair (typ, typeseqs)  -> TPair (evalTyp typ, evalTypePair evalTypSeq typeseqs)
+  | AbsMichelson.TOr (typ0, typ)        -> TOr (evalTyp typ0, evalTyp typ)
+  | AbsMichelson.TLambda (typ0, typ)    -> TLambda (evalTyp typ0, evalTyp typ)
+  | AbsMichelson.TMap (ctyp, typ)       -> TMap (evalCTyp ctyp, evalTyp typ)
+  | AbsMichelson.TBig_map (ctyp, typ)   -> TBig_map (evalCTyp ctyp, evalTyp typ)
+  | AbsMichelson.TBls_381_g1            -> TBls_381_g1
+  | AbsMichelson.TBls_381_g2            -> TBls_381_g2
+  | AbsMichelson.TBls_381_fr            -> TBls_381_fr
+  | AbsMichelson.TSapling_transaction _ -> TSapling_transaction
+  | AbsMichelson.TSapling_state _       -> TSapling_state
+  | AbsMichelson.TChest                 -> TChest
+  | AbsMichelson.TChest_key             -> TChest_key
 and evalCTyp (ty : AbsMichelson.cTyp) : typ = match ty with
-  | AbsMichelson.CAnnot1 (ctyp, _)         -> evalCTyp ctyp (* discard annotations *)
-  | AbsMichelson.CAnnot2 (_, ctyp)         -> evalCTyp ctyp (* discard annotations *)
+  | AbsMichelson.CAnnot1 (ctyp, _)       -> evalCTyp ctyp (* discard annotations *)
+  | AbsMichelson.CAnnot2 (_, ctyp)       -> evalCTyp ctyp (* discard annotations *)
   | AbsMichelson.CUnit                   -> TUnit
   | AbsMichelson.CNever                  -> TNever
   | AbsMichelson.CBool                   -> TBool
@@ -222,7 +185,7 @@ and evalDataPair (t : typ) (lst : AbsMichelson.pairSeq list) : value (*IPair*) =
 
 
 (* INSTRUCTION EVALUATION FUNCTIONS *)
-let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : env_var) : value list =
+let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : contract_var) : value list =
   (* Error Reporting: if an instruction works on an existing stack, then these match cases are programmed such that they either
    do not match if the stack does not contain the expected number of values (wich causes the last match case to throw an exception)
    or they match, but raise an error in the subsequent evaluation if the number of values is not enough
@@ -653,14 +616,14 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : env_
 
 
 (* SECONDARY INSTRUCTION EVALUATION FUNCTIONS (These evaluate lists of instructions) *)
-and evalList (instrs : AbsMichelson.instr list) (st : value list) (data : env_var) : value list =
+and evalList (instrs : AbsMichelson.instr list) (st : value list) (data : contract_var) : value list =
   match instrs with
   | []      -> st (* case needed as empty instruction-lists are allowed *)
   | [y]     -> evalInstr y st data (* case actually not necessary *)
   | y :: ys -> evalList ys (evalInstr y st data) data
 
 (* MAP instr *)
-and map_list (instrs : AbsMichelson.instr list) typ (lst : value list) (st : value list) (data : env_var) : value list =
+and map_list (instrs : AbsMichelson.instr list) typ (lst : value list) (st : value list) (data : contract_var) : value list =
   if (List.is_empty lst) then IList(typ, lst) :: st
   else
     let f instrs data  = ( fun acc el ->
@@ -673,7 +636,7 @@ and map_list (instrs : AbsMichelson.instr list) typ (lst : value list) (st : val
     match List.hd lst with
     | Some x -> IList((typeof x), lst) :: new_st
     | None   -> failwith "Interpreter.map_list: this case should be impossible"
-and map_map (instrs : AbsMichelson.instr list) typ (lst : (value * value) list) (st : value list) (data : env_var) : value list =
+and map_map (instrs : AbsMichelson.instr list) typ (lst : (value * value) list) (st : value list) (data : contract_var) : value list =
   (* key value pairs are handeled as ocaml pairs! *)
   if (List.is_empty lst) then IMap(typ, lst) :: st
   else
@@ -689,7 +652,7 @@ and map_map (instrs : AbsMichelson.instr list) typ (lst : (value * value) list) 
     | None   -> failwith "Interpreter.map_map: this case should be impossible"
 
 (* ITER instr *)
-and iter_list (instrs : AbsMichelson.instr list) typ (lst : value list) (st : value list) (data : env_var) : value list =
+and iter_list (instrs : AbsMichelson.instr list) typ (lst : value list) (st : value list) (data : contract_var) : value list =
   if (List.is_empty lst) then st
   else
     let f instrs data  = ( fun acc el ->
@@ -697,7 +660,7 @@ and iter_list (instrs : AbsMichelson.instr list) typ (lst : value list) (st : va
     )
     in
     List.fold lst ~init:st ~f:(f instrs data) (* val fold : 'a t -> init:'accum -> f:('accum -> 'a -> 'accum) -> 'accum *)
-and iter_map (instrs : AbsMichelson.instr list) typ (lst : (value * value) list) (st : value list) (data : env_var) : value list =
+and iter_map (instrs : AbsMichelson.instr list) typ (lst : (value * value) list) (st : value list) (data : contract_var) : value list =
   (* key value pairs are handeled as pairs! *)
   if (List.is_empty lst) then IMap(typ, lst) :: st
   else
@@ -706,14 +669,14 @@ and iter_map (instrs : AbsMichelson.instr list) typ (lst : (value * value) list)
     )
     in
     List.fold lst ~init:st ~f:(f instrs data)
-and iter_set (instrs : AbsMichelson.instr list) typ (lst : value list) (st : value list) (data : env_var) : value list =
+and iter_set (instrs : AbsMichelson.instr list) typ (lst : value list) (st : value list) (data : contract_var) : value list =
   iter_list instrs typ lst st data
 
 
 
 (* EXEC instr *)
-and exec (x : value) (y : value) (data : env_var) : value =
-  let f (instrs : AbsMichelson.instr list) (t0, t1 : typ * typ) (vs : value list) (data : env_var) =
+and exec (x : value) (y : value) (data : contract_var) : value =
+  let f (instrs : AbsMichelson.instr list) (t0, t1 : typ * typ) (vs : value list) (data : contract_var) =
     if (equal_typ (typeof x) t0) then
       let init_stack = solve_partial_apply vs x
       in
@@ -728,51 +691,8 @@ and exec (x : value) (y : value) (data : env_var) : value =
   | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.EXEC, typ_of_lst [x ; y]))
 
 (* DIP_n instr *)
-and dip_n (instrs : AbsMichelson.instr list) (n : int) (st : value list) (data : env_var) : value list =
+and dip_n (instrs : AbsMichelson.instr list) (n : int) (st : value list) (data : contract_var) : value list =
   let (fst, snd) = List.split_n st n in
   match (fst, snd) with
   | (_, []) -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.DIP_N (n, instrs)))
   | (fst, snd) -> fst @ (evalList instrs snd data) (* this case also matches n=0 *)
-
-
-
-
-(* MAIN INTERPRETER FUNCTIONS *)
-let eval_argument (ty : typ) (arg : AbsMichelson.prog) : value =
-  match arg with
-  | AbsMichelson.Contract _ -> failwith "Interpreter.eval_argument: Given argument (parameter or storage) invalid"
-(*  | AbsMichelson.Code x -> *)
-  | AbsMichelson.Argument x ->
-    try
-    	evalValue ty x
-    with
-    	| TypeDataError (s,t,d) -> printf "Interpreter.eval_argument: Given Argument is of wrong type:\n"; raise (TypeDataError (s, t, d))
-
-let interpret (prog : AbsMichelson.prog) (parameter : AbsMichelson.prog) (storage : AbsMichelson.prog) env : value =
-  let f prog =
-    match prog with
-    | AbsMichelson.Contract (typ0, typ1, instrs) -> (typ0, typ1, instrs)
-    (*| AbsMichelson.Code instrs -> (None, instrs)*)
-    | AbsMichelson.Argument _ -> failwith "Interpreter.interpret: Given contract invalid"
-  in
-  let (typ0, typ1, instrs) = f prog in
-  let (ty0, ty1) = (evalTyp typ0, evalTyp typ1) in
-  if not ((passable ty0) && (storable ty1)) then failwith "Interpreter.interpret: forbidden type of parameter or storage"
-  else
-  let param = eval_argument ty0 parameter in
-  let stor = eval_argument ty1 storage in
-  let init_stack = [IPair (param, stor)] in
-  let environment = parse_env env ty1 in
-  let end_stack : value list = evalList instrs init_stack environment in
-  match end_stack with (* should be [IPair (IList (TOperation, y), z)] where z is a value of type typ1/ty1 and y is list of operations *)
-  | [x] ->
-    (match x with
-    | IPair (IList (TOperation, _ (*y*)), z) ->
-      if (equal_typ (typeof z) ty1) then x (* TODO: pass operationlist y and storage z seperately to be handled in michelson.ml / or return updated wrapper data / or... *)
-      else failwith "Interpreter.interpret: Wrong output type"
-    | _ -> failwith "Interpreter.interpret: Illegal contract output"
-    )
-  | [] -> failwith "Interpreter.interpret: Stack empty"
-  | _ -> failwith "Interpreter.interpret: Stack contains more then one value" (* TODO: return/show topmost stack?*)
-  (* TODO: instr 'FAILWITH' abfangen *)
-  (* TODO: create new exception type or Ok/Error result to propagate results back to michelson *)

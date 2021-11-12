@@ -1,8 +1,13 @@
 # Implemention State
 
+#### Small todos:
+- seperate configuration/environment data into own module
+- merge michelson.ml into main.ml, rename interpreter.ml to eval.ml and let a new interpreter.ml be the main module/interface to the interpreter. Update /lib/dune with "name michelson_interpreter" and public_name
+
+
 ### TODO / yet to be implemented:
 
-#### PRIORITY:
+#### PRIORITIES:
 1. Tests
 2. Configuration Input from file
 3. Interpreter output
@@ -34,8 +39,7 @@
 #### others / maybes
 - Wrapper / Environment that includes not only the current contract but more contracts
 that my be needed by the current contract or for handling the operation list after succesful contract execution.
-Is connected to/needed for VOTING_POWER, SET_DELEGATE, TRANSFER_TOCKENS, CREATE_CONTRACT, CONTRACT
-- address generation
+Is connected to/needed for VOTING_POWER, SET_DELEGATE, TRANSFER_TOCKENS, CREATE_CONTRACT, CONTRACT, address generation
 - Tezos API like interface:
   - same exceptions
   - same outputs
@@ -43,3 +47,7 @@ Is connected to/needed for VOTING_POWER, SET_DELEGATE, TRANSFER_TOCKENS, CREATE_
 
 #### not to be implemented:
 - Annotations: currently they are discarded in the interpreter, just as the CAST/RENAME instructions which work on annotations.
+
+
+#### performance:
+- use pointers for environment/configuration (immutable) arguments? Does the compiler optimize this by itself?
