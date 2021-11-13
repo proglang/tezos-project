@@ -23,11 +23,10 @@ exception Failwith of string * value
 (* TYPE EVALUATION FUNCTIONS *)
 (* Type and Value evaluations *)
 let rec evalTyp (ty : AbsMichelson.typ) : typ = match ty with
-  (* onky passable, storeable or pushable types need to be evaluated *)
   | AbsMichelson.TAnnot1 (typ, _)       -> evalTyp typ (* discard annotations *)
   | AbsMichelson.TAnnot2 (_, typ)       -> evalTyp typ (* discard annotations *)
   | AbsMichelson.TCtype ctyp            -> evalCTyp ctyp
-  | AbsMichelson.TOperation             -> failwith "Interpreter.evalTyp: TOperation should not need to be evaluated."
+  | AbsMichelson.TOperation             -> TOperation
   | AbsMichelson.TContract typ          -> TContract (evalTyp typ)
   | AbsMichelson.TOption typ            -> TOption (evalTyp typ)
   | AbsMichelson.TList typ              -> TList (evalTyp typ)
