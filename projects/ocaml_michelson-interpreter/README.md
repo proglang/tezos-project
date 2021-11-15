@@ -8,12 +8,12 @@
 ### TODO / yet to be implemented:
 
 #### PRIORITIES:
-1. Tests
-2. Configuration Input from file
-3. Interpreter output
-4. Byte handling
-5. Views 
-6. ...
+- [ ] Tests
+- [x] Configuration Input from json
+- [ ] Interpreter output in Michelson syntax
+- [ ] Byte handling
+- [ ] Views
+- [ ] ...
 
 #### interpreter
 - input of chain-data (environment, including contracts for the wrapper) -> Einlesen einer JSON/YML Konfigurationsdatei (suche OPAM package)
@@ -37,6 +37,7 @@
 
 
 #### others / maybes
+- Documentation
 - Wrapper / Environment that includes not only the current contract but more contracts
 that my be needed by the current contract or for handling the operation list after succesful contract execution.
 Is connected to/needed for VOTING_POWER, SET_DELEGATE, TRANSFER_TOCKENS, CREATE_CONTRACT, CONTRACT, address generation

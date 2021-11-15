@@ -89,7 +89,7 @@ let rec typeof (v : value) : typ =
   | IList (ty, _)             -> TList ty
   | ISet (ty, _)              -> TSet ty
   | ITicket (_, v, _)         -> TTicket (typeof(v))
-  | ILambda ((ty0, ty), _, _)    -> TLambda (ty0, ty)
+  | ILambda ((ty0, ty), _, _) -> TLambda (ty0, ty)
   | IMap ((ty0, ty), _)       -> TMap (ty0, ty)
   | IBig_map ((ty0, ty), _)   -> TBig_map (ty0, ty)
   | IBls_381_g1 _             -> TBls_381_g1
@@ -102,7 +102,7 @@ let rec typeof (v : value) : typ =
   (* dual (comparable/not comparable) types *)
   | IOption (ty, _)           -> TOption ty
   | IPair(v0, v)              -> TPair (typeof(v0), typeof(v))
-  | IOr (ty0, ty1, _, _)  -> TOr (ty0, ty1)
+  | IOr (ty0, ty1, _, _)      -> TOr (ty0, ty1)
   (* comparable types *)
   | IUnit                     -> TUnit
   | INever                    -> TNever
