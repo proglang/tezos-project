@@ -21,6 +21,7 @@ let run_file filename parameter storage conf =
   let source = String.concat ~sep:"\n" (In_channel.input_lines file) (* max size 16384 bytes *)
   (* OPT: is the additional argument 'In_channel.input lines ~fix_win_eol:true' needed on windows? *)
   in
+  let conf = Michelson.Config.parse_file conf in
   Michelson.run source parameter storage conf
   )
 

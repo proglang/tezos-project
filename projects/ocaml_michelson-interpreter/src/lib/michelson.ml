@@ -1,5 +1,7 @@
 open Core
 
+module Config = Config
+
 let eval_argument (ty : Value.typ) (arg : AbsMichelson.prog) : Value.value =
   match arg with
   | AbsMichelson.Contract _ -> failwith "Interpreter.eval_argument: Given argument (parameter or storage) invalid"
@@ -11,7 +13,7 @@ let eval_argument (ty : Value.typ) (arg : AbsMichelson.prog) : Value.value =
     	| Interpreter.TypeDataError (s,t,d) as e -> printf "Interpreter.eval_argument: Given Argument is of wrong type:\n"; raise e
 
 
-let interpret (prog : AbsMichelson.prog) (parameter : AbsMichelson.prog) (storage : AbsMichelson.prog) env : Value.value =
+let interpret (prog : AbsMichelson.prog) (parameter : AbsMichelson.prog) (storage : AbsMichelson.prog) conf : Value.value =
   let f prog =
     match prog with
     | AbsMichelson.Contract (typ0, typ1, instrs) -> (typ0, typ1, instrs)
@@ -22,10 +24,10 @@ let interpret (prog : AbsMichelson.prog) (parameter : AbsMichelson.prog) (storag
   let (ty0, ty1) = (Interpreter.evalTyp typ0, Interpreter.evalTyp typ1) in
   if not ((Value.passable ty0) && (Value.storable ty1)) then failwith "Interpreter.interpret: forbidden type of parameter or storage"
   else
+  let conf = Config.of_yojson conf ty1 in
   let param = eval_argument ty0 parameter in
   let stor = eval_argument ty1 storage in
   let init_stack = [Value.IPair (param, stor)] in
-  let conf = Config.parse_env conf ty1 in
   let end_stack : Value.value list = Interpreter.evalList instrs init_stack conf in
   match end_stack with (* should be [IPair (IList (TOperation, y), z)] where z is a value of type typ1/ty1 and y is list of operations *)
   | [x] ->
@@ -40,10 +42,10 @@ let interpret (prog : AbsMichelson.prog) (parameter : AbsMichelson.prog) (storag
   (* TODO: instr 'FAILWITH' abfangen *)
   (* TODO: create new exception type or Ok/Error result to propagate results back to michelson *)
 
-let run source parameter storage env =
+let run source parameter storage (conf : Yojson.Basic.t) =
   let () = printf "Contract:\n'\n%s\n' \nParameter: '%s' \nStorage: '%s' \n\n%!" source parameter storage in
   let prog = Parse.parse source "Contract" in
   let param = Parse.parse parameter "Parameter" in
   let stor = Parse.parse storage "Storage" in
-  let new_storage : Value.value  = interpret prog param stor env in
+  let new_storage : Value.value  = interpret prog param stor conf in
   Print.val_to_str new_storage;  (*show_value new_storage;*)

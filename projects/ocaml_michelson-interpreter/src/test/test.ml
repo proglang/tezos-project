@@ -18,7 +18,17 @@ let run_file filename parameter storage env : string =
 let%expect_test "op_codes" =
   print_endline "lol";
   (*
-  let env = "1;2;3;4;5;6;7;8;9" in
+  let conf = Michelson.Config.parse_string "{
+                                              "source": "a",
+                                              "sender": "b",
+                                              "self_address": "c",
+                                              "balance": "1",
+                                              "amount": "2",
+                                              "timestamp": "12323",
+                                              "chain_id": "d",
+                                              "level": "3",
+                                              "tot_voting_power": "4"
+                                            }"
   print_endline (run_file "./test_files/contracts_alpha/opcodes/and.tz" "Pair True False" "Some True" env);*)
 
 (*

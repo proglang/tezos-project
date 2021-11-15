@@ -17,9 +17,8 @@ type contract_var = { (* transaction parameters *)
   (*chain-data : ? ;*) (* map of environment contract data *)
 }
 
-let parse_env filename contract_typ : contract_var =
- try
-    let json = Yojson.Basic.from_file filename in
+let of_yojson json contract_typ : contract_var =
+  try
     (* Locally open the JSON manipulation functions *)
     let open Yojson.Basic.Util in
     let source = json |> member "source" |> to_string in
@@ -44,10 +43,13 @@ let parse_env filename contract_typ : contract_var =
       tot_voting_power = INat (Z.of_string tot_voting_power) ;
       (*chain-data : ? ;*) (* map of environment contract data *)
     }
- with
-    | e -> failwith "Config: Error when parsing configuration file (json)";
+  with
+    | e -> failwith "Config: Error when parsing configuration file (json)"
            (*raise e;*)
 
+
+let parse_string str = Yojson.Basic.from_string str
+let parse_file filename = Yojson.Basic.from_file filename
 
 
 (*    try
