@@ -45,9 +45,8 @@ let parse_env filename contract_typ : contract_var =
       (*chain-data : ? ;*) (* map of environment contract data *)
     }
  with
-    | e -> failwith "Config: Error when parsing configuration file (json)"; raise e
-
-
+    | e -> failwith "Config: Error when parsing configuration file (json)";
+           (*raise e;*)
 
 
 

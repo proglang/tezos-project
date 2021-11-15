@@ -25,7 +25,7 @@ let interpret (prog : AbsMichelson.prog) (parameter : AbsMichelson.prog) (storag
   let param = eval_argument ty0 parameter in
   let stor = eval_argument ty1 storage in
   let init_stack = [Value.IPair (param, stor)] in
-  let conf = Configuration.parse_env conf ty1 in
+  let conf = Config.parse_env conf ty1 in
   let end_stack : Value.value list = Interpreter.evalList instrs init_stack conf in
   match end_stack with (* should be [IPair (IList (TOperation, y), z)] where z is a value of type typ1/ty1 and y is list of operations *)
   | [x] ->
