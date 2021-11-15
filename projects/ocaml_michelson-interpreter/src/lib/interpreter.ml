@@ -3,7 +3,7 @@ open Base
 open Lexing
 
 open Value
-open Configuration
+open Config
 open Eval_utils
 
 

@@ -16,30 +16,22 @@ open Core
   done*)
 
 (* CLI File Input *)
-let run_file filename parameter storage env =
+let run_file filename parameter storage conf =
   In_channel.with_file filename ~f:(fun file ->
   let source = String.concat ~sep:"\n" (In_channel.input_lines file) (* max size 16384 bytes *)
   (* OPT: is the additional argument 'In_channel.input lines ~fix_win_eol:true' needed on windows? *)
   in
-  Michelson.run source parameter storage env
+  Michelson.run source parameter storage conf
   )
-
-(*let contract_env : string list = (*FIXME*)
-  Command.Arg_type.create (fun env ->
-    let lst = String.split env ~on:',' in
-    match lst with
-    | source :: sender :: self_address :: balance :: amount :: timestamp :: chain_id :: level :: tot_voting_power :: [] -> lst
-    | _ -> failwith "Env not given in the right format"
-  )*)
 
 let command =
   Command.basic
     ~summary:"Interpret given Michelson code"
     ~readme:(fun () -> "Arguments:
     filename: the contract file
+    conf: json file containing environment variables of the contract in the form ...
     parameter: the parameter value
     storage: the current storage of the contract
-    env: environment parameters given as a string in the form 'source;sender;self_address;balance;amount;timestamp;chain_id;level;tot_voting_power'
     ")
 (*    Command.Param.(
          map (anon (maybe ("filename" %: Filename.arg_type)))
@@ -49,11 +41,11 @@ let command =
     Command.Let_syntax.(
     let%map_open
       filename      = anon (("filename" %: Filename.arg_type))
+      and config      = anon (("config" %: Filename.arg_type))
       and parameter = anon (("parameter" %: string (*unparsed value*)))
       and storage   = anon (("storage" %: string (*unparsed value*)))
-      and env       = anon (("env" %: string (*contract_env*) )) (* contract specific information / environment *)
       in
-      fun () -> print_endline (run_file filename parameter storage env)
+      fun () -> print_endline (run_file filename parameter storage config)
     )
 
 let () = Command.run ~version:"0.1" command

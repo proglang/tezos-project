@@ -4,6 +4,6 @@
   (public_name michelson)
   (name michelson)
   ; (modules absMichelson)
-  (libraries base core ptime zarith ) ;tezos-crypto
-  (preprocess (pps ppx_deriving.std )) ; ppx_jane -allow-unannotated-ignores
+  (libraries base core ptime zarith yojson) ;tezos-crypto
+  (preprocess (pps ppx_deriving.std ppx_yojson_conv )) ; ppx_jane -allow-unannotated-ignores
 )
