@@ -11,7 +11,7 @@ let eval_argument (ty : Value.typ) (arg : AbsMichelson.prog) : Value.value =
     	| Interpreter.TypeDataError (s,t,d) as e -> printf "Interpreter.eval_argument: Given Argument is of wrong type:\n"; raise e
 
 
-let interpret (prog : AbsMichelson.prog) (parameter : AbsMichelson.prog) (storage : AbsMichelson.prog) conf : Value.value =
+let interpret (prog : AbsMichelson.prog) (parameter : AbsMichelson.prog) (storage : AbsMichelson.prog) env : Value.value =
   let f prog =
     match prog with
     | AbsMichelson.Contract (typ0, typ1, instrs) -> (typ0, typ1, instrs)
@@ -40,10 +40,10 @@ let interpret (prog : AbsMichelson.prog) (parameter : AbsMichelson.prog) (storag
   (* TODO: instr 'FAILWITH' abfangen *)
   (* TODO: create new exception type or Ok/Error result to propagate results back to michelson *)
 
-let run source parameter storage conf =
+let run source parameter storage env =
   let () = printf "Contract:\n'\n%s\n' \nParameter: '%s' \nStorage: '%s' \n\n%!" source parameter storage in
   let prog = Parse.parse source "Contract" in
   let param = Parse.parse parameter "Parameter" in
   let stor = Parse.parse storage "Storage" in
-  let new_storage : Value.value = interpret prog param stor conf in
-  Print.val_to_str new_storage; (*show_value new_storage;*)
+  let new_storage : Value.value  = interpret prog param stor env in
+  Print.val_to_str new_storage;  (*show_value new_storage;*)
