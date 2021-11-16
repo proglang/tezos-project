@@ -9,11 +9,11 @@ open Eval_utils
 
 
 
-exception Illegal_Instruction of string * AbsMichelson.instr
+exception Illegal_Instruction of string * string (* string * AbsMichelson.instr *)
 exception StackTypeError of string * AbsMichelson.instr * typ list
 exception TypeInstrError of string * AbsMichelson.instr * (typ * typ)
 exception TypeError of string * typ (*FIXME: deriving hier hinzufügen? *)
-exception TypeDataError of string * typ * AbsMichelson.data
+exception TypeDataError of string * string * string (* string * typ * AbsMichelson.data *)
 exception Failwith of string * value
 
 
@@ -145,7 +145,7 @@ let rec evalValue (t : typ) (e : AbsMichelson.data) : value =
     | (TTimestamp, AbsMichelson.DNat nat)                    -> ITimestamp (evalNat nat)
     | (TTimestamp, AbsMichelson.DStr str)                    -> ITimestamp (Tstamp.of_rfc3339 (evalStr str))
     | (TAddress, AbsMichelson.DStr str)                      -> IAddress (evalAddress (evalStr str))
-    | _ -> raise (TypeDataError ("Expected type does not match given data", t, e))
+    | _ -> raise (TypeDataError ("Expected type does not match given data", Print.ty_to_str t (*TODO show*), AbsMichelson.show_data e))
 and evalDataList (ty : typ) (lst : AbsMichelson.data list) : value list =
   let f (ty : typ) = (fun x ->
     evalValue ty x
@@ -171,7 +171,7 @@ and evalDataInstr (ty0, ty : typ * typ) (lst : AbsMichelson.data list) : AbsMich
     match x with
     | AbsMichelson.DInstruction instr -> instr
     | AbsMichelson.DBlock lst -> AbsMichelson.BLOCK (List.map lst ~f:(f)) (* wrap inner list in AbsMichelson.BLOCK value *)
-    | _ -> raise (TypeDataError ("lambda type: Expected instruction (list), but got other data type", TLambda (ty0, ty), x))
+    | _ -> raise (TypeDataError ("lambda type: Expected instruction (list), but got other data type", Print.ty_to_str (TLambda (ty0, ty)) (*TODO show*), AbsMichelson.show_data x))
     )
   in
   List.map lst ~f:(f)
@@ -201,7 +201,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
   | (AbsMichelson.DUG_N integer, _) ->  dug_n integer stack
   | (AbsMichelson.PUSH (typ, data), _) ->
     if (pushable(evalTyp typ)) then ((evalValue (evalTyp typ) data) :: stack)
-    else raise (Illegal_Instruction ("This type is not pushable.", instr))
+    else raise (Illegal_Instruction ("This type is not pushable.", AbsMichelson.show_instr instr))
   | (AbsMichelson.SOME, (x :: st)) ->  IOption ((typeof x), Some x) :: st
   | (AbsMichelson.NONE typ, st) ->  IOption(evalTyp typ, None) :: st
   | (AbsMichelson.UNIT, _) -> IUnit :: stack
@@ -387,9 +387,9 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
     | (IInt x, ITimestamp y)
     | (ITimestamp x, IInt y)         -> ITimestamp (Z.add x y) :: st
     | (IMutez x, IMutez y)           -> IMutez (Mutez.add x y) :: st
-    | (IBls_381_g1 x, IBls_381_g1 y) -> (*IBls_381_g1 (Bls.add x y) ::*) st (*TODO https://tezos.gitlab.io/alpha/michelson.html#bls12-381-primitives*)
-    | (IBls_381_g2 x, IBls_381_g2 y) -> (*IBls_381_g2 (Bls.add x y) ::*) st (*TODO*)
-    | (IBls_381_fr x, IBls_381_fr y) -> (*IBls_381_fr (Bls.add x y) ::*) st (*TODO*)
+    | (IBls_381_g1 x, IBls_381_g1 y) -> IBls_381_g1 x :: st (*TODO https://tezos.gitlab.io/alpha/michelson.html#bls12-381-primitives*)
+    | (IBls_381_g2 x, IBls_381_g2 y) -> IBls_381_g2 x :: st (*TODO*)
+    | (IBls_381_fr x, IBls_381_fr y) -> IBls_381_fr x :: st (*TODO*)
     | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", instr, typ_of_lst [x ; y]))
     )
   | (AbsMichelson.SUB, (x :: y :: st)) ->
@@ -411,13 +411,13 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
     | (IInt x, IInt y)               -> IInt (Z.mul x y) :: st
     | (IMutez x, INat y)             -> IMutez (Mutez.mul x (Mutez.of_Zt y)) :: st
     | (INat x, IMutez y)             -> IMutez (Mutez.mul (Mutez.of_Zt x) y) :: st
-    | (IBls_381_g1 x, IBls_381_fr y) -> (*IBls_381_g1 (Bls.mul x y) ::*) st
-    | (IBls_381_g2 x, IBls_381_fr y) -> (*IBls_381_g2 (Bls.mul x y) ::*) st
-    | (IBls_381_fr x, IBls_381_fr y) -> (*IBls_381_fr (Bls.mul x y) ::*) st
-    | (INat x, IBls_381_fr y)        -> (*IBls_381_fr (Bls.mul x y) ::*) st
-    | (IInt x, IBls_381_fr y)        -> (*IBls_381_fr (Bls.mul x y) ::*) st
-    | (IBls_381_fr x, INat y)        -> (*IBls_381_fr (Bls.mul x y) ::*) st
-    | (IBls_381_fr x, IInt y)        -> (*IBls_381_fr (Bls.mul x y) ::*) st
+    | (IBls_381_g1 x, IBls_381_fr y) -> IBls_381_g1 x :: st (*TODO*)
+    | (IBls_381_g2 x, IBls_381_fr y) -> IBls_381_g2 x :: st (*TODO*)
+    | (IBls_381_fr x, IBls_381_fr y) -> IBls_381_fr x :: st (*TODO*)
+    | (INat x, IBls_381_fr y)        -> IBls_381_fr y :: st (*TODO*)
+    | (IInt x, IBls_381_fr y)        -> IBls_381_fr y :: st (*TODO*)
+    | (IBls_381_fr x, INat y)        -> IBls_381_fr x :: st (*TODO*)
+    | (IBls_381_fr x, IInt y)        -> IBls_381_fr x :: st (*TODO*)
     | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", instr, typ_of_lst [x; y]))
     )
   | (AbsMichelson.EDIV, (x :: y :: st)) ->
@@ -445,12 +445,16 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
   | (AbsMichelson.INT, (x :: st)) ->
     (match x with
     | INat x -> IInt x :: st
+    | IBls_381_fr x -> IInt Z.one :: st (*TODO*)
     | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", instr, typ_of_lst [x]))
     )
   | (AbsMichelson.NEG, (x :: st)) ->
     (match x with
     | IInt x
     | INat x -> IInt (Z.neg x) :: st
+    | IBls_381_g1 x -> IBls_381_g1 x :: st (*TODO https://tezos.gitlab.io/alpha/michelson.html#bls12-381-primitives*)
+    | IBls_381_g2 x -> IBls_381_g2 x :: st (*TODO*)
+    | IBls_381_fr x -> IBls_381_fr x :: st (*TODO*)
     | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", instr, typ_of_lst [x]))
     )
   | (AbsMichelson.LSL, (x :: y :: st)) ->
@@ -611,7 +615,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
     )
   | (AbsMichelson.OPEN_CHEST, (x :: st)) -> st (*TODO*)
   (* raise exception for instructions that need one or more elements on the stack but the stack does not contain this much values *)
-  | _ -> raise (Illegal_Instruction ("Stack does not contain the necessary amount of values", instr)) (* Careful, this also matches new cases of Instructions *)
+  | _ -> raise (Illegal_Instruction ("Stack does not contain the necessary amount of values", AbsMichelson.show_instr instr)) (* Careful, this also matches new cases of Instructions *)
 
 
 (* SECONDARY INSTRUCTION EVALUATION FUNCTIONS (These evaluate lists of instructions) *)
@@ -675,6 +679,9 @@ and iter_set (instrs : AbsMichelson.instr list) typ (lst : value list) (st : val
 
 (* EXEC instr *)
 and exec (x : value) (y : value) (data : contract_var) : value =
+(* TODO: missing check "Note that SELF is forbidden in lambdas because it cannot be type-checked"
+Also "Note that SELF_ADDRESS inside a lambda returns the address of the contract executing the lambda, which can be different from the address of the contract in which the SELF_ADDRESS instruction is written."
+*)
   let f (instrs : AbsMichelson.instr list) (t0, t1 : typ * typ) (vs : value list) (data : contract_var) =
     if (equal_typ (typeof x) t0) then
       let init_stack = solve_partial_apply vs x
@@ -682,7 +689,7 @@ and exec (x : value) (y : value) (data : contract_var) : value =
       let st = evalList instrs init_stack data in
       match st with
       | [z] -> if (equal_typ (typeof z) t1) then z else raise (TypeInstrError ("Lambda output type mismatch.", AbsMichelson.EXEC, (typeof z, t1)))
-      | _ -> raise (Illegal_Instruction ("Lambda output should be exactly one value", AbsMichelson.EXEC))
+      | _ -> raise (Illegal_Instruction ("Lambda output should be exactly one value", AbsMichelson.show_instr AbsMichelson.EXEC))
     else raise (TypeInstrError ("Lambda input type mismatch.", AbsMichelson.EXEC, (typeof x, t0)))
   in
   match y with
@@ -693,5 +700,5 @@ and exec (x : value) (y : value) (data : contract_var) : value =
 and dip_n (instrs : AbsMichelson.instr list) (n : int) (st : value list) (data : contract_var) : value list =
   let (fst, snd) = List.split_n st n in
   match (fst, snd) with
-  | (_, []) -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.DIP_N (n, instrs)))
+  | (_, []) -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.show_instr (AbsMichelson.DIP_N (n, instrs))))
   | (fst, snd) -> fst @ (evalList instrs snd data) (* this case also matches n=0 *)

@@ -1,4 +1,5 @@
 open Base
+open Core
 open Yojson
 
 open Value
@@ -44,8 +45,7 @@ let of_yojson json contract_typ : contract_var =
       (*chain-data : ? ;*) (* map of environment contract data *)
     }
   with
-    | e -> failwith "Config: Error when parsing configuration file (json)"
-           (*raise e;*)
+    | e -> print_endline "Config: Error when parsing configuration file (json)\n"; raise e
 
 
 let parse_string str = Yojson.Basic.from_string str

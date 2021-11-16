@@ -50,14 +50,14 @@ and value =
   | IList of typ * value list
   | ISet of typ * value list
   | ITicket of value * value * value (* address * comparable value * nat *)
-  | ILambda of (typ * typ) * AbsMichelson.instr list * value list (* value list is used when evaluating the APPLY instruction *)
+  | ILambda of (typ * typ) * AbsMichelson.instr list * value list (* value list is used when evaluating a APPLY instruction *)
   | IMap of (typ * typ) * (value * value) list
   | IBig_map of (typ * typ) * (value * value) list
   | IBls_381_g1 of Bytes.t (*TODO*)
   | IBls_381_g2 of Bytes.t (*TODO*)
   | IBls_381_fr of Bytes.t (*TODO, not of bytes?*)
-  | ISapling_transaction
-  | ISapling_state
+  | ISapling_transaction (*TODO*)
+  | ISapling_state (*TODO*)
   | IChest of bytes * string (* TODO bytes * 'parameters to open it' *)
   | IChest_key of string (* TODO Key or Key_hash ? *)
   (* dual (comparable/not comparable) values *)
@@ -71,7 +71,7 @@ and value =
   | IInt of Z.t
   | INat of Z.t
   | IString of string
-  | IChain_id of string
+  | IChain_id of string (* TODO: Example values 0x7a06a770 , "NetXynUjJNZm7wi" *)
   | IBytes of Bytes.t (* FIXME: raw byte, fix byte instructions, de- and serialization? *)
   | IMutez of Mutez.t
   | IKey_hash of string (* https://tezos.stackexchange.com/questions/2311/what-are-the-differences-between-key-key-hash-address-contract-and-signature *)

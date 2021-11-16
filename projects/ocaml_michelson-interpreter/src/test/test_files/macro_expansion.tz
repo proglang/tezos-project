@@ -1,9 +1,0 @@
-# Marcoexpansion test only, broken types
-IFCMPEQ {ADD;} {ADD;};
-IFCMPNEQ {ADD;} {ADD;};
-IFCMPLE {ADD;} {ADD;};
-IFCMPLT {ADD;} {ADD;};
-IFCMPGT {ADD;} {ADD;};
-IFCMPGE {ADD;} {ADD;};
-IF_SOME {ADD;} {ADD;};
-

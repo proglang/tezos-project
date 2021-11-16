@@ -11,6 +11,7 @@
 - [ ] Tests
 - [x] Configuration Input from json
 - [ ] Interpreter output in Michelson syntax
+  - [ ] use Buffer for better performance
 - [ ] Byte handling
 - [ ] Views
 - [ ] ...

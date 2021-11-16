@@ -333,4 +333,3 @@ terminator nonempty CTypeSeq "" ;
 CTypeSeq0. CTypeSeq ::= CTyp ;
 --CTypSeq1.   CTypeSeq ::= CTyp CTyp ;
 --CTypSeq2.   CTypeSeq ::= CTyp CTypeSeq ;
-

@@ -27,4 +27,4 @@ let of_rfc3339 (t : string) : Z.t =
 let to_rfc3339 (x : Z.t) : string =
   match Ptime.of_float_s (Z.to_float x) with
   | None -> failwith "Tstamp: Conversion to RFC 3339 failed"
-  | Some y -> Ptime.to_rfc3339 y;
+  | Some y -> Ptime.to_rfc3339 ~tz_offset_s:0 y;

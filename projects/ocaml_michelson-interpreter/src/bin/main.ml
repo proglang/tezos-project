@@ -22,6 +22,7 @@ let run_file filename parameter storage conf =
   (* OPT: is the additional argument 'In_channel.input lines ~fix_win_eol:true' needed on windows? *)
   in
   let conf = Michelson.Config.parse_file conf in
+  let () = printf "Contract:\n'\n%s\n' \nParameter: '%s' \nStorage: '%s' \n\n%!" source parameter storage in
   Michelson.run source parameter storage conf
   )
 
