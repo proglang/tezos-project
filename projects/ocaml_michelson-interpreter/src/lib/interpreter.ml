@@ -114,6 +114,7 @@ let rec evalValue (t : typ) (e : AbsMichelson.data) : value =
     | (TSet ty, AbsMichelson.DBlock datas)                   -> ISet (ty, evalDataSet ty datas)
     | (TLambda (ty0, ty), AbsMichelson.DBlock datas)         -> ILambda ((ty0, ty), evalDataInstr (ty0, ty) datas, []) (* in-/output type errors are catched on evaluation *)
     | (TMap (ty0, ty), AbsMichelson.DMap mapseqs)            -> IMap ((ty0, ty), evalDataMap (ty0, ty) mapseqs)
+    | (TBig_map (ty0, ty), AbsMichelson.DMap mapseqs)        -> IBig_map ((ty0, ty), evalDataMap (ty0, ty) mapseqs)
     | (TBls_381_g1, AbsMichelson.DBytes b)                   -> IBls_381_g1 (evalBytes b) (*TODO big/little endian encoding vs. bytes format? *)
     | (TBls_381_g2, AbsMichelson.DBytes b)                   -> IBls_381_g2 (evalBytes b) (*TODO*)
     | (TBls_381_fr, AbsMichelson.DBytes b)                   -> IBls_381_fr (evalBytes b) (*TODO*)
@@ -153,17 +154,17 @@ and evalDataList (ty : typ) (lst : AbsMichelson.data list) : value list =
   in
   List.map lst ~f:(f ty)
 and evalDataSet (ty : typ) (lst : AbsMichelson.data list) : value list =
-  let f (ty : typ) = (fun x ->
-    evalValue ty x
-    )
-  in
-  List.map lst ~f:(f ty)
-and evalDataMap (t : typ * typ) (lst : AbsMichelson.mapSeq list) : (value * value) list (*IMap*) =
+  let l = List.map lst ~f:(fun x -> evalValue ty x) in
+  if (List.is_sorted_strictly l ~compare:Value.compare) then l
+  else raise (TypeDataError ("Expected sorted set with unique elements", Print.ty_to_str ty (*TODO show*), String.concat ~sep:";" (List.map lst ~f:(AbsMichelson.show_data))))
+and evalDataMap (ty0, ty as t : typ * typ) (lst : AbsMichelson.mapSeq list) : (value * value) list (*IMap*) =
   let f (ty0, ty : typ * typ) = (fun (AbsMichelson.DMapSeq (data0, data)) ->
     (evalValue ty0 data0, evalValue ty data)
     )
   in
-  List.map lst ~f:(f t)
+  let l = List.map lst ~f:(f t) in
+  if (List.is_sorted_strictly l ~compare:(fun (x,y) (z,v) -> Value.compare x z)) then l
+  else raise (TypeDataError ("Expected sorted map/big_map with unique keys", ("(" ^ Print.ty_to_str ty0 ^ ", " ^ Print.ty_to_str ty ^ ")") (*TODO show*), String.concat ~sep:";" (List.map lst ~f:(AbsMichelson.show_mapSeq))))
 and evalDataInstr (ty0, ty : typ * typ) (lst : AbsMichelson.data list) : AbsMichelson.instr list =
   let rec f = (fun x ->
     (* The instruction list of an AbsMichelson.DBlock can contain AbsMichelson.instr values and other AbsMichelson.DBlock values
