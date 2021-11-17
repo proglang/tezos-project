@@ -64,6 +64,7 @@ and evalCTyp (ty : AbsMichelson.cTyp) : typ = match ty with
   | AbsMichelson.COption ctyp            -> TOption (evalCTyp ctyp)
   | AbsMichelson.COr (ctyp0, ctyp)       -> TOr (evalCTyp ctyp0, evalCTyp ctyp)
   | AbsMichelson.CPair (ctyp, ctypeseqs) -> TPair (evalCTyp ctyp, evalCTypePair evalCTypSeq ctypeseqs)
+
 (*and evalTypePair (evalFun : ('a -> typ)) (lst : 'a list) : typ = (* evaluates sequences of AbsMichelson.typeSeq and AbsMichelson.cTypeSeq TODO: (This polymorphism does not work)   *)
   let rec f ys =
     match ys with
@@ -72,6 +73,7 @@ and evalCTyp (ty : AbsMichelson.cTyp) : typ = match ty with
     | [] -> failwith "Interpreter.evalTypeSeq: Impossible match" (* never happens as there is no recursive call that invokes this case and 'a:typSeq/cTypeSeq is nonempty *)
   in
   f lst;*)
+
 and evalTypePair (evalFun : (AbsMichelson.typeSeq -> typ)) (lst : AbsMichelson.typeSeq list) : typ = (* evaluates sequences of AbsMichelson.typ and AbsMichelson.cTyp *)
   let rec f ys =
     match ys with
@@ -80,6 +82,7 @@ and evalTypePair (evalFun : (AbsMichelson.typeSeq -> typ)) (lst : AbsMichelson.t
     | [] -> failwith "Interpreter.evalTypeSeq: Impossible match" (* never happens as there is no recursive call that invokes this case and 'a:typSeq/cTypeSeq is nonempty *)
   in
   f lst;
+
 and evalCTypePair (evalFun : (AbsMichelson.cTypeSeq -> typ)) (lst : AbsMichelson.cTypeSeq list) : typ = (* evaluates sequences of AbsMichelson.typ and AbsMichelson.cTyp *)
   let rec f ys =
     match ys with
@@ -88,6 +91,7 @@ and evalCTypePair (evalFun : (AbsMichelson.cTypeSeq -> typ)) (lst : AbsMichelson
     | [] -> failwith "Interpreter.evalCTypeSeq: Impossible match" (* never happens as there is no recursive call that invokes this case and 'a:typSeq/cTypeSeq is nonempty *)
   in
   f lst;
+
 and evalTypSeq (AbsMichelson.TypeSeq0 ty) = evalTyp ty
 and evalCTypSeq (AbsMichelson.CTypeSeq0 ty) = evalCTyp ty
 
@@ -125,6 +129,7 @@ let rec evalValue (t : typ) (e : AbsMichelson.data) : value =
     | (TOption ty, AbsMichelson.DSome data)                  -> IOption(ty, Some (evalValue ty data))
     | (TOption ty, AbsMichelson.DNone)                       -> IOption(ty, None)
     | (TPair (ty0, ty), AbsMichelson.DPair (data, pairseqs)) -> IPair(evalValue ty0 data, evalDataPair ty pairseqs)
+    | (TPair (ty0, ty), AbsMichelson.DBlock datas)           -> evalDataPairList (ty0, ty) datas
     | (TOr (ty0, ty), AbsMichelson.DLeft data)               -> IOr(ty0, ty, L, evalValue ty0 data)
     | (TOr (ty0, ty), AbsMichelson.DRight data)              -> IOr(ty0, ty, R, evalValue ty data)
     (* comparable types *)
@@ -136,7 +141,8 @@ let rec evalValue (t : typ) (e : AbsMichelson.data) : value =
     | (TInt, AbsMichelson.DNeg neg)                          -> IInt (evalNeg neg)
     | (TNat, AbsMichelson.DNat nat)                          -> INat (evalNat nat)
     | (TString, AbsMichelson.DStr str)                       -> IString ((evalStr str))
-    | (TChain_id, AbsMichelson.DStr str)                     -> IChain_id (evalStrLength (evalStr str) 0) (* TODO: fix length instead of '0' *)
+    | (TChain_id, AbsMichelson.DStr str)                     -> IChain_id (Bytes.of_string (evalStrLength (evalStr str) 0)) (* TODO: fix length instead of '0'. Byteconversion? *)
+    | (TChain_id, AbsMichelson.DBytes b)                     -> IChain_id (evalBytes( b)) (* TODO: invariants? *)
     | (TBytes, AbsMichelson.DBytes b)                        -> IBytes (evalBytes b)
     | (TMutez, AbsMichelson.DNat nat)                        -> IMutez (Mutez.of_Zt (evalNat nat))
     | (TMutez, AbsMichelson.DNeg neg)                        -> IMutez (Mutez.of_Zt (evalNeg neg))
@@ -146,17 +152,20 @@ let rec evalValue (t : typ) (e : AbsMichelson.data) : value =
     | (TTimestamp, AbsMichelson.DNat nat)                    -> ITimestamp (evalNat nat)
     | (TTimestamp, AbsMichelson.DStr str)                    -> ITimestamp (Tstamp.of_rfc3339 (evalStr str))
     | (TAddress, AbsMichelson.DStr str)                      -> IAddress (evalAddress (evalStr str))
-    | _ -> raise (TypeDataError ("Expected type does not match given data", Print.ty_to_str t (*TODO show*), AbsMichelson.show_data e))
+    | _ -> raise (TypeDataError ("Interpreter.evalValue: Expected type does not match given data", Print.ty_to_str t (*TODO show*), AbsMichelson.show_data e))
+
 and evalDataList (ty : typ) (lst : AbsMichelson.data list) : value list =
   let f (ty : typ) = (fun x ->
     evalValue ty x
     )
   in
   List.map lst ~f:(f ty)
+
 and evalDataSet (ty : typ) (lst : AbsMichelson.data list) : value list =
   let l = List.map lst ~f:(fun x -> evalValue ty x) in
   if (List.is_sorted_strictly l ~compare:Value.compare) then l
   else raise (TypeDataError ("Expected sorted set with unique elements", Print.ty_to_str ty (*TODO show*), String.concat ~sep:";" (List.map lst ~f:(AbsMichelson.show_data))))
+
 and evalDataMap (ty0, ty as t : typ * typ) (lst : AbsMichelson.mapSeq list) : (value * value) list (*IMap*) =
   let f (ty0, ty : typ * typ) = (fun (AbsMichelson.DMapSeq (data0, data)) ->
     (evalValue ty0 data0, evalValue ty data)
@@ -165,6 +174,7 @@ and evalDataMap (ty0, ty as t : typ * typ) (lst : AbsMichelson.mapSeq list) : (v
   let l = List.map lst ~f:(f t) in
   if (List.is_sorted_strictly l ~compare:(fun (x,y) (z,v) -> Value.compare x z)) then l
   else raise (TypeDataError ("Expected sorted map/big_map with unique keys", ("(" ^ Print.ty_to_str ty0 ^ ", " ^ Print.ty_to_str ty ^ ")") (*TODO show*), String.concat ~sep:";" (List.map lst ~f:(AbsMichelson.show_mapSeq))))
+
 and evalDataInstr (ty0, ty : typ * typ) (lst : AbsMichelson.data list) : AbsMichelson.instr list =
   let rec f = (fun x ->
     (* The instruction list of an AbsMichelson.DBlock can contain AbsMichelson.instr values and other AbsMichelson.DBlock values
@@ -176,11 +186,27 @@ and evalDataInstr (ty0, ty : typ * typ) (lst : AbsMichelson.data list) : AbsMich
     )
   in
   List.map lst ~f:(f)
+
 and evalDataPair (t : typ) (lst : AbsMichelson.pairSeq list) : value (*IPair*) =
   match (t, lst) with
+(*  | (TPair (ty0, ty), [AbsMichelson.DPairSeq (AbsMichelson.DPair (data, pairseqs))]) -> IPair(evalValue ty0 data, evalDataPair ty pairseqs)*)
+  | (ty, [AbsMichelson.DPairSeq data]) -> evalValue ty data (* catches last element of right comb and also right combs in form Pair(x, Pair(y, ...), when ty=TPair, data=IPair *)
   | (TPair (ty0, ty), ((AbsMichelson.DPairSeq data) :: tl)) -> IPair(evalValue ty0 data, evalDataPair ty tl)
-  | (ty, [AbsMichelson.DPairSeq data]) -> evalValue ty data
-  | _ -> failwith "The lengths of the given pair types & pair values are not equal"
+  | _ -> raise (TypeDataError ("Interpreter.evalDataPair: Expected type does not match given data", Print.ty_to_str t, String.concat ~sep:";" (List.map lst ~f:(AbsMichelson.show_pairSeq))))
+
+and evalDataPairList (t0, t1 : typ * typ) (lst : AbsMichelson.data list) : value (*IPair*) =
+  match ((t0, t1), lst) with
+  | ((t0, TPair (t1, t2)), (d :: tl)) -> IPair (evalValue t0 d, evalDataPairList (t1, t2) tl)
+  | ((t0, t1), [d0; d1]) -> IPair (evalValue t0 d0, evalValue t1 d1)
+  | _ -> raise (TypeDataError ("Interpreter.evalDataPairList: Expected type does not match given data", ("(" ^ Print.ty_to_str t0 ^ ", " ^ Print.ty_to_str t1 ^ ")"), String.concat ~sep:";" (List.map lst ~f:(AbsMichelson.show_data))))
+
+
+  (*
+  match ((t0, t1), lst) with
+  | ((_, TPair (t1, t2)), (d :: tl)) -> IPair (evalValue t0 d, evalDataPairList (t1, t2) tl)
+  | ((_, _), [d0; d1]) -> IPair (evalValue t0 d0, evalValue t1 d1)
+  | _ -> failwith "2The lengths of the given pair types & pair values are not equal"*)
+
 
 
 

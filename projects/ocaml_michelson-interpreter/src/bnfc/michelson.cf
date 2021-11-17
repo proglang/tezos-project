@@ -36,10 +36,11 @@ DBytes.          Data         ::= Bt ;
 DUnit.           Data         ::= "Unit" ;
 DTrue.           Data         ::= "True" ;
 DFalse.          Data         ::= "False" ;
-DPair.           Data         ::= "Pair" Data [PairSeq] ;
-DLeft.           Data         ::= "Left" Data ;
-DRight.          Data         ::= "Right" Data ;
-DSome.           Data         ::= "Some" Data ;
+DPair.           Data         ::= "Pair" Data [PairSeq] ; -- should acctually have ( ) brackets arround. In practice these are not always there
+-- TODO: causes problems with PrintMichelson/TestMichelson: brackets are missing in output. Maybe that can be solved with define ...?
+DLeft.           Data         ::= "Left" Data ; -- should acctually have ( ) brackets arround. In practice these are not always there
+DRight.          Data         ::= "Right" Data ; -- should acctually have ( ) brackets arround. In practice these are not always there
+DSome.           Data         ::= "Some" Data ; -- should acctually have ( ) brackets arround. In practice these are not always there
 DNone.           Data         ::= "None" ;
 DBlock.          Data         ::= "{" [Data] "}" ;  -- list or set or block of instructions (lambda typ), but also Pairs
 DMap.            Data         ::= "{" [MapSeq] "}" ;

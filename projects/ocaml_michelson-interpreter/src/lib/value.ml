@@ -71,7 +71,7 @@ and value =
   | IInt of Z.t
   | INat of Z.t
   | IString of string
-  | IChain_id of string (* TODO: Example values 0x7a06a770 , "NetXynUjJNZm7wi" *)
+  | IChain_id of Bytes.t (* TODO: Example values 0x7a06a770 , "NetXynUjJNZm7wi" *)
   | IBytes of Bytes.t (* FIXME: raw byte, fix byte instructions, de- and serialization? *)
   | IMutez of Mutez.t
   | IKey_hash of string (* https://tezos.stackexchange.com/questions/2311/what-are-the-differences-between-key-key-hash-address-contract-and-signature *)
@@ -371,8 +371,9 @@ let rec compare (v0 : value) (v1 : value) : int =
   | (INat z0, INat z1)
   | (ITimestamp z0, ITimestamp z1)                -> Z.compare z0 z1
   | (IMutez m0, IMutez m1)                        -> Mutez.compare m0 m1
+  | (IChain_id b0, IChain_id b1)
+  | (IBytes b0, IBytes b1)                        -> Bytes.compare b0 b1
   | (IString s0, IString s1)
-  | (IChain_id s0, IChain_id s1)
   | (IKey_hash s0, IKey_hash s1)
   | (IKey s0, IKey s1)
   | (ISignature s0, ISignature s1)                -> String.compare s0 s1

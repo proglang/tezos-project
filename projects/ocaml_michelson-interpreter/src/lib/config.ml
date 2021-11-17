@@ -12,7 +12,7 @@ type contract_var = { (* transaction parameters *)
   balance : value ; (* IMutez  *)
   amount : value ; (* IMutez *)
   timestamp : value ; (* ITimestamp, (minimal injection time for the current block +60s, used in the NOW instruction) *)
-  chain_id : value ; (* bytes? *)
+  chain_id : value ; (* IChain_id *)
   level : value ; (* INat *)
   tot_voting_power : value ; (* nat? *)
   (*chain-data : ? ;*) (* map of environment contract data *)
@@ -39,7 +39,7 @@ let of_yojson json contract_typ : contract_var =
       balance = IMutez (Mutez.of_string balance);
       amount = IMutez (Mutez.of_string amount);
       timestamp = ITimestamp (Tstamp.of_rfc3339 timestamp);
-      chain_id = IBytes (Bytes.of_string chain_id)  ;
+      chain_id = IChain_id (Bytes.of_string chain_id)  ;
       level = INat (Z.of_string level) ;
       tot_voting_power = INat (Z.of_string tot_voting_power) ;
       (*chain-data : ? ;*) (* map of environment contract data *)

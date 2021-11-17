@@ -3,13 +3,17 @@
 ;(copy_files# ../lib/value.ml)
 
 ;(rule
-;(deps (glob_files_rec /lib/))
-;(action (run %{deps}))
-;)
+;  (target test.exe)
+;  (deps (glob_files /test-files/contracts_alpha/opcodes/))
+;  (action (run %{deps}))
+;  )
+
+
 
 (library
  (name test)
  (libraries michelson core) ; alcotest
- (inline_tests (deps (glob_files ./test-files/contracts_alpha/opcodes/*.tz))) ; (deps glob_files_rec ./test-files/*.tz)
+ (inline_tests (deps (universe))) ; (deps glob_files_rec ./test-files/*.tz) (glob_files test-files/contracts_alpha/opcodes/)
  (preprocess
-  (pps ppx_jane))) ; ppx_inline_test
+  (pps ppx_jane)) ; ppx_inline_test
+) 

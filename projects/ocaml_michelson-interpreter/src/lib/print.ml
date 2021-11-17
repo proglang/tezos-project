@@ -51,14 +51,14 @@ and val_to_str v =
   match v with
   | IOperation op -> (op_to_str op)
   | IContract (t, s) -> "\"" ^ s ^ "\""
-  | IList (t, vs) -> "{" ^ (ls_to_str vs) ^ "}"
+  | IList (t, vs)
   | ISet (t, vs) -> "{" ^ (ls_to_str vs) ^ "}"
   | ITicket (v0, v1, v2) -> "(Pair " ^ (val_to_str v0)  ^ " " ^ (val_to_str v1) ^ " " ^ (val_to_str v2) ^ ")"
   | ILambda ((t0, t1), instrs (*TODO: AbsMichelson.instr list*), vs) -> "{" ^ "INSTRCUTIONS (Lambda" ^ "}"
-  | IMap ((t0, t1), vs) -> "{" ^ (map_to_str vs) ^ "}"
-  | IBig_map ((t0, t1), vs) -> "{" ^ (map_to_str vs) ^ "}"
-  | IBls_381_g1 b -> Bytes.to_string b
-  | IBls_381_g2 b -> Bytes.to_string b
+  | IMap ((t0, t1), vs)
+  | IBig_map ((t0, t1), vs) -> "{ " ^ (map_to_str vs) ^ " }"
+  | IBls_381_g1 b
+  | IBls_381_g2 b
   | IBls_381_fr b -> Bytes.to_string b
   | ISapling_transaction -> "Sapling_transaction"
   | ISapling_state -> "Sapling_state"
@@ -72,16 +72,16 @@ and val_to_str v =
   | IUnit -> "Unit"
   | INever -> "Never"
   | IBool b -> (match b with | true -> "True" | false -> "False")
-  | IInt z -> (Z.to_string z)
+  | IInt z
   | INat z -> (Z.to_string z)
-  | IString s -> "\"" ^ s ^ "\""
-  | IChain_id s -> "\"" ^ s ^ "\"" (* TODO: this can also be in bytes? *)
+  | IChain_id b
   | IBytes b -> Bytes.to_string b
   | IMutez m -> Mutez.to_string m
-  | IKey_hash s -> "\"" ^ s ^ "\""
-  | IKey s -> "\"" ^ s ^ "\""
-  | ISignature s -> "\"" ^ s ^ "\""
   | ITimestamp z -> "\"" ^ Tstamp.to_rfc3339 z ^ "\""
+  | IString s
+  | IKey_hash s
+  | IKey s
+  | ISignature s
   | IAddress s -> "\"" ^ s ^ "\""
 and ls_to_str vs =
   match vs with
@@ -91,5 +91,5 @@ and ls_to_str vs =
 and map_to_str vs =
   match vs with
   | [] -> ""
-  | [(v0, v1)] -> "Elt" ^ val_to_str v0 ^ " " ^ val_to_str v1
-  | (v0, v1) :: vs -> "Elt" ^ val_to_str v0 ^ " " ^ val_to_str v1 ^ " ; " ^ (map_to_str vs)
+  | [(v0, v1)] -> "Elt " ^ val_to_str v0 ^ " " ^ val_to_str v1
+  | (v0, v1) :: vs -> "Elt " ^ val_to_str v0 ^ " " ^ val_to_str v1 ^ " ; " ^ (map_to_str vs)

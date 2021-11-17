@@ -3,7 +3,17 @@ parameter unit;
 storage unit;
 code {
        PUSH
-         (list (pair nat nat nat nat))
-         {Pair 0 3 6 9; Pair 1 (Pair 4 (Pair 7 10)); {2; 5; 8; 11}};
+         # Basic
+         #(list (pair nat nat nat nat))
+         #{Pair 0 3 6 9; Pair 1 (Pair 4 (Pair 7 10)); {2; 5; 8; 11}}; 
+         
+         # Nested
+         (list (pair (pair nat nat) (pair nat nat) nat nat))
+         {            
+           Pair {1; 21} (Pair 2 22) 6 9; 
+           Pair {4; 24} (Pair (Pair 7 11) (Pair 4 12));
+           (Pair (Pair 3 23) (Pair {7; 10} 4 12)); 
+           {(Pair 5 25); {6; 26}; 8; 11};
+         };    
        DROP 2; UNIT; NIL operation; PAIR
      }
