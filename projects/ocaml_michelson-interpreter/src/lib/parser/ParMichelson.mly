@@ -57,9 +57,9 @@ data : SYMB4 data SYMB5 {  $2 }
   | KW_Unit { DUnit  }
   | KW_True { DTrue  }
   | KW_False { DFalse  }
-  | SYMB4 KW_Pair data pairSeq_list SYMB5 { DPair ($3, $4) }
-  | SYMB4 KW_Left data SYMB5 { DLeft $3 }
-  | SYMB4 KW_Right data SYMB5 { DRight $3 }
+  | KW_Pair data pairSeq_list { DPair ($2, $3) }
+  | KW_Left data { DLeft $2 }
+  | KW_Right data { DRight $2 }
   | KW_Some data { DSome $2 }
   | KW_None { DNone  }
   | SYMB2 data_list SYMB3 { DBlock $2 }

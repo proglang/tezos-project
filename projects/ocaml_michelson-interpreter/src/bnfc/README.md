@@ -42,7 +42,7 @@ The make command could be discarded when using dune and creating the required du
 The parser is build into the folder `../lib/parser`.
 
 ### Manual Modifications done to the parser:
-Add `[@@deriving eq]` to type `instr` in `parser/AbsMichelson.ml`
+Add `[@@deriving eq, show]` to all variants in `parser/AbsMichelson.ml`
 
 ### Minimal tests
 The functionality of the parser can be (visually) tested with three prepared shell scripts:

@@ -36,12 +36,12 @@ DBytes.          Data         ::= Bt ;
 DUnit.           Data         ::= "Unit" ;
 DTrue.           Data         ::= "True" ;
 DFalse.          Data         ::= "False" ;
-DPair.           Data         ::= "(" "Pair" Data [PairSeq] ")" ;
-DLeft.           Data         ::= "(" "Left" Data ")" ;
-DRight.          Data         ::= "(" "Right" Data ")" ;
+DPair.           Data         ::= "Pair" Data [PairSeq] ;
+DLeft.           Data         ::= "Left" Data ;
+DRight.          Data         ::= "Right" Data ;
 DSome.           Data         ::= "Some" Data ;
 DNone.           Data         ::= "None" ;
-DBlock.          Data         ::= "{" [Data] "}" ;  -- list or set or block of instructions (lambda typ)
+DBlock.          Data         ::= "{" [Data] "}" ;  -- list or set or block of instructions (lambda typ), but also Pairs
 DMap.            Data         ::= "{" [MapSeq] "}" ;
 DInstruction.    Data         ::= Instr ;  -- used in DBlock's [Data] for lambda typ
 
