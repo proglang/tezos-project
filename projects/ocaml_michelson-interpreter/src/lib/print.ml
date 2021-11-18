@@ -6,8 +6,8 @@ let rec ty_to_str ty =
   match ty with
   | TContract t         -> "contract (" ^ (ty_to_str t) ^ ")"
   | TOperation          -> "operation"
-  | TList t             -> "list " ^ (ty_to_str t)
-  | TSet t              -> "set " ^ (ty_to_str t)
+  | TList t             -> "(list " ^ (ty_to_str t) ^ ")"
+  | TSet t              -> "(set " ^ (ty_to_str t) ^ ")"
   | TTicket t           -> "ticket (" ^ (ty_to_str t) ^ ")"
   | TLambda (t0, t1)    -> "lambda (" ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1) ^ ")"
   | TMap (t0, t1)       -> "map (" ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1) ^ ")"
@@ -52,7 +52,12 @@ and val_to_str v =
   | IOperation op -> (op_to_str op)
   | IContract (t, s) -> "\"" ^ s ^ "\""
   | IList (t, vs)
-  | ISet (t, vs) -> "{" ^ (ls_to_str vs) ^ "}"
+  | ISet (t, vs) ->
+    let body = ls_to_str vs in
+    (match body with
+     | "" -> "{}"
+     | _ -> "{ " ^ body ^ " }"
+     )
   | ITicket (v0, v1, v2) -> "(Pair " ^ (val_to_str v0)  ^ " " ^ (val_to_str v1) ^ " " ^ (val_to_str v2) ^ ")"
   | ILambda ((t0, t1), instrs (*TODO: AbsMichelson.instr list*), vs) -> "{" ^ "INSTRCUTIONS (Lambda" ^ "}"
   | IMap ((t0, t1), vs)

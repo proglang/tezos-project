@@ -5,13 +5,13 @@ module Value = Value
 
 let eval_argument (ty : Value.typ) (arg : AbsMichelson.prog) : Value.value =
   match arg with
-  | AbsMichelson.Contract _ -> failwith "Interpreter.eval_argument: Given argument (parameter or storage) invalid"
+  | AbsMichelson.Contract _ -> failwith "Michelson.eval_argument: Given argument (parameter or storage) invalid"
 (*  | AbsMichelson.Code x -> *)
   | AbsMichelson.Argument x ->
     try
     	Interpreter.evalValue ty x
     with
-    	| Interpreter.TypeDataError (s,t,d) as e -> printf "Interpreter.eval_argument: Given Argument is of wrong type:\n"; raise e
+    	| Interpreter.TypeDataError (s,t,d) as e -> printf "Michelson.eval_argument: Given Argument is of wrong type:\n"; raise e
 
 exception InterpreterError of string * string * string
 

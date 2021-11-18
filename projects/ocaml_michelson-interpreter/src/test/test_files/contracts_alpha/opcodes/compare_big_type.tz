@@ -11,7 +11,7 @@ code { DROP; PUSH nat 0 ;
        DUP ; PAIR ;
        DUP ; PAIR ;
        DUP ; PAIR ;
-       DUP ; DUP ; COMPARE ; DROP ;
+       DUP ; DUP ; DUP ; COMPARE ; ASSERT_EQ; DROP ;
        DUP ; DUP ; COMPARE ; DROP ;
        DUP ; DUP ; COMPARE ; DROP ;
        DUP ; DUP ; COMPARE ; DROP ;

@@ -56,7 +56,7 @@ let rsyms = ";" | "{" | "}" | "(" | ")"
 
 (* user-defined token types *)
 let str = '"' ([^ '"' '\\']| '\\' ('"' | '\\' | 'b' | 'n' | 'r' | 't')) * '"'
-let bt = "0x" ('A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | _digit)+
+let bt = "0x" ('A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | _digit)*
 let neg = '-' _digit +
 let typeAnnotation = ':' (('_' | (_digit | _letter)) ('%' | '.' | '@' | '_' | (_digit | _letter)) *)?
 let variableAnnotation = '@' ('%' | "%%" | ('_' | (_digit | _letter)) ('%' | '.' | '@' | '_' | (_digit | _letter)) *)?
