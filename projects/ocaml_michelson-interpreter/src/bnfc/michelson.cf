@@ -19,7 +19,7 @@ Argument. Prog ::= Data ; -- for input / storage arguments
 
 -- User-Defined regex-based token types
 position token Str '"' ( (char - ["\"\\"]) | ('\\' ["\"\\rntb"]) )* '"' ; -- should be equivalent to (\" | \r | \n | \t | \b | \\ | [^"\])*
-position token Bt {"0x"} ( digit | ["abcdefABCDEF"] )+ ;
+position token Bt {"0x"} ( digit | ["abcdefABCDEF"] )* ;
 position token Neg '-' (digit+) ;  -- negative natural numbers. Neg is handled as string in the parser, unlike Integer!
 --position token Integer digit+ ; -- TODO: currently interger does not contain position information
 position token TypeAnnotation ':' (('_' | letter | digit) (["_.%@"] | letter | digit)* )? ; -- letter also accepts other chars then a-zA-Z, which it actually should not
@@ -44,8 +44,7 @@ DSome.           Data         ::= "Some" Data ; -- should acctually have ( ) bra
 DNone.           Data         ::= "None" ;
 DBlock.          Data         ::= "{" [Data] "}" ;  -- list or set or block of instructions (lambda typ), but also Pairs
 DMap.            Data         ::= "{" [MapSeq] "}" ;
-DInstruction.    Data         ::= Instr ;  -- used in DBlock's [Data] for lambda typ
-
+DInstruction.    Data         ::= Instr ;  -- used in DBlock's [Data] for lambda typ TODO: instead use { [Instr] } ?
 terminator nonempty PairSeq "" ;
 DPairSeq. PairSeq ::= Data ;
 separator MapSeq ";" ;
@@ -57,8 +56,9 @@ separator Instr ";" ; -- empty instruction sequence allowed! Last 'Instr' does d
 --TA.                    Instr ::= Instr TypeAnnotation ;
 --VA.                    Instr ::= Instr VariableAnnotation ;
 ANNOT.                 Instr ::= Instr Annotation ; -- trailing annotations
-_.                     Instr ::= "{" Instr ";" "}" ; -- ';' is needed so that code like {{{{};};};}; will not be parsed as nested BLOCKs
-BLOCK.                 Instr ::= "{" [Instr] "}" ;
+_.                     Instr ::= "{" Instr "}" ;
+_.                     Instr ::= "{" Instr ";" "}" ; -- the defined separator does not seem to work here, therefore ";" is needed as another case
+internal BLOCK.        Instr ::= "{" [Instr] "}" ;
 DROP.                  Instr ::= "DROP" ;
 DROP_N.                Instr ::= "DROP" Integer ;
 DUP.                   Instr ::= "DUP" ;
@@ -202,7 +202,7 @@ define d_IFLT bt bf     = BLOCK[LT, (IF bt bf)] ;
 define d_IFGT bt bf     = BLOCK[GT, (IF bt bf)] ;
 define d_IFLE bt bf     = BLOCK[LE, (IF bt bf)] ;
 define d_IFGE bt bf     = BLOCK[GE, (IF bt bf)] ;
-define d_IFCMPEQ  bt bf = BLOCK[d_CMPEQ, (IF bt bf)] ;
+define d_IFCMPEQ bt bf  = BLOCK[d_CMPEQ, (IF bt bf)] ;
 define d_IFCMPNEQ bt bf = BLOCK[d_CMPNEQ, (IF bt bf)] ;
 define d_IFCMPLT bt bf  = BLOCK[d_CMPLT, (IF bt bf)] ;
 define d_IFCMPGT bt bf  = BLOCK[d_CMPGT, (IF bt bf)] ;

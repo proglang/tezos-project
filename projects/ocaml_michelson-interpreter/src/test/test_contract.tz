@@ -1,6 +1,7 @@
 parameter nat;
 storage int;
 code {
+  IFCMPEQ { CAR ; } { DROP }
   CAR;
   PUSH int -5;
   ADD;

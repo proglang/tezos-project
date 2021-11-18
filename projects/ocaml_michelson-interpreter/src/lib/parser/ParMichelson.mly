@@ -88,8 +88,8 @@ instr_list : /* empty */ { []  }
 ;
 
 instr : instr annotation { ANNOT ($1, $2) }
+  | SYMB2 instr SYMB3 {  $2 }
   | SYMB2 instr SYMB1 SYMB3 {  $2 }
-  | SYMB2 instr_list SYMB3 { BLOCK $2 }
   | KW_DROP { DROP  }
   | KW_DROP int { DROP_N $2 }
   | KW_DUP { DUP  }
