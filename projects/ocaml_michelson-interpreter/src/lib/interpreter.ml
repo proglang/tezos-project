@@ -14,7 +14,7 @@ exception StackTypeError of string * string * string list (* string * AbsMichels
 exception TypeInstrError of string * string * (string * string) (* string * AbsMichelson.instr * (typ * typ) *)
 exception TypeError of string * typ (*FIXME: deriving hier hinzufügen? *)
 exception TypeDataError of string * string * string (* string * typ * AbsMichelson.data *)
-exception Failwith of string * value
+exception Failwith of string * string (* string * value *)
 
 
 
@@ -164,7 +164,7 @@ and evalDataList (ty : typ) (lst : AbsMichelson.data list) : value list =
 and evalDataSet (ty : typ) (lst : AbsMichelson.data list) : value list =
   let l = List.map lst ~f:(fun x -> evalValue ty x) in
   if (List.is_sorted_strictly l ~compare:Value.compare) then l
-  else raise (TypeDataError ("Expected sorted set with unique elements", Print.ty_to_str ty (*TODO show*), String.concat ~sep:";" (List.map lst ~f:(AbsMichelson.show_data))))
+  else raise (TypeDataError ("Expected sorted set with unique elements", Print.ty_to_str ty (*TODO show*), String.concat ~sep:" : " (List.map lst ~f:(AbsMichelson.show_data))))
 
 and evalDataMap (ty0, ty as t : typ * typ) (lst : AbsMichelson.mapSeq list) : (value * value) list (*IMap*) =
   let f (ty0, ty : typ * typ) = (fun (AbsMichelson.DMapSeq (data0, data)) ->
@@ -173,7 +173,7 @@ and evalDataMap (ty0, ty as t : typ * typ) (lst : AbsMichelson.mapSeq list) : (v
   in
   let l = List.map lst ~f:(f t) in
   if (List.is_sorted_strictly l ~compare:(fun (x,y) (z,v) -> Value.compare x z)) then l
-  else raise (TypeDataError ("Expected sorted map/big_map with unique keys", ("(" ^ Print.ty_to_str ty0 ^ ", " ^ Print.ty_to_str ty ^ ")") (*TODO show*), String.concat ~sep:";" (List.map lst ~f:(AbsMichelson.show_mapSeq))))
+  else raise (TypeDataError ("Expected sorted map/big_map with unique keys", ("(" ^ Print.ty_to_str ty0 ^ ", " ^ Print.ty_to_str ty ^ ")") (*TODO show*), String.concat ~sep:" : " (List.map lst ~f:(AbsMichelson.show_mapSeq))))
 
 and evalDataInstr (ty0, ty : typ * typ) (lst : AbsMichelson.data list) : AbsMichelson.instr list =
   let rec f = (fun x ->
@@ -192,13 +192,13 @@ and evalDataPair (t : typ) (lst : AbsMichelson.pairSeq list) : value (*IPair*) =
 (*  | (TPair (ty0, ty), [AbsMichelson.DPairSeq (AbsMichelson.DPair (data, pairseqs))]) -> IPair(evalValue ty0 data, evalDataPair ty pairseqs)*)
   | (ty, [AbsMichelson.DPairSeq data]) -> evalValue ty data (* catches last element of right comb and also right combs in form Pair(x, Pair(y, ...), when ty=TPair, data=IPair *)
   | (TPair (ty0, ty), ((AbsMichelson.DPairSeq data) :: tl)) -> IPair(evalValue ty0 data, evalDataPair ty tl)
-  | _ -> raise (TypeDataError ("Interpreter.evalDataPair: Expected type does not match given data", Print.ty_to_str t, String.concat ~sep:";" (List.map lst ~f:(AbsMichelson.show_pairSeq))))
+  | _ -> raise (TypeDataError ("Interpreter.evalDataPair: Expected type does not match given data", Print.ty_to_str t, String.concat ~sep:" : " (List.map lst ~f:(AbsMichelson.show_pairSeq))))
 
 and evalDataPairList (t0, t1 : typ * typ) (lst : AbsMichelson.data list) : value (*IPair*) =
   match ((t0, t1), lst) with
   | ((t0, TPair (t1, t2)), (d :: tl)) -> IPair (evalValue t0 d, evalDataPairList (t1, t2) tl)
   | ((t0, t1), [d0; d1]) -> IPair (evalValue t0 d0, evalValue t1 d1)
-  | _ -> raise (TypeDataError ("Interpreter.evalDataPairList: Expected type does not match given data", ("(" ^ Print.ty_to_str t0 ^ ", " ^ Print.ty_to_str t1 ^ ")"), String.concat ~sep:";" (List.map lst ~f:(AbsMichelson.show_data))))
+  | _ -> raise (TypeDataError ("Interpreter.evalDataPairList: Expected type does not match given data", ("(" ^ Print.ty_to_str t0 ^ ", " ^ Print.ty_to_str t1 ^ ")"), String.concat ~sep:" : " (List.map lst ~f:(AbsMichelson.show_data))))
 
 
 
@@ -226,37 +226,37 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
   | (AbsMichelson.PUSH (typ, data), _) ->
     let t = evalTyp typ in
     if (pushable t) then ((evalValue t data) :: stack)
-    else raise (Illegal_Instruction ("This type is not pushable.", AbsMichelson.show_instr instr))
+    else raise (Illegal_Instruction ("This type is not pushable.", AbsMichelson.show_instr instr, Print.ty_to_str t))
   | (AbsMichelson.SOME, (x :: st)) ->  IOption ((typeof x), Some x) :: st
   | (AbsMichelson.NONE typ, st) ->  IOption(evalTyp typ, None) :: st
   | (AbsMichelson.UNIT, _) -> IUnit :: stack
   | (AbsMichelson.NEVER, _) -> INever :: stack
   | (AbsMichelson.IF_NONE (instrs0, instrs), ((IOption (_, x)) :: st)) ->
     (match x with
-    | Some y -> evalList instrs0 (y :: st) data
-    | None   -> evalList instrs st data
+    | None   -> evalList instrs0 st data
+    | Some y -> evalList instrs (y :: st) data
     )
   | (AbsMichelson.PAIR, (x :: y :: st)) -> IPair (x, y) :: st
   | (AbsMichelson.PAIR_N integer, _) -> pair_n integer stack
   | (AbsMichelson.CAR, (x :: st)) ->
     (match x with
     | IPair (y, z) -> y :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.CDR, (x :: st)) ->
     (match x with
     | IPair (y, z) -> z :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.UNPAIR, (x :: st)) ->
     (match x with
     | IPair (y, z) -> y :: z :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.UNPAIR_N integer, (x :: st)) ->
      (match x with
      | IPair (y, z) -> unpair_n integer x @ stack
-     | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+     | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
      )
   | (AbsMichelson.LEFT typ, (x :: st)) -> IOr (typeof x, evalTyp typ, L, x) :: st
   | (AbsMichelson.RIGHT typ, (x :: st)) ->  IOr (evalTyp typ, typeof x, R, x) :: st
@@ -264,19 +264,19 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
     (match x with
     | IOr (_, _, L, y) -> evalList instrs0 (y :: st) data
     | IOr (_, _, R, y) -> evalList instrs (y :: st) data
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.NIL typ, _) ->  IList (evalTyp typ, []) :: stack
   | (AbsMichelson.CONS, (x :: y :: st)) ->
     (match (x, y) with
     | (x, IList(typ, lst)) when equal_typ (typeof x) typ -> IList(typ, (x :: lst)) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.IF_CONS (instrs0, instrs), (x :: st)) ->
     (match x with
     | IList (typ, x :: tl) -> evalList instrs0 (x :: IList (typ, tl) :: st) data
     | IList (_, []) -> evalList instrs st data
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.SIZE, (x :: st)) ->
     (match x with
@@ -285,7 +285,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
     | ISet (_, lst)  -> INat(Z.of_int (List.length lst)) :: st
     | IList (_, lst) -> INat(Z.of_int (List.length lst)) :: st
     | IMap (_, lst)  -> INat(Z.of_int (List.length lst)) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.EMPTY_SET ctyp, _) -> ISet (evalCTyp ctyp, []) :: stack
   | (AbsMichelson.EMPTY_MAP (ctyp, typ), _) ->  IMap ((evalCTyp ctyp, evalTyp typ), []) :: stack
@@ -294,32 +294,32 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
     (match x with
     | IList (typ, lst) -> map_list instrs typ lst st data
     | IMap (typ, lst)  -> map_map instrs typ lst st data
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.ITER instrs, (x :: st)) ->
     (match x with
     | IList (typ, lst) -> iter_list instrs typ lst st data
     | IMap (typ, lst)  -> iter_map instrs typ lst st data
     | ISet (typ, lst)  -> iter_set instrs typ lst st data
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.MEM, (x :: y :: st)) ->
     (match y with
     | ISet (typ, lst) when equal_typ (typeof x) typ     -> mem_set x lst :: st
     | IMap (typ, lst) when equal_typ (typeof x) (fst typ)     -> mem_map x lst :: st
     | IBig_map (typ, lst) when equal_typ (typeof x) (fst typ)  -> mem_big_map x lst :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.GET, (x :: y :: st)) ->
     (match y with
     | IMap (typ, lst) when equal_typ (typeof x) (fst typ)     -> get_map x lst :: st
     | IBig_map (typ, lst) when equal_typ (typeof x) (fst typ) -> get_big_map x lst :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.GET_N integer, (x :: st)) ->
     (match x with
     | IPair _ -> get_n integer x :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.UPDATE, (x :: y :: z :: st)) ->
     (match (z, x, y) with
@@ -329,12 +329,12 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
       when (equal_typ t0 (typeof x) && equal_typ t1 t)                    -> update_map (t0, t1) lst x o :: st
     | (IBig_map ((t0, t1), lst), x, IOption (t, o))
       when (equal_typ t0 (typeof x) && equal_typ t1 t)                    -> update_big_map (t0, t1) lst x o :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y; z]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y; z]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.UPDATE_N integer, (x :: y :: st)) ->
     (match (x, y) with
     | (_, IPair _) -> update_n integer x y :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.GET_AND_UPDATE, (x :: y :: z :: st)) ->
     (match (z, x, y) with
@@ -342,25 +342,25 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
       when (equal_typ t0 (typeof x) && equal_typ t1 t)                    -> get_update_map (t0, t1) lst x o @ st
     | (IBig_map ((t0, t1), lst), x, IOption (t, o))
       when (equal_typ t0 (typeof x) && equal_typ t1 t)                    -> get_update_big_map (t0, t1) lst x o @ st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y; z]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y; z]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.IF (instrs0, instrs), (x :: st)) ->
     (match x with
     | IBool true  -> evalList instrs0 st data
     | IBool false -> evalList instrs st data
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.LOOP instrs, (x :: st)) -> (* REMOVE: loop instrs stack data*)
     (match x with
     | IBool true  -> evalInstr (AbsMichelson.LOOP instrs) (evalList instrs st data) data
     | IBool false -> st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.LOOP_LEFT instrs, (x :: st)) -> (* REMOVE: loop_left instrs stack data*)
     (match x with
     | IOr (_, _, L, y) -> evalInstr (AbsMichelson.LOOP_LEFT instrs) (evalList instrs (y :: st) data) data
     | IOr (_, _, R, y) -> y :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.LAMBDA (typ0, typ, instrs), _) -> ILambda((evalTyp typ0, evalTyp typ), instrs, []) :: stack
   | (AbsMichelson.EXEC, (x :: y :: st)) -> (exec x y data) :: st
@@ -368,40 +368,40 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
     (match (x, y) with
     | (_, ILambda ((TPair (t1, t2), t3), instrs, vs)) when pushable (typeof x) && storable (typeof x) && equal_typ (typeof x) t1 ->
       ILambda ((t2, t3), instrs, (x :: vs)) :: st (* TODO: does it work? *)
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.DIP instrs, (x :: st)) -> x :: (evalList instrs st data)
   | (AbsMichelson.DIP_N (integer, instrs), _) ->  dip_n instrs integer stack data
-  | (AbsMichelson.FAILWITH, (x :: st)) -> raise (Failwith ("Evaluation failed with FAILWITH instruction", x))
+  | (AbsMichelson.FAILWITH, (x :: st)) -> raise (Failwith ("Evaluation failed with FAILWITH instruction", Print.val_to_str x)) (*TODO: propagation, return topmost stack*)
   | (AbsMichelson.CAST, _) -> stack (* discard CAST instr *)
   | (AbsMichelson.RENAME, _) ->  stack (* discard RENAME instr *)
   | (AbsMichelson.CONCAT, (x :: y :: st)) ->
     (match (x, y) with
     | (IString(s0), IString(s))             -> IString(s0 ^ s) :: st
     | (IBytes(b0), IBytes(b))               -> IBytes(Stdlib.Bytes.cat b0 b) :: st (*TODO*)
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.CONCAT, (x :: st)) ->
     (match x with
     | IList(TString, lst) -> concat_s_lst lst :: st
     | IList(TBytes, lst)  -> concat_b_lst lst :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.SLICE, (x :: y :: z :: st)) ->
     (match (x, y, z) with
     | (INat(offset), INat(len), IString(s)) -> slice_str offset len s :: st
     | (INat(offset), INat(len), IBytes(b))  -> slice_bytes offset len b :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y; z]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y; z]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.PACK, (x :: st)) ->
     (match x with
     | x when packable (typeof x) -> pack x :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.UNPACK typ, (x :: st)) ->
     (match x with
     | IBytes b when packable (evalTyp typ) -> unpack (evalTyp typ) b :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.ADD, (x :: y :: st)) ->
     (match (x, y) with
@@ -415,7 +415,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
     | (IBls_381_g1 x, IBls_381_g1 y) -> IBls_381_g1 x :: st (*TODO https://tezos.gitlab.io/alpha/michelson.html#bls12-381-primitives*)
     | (IBls_381_g2 x, IBls_381_g2 y) -> IBls_381_g2 x :: st (*TODO*)
     | (IBls_381_fr x, IBls_381_fr y) -> IBls_381_fr x :: st (*TODO*)
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.SUB, (x :: y :: st)) ->
     (match (x, y) with
@@ -426,7 +426,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
     | (ITimestamp x, IInt y)         -> ITimestamp (Z.sub x y) :: st
     | (ITimestamp x, ITimestamp y)   -> IInt (Z.sub x y) :: st
     | (IMutez x, IMutez y)           -> IMutez (Mutez.sub x y) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.MUL, (x :: y :: st)) ->
     (match (x, y) with
@@ -443,7 +443,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
     | (IInt x, IBls_381_fr y)        -> IBls_381_fr y :: st (*TODO*)
     | (IBls_381_fr x, INat y)        -> IBls_381_fr x :: st (*TODO*)
     | (IBls_381_fr x, IInt y)        -> IBls_381_fr x :: st (*TODO*)
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.EDIV, (x :: y :: st)) ->
     (match (x, y) with
@@ -453,25 +453,25 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
     | (IInt x, IInt y)     -> ediv_with_int x y :: st
     | (IMutez x, INat y)   -> ediv_muteznat x y :: st
     | (IMutez x, IMutez y) -> ediv_mutezmutez x y :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.ABS, (x :: st)) ->
     (match x with
     | IInt x -> INat (Z.abs x) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.SNAT, (x :: st)) ->
     (match x with
     | IInt x ->
       if (Z.geq x Z.zero) then IOption(TNat, Some (INat (Z.abs x))) :: st
       else IOption(TNat, None) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.INT, (x :: st)) ->
     (match x with
     | INat x -> IInt x :: st
     | IBls_381_fr x -> IInt Z.one :: st (*TODO*)
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.NEG, (x :: st)) ->
     (match x with
@@ -480,76 +480,76 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
     | IBls_381_g1 x -> IBls_381_g1 x :: st (*TODO https://tezos.gitlab.io/alpha/michelson.html#bls12-381-primitives*)
     | IBls_381_g2 x -> IBls_381_g2 x :: st (*TODO*)
     | IBls_381_fr x -> IBls_381_fr x :: st (*TODO*)
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.LSL, (x :: y :: st)) ->
     (match (x, y) with
     | (INat x, INat y) when Z.leq y (Z.of_int 256) -> INat Z.(x lsl (Z.to_int y)) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.LSR, (x :: y :: st)) ->
     (match (x, y) with
     | (INat x, INat y) when Z.leq y (Z.of_int 256) -> INat Z.(x asr (Z.to_int y)) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.OR, (x :: y :: st)) ->
     (match (x, y) with
     | (IBool x, IBool y) -> IBool (x || y) :: st
     | (INat x, INat y) -> INat Z.(x lor y) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.AND, (x :: y :: st)) ->
     (match (x, y) with
     | (IBool x, IBool y) -> IBool (x && y) :: st
     | (INat x, INat y)
     | (IInt x, INat y) -> INat Z.(x land y) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.XOR, (x :: y :: st)) ->
     (match (x, y) with
     | (IBool x, IBool y) -> IBool Bool.(x <> y) :: st
     | (INat x, INat y) -> INat Z.(x lxor y) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.NOT, (x :: st)) ->
     (match x with
     | IBool x -> IBool (not x) :: st
     | INat x  -> INat (Z.lognot x) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.COMPARE, (x :: y :: st)) ->
     if comparable (typeof x) (typeof y) && equal_typ (typeof x) (typeof y)
     then IInt (Z.of_int(compare x y)) :: st
-    else raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    else raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
   | (AbsMichelson.EQ, (x :: st)) ->
     (match x with
     | IInt y -> IBool (Z.equal y Z.zero) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.NEQ, (x :: st)) ->
     (match x with
     | IInt y -> IBool (not (Z.equal y Z.zero)) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.LT, (x :: st)) ->
     (match x with
     | IInt y -> IBool (Z.lt y Z.zero) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.GT, (x :: st)) ->
     (match x with
     | IInt y -> IBool (Z.gt y Z.zero) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.LE, (x :: st)) ->
     (match x with
     | IInt y -> IBool (Z.leq y Z.zero) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.GE, (x :: st)) ->
     (match x with
     | IInt y -> IBool (Z.geq y Z.zero) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.SELF, _) -> data.self :: stack
   | (AbsMichelson.SELF_ADDRESS, _) -> data.self_address :: stack
@@ -557,35 +557,36 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
     let ty = evalTyp typ in
     (match x with
     | IAddress (s) -> contract ty s :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.TRANSFER_TOKENS, (x :: y :: z :: st)) ->
     (match (x, y, z) with
     | (_, IMutez _, IContract (t, _)) when passable (typeof x) && equal_typ t (typeof x) ->
       IOperation (OTransfer_tokens (x, y, z)) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y ;z]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y ;z]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.SET_DELEGATE, (x :: st)) ->
     (match x with
     | IOption (TKey_hash, _) -> IOperation (OSet_delegate x) :: st (* TODO: Wrapper and: The operation fails if kh (key_hash) is the current delegate of the contract or if kh is not a registered delegate.*)
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.CREATE_CONTRACT (typ0, typ, instrs), (x :: y :: z :: st)) ->
     (match (x, y, z) with
     | (IOption (TKey_hash, _), IMutez _, _) when passable (evalTyp typ0) && storable (typeof z) && equal_typ (evalTyp typ) (typeof z) ->
-      IOperation (OCreate_contract (((evalTyp typ0, evalTyp typ), instrs), x, y, z, (IAddress create_address))) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y ;z]) ~f:(Print.ty_to_str))))
+      let address = IAddress create_address in
+      IOperation (OCreate_contract (((evalTyp typ0, evalTyp typ), instrs), x, y, z, address)) :: address :: st
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y ;z]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.IMPLICIT_ACCOUNT, (x :: st)) ->
     (match x with
     | IKey_hash s -> IContract (TUnit, create_implicit s) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.CHECK_SIGNATURE, (x :: st)) -> st (*TODO*)
   | (AbsMichelson.VOTING_POWER, (x :: st)) ->
     (match x with
     | IKey_hash s -> st (* TODO: Return the voting power of a given contract. This voting power coincides with the weight of the contract in the voting listings (i.e., the rolls count) which is calculated at the beginning of every voting period.*)
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.BLAKE2B, (x :: st)) -> st (*TODO*)
   | (AbsMichelson.KECCAK, (x :: st)) -> st (*TODO*)
@@ -602,7 +603,7 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
   | (AbsMichelson.ADDRESS, (x :: st)) ->
     (match x with
     | IContract(_, y) -> IAddress y :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.CHAIN_ID, _) -> data.chain_id :: stack
   | (AbsMichelson.TOTAL_VOTING_POWER, _) -> data.tot_voting_power :: stack
@@ -610,37 +611,37 @@ let rec evalInstr (instr : AbsMichelson.instr) (stack : value list) (data : cont
     (match x with
     | IList (TPair (TBls_381_g1, TBls_381_g2), []) -> IBool(true) :: st
     | IList (TPair (TBls_381_g1, TBls_381_g2), lst) -> IBool(false) :: st (*TODO: Verify that the product of pairings of the given list of points is equal to 1 in Fq12. *)
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.SAPLING_EMPTY_STATE integer, (x :: st)) ->  st (*TODO*)
   | (AbsMichelson.SAPLING_VERIFY_UPDATE, (x :: st)) -> st  (*TODO*)
   | (AbsMichelson.TICKET, (x :: y :: st)) ->
     (match (x, y) with
     | (_, INat _) -> ITicket (data.self_address, x, y) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.READ_TICKET, (x :: st)) ->
     (match x with
     | ITicket (a, v, n) -> IPair (a, IPair (v, n)) :: stack
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.SPLIT_TICKET, (x :: y :: st)) ->
     (match (x, y) with
     | (ITicket (a, v, INat n), IPair (INat n1, INat n2)) ->
       if (Z.equal Z.(n1 + n2) n) then IOption (TPair (typeof x, typeof x), Some (IPair (ITicket (a, v, INat n1), ITicket (a, v, INat n2)))) :: st
       else IOption (typeof x, None) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.JOIN_TICKETS, (x :: st)) ->
     (match x with
     | IPair (ITicket (a1, v1, INat x), ITicket (a2, v2, INat y)) ->
       if (equal_value a1 a2 && equal_value v1 v2) then IOption (TTicket (typeof v1), Some (ITicket (a1, v1, INat Z.(x + y)))) :: st
       else IOption (TTicket (typeof v1), None) :: st
-    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
+    | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (instr), String.concat ~sep:" : " (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
     )
   | (AbsMichelson.OPEN_CHEST, (x :: st)) -> st (*TODO*)
   (* raise exception for instructions that need one or more elements on the stack but the stack does not contain this much values *)
-  | _ -> raise (Illegal_Instruction ("Stack does not contain the necessary amount of values", AbsMichelson.show_instr instr)) (* Careful, this also matches new cases of Instructions *)
+  | _ -> raise (Illegal_Instruction ("Stack does not contain the necessary amount of values", AbsMichelson.show_instr instr, ((String.concat ~sep:" : " (List.map stack ~f:Print.val_to_str)) ^ ": []"))) (* Careful, this also matches new cases of Instructions *)
 
 
 (* SECONDARY INSTRUCTION EVALUATION FUNCTIONS (These evaluate lists of instructions) *)
@@ -714,16 +715,16 @@ Also "Note that SELF_ADDRESS inside a lambda returns the address of the contract
       let st = evalList instrs init_stack data in
       match st with
       | [z] -> if (equal_typ (typeof z) t1) then z else raise (TypeInstrError ("Lambda output type mismatch.", AbsMichelson.show_instr AbsMichelson.EXEC, (Print.ty_to_str (typeof z), Print.ty_to_str t1)))
-      | _ -> raise (Illegal_Instruction ("Lambda output should be exactly one value", AbsMichelson.show_instr AbsMichelson.EXEC))
+      | _ -> raise (Illegal_Instruction ("Lambda output should be exactly one value", AbsMichelson.show_instr AbsMichelson.EXEC, String.concat ~sep:" : " (List.map st ~f:(Print.val_to_str))))
     else raise (TypeInstrError ("Lambda input type mismatch.", AbsMichelson.show_instr AbsMichelson.EXEC, (Print.ty_to_str (typeof x), Print.ty_to_str t0)))
   in
   match y with
   | ILambda(tys, instrs, vs) -> f instrs tys vs data
-  | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (AbsMichelson.EXEC), String.concat ~sep:";" (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
+  | _ -> raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (AbsMichelson.EXEC), String.concat ~sep:" : " (List.map (typ_of_lst [x; y]) ~f:(Print.ty_to_str))))
 
 (* DIP_n instr *)
 and dip_n (instrs : AbsMichelson.instr list) (n : int) (st : value list) (data : contract_var) : value list =
-  let (fst, snd) = List.split_n st n in
-  match (fst, snd) with
-  | (_, []) -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.show_instr (AbsMichelson.DIP_N (n, instrs))))
-  | (fst, snd) -> fst @ (evalList instrs snd data) (* this case also matches n=0 *)
+  if (List.length st > n) then raise (Illegal_Instruction ("'n' greater then Stack size", AbsMichelson.show_instr (AbsMichelson.DIP_N (n, instrs)), ((String.concat ~sep:" : " (List.map st ~f:Print.val_to_str)) ^ ": []")))
+  else
+    let (fst, snd) = List.split_n st n in
+    fst @ (evalList instrs snd data) (* fst=[] for n=0 *)

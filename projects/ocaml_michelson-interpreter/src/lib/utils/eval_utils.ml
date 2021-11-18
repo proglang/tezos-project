@@ -4,7 +4,7 @@
 open Base
 open Value
 
-exception Illegal_Instruction of string * string (* string * AbsMichelson.instr *)
+exception Illegal_Instruction of string * string * string (* string * AbsMichelson.instr * stack *)
 exception StackTypeError of string * string * string (* string * AbsMichelson.instr * typ list *) (*TODO: always return fulls stack, use stack :: notation*)
 
 (* VALUE/DATA EVALUATION FUNCTIONS *)
@@ -32,31 +32,32 @@ let evalStrLength str (l : int) : string = (* eval other strings depending on th
 (* INSTRUCTION EVALUATION HELPER FUNCTIONS *)
 let drop_n (n : int) (lst : value list) : value list =
    if n = 0 then lst
-   else if (List.length lst < n) then raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.show_instr (AbsMichelson.DROP_N (n))))
+   else if (List.length lst < n) then raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.show_instr (AbsMichelson.DROP_N n), ((String.concat ~sep:" : " (List.map lst ~f:Print.val_to_str)) ^ ": []")))
    else List.drop lst n
 
 let dup_n (n : int) (lst : value list) : value =
-  if n = 0 then raise (Illegal_Instruction ("'n'=0 is illegal", AbsMichelson.show_instr (AbsMichelson.DUP_N (n))))
+  if n = 0 then raise (Illegal_Instruction ("'n'=0 is illegal", AbsMichelson.show_instr (AbsMichelson.DUP_N n), ""))
   else
     match List.nth lst (n - 1) with
     | Some x ->
       if (duplicable(typeof x)) then x
-      else raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (AbsMichelson.DUP_N (n)), String.concat ~sep:";" (List.map (typ_of_lst [x]) ~f:(Print.ty_to_str))))
-    | None -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.show_instr (AbsMichelson.DUP_N (n))))
+      else raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (AbsMichelson.DUP_N n), String.concat ~sep:" : " (List.map lst ~f:Print.val_to_str)))
+    | None -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.show_instr (AbsMichelson.DUP_N n), ((String.concat ~sep:" : " (List.map lst ~f:Print.val_to_str)) ^ ": []")))
 
 let dig_n (n : int) (lst : value list) : value list =
   let (fst, snd) = List.split_n lst n in
   match (fst, snd) with
-  | ([], _) -> raise (Illegal_Instruction ("DIG 0 is illegal", AbsMichelson.show_instr (AbsMichelson.DIG_N (n))))
+  | ([], _) -> raise (Illegal_Instruction ("DIG 0 is illegal", AbsMichelson.show_instr (AbsMichelson.DIG_N n), ""))
   | (fst, (x :: st)) -> x :: (fst @ st)
-  | (_, []) -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.show_instr (AbsMichelson.DIG_N (n))))
+  | (_, []) -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.show_instr (AbsMichelson.DIG_N n), ((String.concat ~sep:" : " (List.map lst ~f:Print.val_to_str)) ^ ": []")))
 
 let dug_n (n : int) (lst : value list) : value list =
-  let (fst, snd) = List.split_n lst (n + 1) in
-  match (fst, snd) with
-  | (_, []) -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.show_instr (AbsMichelson.DUG_N (n))))
-  | ((x :: st), snd) -> st @ (x :: snd)
-  | ([], _) -> raise (Illegal_Instruction ("DUG 0 is illegal", AbsMichelson.show_instr (AbsMichelson.DUG_N (n))))
+  if (List.length lst < (n + 1)) then raise (Illegal_Instruction ("'n' greater then Stack size", AbsMichelson.show_instr (AbsMichelson.DUG_N n), ((String.concat ~sep:" : " (List.map lst ~f:Print.val_to_str)) ^ ": []")))
+  else
+    let (fst, snd) = List.split_n lst (n + 1) in
+    match (fst, snd) with
+    | ((x :: st), snd) -> st @ (x :: snd)
+    | ([], _) -> raise (Illegal_Instruction ("DUG 0 is illegal", AbsMichelson.show_instr (AbsMichelson.DUG_N n), ""))
 
 let pair_n (n : int) (lst : value list) : value list =
   let rec f (lst : value list) : value = (* not tail recursive *)
@@ -65,20 +66,20 @@ let pair_n (n : int) (lst : value list) : value list =
     | x :: tl -> IPair (x, f tl)
     | _ -> failwith "Interpreter.pair_n: this case should be impossible"
   in
-  if (n <= 1) then raise (Illegal_Instruction ("'n' needs to be higher then 1", AbsMichelson.show_instr (AbsMichelson.PAIR_N (n))))
-  else if (n > List.length lst) then raise (Illegal_Instruction ("'n' greater then Stack size", AbsMichelson.show_instr (AbsMichelson.PAIR_N (n))))
+  if (n <= 1) then raise (Illegal_Instruction ("'n' needs to be higher then 1", AbsMichelson.show_instr (AbsMichelson.PAIR_N n), ""))
+  else if (n > List.length lst) then raise (Illegal_Instruction ("'n' greater then Stack size", AbsMichelson.show_instr (AbsMichelson.PAIR_N n), ((String.concat ~sep:" : " (List.map lst ~f:Print.val_to_str)) ^ ": []")))
   else
     let (fst, snd) = List.split_n lst n in
     (f fst) :: snd
 
 let rec unpair_n (n : int) (x : value (*IPair*)) : value list =
     (* not tail recursive *)
-    if (n <= 1) then raise (Illegal_Instruction ("'n' needs to be higher then 1", AbsMichelson.show_instr (AbsMichelson.UNPAIR_N (n))))
+    if (n <= 1) then raise (Illegal_Instruction ("'n' needs to be higher then 1", AbsMichelson.show_instr (AbsMichelson.UNPAIR_N n), ""))
     else
       match x with
       | IPair(y, z) -> y :: (unpair_n (n-1) z)
       | x when n = 1 -> [x]
-      | _ -> raise (Illegal_Instruction ("'n' not equal to size of right comb", AbsMichelson.show_instr (AbsMichelson.UNPAIR_N (n))))
+      | _ -> raise (Illegal_Instruction ("'n' not equal to size of right comb", AbsMichelson.show_instr (AbsMichelson.UNPAIR_N n), Print.val_to_str x))
 
 (* SLICE instr *)
 let slice_str (offset : Z.t) (len : Z.t) (s : string) : value =
@@ -115,7 +116,7 @@ let rec get_n (n : int) (p : value (*right comb*)) : value =
   | (0, x) -> x
   | (1, IPair (x, _)) -> x
   | (x (*x>1*), IPair (_, p)) -> get_n (n-2) p
-  | _ -> raise (Illegal_Instruction ("'n' greater then right comb.", AbsMichelson.show_instr (AbsMichelson.GET_N (n))))
+  | _ -> raise (Illegal_Instruction ("'n' greater then right comb.", AbsMichelson.show_instr (AbsMichelson.GET_N n), Print.val_to_str p))
 
 
 (* UPDATE instr *)
@@ -139,7 +140,7 @@ let rec update_n (n : int) (v : value) (p : value (*right comb*)) : value =
   | (0, v, _) -> v
   | (1, v, IPair (_, u)) -> IPair (v, u)
   | (n (*n>1*), v, IPair (u, p)) -> IPair (u, update_n (n-2) v p)
-  | _ -> raise (Illegal_Instruction ("'n' greater then right comb.", AbsMichelson.show_instr (AbsMichelson.UPDATE_N (n))))
+  | _ -> raise (Illegal_Instruction ("'n' greater then right comb.", AbsMichelson.show_instr (AbsMichelson.UPDATE_N n), Print.val_to_str p))
 
 let get_update_map (t0, t1) lst (key : value) (o : value option) : value list (*IMap*) =
   match o with

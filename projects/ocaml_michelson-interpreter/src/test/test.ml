@@ -144,61 +144,61 @@ let%expect_test "op_codes" =
   printf "comparisons.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/comparisons.tz"
     "{-1 ; 0 ; 1}" "{}" generic_conf);
   [%expect {| comparisons.tz: (Pair {} { { False ; False ; True } ; { False ; True ; True } ; { True ; False ; False } ; { True ; True ; False } ; { True ; False ; True } ; { False ; True ; False } }) |}];
-(*  printf "concat_hello.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/concat_hello.tz"
+  printf "concat_hello.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/concat_hello.tz"
+    "{ \"Name1\" ; \"Name2\" }" "{}" generic_conf);
+  [%expect {| concat_hello.tz: (Pair {} { "Hello Name1" ; "Hello Name2" }) |}];
+(*  printf "concat_hello_bytes.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/concat_hello_bytes.tz"
     "" "" generic_conf);
-  [%expect {| concat_hello.tz: (Pair {} ) |}];
-  printf "concat_hello_bytes.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/concat_hello_bytes.tz"
-    "" "" generic_conf);
-  [%expect {| concat_hello_bytes.tz: (Pair {} ) |}];
+  [%expect {| concat_hello_bytes.tz: (Pair {} ) |}];*)
   printf "concat_list.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/concat_list.tz"
-    "" "" generic_conf);
-  [%expect {| concat_list.tz: (Pair {} ) |}];
-  printf "cons.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/cons.tz"
-    "" "" generic_conf);
-  [%expect {| cons.tz: (Pair {} ) |}];
-  printf "contains_all.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/contains_all.tz"
-    "" "" generic_conf);
-  [%expect {| contains_all.tz: (Pair {} ) |}];
+    "{ \"H\" ; \"a\" ;  \"l\" ;  \"l\" ; \"o\" }" "\"\"" generic_conf);
+  [%expect {| concat_list.tz: (Pair {} "Hallo") |}];
+   printf "cons.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/cons.tz"
+    "{ 1 }" "{ 2 ; 3 }" generic_conf);
+  [%expect {| cons.tz: (Pair {} { 1 ; 2 ; 3 }) |}];
+(*  printf "contains_all.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/contains_all.tz"
+    "(Pair { "1" ; "2" } { "3" ; "4" })" "None" generic_conf);
+  [%expect {| contains_all.tz: (Pair {} (Some False)) |}]; *)
   printf "contract.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/contract.tz"
-    "" "" generic_conf);
-  [%expect {| contract.tz: (Pair {} ) |}];
+    "\"tz1faswCTDciRzE4oJ9jn2Vm2dvjeyA9fUzA\"" "Unit" generic_conf);
+  [%expect {| contract.tz: (Pair {} Unit) |}];
   printf "create_contract.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/create_contract.tz"
-    "" "" generic_conf);
-  [%expect {| create_contract.tz: (Pair {} ) |}];
+    "Unit" "None" generic_conf);
+  [%expect {| create_contract.tz: (Pair { Create_contract (((unit, unit), _),None, 20, Unit, Unit) } (Some "KT1aaaaaaaaaaaaaaa")) |}];
   printf "create_contract_rootname.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/create_contract_rootname.tz"
-    "" "" generic_conf);
-  [%expect {| create_contract_rootname.tz: (Pair {} ) |}];
+    "Unit" "None" generic_conf);
+  [%expect {| create_contract_rootname.tz: (Pair { Create_contract (((unit, unit), _),None, 20, Unit, Unit) } (Some "KT1aaaaaaaaaaaaaaa")) |}];
   printf "create_contract_rootname_alt.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/create_contract_rootname_alt.tz"
+    "Unit" "None" generic_conf);
+  [%expect {| create_contract_rootname_alt.tz: (Pair { Create_contract (((unit, unit), _),None, 20, Unit, Unit) } (Some "KT1aaaaaaaaaaaaaaa")) |}];
+(*  printf "create_contract_with_view.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/create_contract_with_view.tz"
     "" "" generic_conf);
-  [%expect {| create_contract_rootname_alt.tz: (Pair {} ) |}];
-  printf "create_contract_with_view.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/create_contract_with_view.tz"
-    "" "" generic_conf);
-  [%expect {| create_contract_with_view.tz: (Pair {} ) |}];
+  [%expect {| create_contract_with_view.tz: (Pair {} ) |}];*)
   printf "diff_timestamps.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/diff_timestamps.tz"
+    "(Pair 123 321)" "0" generic_conf);
+  [%expect {| diff_timestamps.tz: (Pair {} -198) |}];
+(*  printf "dig_eq.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/dig_eq.tz"
     "" "" generic_conf);
-  [%expect {| diff_timestamps.tz: (Pair {} ) |}];
-  printf "dig_eq.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/dig_eq.tz"
-    "" "" generic_conf);
-  [%expect {| dig_eq.tz: (Pair {} ) |}];
+  [%expect {| dig_eq.tz: (Pair {} ) |}];*)
   printf "dign.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/dign.tz"
-    "" "" generic_conf);
-  [%expect {| dign.tz: (Pair {} ) |}];
+    "(Pair (Pair (Pair (Pair 1 2) 3) 4) 5)" "0" generic_conf);
+  [%expect {| dign.tz: (Pair {} 5) |}];
   printf "dip.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/dip.tz"
-    "" "" generic_conf);
-  [%expect {| dip.tz: (Pair {} ) |}];
+    "(Pair 1 2)" "(Pair 0 0)" generic_conf);
+  [%expect {| dip.tz: (Pair {} (Pair 1 3)) |}];
   printf "dipn.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/dipn.tz"
-    "" "" generic_conf);
-  [%expect {| dipn.tz: (Pair {} ) |}];
+    "(Pair (Pair (Pair (Pair 1 2) 3) 4) 5)" "0" generic_conf);
+  [%expect {| dipn.tz: (Pair {} 6) |}];
   printf "dropn.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/dropn.tz"
-    "" "" generic_conf);
-  [%expect {| dropn.tz: (Pair {} ) |}];
+    "(Pair (Pair (Pair (Pair 1 2) 3) 4) 5)" "0" generic_conf);
+  [%expect {| dropn.tz: (Pair {} 5) |}];
   printf "dugn.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/dugn.tz"
-    "" "" generic_conf);
-  [%expect {| dugn.tz: (Pair {} ) |}];
+    "(Pair (Pair (Pair (Pair 1 2) 3) 4) 5)" "0" generic_conf);
+  [%expect {| dugn.tz: (Pair {} 1) |}];
   printf "dup-n.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/dup-n.tz"
-    "" "" generic_conf);
-  [%expect {| dup-n.tz: (Pair {} ) |}];
-  printf "ediv.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/ediv.tz"
+    "Unit" "Unit" generic_conf);
+  [%expect {| dup-n.tz: (Pair {} Unit) |}];
+(*  printf "ediv.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/ediv.tz"
     "" "" generic_conf);
   [%expect {| ediv.tz: (Pair {} ) |}];
   printf "ediv_mutez.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/ediv_mutez.tz"

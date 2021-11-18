@@ -40,7 +40,7 @@ type typ =
 type union = L | R [@@deriving eq, ord]
 
 type op =
-  | OCreate_contract of ((typ * typ) * AbsMichelson.instr list) * value * value * value * value (* contract-code * key_hash * mutez * initial storage * address *)
+  | OCreate_contract of ((typ * typ) * AbsMichelson.instr list) * value * value * value * value (* (contract-code) * option key_hash * mutez * initial storage * address *)
   | OTransfer_tokens of value * value * value (* 'p * mutez * contract 'p *)
   | OSet_delegate of value (* key_hash *)
 [@@deriving eq] (* show*)
