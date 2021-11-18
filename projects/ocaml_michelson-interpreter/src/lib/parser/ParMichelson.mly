@@ -168,8 +168,8 @@ instr : instr annotation { ANNOT ($1, $2) }
   | KW_CONTRACT typ { CONTRACT $2 }
   | KW_TRANSFER_TOKENS { TRANSFER_TOKENS  }
   | KW_SET_DELEGATE { SET_DELEGATE  }
-  | KW_CREATE_CONTRACT SYMB2 KW_parameter typ SYMB1 KW_storage typ SYMB1 KW_code instr_list SYMB3 { CREATE_CONTRACT ($4, $7, $10) }
-  | KW_CREATE_CONTRACT SYMB2 KW_storage typ SYMB1 KW_parameter typ SYMB1 KW_code instr_list SYMB3 { cREATE_CONTRACT2 ($4, $7, $10) }
+  | KW_CREATE_CONTRACT SYMB2 KW_parameter typ SYMB1 KW_storage typ SYMB1 KW_code SYMB2 instr_list SYMB3 SYMB3 { CREATE_CONTRACT ($4, $7, $11) }
+  | KW_CREATE_CONTRACT SYMB2 KW_storage typ SYMB1 KW_parameter typ SYMB1 KW_code SYMB2 instr_list SYMB3 SYMB3 { cREATE_CONTRACT2 ($4, $7, $11) }
   | KW_IMPLICIT_ACCOUNT { IMPLICIT_ACCOUNT  }
   | KW_VOTING_POWER { VOTING_POWER  }
   | KW_NOW { NOW  }
