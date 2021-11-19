@@ -1,4 +1,4 @@
-# Implemention State
+# Implementation State
 
 #### Small todos:
 - seperate configuration/environment data into own module

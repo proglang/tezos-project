@@ -1,6 +1,6 @@
 ## Bachelor Arbeit Joshua
 
-### Thema
+### Thema 1
 
 "Den Interpreter zu einem einfachen Compiler von Michelson nach OCaml zu erweitern.
 Das würde ganz grob so funktionieren, dass der Code zur Ausführung einer Instruktion einfach 
@@ -30,7 +30,7 @@ Implementierungsfragen:
 
 
 
-### Thema
+### Thema 2
 "Den Interpreter so zu vervollständigen, dass er auch die nachfolgenden Operationen unterstützt
 (also die operation list interpretiert) und dass man ihn auch direkt an die Blockchain
 anschließen kann)."
