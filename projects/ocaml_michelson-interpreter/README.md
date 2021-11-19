@@ -8,7 +8,7 @@
 ### TODO / yet to be implemented:
 
 #### PRIORITIES:
-- [ ] Tests
+- [ ] Tests (~30% progress)
 - [x] Configuration Input from json
 - [ ] Interpreter output in Michelson syntax
   - [ ] use Buffer for better performance
