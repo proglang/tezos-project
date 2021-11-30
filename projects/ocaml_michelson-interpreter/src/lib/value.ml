@@ -35,16 +35,11 @@ type typ =
   | TSignature
   | TTimestamp
   | TAddress
-[@@deriving eq]
+[@@deriving eq, show {with_path = false}]
 
-type union = L | R [@@deriving eq, ord]
+type union = L | R [@@deriving eq, ord, show {with_path = false}]
 
-type op =
-  | OCreate_contract of ((typ * typ) * AbsMichelson.instr list) * value * value * value * value (* (contract-code) * option key_hash * mutez * initial storage * address *)
-  | OTransfer_tokens of value * value * value (* 'p * mutez * contract 'p *)
-  | OSet_delegate of value (* key_hash *)
-[@@deriving eq] (* show*)
-and value =
+type value =
   | IOperation of op
   | IContract of typ * string (* parameter 'p * address *)
   | IList of typ * value list
@@ -68,8 +63,8 @@ and value =
   | IUnit
   | INever
   | IBool of bool
-  | IInt of Z.t
-  | INat of Z.t
+  | IInt of Z.t [@printer Z.pp_print]
+  | INat of Z.t [@printer Z.pp_print]
   | IString of string
   | IChain_id of Bytes.t (* TODO: Example values 0x7a06a770 , "NetXynUjJNZm7wi" *)
   | IBytes of Bytes.t (* FIXME: raw byte, fix byte instructions, de- and serialization? *)
@@ -77,9 +72,14 @@ and value =
   | IKey_hash of string (* https://tezos.stackexchange.com/questions/2311/what-are-the-differences-between-key-key-hash-address-contract-and-signature *)
   | IKey of string
   | ISignature of string
-  | ITimestamp of Z.t
+  | ITimestamp of Z.t [@printer Z.pp_print]
   | IAddress of string
-[@@deriving eq, show]
+[@@deriving eq, show {with_path = false}]
+and op =
+  | OCreate_contract of ((typ * typ) * AbsMichelson.instr list) * value * value * value * value (* (contract-code) * option key_hash * mutez * initial storage * address *)
+  | OTransfer_tokens of value * value * value (* 'p * mutez * contract 'p *)
+  | OSet_delegate of value (* key_hash *)
+[@@deriving eq, show {with_path = false}]
 
 
 let rec typeof (v : value) : typ =
