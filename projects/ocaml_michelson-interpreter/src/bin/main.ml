@@ -43,7 +43,7 @@ let command =
     Command.Let_syntax.(
     let%map_open
       filename      = anon (("filename" %: Filename.arg_type))
-      and config      = anon (("config" %: Filename.arg_type))
+      and config    = anon (("config" %: Filename.arg_type))
       and parameter = anon (("parameter" %: string (*unparsed value*)))
       and storage   = anon (("storage" %: string (*unparsed value*)))
       in

@@ -10,7 +10,7 @@
 #### PRIORITIES:
 - [ ] Tests (~30% progress)
 - [x] Configuration Input from json
-- [ ] Interpreter output in Michelson syntax
+- [ ] Interpreter output in Michelson syntax (~80%)
   - [ ] use Buffer for better performance
 - [ ] Byte handling
 - [ ] Views
