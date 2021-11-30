@@ -1,4 +1,4 @@
-type t = Z.t
+type t = Z.t [@printer Z.pp_print][@@deriving show]
 
 exception Overflow of string * string * string
 exception NegativeMutez of string * string * string
@@ -46,4 +46,3 @@ let ediv (x : t) (y : t) : (t * t) option =
 
 let compare (x : t) (y : t) : int = Z.compare (to_Zt x) (to_Zt y)
 let equal x y = Z.equal x y
-(*let format fmt_elt fmt x = (fun x -> Format.fprintf fmt "%a" x)*)
