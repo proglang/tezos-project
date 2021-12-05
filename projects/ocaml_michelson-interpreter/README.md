@@ -25,8 +25,8 @@
 - Exceptions do not show the values -> missing show functions?
 
 #### parser & interpreter
-- Entrypoints, Views
-- a few Macros
+- Views
+- a few Macros, e.g. PAPAPAIR variants
 
 #### testing via test-contracts!
 
@@ -43,7 +43,7 @@ Is connected to/needed for VOTING_POWER, SET_DELEGATE, TRANSFER_TOCKENS, CREATE_
   - same input
 
 #### not to be implemented:
-- Annotations: currently they are discarded in the interpreter, just as the CAST/RENAME instructions which work on annotations.
+- [x] Annotations: currently they are discarded in the interpreter, just as the CAST/RENAME instructions which work on annotations.
 
 
 #### performance:
