@@ -310,7 +310,7 @@ TypeSeq0. TypeSeq ::= Typ ;
 --TTypSeq2.             TypeSeq  ::= Typ TypeSeq ;
 
 -- Comparable Types
-
+_.          CTyp ::= "(" CTyp ")" ;
 CAnnot1.    CTyp ::= CTyp Annotation ;
 CAnnot2.    CTyp ::= Annotation CTyp ;
 CUnit.      CTyp ::= "unit" ;

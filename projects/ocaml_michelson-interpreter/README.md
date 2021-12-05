@@ -1,10 +1,5 @@
 # Implementation State
 
-#### Small todos:
-- seperate configuration/environment data into own module
-- merge michelson.ml into main.ml, rename interpreter.ml to eval.ml and let a new interpreter.ml be the main module/interface to the interpreter. Update /lib/dune with "name michelson_interpreter" and public_name
-
-
 ### TODO / yet to be implemented:
 
 #### PRIORITIES:

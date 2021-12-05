@@ -272,7 +272,8 @@ typeSeq_list : typeSeq { (fun x -> [x]) $1 }
 typeSeq : typ { TypeSeq0 $1 }
 ;
 
-cTyp : cTyp annotation { CAnnot1 ($1, $2) }
+cTyp : SYMB4 cTyp SYMB5 {  $2 }
+  | cTyp annotation { CAnnot1 ($1, $2) }
   | annotation cTyp { CAnnot2 ($1, $2) }
   | KW_unit { CUnit  }
   | KW_never { CNever  }

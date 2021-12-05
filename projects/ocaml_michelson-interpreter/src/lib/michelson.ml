@@ -45,9 +45,9 @@ let interpret (prog : AbsMichelson.prog) (parameter : AbsMichelson.prog) (storag
   (* TODO: create new exception type or Ok/Error result to propagate results back to michelson *)
 
 let run source parameter storage (conf : Yojson.Basic.t) =
-  let prog = Parse.parse source "Contract" in
   let param = Parse.parse parameter "Parameter" in
   let stor = Parse.parse storage "Storage" in
+  let prog = Parse.parse source "Contract" in
   let new_storage : Value.value  = interpret prog param stor conf in
   Print.val_to_str new_storage;
 (*  Value.show_value new_storage;*)

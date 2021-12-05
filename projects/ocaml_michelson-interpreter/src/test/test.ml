@@ -255,15 +255,16 @@ let%expect_test "op_codes" =
     "Unit" "Unit" generic_conf);
   [%expect {| dup-n.tz: (Pair {} Unit) |}];
 
+(*TODO PAPAPAIR*)
 (*  printf "ediv.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/ediv.tz"
-    "" "" generic_conf);
-  [%expect {| ediv.tz: (Pair {} ) |}];
+    "(Pair -2 3)" "(Pair (Some (Pair -1 0)) (Some (Pair -2 1)) (Some (Pair 3 3)) (Some (Pair 5 3)))" generic_conf);
+  [%expect {| ediv.tz: (Pair {} (Pair (Some (Pair -1 1)) (Pair (Some (Pair -1 1)) (Pair (Some (Pair 0 2)) (Some (Pair 0 2)))))) |}];*)
 
   printf "ediv_mutez.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/ediv_mutez.tz"
-    "" "" generic_conf);
-  [%expect {| ediv_mutez.tz: (Pair {} ) |}];
+    "(Pair 21 (Right 4))" "(Left (Some (Pair 0 0)))" generic_conf);
+  [%expect {| ediv_mutez.tz: (Pair {} (Right (Some (Pair 5 1)))) |}];
 
-  printf "empty_map.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/empty_map.tz"
+(*  printf "empty_map.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/empty_map.tz"
     "" "" generic_conf);
   [%expect {| empty_map.tz: (Pair {} ) |}];
 

@@ -141,7 +141,7 @@ and instr =
  | SPLIT_TICKET
  | JOIN_TICKETS
  | OPEN_CHEST
-[@@deriving eq, show {with_path = false}]
+[@@deriving eq, show { with_path = false }]
 and annotation =
    ATypeA of typeAnnotation
  | AVariableA of variableAnnotation

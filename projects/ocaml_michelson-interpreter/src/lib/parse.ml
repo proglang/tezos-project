@@ -6,7 +6,7 @@ let parse (source : string) (err : string) : AbsMichelson.prog =
   with
     | BNFC_Util.Parse_error (start_pos, end_pos) ->
       printf "Parse error of %s at %d.%d-%d.%d\n"
-          err
+          (String.uppercase err)
           start_pos.pos_lnum (start_pos.pos_cnum - start_pos.pos_bol + 1)
           end_pos.pos_lnum (end_pos.pos_cnum - end_pos.pos_bol + 1);
       exit 1
