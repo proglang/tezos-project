@@ -42,14 +42,15 @@ The make command could be discarded when using dune and creating the required du
 The parser is build into the folder `../lib/parser`.
 
 ### Manual Modifications done to the parser:
-Add `[@@deriving eq, show]` to all variants in `parser/AbsMichelson.ml`
+Add `[@@deriving eq, show { with_path = false }]` to all variants in `parser/AbsMichelson.ml`
 
 ### Minimal tests
 The functionality of the parser can be (visually) tested with three prepared shell scripts:
 - `test_test-contract.sh` prints the result of parsing the contract 'test_contract.tz' which can be used for quick testing purposes.
 - `test_macros.sh` prints the result of the marco-expansion for all macros as given in `macro_expansion.tz`.
 - The test contracts in `../test/test_files/` can all be parsed by executing `test_test-files.sh'. Errors in the execution are a sign of either mistakes or not implemented functions in the Grammar. 
-- However, some of the contracts are also ill_typed on purpose! Type Errors are only found on runtime of the interpreter, not by the parser. 
+However, some of the contracts are also ill-typed on purpose! Type Errors are only found on runtime of the interpreter, not by the parser. 
+
 
 **Errors:** The parser returns two errors, a Parser_error and a Lexing_error
 
