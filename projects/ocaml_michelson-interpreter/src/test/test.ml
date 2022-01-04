@@ -264,19 +264,20 @@ let%expect_test "op_codes" =
     "(Pair 21 (Right 4))" "(Left (Some (Pair 0 0)))" generic_conf);
   [%expect {| ediv_mutez.tz: (Pair {} (Right (Some (Pair 5 1)))) |}];
 
-(*  printf "empty_map.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/empty_map.tz"
-    "" "" generic_conf);
-  [%expect {| empty_map.tz: (Pair {} ) |}];
+  printf "empty_map.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/empty_map.tz"
+    "Unit" "{ Elt \"test-\" \"ing\" }" generic_conf);
+  [%expect {| empty_map.tz: (Pair {} { Elt "hello" "world" }) |}];
 
   printf "exec_concat.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/exec_concat.tz"
-    "" "" generic_conf);
-  [%expect {| exec_concat.tz: (Pair {} ) |}];
+    "\"123\"" "\"\"" generic_conf);
+  [%expect {| exec_concat.tz: (Pair {} "123_abc") |}];
 
   printf "first.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/first.tz"
-    "" "" generic_conf);
-  [%expect {| first.tz: (Pair {} ) |}];
+    "{ 1 ; 2 ; 3 }" "2" generic_conf);
+  [%expect {| first.tz: (Pair {} 1) |}];
 
-  printf "get_and_update_big_map.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/get_and_update_big_map.tz"
+  (* The following 4 contracts need missing macros to be implemented first *)
+  (*printf "get_and_update_big_map.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/get_and_update_big_map.tz"
     "" "" generic_conf);
   [%expect {| get_and_update_big_map.tz: (Pair {} ) |}];
 
@@ -290,9 +291,9 @@ let%expect_test "op_codes" =
 
   printf "get_map_value.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/get_map_value.tz"
     "" "" generic_conf);
-  [%expect {| get_map_value.tz: (Pair {} ) |}];
+  [%expect {| get_map_value.tz: (Pair {} ) |}];*)
 
-  printf "hash_consistency_checker.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/hash_consistency_checker.tz"
+(*  printf "hash_consistency_checker.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/hash_consistency_checker.tz"
     "" "" generic_conf);
   [%expect {| hash_consistency_checker.tz: (Pair {} ) |}];
 
@@ -302,77 +303,77 @@ let%expect_test "op_codes" =
 
   printf "hash_string.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/hash_string.tz"
     "" "" generic_conf);
-  [%expect {| hash_string.tz: (Pair {} ) |}];
+  [%expect {| hash_string.tz: (Pair {} ) |}];*)
 
   printf "if.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/if.tz"
-    "" "" generic_conf);
-  [%expect {| if.tz: (Pair {} ) |}];
+    "True" "None" generic_conf);
+  [%expect {| if.tz: (Pair {} (Some True)) |}];
 
   printf "if_some.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/if_some.tz"
-    "" "" generic_conf);
-  [%expect {| if_some.tz: (Pair {} ) |}];
+    "(Some \"Hello\")" "\"\"" generic_conf);
+  [%expect {| if_some.tz: (Pair {} "Hello") |}];
 
-  printf "int.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/int.tz"
-    "" "" generic_conf);
-  [%expect {| int.tz: (Pair {} ) |}];
+   printf "int.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/int.tz"
+    "123" "None" generic_conf);
+  [%expect {| int.tz: (Pair {} (Some 123)) |}];
 
-  printf "keccak.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/keccak.tz"
+(*  printf "keccak.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/keccak.tz"
     "" "" generic_conf);
-  [%expect {| keccak.tz: (Pair {} ) |}];
+  [%expect {| keccak.tz: (Pair {} ) |}];*)
 
   printf "left_right.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/left_right.tz"
-    "" "" generic_conf);
-  [%expect {| left_right.tz: (Pair {} ) |}];
+    "(Left True)" "(Left \"\")" generic_conf);
+  [%expect {| left_right.tz: (Pair {} (Right True)) |}];
 
   printf "level.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/level.tz"
-    "" "" generic_conf);
-  [%expect {| level.tz: (Pair {} ) |}];
+    "Unit" "0" generic_conf);
+  [%expect {| level.tz: (Pair {} 1) |}];
 
   printf "list_concat.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/list_concat.tz"
-    "" "" generic_conf);
-  [%expect {| list_concat.tz: (Pair {} ) |}];
+    "{ \"N\"; \"a\"; \"m\"; \"e\" }" "\"Hello \"" generic_conf);
+  [%expect {| list_concat.tz: (Pair {} "Hello Name") |}];
 
   printf "list_concat_bytes.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/list_concat_bytes.tz"
-    "" "" generic_conf);
-  [%expect {| list_concat_bytes.tz: (Pair {} ) |}];
+    "{ 0x1; 0x2; 0x3; 0x4}" "0x" generic_conf);
+  [%expect {| list_concat_bytes.tz: (Pair {} 0x0x10x20x30x4) |}]; (* TODO: update when implementing bytes *)
 
   printf "list_id.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/list_id.tz"
-    "" "" generic_conf);
-  [%expect {| list_id.tz: (Pair {} ) |}];
+    "{ \"a\"; \"b\"; \"c\" }" "{}" generic_conf);
+  [%expect {| list_id.tz: (Pair {} { "a" ; "b" ; "c" }) |}];
 
   printf "list_id_map.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/list_id_map.tz"
-    "" "" generic_conf);
-  [%expect {| list_id_map.tz: (Pair {} ) |}];
+    "{ \"a\"; \"b\"; \"c\" }" "{}" generic_conf);
+  [%expect {| list_id_map.tz: (Pair {} { "a" ; "b" ; "c" }) |}];
 
   printf "list_iter.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/list_iter.tz"
-    "" "" generic_conf);
-  [%expect {| list_iter.tz: (Pair {} ) |}];
+    "{ 1; 2; 3 }" "0" generic_conf);
+  [%expect {| list_iter.tz: (Pair {} 6) |}];
 
   printf "list_map_block.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/list_map_block.tz"
-    "" "" generic_conf);
-  [%expect {| list_map_block.tz: (Pair {} ) |}];
+    "{ 1 ; 2 ; 3 }" "{}" generic_conf);
+  [%expect {| list_map_block.tz: (Pair {} { 1 ; 3 ; 5 }) |}];
 
   printf "list_size.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/list_size.tz"
-    "" "" generic_conf);
-  [%expect {| list_size.tz: (Pair {} ) |}];
+    "{ 1; 1; 1; 1; 1; 1; 1 }" "0" generic_conf);
+  [%expect {| list_size.tz: (Pair {} 7) |}];
 
   printf "loop_left.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/loop_left.tz"
-    "" "" generic_conf);
-  [%expect {| loop_left.tz: (Pair {} ) |}];
+    "{ \"a\"; \"b\"; \"c\" }" "{}" generic_conf);
+  [%expect {| loop_left.tz: (Pair {} { "c" ; "b" ; "a" }) |}];
 
   printf "map_car.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/map_car.tz"
-    "" "" generic_conf);
-  [%expect {| map_car.tz: (Pair {} ) |}];
+    "True" "(Pair False 1)" generic_conf);
+  [%expect {| map_car.tz: (Pair {} (Pair False 1)) |}];
 
   printf "map_id.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/map_id.tz"
-    "" "" generic_conf);
-  [%expect {| map_id.tz: (Pair {} ) |}];
+    "{ Elt 0 1 }" "{}" generic_conf);
+  [%expect {| map_id.tz: (Pair {} { Elt 0 1 }) |}];
 
   printf "map_iter.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/map_iter.tz"
-    "" "" generic_conf);
-  [%expect {| map_iter.tz: (Pair {} ) |}];
+    "{ Elt 1 2 ; Elt 3 4 }" "(Pair -1 0)" generic_conf);
+  [%expect {| map_iter.tz: (Pair {} (Pair 4 6)) |}];
 
-  printf "map_map.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/map_map.tz"
+(*  printf "map_map.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/map_map.tz"
     "" "" generic_conf);
   [%expect {| map_map.tz: (Pair {} ) |}];
 
@@ -389,8 +390,8 @@ let%expect_test "op_codes" =
   [%expect {| map_mem_string.tz: (Pair {} ) |}];
 
   printf "map_size.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/map_size.tz"
-    "" "" generic_conf);
-  [%expect {| map_size.tz: (Pair {} ) |}];
+    "{ Elt \"a\" 1; Elt \"b\" 2; Elt \"c\" 3}" "0" generic_conf);
+  [%expect {| map_size.tz: (Pair {} 3) |}];
 
   printf "merge_comparable_pairs.tz: %s\n" (run_file "./test_files/contracts_alpha/opcodes/merge_comparable_pairs.tz"
     "" "" generic_conf);
