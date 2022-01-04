@@ -250,7 +250,7 @@ define d_ASSERT_RIGHT  = (IF_LEFT [d_FAIL] [RENAME]) ; -- FIXME missing annotati
 -- m_CAR_K.
 -- m_CDR_K.
 d_IF_SOME.  Instr ::= "IF_SOME" "{" [Instr] "}" "{" [Instr] "}" ;
-define d_IF_SOME bt bf = IF_NONE bt bf ;
+define d_IF_SOME bt bf = IF_NONE bf bt ;
 d_IF_RIGHT. Instr ::= "IF_RIGHT" "{" [Instr] "}" "{" [Instr] "}" ;
 define d_IF_RIGHT bt bf = IF_LEFT bf bt ;
 -- m_SET_CAR.

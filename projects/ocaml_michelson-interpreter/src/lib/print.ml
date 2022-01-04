@@ -1,3 +1,5 @@
+open Base
+
 open Value
 
 (*TODO: base on buffer instead of string concatenation*)
@@ -10,8 +12,8 @@ let rec ty_to_str ty =
   | TSet t              -> "(set " ^ (ty_to_str t) ^ ")"
   | TTicket t           -> "ticket (" ^ (ty_to_str t) ^ ")"
   | TLambda (t0, t1)    -> "lambda (" ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1) ^ ")"
-  | TMap (t0, t1)       -> "map (" ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1) ^ ")"
-  | TBig_map (t0, t1)   -> "mig_map (" ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1) ^ ")"
+  | TMap (t0, t1)       -> "map " ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1)
+  | TBig_map (t0, t1)   -> "big_map " ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1)
   | TBls_381_g1         -> "bls_381_g1"
   | TBls_381_g2         -> "bls_381_g2"
   | TBls_381_fr         -> "bls_381_fr"
@@ -98,3 +100,11 @@ and map_to_str vs =
   | [] -> ""
   | [(v0, v1)] -> "Elt " ^ val_to_str v0 ^ " " ^ val_to_str v1
   | (v0, v1) :: vs -> "Elt " ^ val_to_str v0 ^ " " ^ val_to_str v1 ^ " ; " ^ (map_to_str vs)
+
+
+
+let ty_stack_of_value_list (lst: value list) : string =
+  ( (String.concat ~sep:" : " (List.map lst ~f:(fun x -> ty_to_str (typeof x)))) ^ " : []")
+
+let val_stack_of_value_list (lst: value list) : string =
+  ( String.concat ~sep:" : " (List.map lst ~f:(val_to_str))) ^ " : []"

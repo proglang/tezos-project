@@ -22,11 +22,11 @@
 - everything regarding Saplings 
 - everything regarding Chests / Timelock
 - Bytes in general and PACK/UNPACK
-- Exceptions do not show the values -> missing show functions?
+- [x] Exceptions do not show the values (solved by generating strings for each value)
 
 #### parser & interpreter
 - Views
-- a few Macros, e.g. PAPAPAIR variants
+- a few missing Macros, e.g. PAPAPAIR variants
 
 #### testing via test-contracts!
 

@@ -141,7 +141,7 @@ and instr =
  | SPLIT_TICKET
  | JOIN_TICKETS
  | OPEN_CHEST
-[@@deriving eq, show { with_path = false }]
+ [@@deriving eq, show { with_path = false }]
 and annotation =
    ATypeA of typeAnnotation
  | AVariableA of variableAnnotation
@@ -237,5 +237,5 @@ let d_ASSERT_NONE  = IF_NONE ([], d_FAIL :: [])
 let d_ASSERT_SOME  = IF_NONE (d_FAIL :: [], RENAME :: [])
 let d_ASSERT_LEFT  = IF_LEFT (RENAME :: [], d_FAIL :: [])
 let d_ASSERT_RIGHT  = IF_LEFT (d_FAIL :: [], RENAME :: [])
-let d_IF_SOME (bt, bf) = IF_NONE (bt, bf)
+let d_IF_SOME (bt, bf) = IF_NONE (bf, bt)
 let d_IF_RIGHT (bt, bf) = IF_LEFT (bf, bt)

@@ -5,7 +5,7 @@ open Base
 open Value
 
 exception Illegal_Instruction of string * string * string (* string * AbsMichelson.instr * stack *)
-exception StackTypeError of string * string * string (* string * AbsMichelson.instr * typ list *) (*TODO: always return fulls stack, use stack :: notation*)
+exception StackTypeError of string * string * string (* string * AbsMichelson.instr * typ list *)
 
 (* VALUE/DATA EVALUATION FUNCTIONS *)
 let evalStr (AbsMichelson.Str (_,s)) : string = String.chop_prefix_exn ~prefix:"\"" s |> String.chop_suffix_exn ~suffix:"\"" (* quotation marks need to be removed *)
@@ -32,7 +32,7 @@ let evalStrLength str (l : int) : string = (* eval other strings depending on th
 (* INSTRUCTION EVALUATION HELPER FUNCTIONS *)
 let drop_n (n : int) (lst : value list) : value list =
    if n = 0 then lst
-   else if (List.length lst < n) then raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.show_instr (AbsMichelson.DROP_N n), ((String.concat ~sep:" : " (List.map lst ~f:Print.val_to_str)) ^ ": []")))
+   else if (List.length lst < n) then raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.show_instr (AbsMichelson.DROP_N n), Print.val_stack_of_value_list lst))
    else List.drop lst n
 
 let dup_n (n : int) (lst : value list) : value =
@@ -42,17 +42,17 @@ let dup_n (n : int) (lst : value list) : value =
     | Some x ->
       if (duplicable(typeof x)) then x
       else raise (StackTypeError ("Instr & stack value type mismatch.", AbsMichelson.show_instr (AbsMichelson.DUP_N n), String.concat ~sep:" : " (List.map lst ~f:Print.val_to_str)))
-    | None -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.show_instr (AbsMichelson.DUP_N n), ((String.concat ~sep:" : " (List.map lst ~f:Print.val_to_str)) ^ ": []")))
+    | None -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.show_instr (AbsMichelson.DUP_N n), Print.val_stack_of_value_list lst))
 
 let dig_n (n : int) (lst : value list) : value list =
   let (fst, snd) = List.split_n lst n in
   match (fst, snd) with
   | ([], _) -> raise (Illegal_Instruction ("DIG 0 is illegal", AbsMichelson.show_instr (AbsMichelson.DIG_N n), ""))
   | (fst, (x :: st)) -> x :: (fst @ st)
-  | (_, []) -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.show_instr (AbsMichelson.DIG_N n), ((String.concat ~sep:" : " (List.map lst ~f:Print.val_to_str)) ^ ": []")))
+  | (_, []) -> raise (Illegal_Instruction ("'n' greater or equal to the Stack size", AbsMichelson.show_instr (AbsMichelson.DIG_N n), Print.val_stack_of_value_list lst))
 
 let dug_n (n : int) (lst : value list) : value list =
-  if (List.length lst < (n + 1)) then raise (Illegal_Instruction ("'n' greater then Stack size", AbsMichelson.show_instr (AbsMichelson.DUG_N n), ((String.concat ~sep:" : " (List.map lst ~f:Print.val_to_str)) ^ ": []")))
+  if (List.length lst < (n + 1)) then raise (Illegal_Instruction ("'n' greater then Stack size", AbsMichelson.show_instr (AbsMichelson.DUG_N n), Print.val_stack_of_value_list lst))
   else
     let (fst, snd) = List.split_n lst (n + 1) in
     match (fst, snd) with
@@ -67,7 +67,7 @@ let pair_n (n : int) (lst : value list) : value list =
     | _ -> failwith "Interpreter.pair_n: this case should be impossible"
   in
   if (n <= 1) then raise (Illegal_Instruction ("'n' needs to be higher then 1", AbsMichelson.show_instr (AbsMichelson.PAIR_N n), ""))
-  else if (n > List.length lst) then raise (Illegal_Instruction ("'n' greater then Stack size", AbsMichelson.show_instr (AbsMichelson.PAIR_N n), ((String.concat ~sep:" : " (List.map lst ~f:Print.val_to_str)) ^ ": []")))
+  else if (n > List.length lst) then raise (Illegal_Instruction ("'n' greater then Stack size", AbsMichelson.show_instr (AbsMichelson.PAIR_N n), Print.val_stack_of_value_list lst))
   else
     let (fst, snd) = List.split_n lst n in
     (f fst) :: snd

@@ -11,7 +11,7 @@ let eval_argument (ty : Value.typ) (arg : AbsMichelson.prog) : Value.value =
     try
     	Interpreter.evalValue ty x
     with
-    	| Interpreter.TypeDataError (s,t,d) as e -> printf "Michelson.eval_argument: Given Argument is of wrong type:\n"; raise e
+    	| Interpreter.TypeDataError (s,t,d) as e -> printf "Michelson.eval_argument: Given Argument is of wrong type\n"; raise e
 
 exception InterpreterError of string * string * string
 
@@ -40,7 +40,7 @@ let interpret (prog : AbsMichelson.prog) (parameter : AbsMichelson.prog) (storag
     | _ -> failwith "Michelson.interpret: Illegal contract output"
     )
   | [] -> failwith "Michelson.interpret: Stack empty"
-  | _ -> failwith "Michelson.interpret: Stack contains more then one value" (* TODO: return/show topmost stack?*)
+  | _ -> failwith ("Michelson.interpret: Stack contains more then one value: " ^ Print.val_stack_of_value_list end_stack) (* TODO: return/show topmost stack?*)
   (* TODO: instr 'FAILWITH' abfangen *)
   (* TODO: create new exception type or Ok/Error result to propagate results back to michelson *)
 

@@ -122,6 +122,7 @@ let rec typeof (v : value) : typ =
 let typ_of_lst (lst: value list) : typ list =
   List.map lst ~f:(fun x -> typeof(x))
 
+
 (* Type class membership checker functions
    based on table at https://tezos.gitlab.io/michelson-reference/#types *)
 let rec comparable (t : typ (* comparable typ *)) : bool =
