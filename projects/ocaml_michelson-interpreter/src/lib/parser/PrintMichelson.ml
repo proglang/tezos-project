@@ -257,7 +257,9 @@ and prtAnnotation (i:int) (e : AbsMichelson.annotation) : doc = match e with
   |    AbsMichelson.AVariableA variableannotation -> prPrec i 0 (concatD [prtVariableAnnotation 0 variableannotation])
   |    AbsMichelson.AFieldA fieldannotation -> prPrec i 0 (concatD [prtFieldAnnotation 0 fieldannotation])
 
-
+and prtAnnotationListBNFC i es : doc = match (i, es) with
+    (_,[]) -> (concatD [])
+  | (_,x::xs) -> (concatD [prtAnnotation 0 x ; prtAnnotationListBNFC 0 xs])
 and prtTyp (i:int) (e : AbsMichelson.typ) : doc = match e with
        AbsMichelson.TCtype ctyp -> prPrec i 0 (concatD [prtCTyp 0 ctyp])
   |    AbsMichelson.TAnnot1 (typ, annotation) -> prPrec i 0 (concatD [prtTyp 0 typ ; prtAnnotation 0 annotation])

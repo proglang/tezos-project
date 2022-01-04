@@ -58,7 +58,7 @@ separator Instr ";" ; -- empty instruction sequence allowed! Last 'Instr' does d
 ANNOT.                 Instr ::= Instr Annotation ; -- trailing annotations
 _.                     Instr ::= "{" Instr "}" ;
 _.                     Instr ::= "{" Instr ";" "}" ; -- the defined separator does not seem to work here, therefore ";" is needed as another case
-internal BLOCK.        Instr ::= "{" [Instr] "}" ;
+internal BLOCK.        Instr ::= "{" [Instr] "}" ; -- used for macro expansion
 DROP.                  Instr ::= "DROP" ;
 DROP_N.                Instr ::= "DROP" Integer ;
 DUP.                   Instr ::= "DUP" ;
@@ -256,23 +256,24 @@ define d_IF_RIGHT bt bf = IF_LEFT bf bt ;
 -- m_SET_CAR.
 -- m_SET_CDR.
 -- SET_C[AD]+R
--- m_MAP_CAR.
--- m_MAP_CDR.
+m_MAP_CAR. Instr ::= "MAP_CAR" [Annotation] "{" [Instr] "}" ;
+define m_MAP_CAR annot code = BLOCK[DUP, CDR, (DIP [CAR, BLOCK(code)]), SWAP, PAIR] ;
+m_MAP_CDR. Instr ::= "MAP_CDR" [Annotation] "{" [Instr] "}" ;
+define m_MAP_CDR annot code = BLOCK[DUP, CDR, BLOCK(code), SWAP, CAR, PAIR] ;
 -- MAP_C[AD]+R
 
 
 
 -- Annotations
+terminator Annotation "" ; -- Annotations and macros
 ATypeA.     Annotation ::= TypeAnnotation ;
 AVariableA. Annotation ::= VariableAnnotation ;
 AFieldA.    Annotation ::= FieldAnnotation ;
+
 -- Syntax
--- Annotations and macros
 -- Special annotations
 
-
 -- Views
-
 
 -- Entrypoints
 

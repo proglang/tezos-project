@@ -103,6 +103,8 @@ type token =
   | KW_NEG
   | KW_MUL
   | KW_MEM
+  | KW_MAP_CDR
+  | KW_MAP_CAR
   | KW_MAP
   | KW_Left
   | KW_LT
