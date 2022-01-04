@@ -6,14 +6,14 @@ open Value
 
 let rec ty_to_str ty =
   match ty with
-  | TContract t         -> "contract (" ^ (ty_to_str t) ^ ")"
+  | TContract t         -> "(contract " ^ (ty_to_str t) ^ ")"
   | TOperation          -> "operation"
   | TList t             -> "(list " ^ (ty_to_str t) ^ ")"
   | TSet t              -> "(set " ^ (ty_to_str t) ^ ")"
-  | TTicket t           -> "ticket (" ^ (ty_to_str t) ^ ")"
-  | TLambda (t0, t1)    -> "lambda (" ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1) ^ ")"
-  | TMap (t0, t1)       -> "map " ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1)
-  | TBig_map (t0, t1)   -> "big_map " ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1)
+  | TTicket t           -> "(ticket " ^ (ty_to_str t) ^ ")"
+  | TLambda (t0, t1)    -> "(lambda " ^ (ty_to_str t0) ^ " " ^ (ty_to_str t1) ^ ")"
+  | TMap (t0, t1)       -> "(map " ^ (ty_to_str t0) ^ " " ^ (ty_to_str t1) ^ ")"
+  | TBig_map (t0, t1)   -> "(big_map " ^ (ty_to_str t0) ^ " " ^ (ty_to_str t1) ^ ")"
   | TBls_381_g1         -> "bls_381_g1"
   | TBls_381_g2         -> "bls_381_g2"
   | TBls_381_fr         -> "bls_381_fr"
@@ -22,9 +22,9 @@ let rec ty_to_str ty =
   | TChest              -> "chest"
   | TChest_key          -> "chest_key"
   (* dual (comparable/not comparable) types *)
-  | TOption t           -> "option (" ^ (ty_to_str t) ^ ")"
-  | TPair (t0, t1)      -> "pair (" ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1) ^ ")"
-  | TOr (t0, t1)        -> "or (" ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1) ^ ")"
+  | TOption t           -> "(option " ^ (ty_to_str t) ^ ")"
+  | TPair (t0, t1)      -> "(pair " ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1) ^ ")"
+  | TOr (t0, t1)        -> "(or " ^ (ty_to_str t0) ^ ", " ^ (ty_to_str t1) ^ ")"
   (* comparable types *)
   | TUnit               -> "unit"
   | TNever              -> "never"
