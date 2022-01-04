@@ -223,9 +223,9 @@ d_ASSERT_CMPGT.  Instr ::= "ASSERT_CMPGT" ;
 d_ASSERT_CMPLE.  Instr ::= "ASSERT_CMPLE" ;
 d_ASSERT_CMPGE.  Instr ::= "ASSERT_CMPGE" ;
 d_ASSERT_NONE.   Instr ::= "ASSERT_NONE" ;
-d_ASSERT_SOME.   Instr ::= "ASSERT_SOME" ;
-d_ASSERT_LEFT.   Instr ::= "ASSERT_LEFT" ;
-d_ASSERT_RIGHT.  Instr ::= "ASSERT_RIGHT" ;
+d_ASSERT_SOME.   Instr ::= "ASSERT_SOME" [Annotation] ;
+d_ASSERT_LEFT.   Instr ::= "ASSERT_LEFT" [Annotation] ;
+d_ASSERT_RIGHT.  Instr ::= "ASSERT_RIGHT" [Annotation] ;
 define d_ASSERT        = (IF [] [d_FAIL]) ;
 define d_ASSERT_EQ     = (d_IFEQ [] [d_FAIL]) ;
 define d_ASSERT_NEQ    = (d_IFNEQ [] [d_FAIL]) ;
@@ -240,9 +240,9 @@ define d_ASSERT_CMPGT  = (d_IFCMPGT [] [d_FAIL]) ;
 define d_ASSERT_CMPLE  = (d_IFCMPLE [] [d_FAIL]) ;
 define d_ASSERT_CMPGE  = (d_IFCMPGE [] [d_FAIL]) ;
 define d_ASSERT_NONE   = (IF_NONE [] [d_FAIL]) ;
-define d_ASSERT_SOME   = (IF_NONE [d_FAIL] [RENAME]) ; -- FIXME missing annotations
-define d_ASSERT_LEFT   = (IF_LEFT [RENAME] [d_FAIL]) ; -- FIXME missing annotations
-define d_ASSERT_RIGHT  = (IF_LEFT [d_FAIL] [RENAME]) ; -- FIXME missing annotations
+define d_ASSERT_SOME annots  = (IF_NONE [d_FAIL] [RENAME]) ; -- discarded annotations
+define d_ASSERT_LEFT annots  = (IF_LEFT [RENAME] [d_FAIL]) ; -- discarded annotations
+define d_ASSERT_RIGHT annots = (IF_LEFT [d_FAIL] [RENAME]) ; -- discarded annotations
 -- Syntactic Conveniences
 -- P(\left=A|P(\left)(\right))(\right=I|P(\left)(\right))R
 -- UNP(\left=A|P(\left)(\right))(\right=I|P(\left)(\right))R
@@ -257,9 +257,9 @@ define d_IF_RIGHT bt bf = IF_LEFT bf bt ;
 -- m_SET_CDR.
 -- SET_C[AD]+R
 m_MAP_CAR. Instr ::= "MAP_CAR" [Annotation] "{" [Instr] "}" ;
-define m_MAP_CAR annot code = BLOCK[DUP, CDR, (DIP [CAR, BLOCK(code)]), SWAP, PAIR] ;
+define m_MAP_CAR annots code = BLOCK[DUP, CDR, (DIP [CAR, BLOCK(code)]), SWAP, PAIR] ; -- discarded annotations
 m_MAP_CDR. Instr ::= "MAP_CDR" [Annotation] "{" [Instr] "}" ;
-define m_MAP_CDR annot code = BLOCK[DUP, CDR, BLOCK(code), SWAP, CAR, PAIR] ;
+define m_MAP_CDR annots code = BLOCK[DUP, CDR, BLOCK(code), SWAP, CAR, PAIR] ; -- discarded annotations
 -- MAP_C[AD]+R
 
 

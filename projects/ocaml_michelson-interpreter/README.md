@@ -44,6 +44,9 @@ Is connected to/needed for VOTING_POWER, SET_DELEGATE, TRANSFER_TOCKENS, CREATE_
 
 #### not to be implemented:
 - [x] Annotations: currently they are discarded in the interpreter, just as the CAST/RENAME instructions which work on annotations.
+  - Annotations at Macros are already discarded in the parser, because they would need a more complicated annotation handling 
+  and assignment of the annotations to the right expaned instructions. Macro expansion should be implemented in the 
+  interpreter instead to achieve that.
 
 
 #### performance:
