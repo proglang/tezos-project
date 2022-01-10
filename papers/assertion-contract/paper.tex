@@ -336,31 +336,3 @@ When the normal function is called by the check function, the storage stores the
 \bibliography{bio}
 \end{document}
 
-
-T here must be of cuorse a way to check whether a paramater has been checked We considor here two case. 
-(1) the function is called by the validtor funtion, then 
-- addvantiex: the separation is transferent to the user, no need to check if the paramater is correct or not.
-- disavanties: Expensive to store the parameter and may other parameter to excute after the assertion parameter is checked. The function is passive then need to make sure that it will be called after sometime.
-
-(2) the function is called saparately. this means user need to call the function validate() first to ask for checking the parameter, then this call will be store in the storage (1) the hash of the parameter , (2) the caller address and timestamp arroundr time then the caller call the assertion () function. This information is used to check the proof or the counterexample) . 
-
-We consider here only the call to a assertion function. In the both seseinior (1) and (2), the caller firt need to call assetion () funtion to check her parameter. if the parameter is correct then the finction function(0 is called to perfrom the work. There are two way to call the fuction () by a caller or by the function validate(). This thing is depicted in (1) and (2). 
-
-A caller call the assertion () function to sumit the parameter. The parameter then is supporsed to be checked by validators. The information of the parameter need to be stored in oedered to check the proof or conterexample later when a valodator submit them and to know when the actual function is called to perform the work. it is not enough to store the parameter its self since we need to know who is the caller and whay time it is called since a caller can call at many time.  Thus, the store need to storeage incloides in two case
-\begin{itemize}
-\item if the function is called by the funtion validato. then the information need to submit besied the parameter is also other parameters that need to fetch in the function function(). the information need to be stored are the parameters, the caller address, the time stamstample. as in (1)
-\item if it is called by the caller. The function will be called after somethime by a caller then the information to stopre is only the parameter hash, the caller address and the time stime
-\end{itemize}
-
-in both case, the record of the parameter need to initial information to absber the progeess of the checking the parameter. e.g how many proof have made, whether a counterexamole is found,..etc
-
-the parameter then  it need to be send to these validators. The information that need to be broachcard includes the parameter, the caller address and the timestamp.  As we have dissuted, there are two ways to do that
-
-\begin{itemize}
-\item by caller via a messinge system e.g waku 
-      \begin{itemize}
-      \item no extral money need, can attached to program to find a counter exacmple and don't need to care about the zise of the program.
-      \item the messing system is not offical and there are stll quite many problem with it
-      \end{itemize}
-\item by a transfer or via a transfer to the owner which attached in the MEDA fiwld. 
-\end{itemize} 
