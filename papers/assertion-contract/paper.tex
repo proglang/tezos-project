@@ -228,7 +228,7 @@ There can be several functions in a contract, we consider here the functions whe
 \begin{itemize}
 \item The assertion functions, where callers submit their parameters to be verified, which are then distributed to all validators. 
 \item  The work function that performs the task with the assumtion that the parameter is valid. 
-\item The validation functions, which have two mode to check and promote either a proof or a counterexample sent by validators.
+\item The validate functions, which have two mode to check and promote either a proof or a counterexample sent by validators.
 \end{itemize}
 
 For example, the Example contract in which there is a work function that  takes a prime number as one of its parameters would include these three types of functions  as follows:
@@ -247,7 +247,7 @@ contract Example {
        ...
     }
     \\ validation functions   
-    function validator(...) public {
+    function validate(...) public {
        ...
     }
     \\ other functions
@@ -277,52 +277,53 @@ The contents of the storage are divided into two parts: (1) normal data for the 
 
 
 \subsubsection{Offline Assertion Program}
-To check the validity of a parameter, each validator independently runs a program that generates a negative formula for the parameter and then selects a random point in the parameter range to find a counterexample. The program is intended to run offline from the blockchain network and should be sent to all validators. In addition, the program must provide a calculation proof that can be submitted to the blockchain to receive an award. This trigger calculation should be generated identically for each run. There is more to learn about the program in the following part.
+To check the validity of a parameter, each validator independently runs aassertion program that generates a negation formula for the parameter and then selects a random point in the parameter range to find a counterexample. The assertion program should be sent to all validators and should be executed offline from the blockchain network. In addition, the program must provide a proof of computation that can be submitted to the blockchain to receive an award. This trigger computation proof should be generated identically for each run. In the following part, you will learn more about the offline assertion program.
 \begin{figure}
 \centering
 \includegraphics[scale=.6]{assertion_1}
-\caption{Assertion Contract (1)}
+\caption{Assertion Contract Ptotocol (1)}
 \end{figure}
 
 \subsection{Roles}
-\subsubsection{Managing the contract and offline assertion program}
-A contract is provided by its owner on the blockchain. In addition to the code of the contract on the blockchain, there is the offline assertion program to find a counterexample for a submitted parameter, and this code should be available to all validators. Let us discuss two ways to submit this program 
+\subsubsection{Managing the contract and offline assertion program.}
+A contract is provided by its owner on the blockchain. In addition to the code of the contract on the blockchain, there is an offline assertion program to find a counterexample for a submitted parameter, and this code should be available to all validators. Let us discuss two ways to distribute this offline assertion program.
 
 \begin{itemize} 
-\item the program code is stored inside the contract code. In this case, the code will be available on the blockchain. However, it could be expensive to store it on the blockchain, and especially impossible if the program is very large. (For discussion: and can be sent as data in a normal transmission). 
-\item the program code is stored offline and should always be available to callers/validators on request. There are two ways to make it available to validators: (1) the program is stored on a source that the caller/validator can access, or the owner can make it available on request sent to a caller/validator when requested, and (2) when a caller invokes an assertion function, it should send the program to the network via messaging systems such as rakun in Eutherum, or the owner should send it to the network via postcard when deploying the contract, and in this case the interested validator should store it locally. \end{itemize}
+\item The program code is stored inside the contract code. In this case, the code is available on the blockchain. However, it could be expensive to store the code on the blockchain, and especially impossible if the program is very large. (For discussion: and can be sent as data in a normal transfer?). 
+\item The program code is stored offline and should always be available to callers/validators upon request. There are two ways to make it available to validators: (1) the program is stored on a source that can be accessed by the caller/validator, or the owner can make it available on request, which is sent to a caller/validator on request, and (2) when a caller invokes an assertion function, it should send the program to the network via messaging systems such as waku in eutherum, or the owner should broadcast it to the network when deplying the contract, and in this case interested validators should store the code locally. \end{itemize}
 
 
 
-\subsubsection{Interacting with the smart contract}
-A caller must first pass the parameter, which must be checked before it is passed to the actual code, namely the normal function. The parameter then is supporsed to be verified by validators. We consider here two ways in which the call to the normal function can be handled after the parameter has been checked. 
+\subsubsection{Interacting with the smart contract.}
+A caller must first pass the parameter to an assertion function before passing it for use in an actual code, namely a work function. The parameter is then distributed and to be checked by validators. We consider here two ways in which the call to the work function can be handled after the parameter has been validated.
 
 \begin{itemize}
-\item The function is called by a caller after the process of checking the parameter is complete (Figure 1). There must be a constraint for calling this function. For example, the function can be called only after the parameter has been available for verification for a certain time, or there is a fixed number of proofs (computational proof without counterexample) that the parameter has received. The main point with this way is that we do not need to store the parameter, only its hash in the storage, and also the other parameters that do not need to be checked can only be submitted when the caller invokes the normal function. The caller must also transmit the timestamp when it presents the parameter for checking. With the hash of the parameter, the address of the caller, and the timestamp, a search in storage looks for the matching information and constraints to decide whether or not to run the code for the actual performance.
-\item the function is called by the validate function (Figure 2). The good thing about this method is that the process of validating the parameter and calling the normal function is not visible to the user. However, there are two arguments against this way: (1) it is necessary to store the assertion parameter as well as others in memory, which comes at a high cost, and (2) since the function is called from the validation function, there should be a way to ensure that it is called when the parameter is valid and certain conditions are met. Also, it might be difficult to deal with timing constraints since these functions are passive. 
+\item The work function is called by a caller after the process of checking the parameter is complete (Figure 1). There must be some restrictions on calling this function, for example, the function can be called only after the parameter has been available for verification for a certain time, or there is a fixed number of proofs (computational proof without counterexample) that the parameter has received. The main point with this method is that we do not need to store the parameter, only its hash in the storage, and the other parameters that do not need to be checked can also be submitted only when the caller invokes the work function. The caller must also transmit the timestamp when it presents the parameter for verification. With the hash of the parameter, the address of the caller and the timestamp, a search in the storage looks for the matching information and constraints to decide whether the work function should be executed or not.
+\item The function is called by the validator function (Figure 2). The good thing about this method is that the process of validating the parameter and calling the normal function is not visible to the user. However, there are two arguments against this way: (1) it is necessary to store the parameter as well as others in storage, which comes at a high cost, and (2) since the function is called from the validate function, there should be a way to ensure that it is called when the parameter is valid and certain conditions are met. Also, it might be difficult to deal with timing constraints since these functions are passive. 
 \end{itemize}
 
-\paragraph{Submitting the parameter} A caller passes the parameter to be verified by calling an assertion function. The function then stores all the necessary information, namely the parameter hash (1) or the parameter (2), the caller's address, and the timestamp as in a record in the storage.  The record of the parameter, moreover, initial information to observe the progress of the verification of the parameter. e.g. how many evidences have been presented, whether a counterexample has been found,..etc. This information is used to check a proof or  counterexample submitted by a validator, and to decide when a normal function might be called for that parameter. The caller can then send this information, along with the offline assertion program, to all validators via a messaging system. (Discussion: should the function publish this information on the blockchain via the IDA in a transfer to all examiners as this is costly?).
+\paragraph{Submitting the parameter.} A caller passes the parameter to be checked by calling an assertion function. The function then stores all the necessary information, namely the parameter hash in Figure 1 (or the parameter in Figure 2), the caller's address, and the timestamp in memory as if in a record. The parameter's record also contains initial information to monitor the progress of the parameter's verification, e.g., how many computational proofs have been presented, whether a counterexample has been found, etc. This information is used to review a proof or counterexample presented by a validator, and to decide when a work function can be called for that parameter. The caller can then send this information along with the offline assertion program to all validators via a messaging system.
 
-\paragraph{Calling the normal function}
-We consider the case where the nomal function is called by a caller after the parameter has been checked. Thus, the caller first passes its parameter to the assertion function and then waits a while to be sure that the parameter is checked. The record corresponding to the parameter stored in memory is updated when a proof or counterexample is presented. After some time has passed or enough evidence has been received from the validator. The caller calls the function with the current parameter and timestamp, which is matched against the stored parameter hash and timestamp. They must match and meet some other requirements, e.g. a certain amount of time must have passed and no counterexample must be found. If all requirements are met, the actual work is performed and the record of the parameter is deleted from memory to relieve the memory. If no record is found that matches the input data, the actual function is not executed with the input data.
+(For discussion: should the function publish this information on the blockchain via the IDM in a transfer to all examiners as this is costly?).
+
+\paragraph{Calling a work function.}
+We consider the case where the work function is called by a caller after the parameter has been checked. Thus, the caller first passes its parameter to the assertion function and then waits a while to be sure that the parameter has been checked. The record corresponding to the parameter stored in the storage is updated when a proof or counterexample is presented. After some time has passed or enough proof has been received from the validators. The caller invokes the work function with the current parameter and timestamp, which is matched against the stored parameter hash and timestamp. They must match and satisfy some other conditions, e.g., a certain amount of time must have passed and no counterexample must be found. If all requirements are met, the actual work is done and the record of the parameter is deleted from memory to relieve the storage. If no record is found that matches the input data, the actual work with the input data is not performed.
 
 
 \begin{figure}
 \centering
 \includegraphics[scale=.6]{assertion_2}
-\caption{Assertion Contract (2)}
+\caption{Assertion Contract Ptotocol(2)}
 \end{figure}
 
 \subsubsection{Validating a parameter}
-When a parameter is sent to an validator, the validator runs the offline assertion program with the parameter to find a counterexample. If so, the validator submits the parameter to the blockchain to claim the reward. Otherwise, a computation proof is submitted, which should be automatically generated when the program is executed. A validator interacts with the contract in two ways: announce a counterexample  and submit a proof. The validator must clarify which parameter is verified by submitting the parameter, the address of the caller, and the timestamp. This information is then matched against the records in storage.
+When a parameter is sent to an validator, the validator runs the offline assertion program to find a counterexample. If so, the validator submits the parameter to the blockchain to receive a reward. Otherwise, a computation proof is submitted, which should be automatically generated when the program is executed. A validator interacts with the contract in two ways: he can announce a counterexample and submit a calculation proof. The validator must clarify which parameter is being verified by submitting the parameter, the address of the caller, and the timestamp. This information is then matched with the records in the storage.
 
-\begin{itemize}
-\item Submission of proof: After running the program but finding no counterexample, the validator submits a computational proof to receive a reward for running the check. The proof should be unique for each run. Since the offline assertion program is the same for every validators, we need the address of the validator for each parameter to make the proof unique for each validator. This prevents the validator from copying a calculation proof from others. Also, since the proof cannot be stored in the blockchain or it would be too costly, a timestamp is added for the execution of the program to prevent an validator from using the same proof for multiple submission. Therefore, the proof should be generated from the program code. The proof is calculated based on the program provided. Each validator who runs the program enters the parameter, the address of the caller, the timestamp, and the time at which he or she runs the program, as well as his or her address. This information is unique and is used to calculate a unique hash for the checker.
-\item Asserting a counterexample: a validator can submit a counterexample and that counterexample is then verified by the contract on the blockchain. If it is correct, there is an award to the validator and the function updates the store accordingly. There are two options: update the status or delete the record. 
+\paragraph{Submission of proof.} After running the program but finding no counterexample, the validator submits a computational proof to receive a reward for running the check. The proof should be unique for each run. Since the offline assertion program is the same for every validators, we need the address of the validator for each parameter to make the proof unique for each validator. This prevents the validator from copying a calculation proof from others. Also, since the proof cannot be stored in the blockchain or it would be too costly, a timestamp is added for the execution of the program to prevent an validator from using the same proof for multiple submission. Therefore, the proof should be generated from the program and is calculated based on the parameter's information provided. Each validator who runs the program enters the parameter, the address of the caller, the timestamp, and the time at which he or she runs the program, as well as his or her address. This information is used to calculate an unique computation proof.
+\paragraph{Asserting a counterexample.} a validator can submit a counterexample and that counterexample is then verified by the contract on the blockchain. If it is correct, there is an award to the validator and the function updates the store accordingly. There are two options: update the status or delete the record. 
  
-(Discussion: what happens if the parameter was checked but not executed by the contract caller. It will occupy the memory forever. Since a function is passive in this case, there should be a mode (function) executed by the owner to delete this parameter after some time. Also, the program is executed to check the parameter to find a counterexample. So basically it generates a random number (since it is offline, why do not we run the entire check - safe time) a limited number of proofs while it runs the check).
-\end{itemize}
+(For discussion: what happens if the parameter was checked but not executed by the contract caller. It will occupy the memory forever. Since a function is passive in this case, there should be a mode (function) executed by the owner to delete this parameter after some time. Also, the program is executed to check the parameter to find a counterexample. So basically it generates a random number (since it is offline, why do not we run the entire check - safe time) a limited number of proofs while it runs the check).
+
 When the normal function is called by the check function, the storage stores the parameter in place of its hash and any other parameters required for the normal function. If certain requirements are met, the function is called when a validator submits the proof.
 
 
@@ -335,4 +336,5 @@ When the normal function is called by the check function, the storage stores the
 \bibliographystyle{splncs04}
 \bibliography{bio}
 \end{document}
+
 
