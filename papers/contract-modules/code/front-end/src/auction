@@ -1,0 +1,6 @@
+contract type Auction = sig 
+     (paid entrypoint bid (n : int)
+      raises "closed" | "close action") 
+     (entrypoint close (s : string)
+      raises "not owner") 
+end
