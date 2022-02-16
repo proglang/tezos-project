@@ -19,26 +19,19 @@
 %\usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{listings}
-\lstdefinelanguage{michelson}{
-  % basicstyle=\ttfamily,
-  basicstyle=\fontsize{8}{9.6}\selectfont,
-  morekeywords={parameter,storage,or,unit,mutez,pair,bool,address}, sensitive=false,
-  morecomment=[l]{\#},
-  morecomment=[s]{/*}{*/},
-  morestring=[b]",
-}
-\lstset{
-  language=Caml,
-  captionpos=b,
-  aboveskip=-\smallskipamount,
-  belowskip=-\smallskipamount,
-  belowcaptionskip=0pt,
-  basicstyle=\fontsize{8}{9.6}\selectfont,
-  morekeywords={val}
-}
+\usepackage{titling}
 
 \input{macros}
+%\input{setup}
 
+% ------------------- colors -------------------
+\definecolor{darkgreen}{rgb}{0.0, 0.5, 0.0}
+\definecolor{UniBlue}{RGB}{0, 74, 153}
+\definecolor{UniRed}{RGB}{193, 0, 42}
+\definecolor{UniGrey}{RGB}{154, 155, 156}
+\definecolor{cverbbg}{gray}{0.93}
+
+\newcommand{\todo}[1]{\textbf{\textcolor{red}{(TODO: #1)}}}
 
 \begin{document}
 %
@@ -61,8 +54,7 @@
 \maketitle              % typeset the header of the contribution
 %
 \begin{abstract}
- 
-\keywords{}
+ \keywords{}
 \end{abstract}
 
 %
@@ -205,134 +197,486 @@ We propose an assertion verification approach for smart contracts. When a functi
 
 \noindent each validator independently choose a
 random $n$ in the range $2 \le n \le 
-\sqrt p$ and checking whether $(p \mathbin{\%} n) = 0$. If the remainder is $0$, the
-validator found a counterexample.
+\sqrt p$ and checking whether $(p \mathbin{\%} n) = 0$. If the remainder is $0$, the validator found a counterexample.
 
 In our approach, there are three roles: 
 \begin{itemize}
-   \item the smart contract owner deploys and manages the smart contract, 
-   \item the callers invoke the smart contract functions, and 
-   \item the validators are involved in validating a parameter submitted by a caller. 
+   \item the owner deploys and manages a assertion contract, 
+   \item the callers invoke a assertion contract, and 
+   \item the validators are involved in validating the parameters. 
 \end{itemize}
 
-\noindent A caller invoking a function submit the parameter that needs to be validated to the blockchain. The parameter is forwarded to all nodes as validators in the network, which then validate it. Our method is depicted in Figure 1 (2).
+\noindent A caller submit a parameter that needs to be validated to the blockchain. The parameter is  then forwarded to all nodes as validators in the network, which then validate it. After the parameter is validated, the actual work that use the parameter is executed. 
 
-Finding a counterexample for the assertion and announcing the result to the blockchain costs in terms of energy (computing power) and gas. There could be the case that it is very rare to find a counterexample, because a caller tries not to pass an unvalidated parameter. In this case, we need to encourage all validators running the program to validate the assertion. Therefore, there are two rewards in the form of cryptocurrency in order to motivate the validators to participate: (1) for a  counterexample found and (2) for a computational proof.  It requires a way to check a computation proof provided by a validator that proves that the validator actually run the program to find a counterfeit for the assertion, but none is found.
+Finding a counterexample for an assertion and announcing the result to the blockchain costs in terms of energy (computing power) and gas. There could be the case that it is very rare to find a counterexample, because a caller tries not to pass an unvalid parameter to the blockchain. In this case, we need to encourage all validators running the program to validate the assertion even though no counterexample may be found. Therefore, there are two way to reward validators in the form of cryptocurrency in order to motivate the validators to participate: (1) for a  counterexample found and (2) for a computational proof that proves that the validator actually run the program to find a counterfeit for the assertion, but none is found. 
 
+If any of the validators finds a violation of the assertion, the final call to the actual work is aborted. In our approach, the validator make an effor to find a counterexample for the assertion off-chain. Therefore, the validators interact with the smart contract to submit a  counterexample or a computation proof through smart contract function calls. 
 
-If any of the validators finds a violation of the assertion, the final transaction (call) is aborted. In our approach, the validator make an effor to find a counterexample for the assertion off-chain. Therefore, the validators interact with the smart contract to submit a  counterexample or a computation proof through smart contract function calls. 
-\subsection{Smart Contract's Functions and Storage}
-\subsubsection{Functions}
-There can be several functions in a contract, we consider here the functions where one of the parameters must be validated. Because the parameter must be checked before the actual work can be done, we separate it into two functions: a caller first invokes an assertion function to pass the parameter for  verification and after the parameter is verified, a normal function with a assumion that a paramete is valid can be called to do the actual work.  A contract must contain the following three types of functions:  
+Because the parameter must be validated before the actual work can be done, a caller first invokes an assertion function in the on-chain validate contract to pass the parameter for  verification and after the parameter is verified, a work contract that performs the task with the assumption that the parameter is valid can be called. The work contract can only called by the on-chain validate contract when some conditions are satisfied.
+
+\paragraph{On-chain validation contract.} An on-chain validation contract must contain the following two functions:  
 
 \begin{itemize}
-\item The assertion functions, where callers submit their parameters to be verified, which are then distributed to all validators. 
-\item  The work function that performs the task with the assumtion that the parameter is valid. 
-\item The validate functions, which have two mode to check and promote either a proof or a counterexample sent by validators.
+\item the assertion function, where callers submit their parameters to be verified, which are then distributed to all validators. 
+\item the on/off-chain assertion (validate function) to check and promote either a computational proof or a counterexample sent by validators.
 \end{itemize}
 
-For example, the Example contract in which there is a work function that  takes a prime number as one of its parameters would include these three types of functions  as follows:
 
-\begin{lstlisting}[numbers=none]
+When a caller submits a parameter for validation, the parameter and associated information must be stored for the validation process. Since the parameter can be very large, we suggest storing only its hash. The hash is still sufficient to validate the validation process. The address of the caller should also be stored, and perhaps the timestamp indicating the approximate time the caller submitted the parameter. For each submission, there should be a corresponding record containing the associated data and validation status, such as the number of proofs received or the status if there is a counterexample. It could be the case that many parameters are submitted, then it may be useful to delete the record after the processing is completed with the parameter. There are two possible data structures for storing such records: map and array. 
 
-contract Example {
-    \\ storage declarations
-    ...
-    \\ assertion functions
-    function assertion(int p) public {
-       ...
-    } 
-    \\ work functions
-    function work(int p, ...) public {
-       ...
-    }
-    \\ validation functions   
-    function validate(...) public {
-       ...
-    }
-    \\ other functions
-    ...
-}
-\end{lstlisting}
-
-%question: map or array and how to delete
-
-\subsubsection{Storage}
-When a caller submits a parameter to be validated, the parameter and its related information must be stored in storage for the validation process. For each submission, there should be a corresponding record, which contains the following data: (1) the parameter (or its hash), the caller's address, the timestamp indicating the approximate time when the caller submits the parameter, and the validating status containing such as the number of proofs it has received, the status if there is a counterexample. It could be the case that many parameters are submitted, then it makes sense to delete the data set after the processing with the parameter is completed. The selected data structure should be suitable for deletion both in terms of gas and reference to other records.  There are two possible cadicated data type for store such records : map and array. 
-
-For avobed example contract, assuming that a caller can only submit one parameter at a time, we can use a map that maps a caller address with the parameter hash and timestamp.
+For example, if we assume that a caller can submit only one parameter at a time, we can use a map that associates the caller's address with the parameter's hash and timestamp.
 
 \begin{lstlisting}[numbers=none]
 
    struct Parameter {
-        uint p_hash;
-        uint timestamp;
+        bytes32 p_hash;
+        uint256 timestamp;
     }
     mapping (address => Parameter) public parameters;
-    
 \end{lstlisting}
  
-The contents of the storage are divided into two parts: (1) normal data for the operating of the smart contract and (2) assertion data, which stores all records of the submitted parameters that need to be validated. 
 
 
+\paragraph{On-chain work contract.}  The working contact can only be invoked by the on-chain validation contract after the parameter has been validated if no counterexample is found. The actual work is then performed with the passed parameter.
 
-\subsubsection{Off-chain Assertion Program}
-To check the validity of a parameter, each validator independently runs aassertion program that generates a negation formula for the parameter and then selects a random point in the parameter range to find a counterexample. The assertion program should be sent to all validators and should be executed off-chain from the blockchain network. In addition, the program must provide a proof of computation that can be submitted to the blockchain to receive an award. This trigger computation proof should be generated identically for each run. In the following part, you will learn more about the off-chain assertion program.
+\begin{lstlisting}[numbers=none]
+
+contract Work {
+  
+    function work(...) public {
+       ...
+    } 
+}
+\end{lstlisting}
+
+\paragraph{Off-chain validate contract.}
+To check the validity of a parameter, each validator independently executes an off-chain validation contract that executes the same code on/off-chain assertion (the validate function) as in the on-chain validation contract. The on/off-chain validation should be sent to all validators and executed outside the blockchain network. The on/off-chain assertion (the validation function) in the on/off-chain validation plays the main role in our approach. It contains the negation formulas for parameters and takes a seed and a parameter as input. The seed is used to compute a random number to check the negation formulas of the parameter. The result of the calculation can be a counterexample, an award computation proof, or a non-award computation proof.
+
+A validator might try to run the off-chain validation contract many times to find either a counterexample or a proof of the price calculation. There could be many attempts before he receives an award. In the case of a non-award, the validator can run the code again with a different random number. If a counterexample or award is found, the validator passes the seed and parameter to the on-chain validation contract, which runs the same code on/off-chain assertion and must end up with the same result as the counterexample or award.
+
+\subsection{Managing on/off-chain contracts.}
+An on/off-chain assertion and on/off-chain validation contracts are provided by their owner. The owner deploy the on-chain validation contract and the work contract on the blockchain. The owner plays the main role in the design of the contracts. 
+
+The on/off-chain assertion and off-chain validation contract are stored off the blockchain and should be available to callers/validators upon request at any time. There are two ways to make them available to validators: (1) the codes are stored on a repository that callers/validators can access, or the owner can make it available upon request sent to a caller/validator upon request, and (2) an owner/caller sends it to the network via messaging systems such as Waku in eutherum. The owners should send it to the network if they deploy the on-chain contracts, and in this case interested validators should store the code locally. In the same way, callers send it when they invoke an assertion function in the on-chain validation contract on the blockchain.
+%\end{itemize}
+
 \begin{figure}
 \centering
-\includegraphics[scale=.6]{assertion_1}
-\caption{Assertion Contract Ptotocol (1)}
+\includegraphics[scale=.8]{owner}
+\caption{Managing on/off-chain assertion contracts.}
 \end{figure}
 
-\subsection{Roles}
-\subsubsection{Managing the contract and off-chain assertion program.}
-A contract is provided by its owner on the blockchain. In addition to the code of the contract on the blockchain, there is an off-chain assertion program to find a counterexample for a submitted parameter, and this code should be available to all validators. Let us discuss two ways to distribute this off-chain assertion program.
+\subsection{Interacting with the smart contract.}
+A caller must first submit the parameter to an assertion function in the on-chain validation contract before it can be used in the work contract. The parameter is then distributed and validated by validators. The process of validating the parameter and invoking the working contract is transparent to the user. It is sufficient to store the hash of the parameter, and the parameter is transmitted when a validator invokes the on/off-chain assertion in the on-chain validation contract on the blockchain. Since the work contract is invoked by the on-chain validation contract, there should be a way to ensure that it is only invoked when the parameter is valid and certain conditions are met, e.g., when it has received a sufficient number of proofs. 
 
-\begin{itemize} 
-\item The program code is stored inside the contract code. In this case, the code is available on the blockchain. However, it could be expensive to store the code on the blockchain, and especially impossible if the program is very large. (For discussion: and can be sent as data in a normal transfer?). 
-\item The program code is stored off-chain and should always be available to callers/validators upon request. There are two ways to make it available to validators: (1) the program is stored on a source that can be accessed by the caller/validator, or the owner can make it available on request, which is sent to a caller/validator on request, and (2) when a caller invokes an assertion function, it should send the program to the network via messaging systems such as waku in eutherum, or the owner should broadcast it to the network when deplying the contract, and in this case interested validators should store the code locally. \end{itemize}
+A caller may need to supply some tokens for validating the parameter and calling the work function. In some cases where the validation process does not have a counterexample but does not meet some conditions, e.g., does not receive enough proofs from the validators, the owner has to do some tasks here to handle the refund since the functions in the smart contract are passive. Some time contracts could be used for this purpose.
 
 
+\begin{figure}
+\centering
+\includegraphics[scale=.6]{caller}
+\caption{Submitting a parameter to the on-chain assertion contract.}
+\end{figure}
 
-\subsubsection{Interacting with the smart contract.}
-A caller must first pass the parameter to an assertion function before passing it for use in an actual code, namely a work function. The parameter is then distributed and to be checked by validators. We consider here two ways in which the call to the work function can be handled after the parameter has been validated.
+\paragraph{Submitting a parameter.} A caller passes the parameter to be checked by calling an assertion function. The function then stores all necessary information, namely the hash of the parameter, the address of the caller, and possibly the timestamp, as if in a record. The parameter's record also contains initial information for monitoring the progress of the parameter's verification, e.g., how many computational proofs have been presented, whether a counterexample has been found, etc. This information is used to review a proof or counterexample presented by a validator, and to decide when a work function can be called for that parameter. The caller can then send this information, along with the on/off-chain assertion and off-chain validation contract, to all validators via a messaging system.
 
-\begin{itemize}
-\item The work function is called by a caller after the process of checking the parameter is complete (Figure 1). There must be some restrictions on calling this function, for example, the function can be called only after the parameter has been available for verification for a certain time, or there is a fixed number of proofs (computational proof without counterexample) that the parameter has received. The main point with this method is that we do not need to store the parameter, only its hash in the storage, and the other parameters that do not need to be checked can also be submitted only when the caller invokes the work function. The caller must also transmit the timestamp when it presents the parameter for verification. With the hash of the parameter, the address of the caller and the timestamp, a search in the storage looks for the matching information and constraints to decide whether the work function should be executed or not.
-\item The function is called by the validator function (Figure 2). The good thing about this method is that the process of validating the parameter and calling the normal function is not visible to the user. However, there are two arguments against this way: (1) it is necessary to store the parameter as well as others in storage, which comes at a high cost, and (2) since the function is called from the validate function, there should be a way to ensure that it is called when the parameter is valid and certain conditions are met. Also, it might be difficult to deal with timing constraints since these functions are passive. 
-\end{itemize}
+\subsection{Validating a parameter}
+When a parameter is sent to a validator, the validator executes the off-chain validation contract, which includes an on/off-chain assertion, to find a counterexample. If so, the validator submits the counterexample to the blockchain to receive a reward. Otherwise, a computation proof is submitted, which should be automatically generated when the program is executed. A validator interacts with the contract in two ways: it can announce a counterexample and submit a computation proof. The validator may need to clarify which parameter is being checked by submitting the parameter and the address of the caller, and possibly the timestamp. This information is then matched against the records in the storage. Since the on/off chain assertion is the same for every validator, we may need the address of the validator for each parameter to make the proof unique for each validator. A random number is combined with the validator's address to create a seed that is used to compute a random point in the parameter range to verify the validation of the parameter. This prevents the validator from copying a calculation proof from others. With this information, a validator performs the off-chain validation contract, i.e., the on/off-chain assertion (validate function). There can be three different outcomes: a counterexample, an award, or a non-award. If it is a counterexample or an award, the validator passes the seed to the blockchain, i.e., it calls the on-chain validation contract on the chain, which then executes basically the same code as the on/off-chain assertion. If the on-chain result is the same, the validator gets the reward. If the off-chain validation result is not correct, the validator can rerun the off-chain validation. We could store these proofs information on the storage until the processing of the parameter is complete to prevent multiple submissions by a validator. 
 
-\paragraph{Submitting the parameter.} A caller passes the parameter to be checked by calling an assertion function. The function then stores all the necessary information, namely the parameter hash in Figure 1 (or the parameter in Figure 2), the caller's address, and the timestamp in memory as if in a record. The parameter's record also contains initial information to monitor the progress of the parameter's verification, e.g., how many computational proofs have been presented, whether a counterexample has been found, etc. This information is used to review a proof or counterexample presented by a validator, and to decide when a work function can be called for that parameter. The caller can then send this information along with the off-chain assertion program to all validators via a messaging system.
+\paragraph{Submiting of a proof/a counterexample.} After executing the off-chain validation contract, the validator may submit a computational proof or counterexample to receive a reward. The submission contains the random number, the address of the validator, the parameter, and possibly other information. These are then used to calculate the seed, which then goes into the on/off-chain assertion along with the parameter. If the result is correct, there is an award to the validator and the function updates the record in the storage accordingly. The work contract is called when a validator submits the record. When  certain requirements are met.
 
-(For discussion: should the function publish this information on the blockchain via the IDM in a transfer to all examiners as this is costly?).
+\begin{figure}
+\centering
+\includegraphics[scale=.8]{validator}
+\caption{Submitting a proof/a counterexample.}
+\end{figure}
 
 \paragraph{Calling a work function.}
-We consider the case where the work function is called by a caller after the parameter has been checked. Thus, the caller first passes its parameter to the assertion function and then waits a while to be sure that the parameter has been checked. The record corresponding to the parameter stored in the storage is updated when a proof or counterexample is presented. After some time has passed or enough proof has been received from the validators. The caller invokes the work function with the current parameter and timestamp, which is matched against the stored parameter hash and timestamp. They must match and satisfy some other conditions, e.g., a certain amount of time must have passed and no counterexample must be found. If all requirements are met, the actual work is done and the record of the parameter is deleted from memory to relieve the storage. If no record is found that matches the input data, the actual work with the input data is not performed.
+The work function is called by the on-chain validation contract once the parameter has been verified. Thus, the caller first passes its parameter to the assertion function and then waits a while to be sure that the parameter has been verified. The record corresponding to the parameter stored in the storage is updated when a proof or counterexample is presented. Some conditions must be met, e.g., after a certain amount of time has passed or enough evidence has been received from the validators.
+If an examiner submits the counterexample, the parameter is aborted from validating the process and the work function is never called. Otherwise, the work function is called when the computation proof is submitted and all conditions are met. 
+
+ The on-chain validation contract calls the work contract with the current parameter and timestamp matched against the stored parameter hash and timestamp. They must match and satisfy some other conditions, such as a certain amount of time must have passed and no counterexample must be found. If all conditions are met, the actual work is done and the record of the parameter is deleted from memory to relieve the storage. If no record is found that matches the input data, the actual work with the input data is not performed. The work contract only allows the call from the on-chain validation contract.
 
 
-\begin{figure}
-\centering
-\includegraphics[scale=.6]{assertion_2}
-\caption{Assertion Contract Ptotocol(2)}
-\end{figure}
+\section{Domain Specification Language for Assertion}
+We define a domain-specific high-level
+language to express assertions.
+\subsection{Assertion Grammar}
+The syntax of this language is described in two versions by the grammars: prefix and infix. The parser currently supports the prefix notation and correct
+operator precedences must be handled explicitly with parentheses. The syntax is inspired by OCaml and uses the same type notations as Michelson.
 
-\subsubsection{Validating a parameter}
-When a parameter is sent to an validator, the validator runs the off-chain assertion program to find a counterexample. If so, the validator submits the parameter to the blockchain to receive a reward. Otherwise, a computation proof is submitted, which should be automatically generated when the program is executed. A validator interacts with the contract in two ways: he can announce a counterexample and submit a calculation proof. The validator must clarify which parameter is being verified by submitting the parameter, the address of the caller, and the timestamp. This information is then matched with the records in the storage.
+An assertion begins with the keyword entrypoint and a signature consisting of an optional tag, denoted by \%, followed by a parameter pattern. Parameter patterns are similar to patterns in OCaml — they are templates that match shapes of data structures and bind identifiers to the components of them. The given parameter pattern must match exactly the parameter type of the entrypoint it is associated with. The body of an assertion can
+contain a nesting of quantifiers and conditions around exactly one assert expression, which tests a property. Conditions can be used to restrict the
+quantification domains or to impose any other constraints. For completeness,
+the existential quantifier is already included in the grammar, however the
+current version of the pipeline will reject any assertions containing it.
+How the assertions are associated with the respective entrypoint of the
+parent contract, depends on the Smart Contract language. In the case of
+Solidity, a tag that mirrors the function name is enough to link assertion and
+entrypoint. In Michelson contracts, on the other hand, entrypoints can be
+anonymous. Therefore, the assertions are linked to the entrypoints through
+the tags, the parameter type or both. 
 
-\paragraph{Submission of proof.} After running the program but finding no counterexample, the validator submits a computational proof to receive a reward for running the check. The proof should be unique for each run. Since the off-chain assertion program is the same for every validators, we need the address of the validator for each parameter to make the proof unique for each validator. This prevents the validator from copying a calculation proof from others. Also, since the proof cannot be stored in the blockchain or it would be too costly, a timestamp is added for the execution of the program to prevent an validator from using the same proof for multiple submission. Therefore, the proof should be generated from the program and is calculated based on the parameter's information provided. Each validator who runs the program enters the parameter, the address of the caller, the timestamp, and the time at which he or she runs the program, as well as his or her address. This information is used to calculate an unique computation proof.
-\paragraph{Asserting a counterexample.} a validator can submit a counterexample and the counterexample is then checked by the contract on the blockchain. If it is correct, there is an award to the validator and the function updates the store accordingly. There are two options: update the status or delete the record. 
- 
-(For discussion: what happens if the parameter was checked but not executed by the contract caller. It will occupy the memory forever. Since a function is passive in this case, there should be a mode (function) executed by the owner to delete this parameter after some time. Also, the program is executed to check the parameter to find a counterexample. So basically it generates a random number (since it is off-chain, why do not we run the entire check - safe time) a limited number of proofs while it runs the check).
+\subsubsection{Parameter patterns.}
+Listing gives an overview of the parameter patterns supported in the assertion language.
+\begin{lstlisting}[numbers=none]
 
-When the normal function is called by the validate function, the storage stores the parameter in place of its hash and any other parameters required for the normal function. If certain requirements are met, the function is called when a validator submits the proof.
+< pattern > ::=
+	| '_ '
+	| nil
+	| none
+	| ( IDENT : < type >)
+	| IDENT
+	| ( pair < pattern > < pattern >)
+	| ( left < pattern >)
+	| ( right < pattern >)
+	| ( cons < pattern > < pattern >)
+	| ( some < pattern >)
+   
+\end{lstlisting}
+
+\begin{lstlisting}[numbers=none]
+
+( entrypoint % g ( pair ( cons a as ) _ ) ...)
+\end{lstlisting}
+
+AST
+
+\begin{lstlisting}[numbers=none]
+
+type ast =
+{ entrypoint : string option * pattern ; body : assertion }
+
+\end{lstlisting}
+
+\subsection{Assertion Semantic}
+The validators are trying to solve the following formula in a distributed form.
+
+\begin{gather}
+  \label{eq:2}
+  \exists i \in D_{i}. P_{i}
+\end{gather}
+
+\noindent The verification attempt requires to search for $i$ in the domain $D$ such that $P_{i}$, called a counterexample (or proof). For each distributed trial, each validator chooses a random $i$ $\in$ $D$ and checks $P_{i}$. The formula can be extended to multiple domains $D_{i}$, ..., $D_{k}$.
+
+\begin{gather}
+  \label{eq:2}
+\exists i \in D_{i}, \exists j \in D_{j}, ..., \exists k \in D_{k}. P_{i, j, ...,k}
+\end{gather}
+
+\subsubsection{Transformer. }
+An assertion is formalized in the DSL. The formula is then transferred to its negation formula. 
+\begin{gather}
+  \label{eq:2}
+\neg (\forall i \in D_{i}. P_{i}) \equiv \exists i \in D_{i}. \neg P_{i}
+\end{gather}
+
+\noindent Given an assertion
+\begin{gather}
+  \label{eq:2}
+\forall i \in D_{i},  \forall j \in D_{j},  ..., \forall k \in D_{k}. P_{i, j, ...,k}
+\end{gather}
+
+\noindent it is then transformed to its negation, which is distributed to be verified by validators.
+
+\begin{gather}
+  \label{eq:2}
+\exists i \in D_{i},  \exists j \in D_{j},  ..., \exists k \in D_{k}. \neg P_{i, j, ...,k}
+\end{gather}
+
+%(2) For nested quantifiers: a formula that may contain one (or more ''forall" qualifier) then all of these ''forall" quantifiers is converted to ''exist" and all ''exist" quantifiers are kept the same and negative the predicate.
+%\begin{gather}
+%  \label{eq:2}
+%\forall i \in D_{i}, \exists j \in D_{j}, ..., \exists k \in D_{k}. (P_{i, j, ...,k})
+%\end{gather}
+
+%\begin{gather}
+%  \label{eq:2}
+%\exists i \in D_{i}, \exists j \in D_{j}, ..., \exists k \in D_{k}. \neg (P_{i, j, ...,k})
+%\end{gather}
+
+
+\subsubsection{Converter.} The main actor in our method is the on/off-chain assertion contract, which receives the parameter and a seed as input. The contract then generates a random number that is associated with a variable in the predicate $\neg P$. The result can be a counterexample, a computational proof with reward, or a computational proof without reward. A converter takes the AST of an assertion (AST for its negation) after the transformer step and returns the on/off-chain assertion contract written in Solidity (Michelson). To perform the conversion automatically, we restrict the semantics of the DSL. Variables are specified with \texttt{forall} quantifiers, which are then followed by \texttt{if} statements defining the scope of the variable. For example, the following assertion specifies the parameter \texttt{a} of type \texttt{int} for an entry point \texttt{prime}. The next line defines the variable \texttt{a} of type \texttt{int} and its range is defined in the next \texttt{if} statement, namely [2 a/2]. Finally, the assertion is declared.
+
+\begin{lstlisting}[numbers=none]
+
+(entrypoint % prime (a : int)
+   (forall (n : int)
+         (if (and (ge 2 n) (le n (div a 2)))
+              (assert (not (eq (mod a n) 0))))))
+             
+\end{lstlisting}
 
 
 
+%, which then is checked   For the implementation of the current method, the syntax support any type of parameter, but the conversion supports the sematic for some typical types. Namely $i$ can be identified with a number. in deep the domain, $D$ should be able to associate with a natural number. For this end, a validator submits a seed that is then used to calculate $i$ that detects $P_{i}$. For example, arrays of any type or strings that is an array of characters. There could be several properties of natural numbers as primes, even, old, co-primes, square numbers, ..etc. for array $i$ could be used to detect the element of an array (or character of string). In some cases, when the formula is $\forall$ i $\in$ D. ($P_{i}$). The formula could be encoded an array of predicates. after an assertion is transferred to distributed form to be distributed. The most important in our approach is to design the validator contract that used both on-chain and off-chain computation. Our conversion converts an assertion to an on/off-chain assertion file that is used for validators to check a randomly chosen i. although our method and the assertion transformer works with all decide domain D. The convention will only work if the D is related to a natural number. 
+Assumes that the range of a variable is 
+\begin{displaymath}
+r = [a, b] \land (b-a) > 0
+\end{displaymath}
+
+\noindent and a seed $s$, then the random number can be generate by 
+
+\begin{displaymath}
+n = s / (b - a) + a.
+\end{displaymath}
+
+
+\noindent For the above assertion, we have  
+\begin{displaymath}
+r = [2 , a / 2] \land (a / 2 - 2) >= 0. 
+\end{displaymath}
+
+\noindent Given a random seed s, the $n$ could be generate by $s$.
+
+\begin{gather}
+n = s / (a / 2 - 2) + 2.
+\end{gather}
+
+
+
+The Converter generate a on/off-chain assertion program in Solidity as the follows.
+
+\begin{lstlisting}[numbers=none]
+
+pragma solidity >=0.7.0 <0.9.0;
+
+/**
+ * On/off-chain assertion contract 
+ * to check counterexamples/computation proofs
+ */
+contract Validator{
+
+    /**
+    * The difficulty for a computation proof
+    */
+    uint diff = 1;
+    uint public target = 2 ** (256 - diff); 
+
+    /**
+    * The result: 0 = non-award, 1 = proof, 2 = counterexample
+    */
+
+    function validate(uint p, uint seed) 
+    public view returns (uint) {
+        uint range = p / 2 - 2; 
+        uint r = seed % range + 2;
+        uint cal = p % r;
+
+        uint result = 0; // an non-award computation proof 
+        if (cal == 0)  
+            result = 2; // a counterexample
+        else 
+            {
+                uint result_target = 
+                    uint (keccak256(abi.encodePacked(seed, cal)));
+                if (result_target <= target) 
+                    result = 1; // a computation proof    
+            }
+        return result;           
+    }
+}
+
+\end{lstlisting}
+
+For sorted array
+
+\begin{lstlisting}[numbers=none]
+
+(entrypoint % array (a : (list int))
+   (forall (n : int)
+      (forall (m : int)
+         (if (and (ge n 1) (le n (size a)))
+            (if (and (ge m 0) (lt m n))
+                  (assert (le (nth a n) (nth a m))))))))
+                  
+\end{lstlisting}
+
+\noindent We have:
+
+$r_{n}$ = [1, size a] with (size a - 1 $>$ 0)
+
+$r_{m}$ = [0, n] with (n - 0 $>$ 0)
+
+\begin{lstlisting}[numbers=none]
+
+pragma solidity >=0.7.0 <0.9.0;
+
+/**
+ * On/off-chain assertion contract 
+ * to check counterexamples/computation proofs
+ */
+contract Validator{
+
+    /**
+    * The difficulty for a computation proof
+    */
+    uint diff = 1;
+    uint public target = 2 ** (256 - diff); 
+
+    /**
+    * The result: 0 = non-award, 1 = proof, 2 = counterexample
+    */
+
+    function validate(uint[] memory p, uint seed)
+    public view returns (uint) {
+        uint range_1 = p.length - 1; 
+        require(range_1 > 0, "invalid range");
+        uint n = seed_i % range_1 + 1;
+        uint range_2 = n;
+        require(range_2 > 0, "invalid range");
+        uint m = seed_j % range_2 ;
+        
+        uint cal_1 = p[m];
+        uint cal_2 = p[n];
+
+        uint result = 0; // an non-award computation proof 
+        if (p[m] > p[n])  
+            result = 2; // a counterexample
+        else 
+            {
+            uint result_target = 
+                 int (keccak256(abi.encodePacked(seed, cal_1, cal_2)));
+            if (result_target <= target) 
+                result = 1; // a computation proof      
+        }             
+        return result;           
+    }
+}
+
+\end{lstlisting}
+
+For a heap
+
+\begin{lstlisting}[numbers=none]
+
+(entrypoint % heap (a : (list int))
+   (forall (n : int)
+         (if (and (ge n 1) (le n (size a)))
+                  (assert (lt (nth a n) (nth a (div (sub n 1) 2)))))))
+\end{lstlisting}
+
+
+\noindent We have:
+
+$r$ = [1, size a] with (size a - 1 $>$ 0)
+
+
+\begin{lstlisting}[numbers=none]
+pragma solidity >=0.7.0 <0.9.0;
+
+/**
+ * Validator Contract
+ * Check a counterexample/computation proof
+ */
+contract Validator{
+
+    /**
+    * The difficulty for a computation proof
+    */
+    uint diff = 1;
+    uint public target = 2 ** (256 - diff); 
+
+    /**
+    * Check a counterexample/ computation proof
+    * The result from a validator
+    * 0 = non-award, 1 = proof, 2 = counterexample
+    */
+
+    function validate(uint[10] memory p, uint seed) 
+    public view returns (uint) {
+        uint range = p.length; 
+        uint k = seed % range + 1;
+
+        uint cal = p[k];
+
+        uint result = 0; // an non-award computation proof 
+        if (p[k] < p[(k - 1) / 2])  
+            result = 2; // a counterexample
+        else {
+            uint result_target = 
+                uint (keccak256(abi.encodePacked(seed, cal)));
+            if (result_target <= target) 
+                result = 1; // a computation proof      
+        }              
+        return result;           
+    }
+}
+
+\end{lstlisting}
+
+Coprimes number
+
+\begin{lstlisting}[numbers=none]
+(entrypoint % coprimes (pair (a : int) (b : int))
+   (forall (n : int)
+         (if (and (ge 2 n) (le n (if (ge a b) a b)))
+              (assert (not (and (eq (mod a n) 0) (eq (mod b n) 0)))))))
+\end{lstlisting}
+
+
+\noindent We have:
+
+$r$ = [2, (if (a $>=$ b) a b)] with ((if ($a >= b$) a b) - 2 $>$ 0)
+
+
+\begin{lstlisting}[numbers=none]
+
+pragma solidity >=0.7.0 <0.9.0;
+
+/**
+ * On/off-chain assertion contract 
+ * to check counterexamples/computation proofs
+ */
+contract Validator{
+
+    /**
+    * The difficulty for a computation proof
+    */
+    uint diff = 1;
+    uint public target = 2 ** (256 - diff); 
+
+    /**
+    * The result: 0 = non-award, 1 = proof, 2 = counterexample
+    */
+
+    function validate(uint a, uint b, uint seed)
+    public view returns (uint) {
+        uint range;
+        if (a >= b) { range = a - 2; }
+        else {range = b - 2;}
+        
+        uint r = seed % range + 2;
+        require(range != 0, "invalid range");
+
+        uint cal_1 = a % r;
+        uint cal_2 = b % r;
+
+        uint result = 0; // an non-award computation proof 
+        if ((a % r == 0) && (b % r == 0))  
+            result = 2; // a counterexample
+        else {
+            uint result_target = 
+                uint (keccak256(abi.encodePacked(seed, cal_1, cal_2)));
+            if (result_target <= target) 
+                result = 1; // a computation proof      
+        }              
+        return result;           
+    }
+}
+
+\end{lstlisting}
 
 \section{A Prototype Implementation}
 \section{Cost Analysis}
 \section{Related work}
 \section{Conclusion}
+
+\newpage
+\addcontentsline{toc}{chapter}{Appendix}
+\input{appendix}
+
+\newpage
 \bibliographystyle{splncs04}
 \bibliography{bio}
 \end{document}
