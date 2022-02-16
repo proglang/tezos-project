@@ -31,7 +31,7 @@ contract Validator{
         uint cal_2 = p[n];
 
         uint result = 0; // an unaward computation proof 
-        if (p[m] > p[n])  result = 2; // a counterexample
+        if (cal_1 > cal_2)  result = 2; // a counterexample
         else 
             {
             uint result_target = uint (keccak256(abi.encodePacked(seed, cal_1, cal_2)));
