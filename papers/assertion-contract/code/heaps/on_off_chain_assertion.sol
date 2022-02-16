@@ -24,12 +24,13 @@ contract Validator{
         uint range = p.length; 
         uint k = seed % range + 1;
 
-        uint cal = p[k];
+        uint cal_1 = p[k];
+        uint cal_2 = p[(k - 1) / 2];
 
         uint result = 0; // an unaward computation proof 
-        if (p[k] < p[(k - 1) / 2])  result = 2; // a counterexample
+        if (cal_1 < cal_2)  result = 2; // a counterexample
         else {
-            uint result_target = uint (keccak256(abi.encodePacked(seed, cal)));
+            uint result_target = uint (keccak256(abi.encodePacked(seed, cal_1, cal_2)));
             if (result_target <= target) result = 1; // a computation proof      
         }              
         return result;           
