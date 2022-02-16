@@ -1,0 +1,57 @@
+AST                  
+└──Entrypoint: %find
+  └──Pattern: Id:a
+    └──Type: List_t<Type: Int_t>
+└──Assertion: Forall
+  └──Pattern: Id:n
+    └──Type: Int_t
+  └──Assertion: If
+    └──Expr: Bin Op: And
+      └──Expr: Bin Op: Ge
+        └──Expr: Id:n
+        └──Expr: Int:1
+      └──Expr: Bin Op: Le
+        └──Expr: Id:n
+        └──Expr: Un Op: Size
+          └──Expr: Id:a
+    └──Assertion: Assert
+      └──Expr: Bin Op: Lt
+        └──Expr: Bin Op: Nth
+          └──Expr: Id:a
+          └──Expr: Id:n
+        └──Expr: Bin Op: Nth
+          └──Expr: Id:a
+          └──Expr: Bin Op: Div
+            └──Expr: Bin Op: Sub
+              └──Expr: Id:n
+              └──Expr: Int:1
+            └──Expr: Int:2
+AST
+└──Entrypoint: %find
+  └──Pattern: Id:a
+    └──Type: List_t<Type: Int_t>
+└──Assertion: Exists
+  └──Pattern: Id:n
+    └──Type: Int_t
+  └──Bounds: 
+    └──Expr: Bin Op: Ge
+      └──Expr: Id:n
+      └──Expr: Int:1
+    └──Expr: Bin Op: Le
+      └──Expr: Id:n
+      └──Expr: Un Op: Size
+        └──Expr: Id:a
+  └──Assertion: Assert
+    └──Expr: Bin Op: Ge
+      └──Expr: Bin Op: Nth
+        └──Expr: Id:a
+        └──Expr: Id:n
+      └──Expr: Bin Op: Nth
+        └──Expr: Id:a
+        └──Expr: Bin Op: Div
+          └──Expr: Bin Op: Sub
+            └──Expr: Id:n
+            └──Expr: Int:1
+          └──Expr: Int:2
+
+{"entrypoint":[["Some","find"],["Ident",["a",["List_t","Int_t"]]]],"body":["Forall",[["n","Int_t"],["If",[["Binop",["And",["Binop",["Ge",["Ident","n"],["Int",1]]],["Binop",["Le",["Ident","n"],["Unop",["Size",["Ident","a"]]]]]]],["Assert",["Binop",["Lt",["Binop",["Nth",["Ident","a"],["Ident","n"]]],["Binop",["Nth",["Ident","a"],["Binop",["Div",["Binop",["Sub",["Ident","n"],["Int",1]]],["Int",2]]]]]]]]]]]]}
