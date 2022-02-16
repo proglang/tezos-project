@@ -1,0 +1,49 @@
+AST                  
+└──Entrypoint: %prime
+  └──Pattern: Id:a
+    └──Type: Int_t
+└──Assertion: Forall
+  └──Pattern: Id:n
+    └──Type: Int_t
+  └──Assertion: If
+    └──Expr: Bin Op: And
+      └──Expr: Bin Op: Ge
+        └──Expr: Int:2
+        └──Expr: Id:n
+      └──Expr: Bin Op: Le
+        └──Expr: Id:n
+        └──Expr: Bin Op: Div
+          └──Expr: Id:a
+          └──Expr: Int:2
+    └──Assertion: Assert
+      └──Expr: Un Op: Not
+        └──Expr: Bin Op: Eq
+          └──Expr: Bin Op: Mod
+            └──Expr: Id:a
+            └──Expr: Id:n
+          └──Expr: Int:0
+AST
+└──Entrypoint: %prime
+  └──Pattern: Id:a
+    └──Type: Int_t
+└──Assertion: Exists
+  └──Pattern: Id:n
+    └──Type: Int_t
+  └──Bounds: 
+    └──Expr: Bin Op: Ge
+      └──Expr: Int:2
+      └──Expr: Id:n
+    └──Expr: Bin Op: Le
+      └──Expr: Id:n
+      └──Expr: Bin Op: Div
+        └──Expr: Id:a
+        └──Expr: Int:2
+  └──Assertion: Assert
+    └──Expr: Bin Op: Eq
+      └──Expr: Bin Op: Mod
+        └──Expr: Id:a
+        └──Expr: Id:n
+      └──Expr: Int:0
+
+{"entrypoint":[["Some","prime"],["Ident",["a","Int_t"]]],"body":["Forall",[["n","Int_t"],["If",[["Binop",["And",["Binop",["Ge",["Int",2],["Ident","n"]]],["Binop",["Le",["Ident","n"],["Binop",["Div",["Ident","a"],["Int",2]]]]]]],["Assert",["Unop",["Not",["Binop",["Eq",["Binop",["Mod",["Ident","a"],["Ident","n"]]],["Int",0]]]]]]]]]]}
+
