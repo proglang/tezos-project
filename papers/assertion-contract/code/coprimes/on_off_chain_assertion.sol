@@ -31,7 +31,7 @@ contract Validator{
         uint cal_2 = b % r;
 
         uint result = 0; // an unaward computation proof 
-        if ((a % r == 0) && (b % r == 0))  result = 2; // a counterexample
+        if ((cal_1 == 0) && (cal_2 == 0))  result = 2; // a counterexample
         else {
             uint result_target = uint (keccak256(abi.encodePacked(seed, cal_1, cal_2)));
             if (result_target <= target) result = 1; // a computation proof      
