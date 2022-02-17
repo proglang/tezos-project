@@ -429,15 +429,32 @@ r = [2 , a / 2] \land (a / 2 - 2) >= 0.
 n = (s\mod (a / 2 - 2)) + 2.
 \end{gather}
 
-\subsubsection{Calculating a valid hash.} a computational proof is based on Proof of work (as Bitcoin). Each computation calculates a hash based on its running the check of the predicate and then compare it with the target hash. The calculation has to be unique for each run to prevent copying of other validators or run a quick independent program to find a valid hash. To this end, we include the seed and the calculation of the predicate components to the hash. In this case, these above bad internal force can not be successful. A predicate is composed of the primitives with the following operations (\texttt{gt, lt, ge, le, or, xor, and, eq, neq, neg, not}). The operations are composed of one or more expressions. These expressions are then used to calculate the hash.
+\subsubsection{Calculating a valid hash.} A computational proof is based on Proof of work (as Bitcoin). Each computation calculates a hash based on its running the check of the predicate and then compare it with the target hash. The calculation has to be unique for each run to prevent copying of other validators or run a quick independent program to find a valid hash. To this end, we include the seed and the calculation of the predicate components to the hash. In this case, these above bad internal force can not be successful. 
 
-For example, given the predicate 
+
+A predicate is formalized as an assert, which contains expressions in the DSL. Let $S$ = ($s_1$, $s_2$, ..., $s_n$) is the set of all expressions in the predicate that contains none of the following operations (\texttt{gt, lt, ge, le, or, xor, and, eq, neq, neg, not}). These expressions can then used to calculate the hash. 
 
 \begin{lstlisting}[numbers=none]
-not (eq (mod a n) 0)
+uint current_hash = 
+     uint (keccak256(abi.encodePacked(seed, s1, s2, ..., sn)));
 \end{lstlisting}
 
-\noindent The expression \texttt{(mod a n)} is the used to calculate the hash.
+
+\noindent For example, given the predicate 
+
+\begin{lstlisting}[numbers=none]
+p = not (eq (mod a n) 0)
+\end{lstlisting}
+
+\noindent We could ignore the constant expression, then the predicate has the expression \texttt{(mod a n)}, which can then be used to compute the hash. Let \texttt{cal} be the expression, then the hash is computed as follows.
+
+\begin{lstlisting}[numbers=none]
+uint current_hash = 
+     uint (keccak256(abi.encodePacked(seed, cal)));
+\end{lstlisting}
+
+\noindent This current hash is then compared to the target to find out if it is a valid hash for a computational award.
+
 
 \subsubsection{Examples.} The Converter generate a on/off-chain assertion program in Solidity as the follows.
 
@@ -477,9 +494,9 @@ contract Validator{
             result = 2; // a counterexample
         else 
             {
-                uint result_target = 
+                uint current_hash = 
                     uint (keccak256(abi.encodePacked(seed, cal)));
-                if (result_target <= target) 
+                if (current_hash <= target) 
                     result = 1; // a computational proof    
             }
         return result;           
@@ -548,9 +565,9 @@ contract Validator{
             result = 2; // a counterexample
         else 
             {
-            uint result_target = 
+            uint current_hash = 
                 uint (keccak256(abi.encodePacked(seed, cal_1, cal_2)));
-            if (result_target <= target) 
+            if (current_hash <= target) 
                 result = 1; // a computational proof      
         }             
         return result;           
@@ -612,9 +629,9 @@ contract Validator{
         if (p)  
             result = 2; // a counterexample
         else {
-            uint result_target = 
+            uint current_hash = 
                 uint (keccak256(abi.encodePacked(seed, cal_1, cal_2)));
-            if (result_target <= target) 
+            if (current_hash <= target) 
                 result = 1; // a computational proof      
         }              
         return result;           
@@ -678,9 +695,9 @@ contract Validator{
         if (p)  
             result = 2; // a counterexample
         else {
-            uint result_target = 
+            uint current_hash = 
                 uint (keccak256(abi.encodePacked(seed, cal_1, cal_2)));
-            if (result_target <= target) 
+            if (current_hash <= target) 
                 result = 1; // a computational proof      
         }              
         return result;           
