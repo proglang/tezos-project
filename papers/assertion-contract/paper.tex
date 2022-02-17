@@ -439,7 +439,9 @@ not (eq (mod a n) 0)
 
 \noindent The expression \texttt{(mod a n)} is the used to calculate the hash.
 
-The Converter generate a on/off-chain assertion program in Solidity as the follows.
+\subsubsection{Examples.} The Converter generate a on/off-chain assertion program in Solidity as the follows.
+
+\paragraph{Prime numbers.}{ on/off-chain assertion program for primes numbers}
 
 \begin{lstlisting}[numbers=none]
 
@@ -458,7 +460,8 @@ contract Validator{
     uint public target = 2 ** (256 - diff); 
 
     /**
-    * The result: 0 = non-award, 1 = proof, 2 = counterexample
+    * The result: 0 = non-award, 1 = proof, 
+    2 = counterexample
     */
 
     function validate(uint a, uint seed) 
@@ -485,7 +488,7 @@ contract Validator{
 
 \end{lstlisting}
 
-For sorted array
+\paragraph{Sorted arrays.}{ on/off-chain assertion program for sorted arrays}
 
 \begin{lstlisting}[numbers=none]
 
@@ -521,7 +524,8 @@ contract Validator{
     uint public target = 2 ** (256 - diff); 
 
     /**
-    * The result: 0 = non-award, 1 = proof, 2 = counterexample
+    * The result: 0 = non-award, 1 = proof, 
+    2 = counterexample
     */
 
     function validate(uint[] memory a, uint seed)
@@ -555,14 +559,15 @@ contract Validator{
 
 \end{lstlisting}
 
-For a heap
+\paragraph{Heaps.}{ on/off-chain assertion program for heap arrays}
 
 \begin{lstlisting}[numbers=none]
 
 (entrypoint % heap (a : (list int))
    (forall (n : int)
          (if (and (ge n 1) (le n (size a)))
-                  (assert (lt (nth a n) (nth a (div (sub n 1) 2)))))))
+               (assert (lt (nth a n) 
+               (nth a (div (sub n 1) 2)))))))
 \end{lstlisting}
 
 
@@ -589,7 +594,8 @@ contract Validator{
     /**
     * Check a counterexample/ computational proof
     * The result from a validator
-    * 0 = non-award, 1 = proof, 2 = counterexample
+    * 0 = non-award, 1 = proof, 
+    2 = counterexample
     */
 
     function validate(uint[10] memory a, uint seed) 
@@ -617,13 +623,14 @@ contract Validator{
 
 \end{lstlisting}
 
-Coprimes number
+\paragraph{Coprime numbers.}{ on/off-chain assertion program for coprime numbers}
 
 \begin{lstlisting}[numbers=none]
 (entrypoint % coprimes (pair (a : int) (b : int))
    (forall (n : int)
          (if (and (ge 2 n) (le n (if (ge a b) a b)))
-              (assert (not (and (eq (mod a n) 0) (eq (mod b n) 0)))))))
+              (assert (not (and (eq (mod a n) 0) 
+              (eq (mod b n) 0)))))))
 \end{lstlisting}
 
 
@@ -649,7 +656,8 @@ contract Validator{
     uint public target = 2 ** (256 - diff); 
 
     /**
-    * The result: 0 = non-award, 1 = proof, 2 = counterexample
+    * The result: 0 = non-award, 1 = proof, 
+    2 = counterexample
     */
 
     function validate(uint a, uint b, uint seed)
