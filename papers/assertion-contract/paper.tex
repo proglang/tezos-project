@@ -461,14 +461,16 @@ contract Validator{
     * The result: 0 = non-award, 1 = proof, 2 = counterexample
     */
 
-    function validate(uint p, uint seed) 
+    function validate(uint a, uint seed) 
     public view returns (uint) {
-        uint range = p / 2 - 2; 
+        uint range = a / 2 - 2; 
         uint r = seed % range + 2;
-        uint cal = p % r;
+        uint cal = a % r;
+        bool p = (cal == 0);
+        
 
         uint result = 0; // an non-award computational proof 
-        if (cal == 0)  
+        if (p)  
             result = 2; // a counterexample
         else 
             {
@@ -522,25 +524,28 @@ contract Validator{
     * The result: 0 = non-award, 1 = proof, 2 = counterexample
     */
 
-    function validate(uint[] memory p, uint seed)
+    function validate(uint[] memory a, uint seed)
     public view returns (uint) {
-        uint range_1 = p.length - 1; 
+        uint range_1 = a.length - 1; 
         require(range_1 > 0, "invalid range");
-        uint n = seed_i % range_1 + 1;
+        uint n = seed % range_1 + 1;
         uint range_2 = n;
         require(range_2 > 0, "invalid range");
-        uint m = seed_j % range_2 ;
+        uint seed_1 = uint (keccak256(abi.encodePacked(seed, n)));
+        uint m = seed_1 % range_2 ;
         
-        uint cal_1 = p[m];
-        uint cal_2 = p[n];
+        uint cal_1 = a[m];
+        uint cal_2 = a[n];
+        
+        bool p = (cal_1 > cal_2);
 
         uint result = 0; // an non-award computational proof 
-        if (cal_1 > cal_2)  
+        if (p)  
             result = 2; // a counterexample
         else 
             {
             uint result_target = 
-                 int (keccak256(abi.encodePacked(seed, cal_1, cal_2)));
+                uint (keccak256(abi.encodePacked(seed, cal_1, cal_2)));
             if (result_target <= target) 
                 result = 1; // a computational proof      
         }             
@@ -587,16 +592,18 @@ contract Validator{
     * 0 = non-award, 1 = proof, 2 = counterexample
     */
 
-    function validate(uint[10] memory p, uint seed) 
+    function validate(uint[10] memory a, uint seed) 
     public view returns (uint) {
-        uint range = p.length; 
+        uint range = a.length; 
         uint k = seed % range + 1;
 
-        uint cal_1 = p[k];
-        uint cal_2 = p[(k - 1) / 2];
+        uint cal_1 = a[k];
+        uint cal_2 = a[(k - 1) / 2];
+        
+        bool p = (cal_1 < cal_2);
 
         uint result = 0; // an non-award computational proof 
-        if (cal_1 < cal_2)  
+        if (p)  
             result = 2; // a counterexample
         else {
             uint result_target = 
@@ -656,9 +663,11 @@ contract Validator{
 
         uint cal_1 = a % r;
         uint cal_2 = b % r;
+        
+        bool p = (cal_1 == 0) && (cal_2 == 0);
 
         uint result = 0; // an non-award computational proof 
-        if ((cal_1 == 0) && (cal_2 == 0))  
+        if (p)  
             result = 2; // a counterexample
         else {
             uint result_target = 
