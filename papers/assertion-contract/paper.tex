@@ -392,7 +392,7 @@ An assertion is formalized in the DSL. The formula is then transferred to its ne
 %\end{gather}
 
 
-\subsubsection{Converter.} The main actor in our method is the on/off-chain assertion contract, which receives the parameter and a seed as input. The contract then generates a random number that is associated with a variable in the predicate. The result can be a counterexample, a computational proof with reward, or a computational proof without reward. A converter takes the AST of an assertion after the parser (or the AST for its negation after the transformer step) and returns the on/off-chain assertion contract written in Solidity (Michelson). To perform the conversion automatically, we restrict the semantics of the DSL. Variables are specified with \texttt{forall} quantifiers, which are then followed by \texttt{if} statements defining the range of the variable. For example, the following assertion specifies the parameter \texttt{a} of type \texttt{int} for the entrypoint \texttt{prime}. The next line defines the variable \texttt{a} of type \texttt{int} and its range is defined in the next \texttt{if} statement, namely [2 a/2]. Finally, the assertion is declared.
+\subsection{Converter - Generating an On/off-chain Assertion} The main actor in our method is the on/off-chain assertion contract, which receives the parameter and a seed as input. The contract then generates a random number that is associated with a variable in the predicate. The result can be a counterexample, a computational proof with reward, or a computational proof without reward. A converter takes the AST of an assertion after the parser (or the AST for its negation after the transformer step) and returns the on/off-chain assertion contract written in Solidity (Michelson). To perform the conversion automatically, we restrict the semantics of the DSL. Variables are specified with \texttt{forall} quantifiers, which are then followed by \texttt{if} statements defining the range of the variable. For example, the following assertion specifies the parameter \texttt{a} of type \texttt{int} for the entrypoint \texttt{prime}. The next line defines the variable \texttt{a} of type \texttt{int} and its range is defined in the next \texttt{if} statement, namely [2 a/2]. Finally, the assertion is declared.
 
 \begin{lstlisting}[numbers=none]
 
@@ -406,7 +406,7 @@ An assertion is formalized in the DSL. The formula is then transferred to its ne
 
 
 %, which then is checked   For the implementation of the current method, the syntax support any type of parameter, but the conversion supports the sematic for some typical types. Namely $i$ can be identified with a number. in deep the domain, $D$ should be able to associate with a natural number. For this end, a validator submits a seed that is then used to calculate $i$ that detects $P_{i}$. For example, arrays of any type or strings that is an array of characters. There could be several properties of natural numbers as primes, even, old, co-primes, square numbers, ..etc. for array $i$ could be used to detect the element of an array (or character of string). In some cases, when the formula is $\forall$ i $\in$ D. ($P_{i}$). The formula could be encoded an array of predicates. after an assertion is transferred to distributed form to be distributed. The most important in our approach is to design the validator contract that used both on-chain and off-chain computation. Our conversion converts an assertion to an on/off-chain assertion file that is used for validators to check a randomly chosen i. although our method and the assertion transformer works with all decide domain D. The convention will only work if the D is related to a natural number. 
-Assumes that the range of a variable is 
+\subsubsection{Detecting the range.} Assumes that the range of a variable is 
 \begin{displaymath}
 r = [a, b] \land (b-a) > 0
 \end{displaymath}
@@ -429,7 +429,7 @@ r = [2 , a / 2] \land (a / 2 - 2) >= 0.
 n = (s\mod (a / 2 - 2)) + 2.
 \end{gather}
 
-Moreover, a computational proof is calculated based on Proof of work (as Bitcoin). Each computation calculates a hash based on its running the check of the predicate and then compare it with the target hash. The calculation has to be unique for each run to prevent copying of other validators or run a quick independent program to find a valid hash. To this end, we include the seed and the calculation of the predicate components to the hash. In this case, these above bad internal force can not be successful. A predicate is composed of the primitives with the following operations (\texttt{gt, lt, ge, le, or, xor, and, eq, neq, neg, not}). The operations are composed of one or more expressions. These expressions are then used to calculate the hash.
+\subsubsection{Calculating a valid hash.} a computational proof is based on Proof of work (as Bitcoin). Each computation calculates a hash based on its running the check of the predicate and then compare it with the target hash. The calculation has to be unique for each run to prevent copying of other validators or run a quick independent program to find a valid hash. To this end, we include the seed and the calculation of the predicate components to the hash. In this case, these above bad internal force can not be successful. A predicate is composed of the primitives with the following operations (\texttt{gt, lt, ge, le, or, xor, and, eq, neq, neg, not}). The operations are composed of one or more expressions. These expressions are then used to calculate the hash.
 
 For example, given the predicate 
 
@@ -535,7 +535,7 @@ contract Validator{
         uint cal_2 = p[n];
 
         uint result = 0; // an non-award computational proof 
-        if (p[m] > p[n])  
+        if (cal_1 > cal_2)  
             result = 2; // a counterexample
         else 
             {
@@ -678,6 +678,7 @@ contract Validator{
 \section{Conclusion}
 
 \newpage
+\addcontentsline{toc}{chapter}{Appendix}
 \input{appendix}
 
 \newpage
