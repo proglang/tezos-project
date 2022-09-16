@@ -1,0 +1,134 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{authblk}
+
+\title{Contract Orchestration for OCaml \\
+  Progress Report 
+}
+\author{Thi Thu Ha Doan}
+\author{Peter Thiemann}
+\affil{University of Freiburg, Germany}
+\begin{document}
+\maketitle{}
+
+\section{Introduction}
+\label{sec:introduction}
+
+The Contract Orchestration for OCaml (COOC) project is funded by the Tezos foundation. Its overall goal  is to provide a framework that guarantees the correct orchestration of contract invocations from an application program in the OCaml language. This report is a continuation of the second report dated September 06, 2021.
+
+\subsection{Personnel}
+\label{sec:personnel}
+
+There is one full-time employee working on the project for the whole time period: Dr. Thi Thu Ha Doan (postdoctoral researcher). 
+
+Student workers (part time as explained below): 
+
+\section{Timeline of Events}
+\label{sec:timeline-events}
+\paragraph{October 2021 - March 2022: The Tezos API} 
+\begin{itemize}
+\item Leqaa Ahmed, who worked on the Ocaml API as part of her bachelor's thesis, has worked extensively with the Tezos library in Ocaml. Interacting with smart contracts on this blockchain via the Ocaml libraries is completely understated. She has managed to develop the functions that get the parameter types for each entrypoint of a smart contract on the blockchain and then convert those types to the corresponding types defined in Ocaml. However, it has not yet fully implemented the typed API. Therefore, I have assigned a student, Julian Mundhahs, to work on it as part of his bachelor's project. His task is to fully develop and strengthen the typing features of our Tezos API.
+\item Julian has successfully typed the API.The typed API allows interaction with smart contracts in a type-safe manner using native OCaml types. The types of the smart contract's arguments must be specified, which are then compared to the actual contract on the blockchain. If the types do not match, an error is raised. When a smart contract function is called, the official client libraries are called with a string representation of the actual argument. The library allows the arguments to be passed as their OCaml types. Since the type has already been checked, it is ensured that the contract can only be called with arguments of the correct type. 
+\item  The current code of the Tezos API can be found on Github \cite{tezos-api-update}. There is also an environment that makes it easy to run a Tezos sandbox independent of the host system \cite{tezos-api-devenv}.
+\end{itemize}
+ 
+
+\paragraph{October 2021 - March 2022: Michelson One-step Execusion Interpreter} 
+\begin{itemize}
+\item When writing code in Michelson, you have to keep track of the stack and what happens to it with each instruction. This is awkward for a larger program, since you have to follow either mentally or in writing, or make do with the hard-to-understand interfaces. Hasan Berkay's project therefore aims to provide a snapshot of the stack before and after the execution of each instruction in a programmatically accessible data format. In this way, with a suitable complementary user interface, it is much easier to track each step along the entire execution of the script and better understand errors. 
+\item The implementation was done in
+JavaScript, using a Nearley grammar to parse the Michelson scripts and interpret the parsed script with the data entered by the user.
+All execution is simulated sequentially and depends on user input, with chain manipulation instructions being mostly no-ops. 
+\item In its current state, the interpreter is capable of working with instructions up to and including the Tezos protocol Babylon. Since no complementary user interface is yet available, user acceptance is limited so far; however, tests with a number of scripts have shown correct results and stack continuity.
+\item The current code of the interpreter can be found on Github \cite{michelson-interpreter}.
+\end{itemize}
+
+\paragraph{October 2021 - March 2022: Blockchain Seminar Course} 
+\begin{itemize}
+\item Dr. Doan and I runed the seminar course "Blockchain and Cryptocurrencies." There are 35 students registered for the seminar. However, due to our limited capacity, we can only accommodate 13 students. 
+\item During the seminar, students research various topics on blockchain and smart contracts, starting from the engineering of blockchain, such as blockchain consensus, bitcoin security and privacy, blockchain oracle, etc. to a smart contract, such as smart contract verification, smart contract securityand privacy, static analysis for smart contracts, etc. To complete the assignments, students research several blockchains, including the Tezos blockchain.
+\end{itemize}
+
+ 
+Doan and Thiemann have worked on the type-safe interaction with the Tezos blockchain, distributed verification of assertions, and contract modules, and a checker for Michelson smart contracts on various aspects.
+n
+\paragraph{December 2021: Presentation at APLAS Conferece} 
+
+\begin{itemize}
+\item Thiemann gave a talk at the Asian Symposium on Programming Languages and Systems (APLAS 2021) (remotely due to the Covid situation). The talk is based on our paper on a typed programmatic interface to contracts on the blockchain, in which we propose a typed API for creating and invoking contracts and querying the state of the Tezos blockchain along with an operational semantics for functional programs running alongside smart contracts on a blockchain. During the talk, we will get some suggestions to improve our Tezos API.
+
+\end{itemize}
+
+ 
+\paragraph{September 2021 - June 2022: Distributed  Assertion Checking}
+\begin{itemize}
+\item Research on distributed assertion checking for smart contracts was conducted by two students, Tamara Bernhardt and Julian Veigel, as part of their master's thesis, with Tamara defining the grammar for the assertion language and Julian presenting different approaches and discussing their strengths and weaknesses. However, the approaches proposed by Tamara and Julian require changes  in the backend system (Tezos and Etherum). We therefore worked on a solution so that the approach can work without changes to the backend system.
+\item 
+The basic idea is to distribute the validation process among several nodes in the network, all testing different property cases. The goal is to reduce costs while preserving fundamental properties such as decentralization and trust. The senior is as follows. A caller submits a parameter that needs to be validated to the blockchain. The parameter is then forwarded to all nodes as validators in the network, which then validate it. After the parameter is validated, the actual work that uses the parameter is executed. The idea behind our approach is that validation is done separately from on-chain and off-chain processes. To check the validity of a parameter, each validator independently executes an off-chain validation contract that executes the off-chain assertion (the validation function), which is the same one used in the on-chain validation contract. The off-chain assertion in the off-chain validation contract plays the main role in our approach. It contains the negation formulas of the assertion for parameters and takes a seed and a parameter as input. 
+
+\item We define a domain-specific high-level language to express assertions. The main actor in our method is the on/off contract of an assertion. We propose an algorithm to automatically generate the on/off-chain assertion contract from an assertion written in our DSL. The algorithm is then implemented as a converter that takes the AST of an assertion after the parser (or the AST for its negation after the transformer step) and returns the on/off-chain assertion contract written in Solidity (Michelson). To perform the conversion automatically, we constrain the semantics of the DSL. So far, we have done:
+\begin{itemize}
+\item completing the design and implementation of a DSL to express the assertion (reused Tamara work).
+\item proposing an algorithm to automatically convert an assertion to the on/off-chain smart contract.
+\end{itemize}
+
+
+\end{itemize}  
+
+
+
+
+
+\paragraph{October 2021 - September 2022: Contract Modules, and A Checker for Michelson}
+\begin{itemize}
+\item Thiemann gave a presentation at the Formal Methods for Blockchains (FMBC 2021) workshop on contract modules that provide a statically verified interface to interact with contracts on the Tezos blockchain.
+\item The contract model, once generated from a contract module, is checked against the specification using symbolic execution. We have therefore worked on
+
+\begin{itemize}
+\item we are modelling symbolic execution for Michelson.
+\item Thiemann implemented a symbolic execution for Michelson in Ocaml.
+\item we explode Z3 solver as well as its library in Ocaml.
+\end{itemize}
+
+\item To build a checker for Michelson. We use the pre- and post-conditions to check a property. We first provide users with a DSL for the precondition and specify the property. The specification is then transferred to a formula in Z3 in Ocaml and then compared to the symbolic execution to check if a property is satisfied
+\end{itemize}
+
+
+\paragraph{June 2022 - September 2022} 
+
+Khaled Fayed works on exploring SMT checker for Solidity.
+\paragraph{July 2022}
+Hasan works on concolic execution to collect the condition paths.
+
+
+
+
+\section{Relation to the Contract}
+\label{sec:relation-contract}
+
+We have made progress on several points in the contract.
+\begin{itemize}
+\item complete the implementation of the type-safe interface ;
+\
+\end{itemize}
+
+
+\section{Next Steps}
+
+We plan to 
+\begin{itemize}
+\item implements the converter for the Assertiom contract (for Tezos and Ethereum). 
+\item package the document to a paper about Assertion Contract to a conference paper.
+\item implement code generation for contract modules; 
+\item extend contract modules to contract specifications that include pre-conditions, post-conditions, and allowable call sequences for entrypoints; 
+\item design and implement a checker for contract specifications based on Michelsym.
+\end{itemize}
+
+
+
+\bibliography{report}
+\bibliographystyle{plainurl}
+\end{document}
