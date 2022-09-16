@@ -23,14 +23,11 @@ The Contract Orchestration for OCaml (COOC) project is funded by the Tezos found
 \label{sec:personnel}
 
 There is one full-time employee working on the project for the whole time period: Dr. Thi Thu Ha Doan (postdoctoral researcher). 
-
-Student workers (part time as explained below): 
-
 \section{Timeline of Events}
 \label{sec:timeline-events}
 \paragraph{October 2021 - March 2022: The Tezos API} 
 \begin{itemize}
-\item Leqaa Ahmed, who worked on the Ocaml API as part of her bachelor's thesis, has worked extensively with the Tezos library in Ocaml. Interacting with smart contracts on this blockchain via the Ocaml libraries is completely understated. She has managed to develop the functions that get the parameter types for each entrypoint of a smart contract on the blockchain and then convert those types to the corresponding types defined in Ocaml. However, it has not yet fully implemented the typed API. Therefore, I have assigned a student, Julian Mundhahs, to work on it as part of his bachelor's project. His task is to fully develop and strengthen the typing features of our Tezos API.
+\item Leqaa Ahmed, who worked on the Ocaml API as part of her bachelor's thesis, has worked extensively with the Tezos library in Ocaml. Interacting with smart contracts on this blockchain via the Ocaml libraries is deeply understated. After that, she has managed to implement a function that gets the parameter types for each entrypoint of a smart contract on the blockchain and then convert those types to the corresponding types defined in Ocaml. However, it has not yet fully implemented the types for the API. Therefore, I have assigned a student, Julian Mundhahs, to work on it as part of his bachelor's project. His task is to fully develop and strengthen the typing features of our Tezos API.
 \item Julian has successfully typed the API.The typed API allows interaction with smart contracts in a type-safe manner using native OCaml types. The types of the smart contract's arguments must be specified, which are then compared to the actual contract on the blockchain. If the types do not match, an error is raised. When a smart contract function is called, the official client libraries are called with a string representation of the actual argument. The library allows the arguments to be passed as their OCaml types. Since the type has already been checked, it is ensured that the contract can only be called with arguments of the correct type. 
 \item  The current code of the Tezos API can be found on Github \cite{tezos-api-update}. There is also an environment that makes it easy to run a Tezos sandbox independent of the host system \cite{tezos-api-devenv}.
 \end{itemize}
@@ -74,45 +71,41 @@ The basic idea is to distribute the validation process among several nodes in th
 \item completing the design and implementation of a DSL to express the assertion (reused Tamara work).
 \item proposing an algorithm to automatically convert an assertion to the on/off-chain smart contract.
 \end{itemize}
-
-
 \end{itemize}  
-
-
-
-
 
 \paragraph{October 2021 - September 2022: Contract Modules, and A Checker for Michelson}
 \begin{itemize}
-\item Thiemann gave a presentation at the Formal Methods for Blockchains (FMBC 2021) workshop on contract modules that provide a statically verified interface to interact with contracts on the Tezos blockchain.
+\item Thiemann gave a presentation based on the beginning state of the Contract Modules at the Formal Methods for Blockchains (FMBC 2021) workshop.  Our aim is to provide a statically verified interface to interact with contracts on the Tezos blockchain.
 \item The contract model, once generated from a contract module, is checked against the specification using symbolic execution. We have therefore worked on
 
 \begin{itemize}
-\item we are modelling symbolic execution for Michelson.
+\item We symbolically model the interpreter for Michelson.
 \item Thiemann implemented a symbolic execution for Michelson in Ocaml.
 \item we explode Z3 solver as well as its library in Ocaml.
 \end{itemize}
 
-\item To build a checker for Michelson. We use the pre- and post-conditions to check a property. We first provide users with a DSL for the precondition and specify the property. The specification is then transferred to a formula in Z3 in Ocaml and then compared to the symbolic execution to check if a property is satisfied
+\item  As an other aim of our research to build a checker for Michelson. We use the pre- and post-conditions to check a property. We first provide users with a DSL for the precondition and specify the property. The specification is then transferred to a formula in Z3 in Ocaml and then compared to the symbolic execution to check if a property is satisfied.
 \end{itemize}
 
 
-\paragraph{June 2022 - September 2022} 
+\paragraph{June 2022 - October 2022} 
+\begin{itemize}
+\item Since we want to use an SMT solver, namely Z3  solver, as a type checker for the system and there is already an SMT checker for Solidity smart contract. It might be useful to explore the capabilities and facilities of SMT solvers for smart contract verification. I have commissioned Khaled Fayed to research the SMT checker for Solidity as part of his bachelor's project.
+\end{itemize}
 
-Khaled Fayed works on exploring SMT checker for Solidity.
 \paragraph{July 2022}
-Hasan works on concolic execution to collect the condition paths.
-
-
-
+\begin{itemize}
+\item The symbolic execution suffers from the state explosion. To check the precondition, it might be sufficient to collect the path conditions along with the execution. One possible way to do this is to use the concolic execution approach. I therefore assigned Hassan to look into concolic execution for Michelson as part of his bachelor's thesis.
+\end{itemize}
 
 \section{Relation to the Contract}
 \label{sec:relation-contract}
 
 We have made progress on several points in the contract.
 \begin{itemize}
-\item complete the implementation of the type-safe interface ;
-\
+\item A type-safe interaction between an Ocaml program and Michelson smart contracts on the Tezos blockchain. The work has been presented and published at APLAS 2021 conference. 
+\item The type Tezos API is completely implemented.
+
 \end{itemize}
 
 
