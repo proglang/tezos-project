@@ -75,22 +75,23 @@ The basic idea is to distribute the validation process among several nodes in th
 
 \paragraph{October 2021 - September 2022: Contract Modules, and A Checker for Michelson}
 \begin{itemize}
-\item Thiemann gave a presentation based on the beginning state of the Contract Modules at the Formal Methods for Blockchains (FMBC 2021) workshop.  Our aim is to provide a statically verified interface to interact with contracts on the Tezos blockchain.
+\item Thiemann gave a presentation on the initial state of contract modules at the Formal Methods for Blockchains (FMBC 2021) workshop. Contract modules aim to provide a statically verified interface for interacting with contracts on the Tezos blockchain.
 \item The contract model, once generated from a contract module, is checked against the specification using symbolic execution. We have therefore worked on
 
 \begin{itemize}
-\item We symbolically model the interpreter for Michelson.
-\item Thiemann implemented a symbolic execution for Michelson in Ocaml.
-\item we explode Z3 solver as well as its library in Ocaml.
+\item We propose a symbolic execution model for Michelson that allows us to grant a type-safe invocation of the contract on the blockchain. Namely, the model allows us to express the pre- and post-conditions and specify the invariants from them. In addition, the model enables us to specify constraints on the possible call orders of the entrypoints
+
+\item Thiemann implemented a symbolic execution for Michelson in Ocaml. Given a symbolic specification of an entrypoint, the symbolic execution yields the set of final states with the garter of path conditions. 
+\item Given an invocation of a smart contract, the invocation can be checked  using these invariants and constraints, before deployment on the chain, where the call is possible to be successfully. The verification of invariants and constraints can be done using an SMT solver. For this purpose, we exploded the Z3 solver and its library into Ocaml.
 \end{itemize}
 
-\item  As an other aim of our research to build a checker for Michelson. We use the pre- and post-conditions to check a property. We first provide users with a DSL for the precondition and specify the property. The specification is then transferred to a formula in Z3 in Ocaml and then compared to the symbolic execution to check if a property is satisfied.
+\item Another goal of our research is to develop a checker for Michelson. We use the pre- and post-conditions to check a property. We first provide users with a domain-specific language to specify the preconditions and the property. The specification is then transferred to a formula in Z3 in Ocaml and then transferred to symbolic execution to check if a property is satisfied. If a smart contract script is passed along with the property specification, the tool statically checks if these properties are satisfied.
 \end{itemize}
 
 
 \paragraph{June 2022 - October 2022} 
 \begin{itemize}
-\item Since we want to use an SMT solver, namely Z3  solver, as a type checker for the system and there is already an SMT checker for Solidity smart contract. It might be useful to explore the capabilities and facilities of SMT solvers for smart contract verification. I have commissioned Khaled Fayed to research the SMT checker for Solidity as part of his bachelor's project.
+\item Since we plan to use an SMT solver, namely Z3  solver, as a type checker for the system and there is already an SMT checker for Solidity smart contract. It would be useful to explore the capabilities and facilities of SMT solvers for smart contract verification. I have commissioned Khaled Fayed to research the SMT checker for Solidity as part of his bachelor's project.
 \end{itemize}
 
 \paragraph{July 2022}
@@ -113,10 +114,10 @@ We have made progress on several points in the contract.
 
 We plan to 
 \begin{itemize}
-\item implements the converter for the Assertiom contract (for Tezos and Ethereum). 
+\item implement the converter for the Assertiom contract (for Tezos and Ethereum). 
 \item package the document to a paper about Assertion Contract to a conference paper.
-\item implement code generation for contract modules; 
-\item extend contract modules to contract specifications that include pre-conditions, post-conditions, and allowable call sequences for entrypoints; 
+\item implement code generation for Contract Modules; 
+\item extend Contract modules to contract specifications that include pre-conditions, post-conditions, and allowable call sequences for entrypoints; 
 \item design and implement a checker for contract specifications based on Michelsym.
 \end{itemize}
 
