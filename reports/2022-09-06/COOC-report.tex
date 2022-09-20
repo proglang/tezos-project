@@ -107,9 +107,11 @@ The basic idea is to distribute the validation process among several nodes in th
 
 We have made progress on several points in the contract.
 \begin{itemize}
-\item A type-safe interaction between an Ocaml program and Michelson smart contracts on the Tezos blockchain. The work has been presented and published at APLAS 2021 conference \cite{DBLP:conf/fc/ThiemannAplas21}. 
+\item A type-safe interaction between an Ocaml program and Michelson smart contracts on the Tezos blockchain. The work was presented and published at APLAS 2021 conference \cite{DBLP:conf/fc/ThiemannAplas21}. 
+\item The initial state of work on Contract modules was presented and published at the Formal Methods for Blockchains (FMBC 2021) workshop \cite{DBLP:conf/fc/ThiemannFmbc21}.
+
 \item The typed Tezos API is completely implemented.
-\item extend Contract modules to contract specifications that include pre-conditions, post-conditions, and allowable call sequences for entrypoints; 
+\item a symbolic execution model for Michelson that allows us to specify pre-conditions, post-conditions, and allowable call sequences for entrypoints; 
 \end{itemize}
 
 
@@ -121,8 +123,7 @@ We plan to
 \item implement the converter for the Assertiom contract (for Tezos and Ethereum). 
 \item package the document to a paper about assertion contract to a conference paper.
 \item implement code generation for contract modules; 
-\item 
-\item design and implement a checker for contract specifications based on Michelsym.
+\item implement a checker for contract specifications based on Michelsym.
 \end{itemize}
 
 
