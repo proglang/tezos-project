@@ -73,20 +73,20 @@ The basic idea is to distribute the validation process among several nodes in th
 
 \paragraph{October 2021 - September 2022: Contract Modules, and A Checker for Michelson}
 \begin{itemize}
-\item Thiemann gave a presentation on the initial state of contract modules at the Formal Methods for Blockchains (FMBC 2021) workshop. Contract modules aim to provide a statically verified interface for interacting with contracts on the Tezos blockchain.
+\item Thiemann gave a presentation on the initial state of Contract modules at the Formal Methods for Blockchains (FMBC 2021) workshop. Contract modules aim to provide a statically verified interface for interacting with contracts on the Tezos blockchain.
 \item The contract model, once generated from a contract module, is checked against the specification using symbolic execution. We have therefore worked on
 
 \begin{itemize}
-\item We propose a symbolic execution model for Michelson that allows us to ensure type-safe invocation of the contract on the blockchain. Namely, the model allows us to express the pre- and post-conditions and specify the invariants from them. In addition, we can use the model to impose constraints on the possible call orders of the entrypoints.
+\item We proposed a symbolic execution model for Michelson that allows us to ensure type-safe invocation of the contract on the blockchain. Namely, the model allows us to express the pre- and post-conditions and then specify invariants. In addition, we can use the model to impose constraints on the possible call orders of the entrypoints.
 \item Thiemann implemented a symbolic execution for Michelson in Ocaml. Given a symbolic specification of an entrypoint, the symbolic execution returns the set of final states with the bundle of path conditions. 
-\item Given an invocation of a smart contract, the invocation can be checked against these invariants and constraints before being used in the chain, where the invocation may succeed. 
+\item Given an invocation of a smart contract, the invocation can be checked against these invariants and constraints before being used in the chain, where the invocation may be succeed. 
 \item The verification of invariants and constraints can be done using an SMT solver. For this purpose, we exploded the Z3 solver and its library into Ocaml.
 \end{itemize}
 
 \item Another goal is to develop a checker for Michelson smart contracts. When a smart contract script is passed along with the property specification, the tool will statically check if these properties are satisfied.
 \begin{itemize}
-\item We first provide an environment for the user to specify the preconditions, postconditions, and properties. 
-\item The specification is then converted to formulas in Z3 in Ocaml, which are then combined with symbolic execution to check if the property is satisfied. 
+\item We first provided an environment for the user to specify the properties. 
+\item The specification is then converted to formulas in Z3 in Ocaml, which are then checked.  
 \end{itemize}
 
 \end{itemize}
@@ -119,11 +119,24 @@ We have made progress on several points in the contract.
  
 We plan to 
 \begin{itemize}
-\item continuous our teaching activities (the blockchain course, a seminar on the topic in the winter semester).
-\item implement the converter for the Assertiom contract (for Tezos and Ethereum). 
-\item package the document to a paper about assertion contract to a conference paper.
+\item Teaching activities:
+\begin{itemize}
+\item continues our teaching activities (the blockchain course, a seminar on the topic in the winter semester).
+\item assigns more students interested in research on blockchain in general and Tezos in particular.
+\end{itemize}
+\item Assertion contract:
+\begin{itemize}
+\item implements the converter for assertion contracts. Given a specification in the assertion domain specification language of a parameter that needs to be verified, the converter automatically generates the on/off-chain assertions (for Tezos and Ethereum)
+\item implements the ecosystem for deploying assertion contracts on the network (for Tezos and Ethereum). 
+\item documents the results in a paper on assertion contracts.
+\end{itemize}
+
+\item Contract module and the checker for Michelsym smart contracts.
+\begin{itemize}
 \item implement code generation for contract modules; 
 \item implement a checker for contract specifications based on Michelsym.
+\end{itemize}
+
 \end{itemize}
 
 
