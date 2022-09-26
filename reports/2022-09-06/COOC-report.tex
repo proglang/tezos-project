@@ -29,29 +29,29 @@ There is one full-time employee working on the project for the whole time period
 \begin{itemize}
 \item Leqaa Ahmed, who worked on the Ocaml API as part of her bachelor's thesis, has worked extensively with the Tezos library in Ocaml. Interacting with smart contracts on this blockchain via the Ocaml libraries is deeply understated. After that, she has managed to implement a function that gets the parameter types for each entrypoint of a smart contract on the blockchain and then convert those types to the corresponding types defined in Ocaml. However, it has not yet fully implemented the types for the API. Therefore, I assigned a student, Julian Mundhahs, to work on it as part of his bachelor's project. His task is to fully develop and strengthen the typing features of our Tezos API.
 \item Julian has successfully typed the API. The typed API allows interaction with smart contracts in a type-safe manner using native OCaml types. The types of the smart contract's arguments must be specified, which are then compared to the actual contract on the blockchain. If the types do not match, an error is raised. When a smart contract function is called, the official client libraries are called with a string representation of the actual argument. The library allows the arguments to be passed as their OCaml types. Since the type has already been checked, it is ensured that the contract can only be called with arguments of the correct type. 
-\item  The current code of the Tezos API can be found on Github \cite{tezos-api-update}. There is also an environment that makes it easy to run a Tezos sandbox independent of the host system \cite{tezos-api-devenv}.
+\item  The current code of the Tezos API can be found on GitHub \cite{tezos-api-update}. There is also an environment that makes it easy to run a Tezos sandbox independent of the host system \cite{tezos-api-devenv}.
 \end{itemize}
  
 
-\paragraph{October 2021 - March 2022: Michelson One-step Execusion Interpreter} 
+\paragraph{October 2021 - March 2022: A Stepper for Michelson} 
 \begin{itemize}
-\item When writing code in Michelson, you have to keep track of the stack and what happens to it with each instruction. This is awkward for a larger program, since you have to follow either mentally or in writing, or make do with the hard-to-understand interfaces. Hasan Berkay's project therefore aims to provide a snapshot of the stack before and after the execution of each instruction in a programmatically accessible data format. In this way, with a suitable complementary user interface, it is much easier to track each step along the entire execution of the script and better understand errors. 
+\item When writing code in Michelson, you have to keep track of the stack and what happens to it with each instruction. This is awkward for a larger program, since you have to follow either mentally or in writing. Hassan Berkay's project therefore aims to provide a snapshot of the stack before and after the execution of each instruction in a programmatically accessible data format. This way, with a suitable complementary user interface (which is currently under development), it is much easier to track each step along the entire execution of the script and better understand errors. We also intend to use this tool for teaching.
 \item The implementation was done in
-JavaScript, using a Nearley grammar to parse the Michelson scripts and interpret the parsed script with the data entered by the user.
+JavaScript, using a Nearley grammar to parse the Michelson scripts and interpret the parsed script with the data entered by the user. 
 All execution is simulated sequentially and depends on user input, with chain manipulation instructions being mostly no-ops. 
-\item In its current state, the interpreter is capable of working with instructions up to and including the Tezos protocol Babylon. Since no complementary user interface is yet available, user acceptance is limited so far; however, tests with a number of scripts have shown correct results and stack continuity.
-\item The current code of the interpreter can be found on Github \cite{michelson-interpreter}.
+\item In its current state, the stepper is capable of working with instructions up to and including the Tezos protocol Babylon. Since no complementary user interface is yet available, user acceptance is limited so far; however, tests with a number of scripts have shown correct results and stack continuity.
+\item The current code of the stepper may be found on GitHub \cite{michelson-interpreter}.
 \end{itemize}
 
 \paragraph{October 2021 - March 2022: Blockchain Seminar Course} 
 \begin{itemize}
-\item Dr. Doan and I runed the seminar course "Blockchain and Cryptocurrencies." There are 35 students registered for the seminar. However, due to our limited capacity, we can only accommodate 13 students. 
-\item During the seminar, students research various topics on blockchain and smart contracts, starting from the engineering of blockchain, such as blockchain consensus, blockchain security and privacy, blockchain oracle, etc. to a smart contract, such as smart contract verification, smart contract securityand privacy, static analysis for smart contracts, etc. To complete the assignments, students research several blockchains, including the Tezos blockchain.
+\item Dr. Doan and I offered the seminar course "Blockchain and Cryptocurrencies." There were 35 students registered for the seminar. However, due to limited capacity, we only accepted 13 students.  
+\item During the seminar, students research various topics on blockchain and smart contracts, starting from the engineering of blockchain, such as blockchain consensus, blockchain security and privacy, blockchain oracle, etc. to topics related to smart contracts, such as smart contract verification, smart contract security and privacy, static analysis for smart contracts, etc. To complete the assignments, students researched several blockchains, including the Tezos blockchain.
 \end{itemize}
 
 Doan and Thiemann have worked on various aspects of type-safe interaction with the Tezos blockchain, distributed verification of assertions and contract modules, and a checker for Michelson smart contracts.
 
-\paragraph{December 2021: Presentation at APLAS Conferece} 
+\paragraph{December 2021: Presentation at the APLAS Conference} 
 
 \begin{itemize}
 \item Thiemann gave a talk at the Asian Symposium on Programming Languages and Systems (APLAS 2021) (remote due to the Covid situation). The talk is based on our paper on a typed programmatic interface to contracts on the blockchain, in which we propose a typed API for creating and invoking contracts and querying the state of the Tezos blockchain, along with operational semantics for functional programs running alongside smart contracts on a blockchain. During the talk, we received some suggestions that helped us improve our Tezos API.
@@ -62,14 +62,13 @@ Doan and Thiemann have worked on various aspects of type-safe interaction with t
 \begin{itemize}
 \item Research on distributed assertion checking for smart contracts was conducted by two students, Tamara Bernhardt and Julian Veigel, as part of their master's thesis, with Tamara defining the grammar for the assertion language and Julian presenting different approaches and discussing their strengths and weaknesses. However, the approaches proposed by Tamara and Julian require changes  in the backend system (Tezos and Etherum). We therefore worked on a solution so that the approach can work without changes to the backend system.
 \item 
-The basic idea is to distribute the validation process among several nodes in the network, all testing different property cases. The goal is to reduce costs while preserving fundamental properties such as decentralization and trust. The senior is as follows. A caller submits a parameter to the blockchain that needs to be validated. The parameter is then forwarded to all nodes as validators in the network, which then validate it. After the parameter is validated, the actual work that uses the parameter is executed. The idea behind our approach is that validation is done outside the chain, but the result of this process is then checked inside the chain. 
-\item To check the validity of a parameter, each validator independently performs an off-chain assertion, which is the same as the one used in the on-chain assertion. The result of the calculation can be
-a counterexample, an award computational proof, or a non-award computational
-proof. The result is then submitted to the blockchain, which then uses the on-chain assertion to verify the submission. The on/off-chain assertion contains the negation formulas of the assertion for parameters and takes a seed and a parameter as input.
-\item We define a assertion domain specific language (ADSL) to express assertions. The main actor in our method is the on/off-chain assertion contracts. We propose an algorithm to automatically generate the on/off-chain assertion contract from an assertion written in our ADSL. The algorithm is then implemented as a converter that takes the AST of an assertion after the parser (or the AST for its negation after the transformer step) and returns the on/off-chain assertion contract written in Michelson (Solidity). To perform the conversion automatically, we constrain the semantics of the ADSL. So far, we have done:
+The basic idea is to distribute the validation process among several nodes in the network, all testing different property cases. The goal is to reduce costs while preserving fundamental properties such as decentralization and trust. The revised approach is as follows. A caller submits a parameter to the blockchain that needs to be validated. The parameter is then forwarded to all nodes as validators in the network, which then validate it. After the parameter is validated, the actual work that uses the parameter is executed. The idea behind our approach is that validation is done outside the chain, but the result of this process is then checked on the chain. 
+\item To check the validity of a parameter, each validator independently performs an off-chain assertion, which is the same as the one used in the on-chain assertion. The result of the calculation can be a counterexample or a proof-of-work that a  computational check was executed. Some of these checks earn a reward. The result is submitted to a contract on the blockchain, which uses the on-chain assertion to verify the submission.
+  % The on/off-chain assertion contains the negation formulas of the assertion for parameters and takes a seed and a parameter as input. 
+\item We defined a domain specific language to express assertions. The main actor in our method is the on/off-chain assertion contracts. We propose an algorithm to automatically generate the on/off-chain assertion contract from an assertion written in our DSL. The algorithm is implemented as a converter that takes the AST of an assertion after the parser (or the AST for its negation after the transformer step) and returns the on/off-chain assertion contract written in Michelson. To perform the conversion automatically, we constrain the semantics of the DSL. So far, we have done:
 \begin{itemize}
-\item completed the design and implementation of a ADSL to express the assertion (reused Tamara work).
-\item proposed an algorithm to automatically convert an assertion  written in ADSL to the on/off-chain assertion.
+\item completed the design and implementation of the assertaion DSL (reused Tamara's work).
+\item proposed an algorithm to automatically convert an assertion to the on/off-chain assertion.
 \end{itemize}
 \end{itemize}  
 
@@ -82,26 +81,26 @@ proof. The result is then submitted to the blockchain, which then uses the on-ch
 \item We have proposed a symbolic execution model for Michelson that allows us to ensure safe invocations of a contract on the blockchain. The model allows us to express preconditions and postconditions and then specify invariants and constraints that are then used to ensure a secure invocation. We can also use the model to constrain the possible call sequences of the entrypoints.
 \item Thiemann implemented a symbolic execution for Michelson in Ocaml. Given a symbolic specification of an entrypoint, the symbolic execution returns the set of final states with the bundle of path conditions. 
 \item Given an invocation of a smart contract, the invocation can be checked against these invariants and constraints before being used in the chain, where the invocation may be succeed. 
-\item The verification of invariants and constraints can be done using an SMT solver. For this purpose, we exploded the Z3 solver and its library into Ocaml.
+\item The verification of invariants and constraints can be done using an SMT solver. For this purpose, we explored the Z3 solver and its library into Ocaml.
 \end{itemize}
 
-\item Another goal is to develop a checker for Michelson smart contracts. When a smart contract script is passed along with the property specification, the tool will statically check if these properties are satisfied.
+\item Another goal is to develop a checker for Michelson smart contracts. When a smart contract script is passed along with the property specification, the tool will statically check if these properties are satisfied. 
 \begin{itemize}
 \item We first provided an environment for the user to specify the properties. 
 \item The specification is then converted to formulas in Z3 in Ocaml, which are then checked.  
 \end{itemize}
-
+\item We are currently extending this approach to type-state based specifications of multiple contracts / entrypoints. This approach is closely related to work on session types. This apparent connection has been used to advantage by other researchers, too.
 \end{itemize}
 
 
 \paragraph{June 2022 - October 2022} 
 \begin{itemize}
-\item We plan to use an SMT solver, namely Z3  solver, as a type checker for the system and there is already an SMT checker for Solidity smart contract. It, therefore, would be useful to explore the capabilities and facilities of SMT solvers for smart contract verification. I have commissioned Khaled Fayed to research the SMT checker for Solidity as part of his bachelor's project.
+\item We plan to use an SMT solver, namely Z3, as a property checker for the system. As there is already a related checker for Solidity smart contract based on SMT, it is useful to  explore the capabilities and facilities of SMT solvers for smart contract verification. Our student  Khaled Fayed has been commissioned to research the SMT checker for Solidity as part of his bachelor's project. 
 \end{itemize}
 
 \paragraph{July 2022}
 \begin{itemize}
-\item The symbolic execution suffers from the state explosion. To check the precondition, it might be sufficient to collect the path conditions along with the execution. One possible way to do this is to use the concolic execution approach. I therefore assigned Hassan to look into concolic execution for Michelson as part of his bachelor's thesis.
+\item Symbolic execution suffers from the state explosion. To check the precondition, it might be sufficient to collect the path conditions along with the execution. One possible way to do this is to use the concolic execution approach. I therefore assigned Hassan to look into concolic execution for Michelson as part of his bachelor's thesis.
 \end{itemize}
 
 \section{Relation to the Contract}
@@ -112,9 +111,9 @@ We have made progress on several points in the contract.
 \item A type-safe interaction between an Ocaml program and Michelson smart contracts on the Tezos blockchain. The work was presented and published at APLAS 2021 conference \cite{DBLP:conf/fc/ThiemannAplas21}. 
 \item The initial state of work on Contract modules was presented and published at the Formal Methods for Blockchains (FMBC 2021) workshop \cite{DBLP:conf/fc/ThiemannFmbc21}.
 
-\item The typed Tezos API is completely implemented.
-\item The ADSL for specifying assertions for distributed checking and an alorithm to deploy the assertion on the blockchain system (Tezos and Ethereum).
-\item a symbolic execution model for Michelson that allows us to specify pre-conditions, post-conditions, and allowable call sequences for entrypoints; 
+\item The typed OCaml-API for Tezos is completely implemented.
+\item The DSL for specifying assertions for distributed checking and an algorithm to  deploy the assertion on the blockchain system.
+\item A symbolic execution model for Michelson that allows us to specify pre-conditions, post-conditions, and allowable call sequences for entrypoints as well as between different contracts. 
 \end{itemize}
 
 
@@ -124,17 +123,18 @@ We plan to
 \begin{itemize}
 \item Teaching activities:
 \begin{itemize}
-\item continues our teaching activities (the blockchain course, a seminar on the topic in the winter semester).
-\item assigns more students interested in research on blockchain in general and Tezos in particular.
+\item continue our teaching activities (the blockchain course, a seminar on the topic in the winter semester);
+\item find more students interested in research on blockchain in general and Tezos in particular.
 \end{itemize}
-\item Assertion contract:
+\item Assertion contracts:
 \begin{itemize}
-\item implements the converter for assertion contracts. Given a specification in the assertion domain specification language of a parameter that needs to be verified, the converter automatically generates the on/off-chain assertions (for Tezos and Ethereum)
-\item implements the ecosystem for deploying assertion contracts on the network (for Tezos and Ethereum). 
-\item documents the results in a paper on assertion contracts.
+\item implement the converter for assertion contracts. Given a specification in the assertion DSL of a parameter that needs to be verified, the converter automatically generates the on/off-chain assertions;
+\item implement the ecosystem for deploying assertion contracts on the network; 
+\item document our latest results in papers on assertion contracts and symbolic execution for Michelson;
+\item develop a dynamic logic as a formal basis for symbolic execution of Michelson.
 \end{itemize}
 
-\item Contract module and the checker for Michelsym smart contracts.
+\item Contract module and the checker for Michelson smart contracts:
 \begin{itemize}
 \item implement code generation for contract modules; 
 \item implement a checker for contract specifications based on Michelsym.
