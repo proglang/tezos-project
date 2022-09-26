@@ -60,14 +60,14 @@ Doan and Thiemann have worked on various aspects of type-safe interaction with t
  
 \paragraph{September 2021 - June 2022: Distributed  Assertion Checking}
 \begin{itemize}
-\item Research on distributed assertion checking for smart contracts was conducted by two students, Tamara Bernhardt and Julian Veigel, as part of their master's thesis, with Tamara defining the grammar for the assertion language and Julian presenting different approaches and discussing their strengths and weaknesses. However, the approaches proposed by Tamara and Julian require changes  in the backend system (Tezos and Etherum). We therefore worked on a solution so that the approach can work without changes to the backend system.
+\item Research on distributed assertion checking for smart contracts was conducted by two students, Tamara Bernhardt and Julian Veigel, as part of their master's thesis, with Tamara defining the grammar for the assertion language and Julian presenting different approaches and discussing their strengths and weaknesses. However, the approaches proposed by Tamara and Julian require changes  in the backend system (Tezos and Ethereum). We therefore worked on a solution so that the approach can work without changes to the backend system.
 \item 
 The basic idea is to distribute the validation process among several nodes in the network, all testing different property cases. The goal is to reduce costs while preserving fundamental properties such as decentralization and trust. The revised approach is as follows. A caller submits a parameter to the blockchain that needs to be validated. The parameter is then forwarded to all nodes as validators in the network, which then validate it. After the parameter is validated, the actual work that uses the parameter is executed. The idea behind our approach is that validation is done outside the chain, but the result of this process is then checked on the chain. 
 \item To check the validity of a parameter, each validator independently performs an off-chain assertion, which is the same as the one used in the on-chain assertion. The result of the calculation can be a counterexample or a proof-of-work that a  computational check was executed. Some of these checks earn a reward. The result is submitted to a contract on the blockchain, which uses the on-chain assertion to verify the submission.
   % The on/off-chain assertion contains the negation formulas of the assertion for parameters and takes a seed and a parameter as input. 
 \item We defined a domain specific language to express assertions. The main actor in our method is the on/off-chain assertion contracts. We propose an algorithm to automatically generate the on/off-chain assertion contract from an assertion written in our DSL. The algorithm is implemented as a converter that takes the AST of an assertion after the parser (or the AST for its negation after the transformer step) and returns the on/off-chain assertion contract written in Michelson. To perform the conversion automatically, we constrain the semantics of the DSL. So far, we have done:
 \begin{itemize}
-\item completed the design and implementation of the assertaion DSL (reused Tamara's work).
+\item completed the design and implementation of the assertion DSL (reused Tamara's work).
 \item proposed an algorithm to automatically convert an assertion to the on/off-chain assertion.
 \end{itemize}
 \end{itemize}  
@@ -147,3 +147,6 @@ We plan to
 \bibliography{report}
 \bibliographystyle{plainurl}
 \end{document}
+
+%  LocalWords:  Ocaml Ocaml Mundhahs tezos-api-devenv itemize Nearley
+%  LocalWords:  michelson-interpreter Veigel Ethereum concolic
