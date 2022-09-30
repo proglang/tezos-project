@@ -1,0 +1,72 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{authblk}
+
+\title{A Static Checked Interface and a Checker for Tezos Smart Contracts
+}
+\author{Peter Thiemann}
+\author{Thi Thu Ha Doan}
+\affil{University of Freiburg, Germany}
+\begin{document}
+\maketitle{}
+
+\section{Executive Summary}
+\label{sec:executive-summary}
+The Tezos blockchain (like other blockchains) provides limited infrastructure for interacting with smart contracts on the chain. Programmatic interaction with a blockchain is often clumsy. Many interfaces only handle loosely structured data, often in JSON format, which is cumbersome to use and offers few guarantees. In addition, the safety of a contract call is not really guaranteed and it is difficult to handle a failed call. In many cases, smart contract invocations fail, even though some of these failures could be predicted before the invocation. In addition, smart contract developers have problems with formal verification of their smart contracts, which is an essential task due to the lack of platforms for formal verification of smart contracts.
+The goals of this research are 
+
+\begin{itemize}
+\item to provide statically checked interfaces wrapped in Contract modules to interact with contracts on the Tezos blockchain. This interface is statically checked against the contract implementation to ensure type safety and exception handling (any error condition that occurs is handled by an appropriate error message). One of the most important functions is static call checking to ensure call safety, or in other words, to prevent a failed call. 
+\item to develop a checker for Tezos smart contracts that helps the developer to formally verify the smart contract before deployment.
+\end{itemize}
+
+This work is a continuation and extension of the Contract Orchestration for OCaml (COOC) project funded by the Tezos Foundation. The summary of the this work can be found on Github \cite{tezos-report}.
+
+\section{Researchers}
+\label{sec:researchers}
+\paragraph{Peter Thiemann}
+Peter Thiemann is a full professor for Informatics at Freiburg University.
+His research focuses on programming and proving with types. Since 2004, he worked on
+typing aspects as well as pragmatics of web programming. His contributions include client-server calculus, multi-tier programming, and protocol specialization, which are closely related to session types. With Neubauer, he was one of the first to propose and investigate multi-tier
+programming. He served on the program committees of major programming languages conferences (POPL,
+ICFP, OOPSLA, ESOP, ECOOP, LICS, CSF), was PC chair for ICFP, ESOP, and PPDP, and is cur-
+rently chair of the ESOP steering committee. From 2015-2018 he served as vice-chair of ACM
+SIGPLAN. He is also an associate editor of the Journal of Functional Programming.
+
+
+\paragraph{Thi Thu Ha Doan} Thi Thu Ha Doan is a postdoctoral researcher at Freiburg University. Her research focuses on formal methods, formal verification, type and program, smart contracts, and blockchain. She has been a member of the program committees of APLAS 2022 and ICFEM 2022. 
+
+Peter Thiemann and Thi Thu Ha Doan have been working on the COOC project funded by the Tezos Foundation since 2020. Thiemann and Doan have worked on various aspects of type-safe interaction with the Tezos blockchain, distributed verification of assertions and Contract modules, and a checker for Michelson smart contracts. Together, we proposed a type-safe interaction between an Ocaml program and Michelson smart contracts on the Tezos blockchain. The typed OCaml API for Tezos was fully implemented. The work was presented and published at the APLAS 2021 conference \cite{DBLP:conf/fc/ThiemannAplas21}. The initial state of work on Contract modules was presented and published at the Formal Methods for Blockchains (FMBC 2021) workshop \cite{DBLP:conf/fc/ThiemannFmbc21}
+
+
+\section{A Static Checked Programming Interfect}
+\label{sec:checked-programming-interfect}
+A Michelson contract may fail due to a programming condition caused by the FAILWITH statement. It terminates contract execution with an error message reported back to the caller. These conditions can be considered as preconditions for calling a smart contract in conjunction with an entry point. It is indeed expensive to invoke a contract and then find that it fails. Fortunately, some of these failures can be predicted by performing a static check before invocation.
+
+The basic idea is that we create a contract module that attempts to check the preconditions outside the chain before the contract is invoked. Starting from a smart contract implementation, we automatically generate a contract module whose specification includes all types as well as information about possible failure conditions of the contract to ensure type-safe and sometimes fail-safe invocation of the contract on the blockchain. Contract modules provide a high-level interface that reduces a contract call to a function call in the language. Contract modules do not provide a fixed API, but generate a specific interface for each contract.
+
+The specification is checked against the contract implementation by symbolic execution. Our work is related to the Tezos blockchain, which supports Michelson as a low-level contract language, and the OCaml language, which has an expressive polymorphic type system and a powerful module system that we extend with contract modules. We propose a symbolic execution model for Michelson in OCaml that allows us to guarantee secure invocations of a contract on the blockchain. The model allows us to formulate preconditions and postconditions, and then specify invariants and constraints that are used to guarantee a safe invocation. We can also use the model to constrain the possible invocation sequences of entry points. The contract model generated from a contract module is checked against the specification by symbolic execution. When a smart contract is invoked, the invocation can be checked against these invariants and constraints before it is used in the chain, calculating where the invocation may be succeed. The checking of invariants and constraints can be done with an SMT solver such as the Z3 solver and its library in Ocaml. 
+
+In the end, we would like to provide a platform that automatically generates the Contract module from a given smart contract specification in Michelson. The contract module guarantees a type-safe interaction and handles the error returned on a failed call. And it guarantees a safe invocation (on a failed invocation) by statically checking the correctness of the invocation before deployment.
+\section{A Static Checker for Tezos Smart Contracts}
+\label{sec:static-checker}
+Verification of a smart contract is important because its implementation cannot be changed once it is deployed. However, there is not yet a sufficient tool to help developers of Tezos smart contracts to formally verify the contract. Therefore, another goal of our research is to develop a verification tool, a checker, for Michelson smart contracts. When a smart contract script is passed along with the specification of properties, the tool statically checks whether these properties are satisfied. In fact, symbolic execution could play the main role in checking properties. We first provide a domain-specific language (DSL) in which the user can specify the properties. The property specifications are then converted into formulas in Z3 in Ocaml, which are then checked against the smart contract implementation using symbolic execution.
+
+Ultimately, we hope to provide a user-friendly checker for Tezos smart contract developers, where they only need to submit their contract implementation and the properties written in our DSL. The tool will statically check and report any invalid properties.
+ 
+\section{Education and Dissemination}
+\label{sec:education-dissemination}
+In addition to our goal of publishing our work at high-profile conferences, we plan the following activities to teach and disseminate our work.
+\begin{itemize}
+\item Continue our teaching activities (the blockchain course, a seminar on the topic) and find more students interested in research on blockchain in general and Tezos in particular.
+\item Once the tools we are developing are sufficiently mature, we will prepare tutorials for them, either at programming language research conferences or at venues aimed at a wider audience.
+\end{itemize}
+
+
+\bibliography{report}
+\bibliographystyle{plainurl}
+\end{document}
+
