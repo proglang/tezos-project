@@ -3,6 +3,8 @@
 
 %% values
 \newcommand{\NEG}{\neg}
+\newcommand{\CNF}{\wedge}
+\newcommand{\DNF}{\vee}
 \newcommand{\TRUE}{\text{True}}
 \newcommand{\FALSE}{\text{False}}
 \newcommand{\EMPTYSTRING}{\text{$""$}}
@@ -13,6 +15,19 @@
 \newcommand{\VCONTRACT}{\text{contract}}
 
 %% contract constants
+\newcommand{\CAMOUNT}{\text{amount}}
+\newcommand{\CBALANCE}{\text{balance}}
+\newcommand{\CSENDER}{\text{sender}}
+\newcommand{\CSOURCE}{\text{source}}
+\newcommand{\CNOW}{\text{now}}
+\newcommand{\CLEVEL}{\text{level}}
+\newcommand{\CCHAINID}{\text{chain-id}}
+\newcommand{\CSELF}{\text{self}}
+\newcommand{\CSELFADDRESS}{\text{self-address}}
+\newcommand{\CTOTALVOTINGPOWER}{\text{total-voting-power}}
+\newcommand{\CVOTINGPOWER}{\text{voting-power}}
+
+%% contract instructions
 \newcommand{\AMOUNT}{\text{AMOUNT}}
 \newcommand{\BALANCE}{\text{BALANCE}}
 \newcommand{\SENDER}{\text{SENDER}}
@@ -21,8 +36,10 @@
 \newcommand{\LEVEL}{\text{LEVEL}}
 \newcommand{\CHAINID}{\text{CHAIN-ID}}
 \newcommand{\SELF}{\text{SELF}}
+\newcommand{\SELFADDRESS}{\text{SELF-ADDRESS}}
+\newcommand{\TOTALVOTINGPOWER}{\text{TOTAL-VOTING-POWER}}
+\newcommand{\VOTINGPOWER}{\text{VOTING-POWER}}
 \newcommand{\MinusBalanceAmount}{\text{BALANCE-AMOUNT}}
-
 %% auction contract
 \newcommand{\AuctionOwner}{\text{auction-owner}}
 \newcommand{\AuctionBidder}{\text{auction-bidder}}
@@ -146,6 +163,8 @@
 \newcommand{\EXE}{\text{EXE}}
 \newcommand{\APPLY}{\text{APPLY}}
 \newcommand{\IF}{\text{IF}}
+\newcommand{\IFLEFT}{\text{IF-LEFT}}
+\newcommand{\IFRIGHT}{\text{IF-RIGHT}}
 \newcommand{\ITER}{\text{ITER}}
 \newcommand{\TITER}{\text{ITER'}}
 \newcommand{\DIG}{\text{DIG}}
@@ -165,6 +184,7 @@
 \newcommand{\XOR}{\text{XOR}}
 \newcommand{\MAP}{\textbf{MAP}}
 
+
 %symbols
 \newcommand{\Overline}[1]{\text{$\overline{#1}$}}
 \newcommand{\Mapsto}{\text{$\mapsto$}}
@@ -174,10 +194,10 @@
 \newcommand{\SRightarrow}{\text{$\rightarrow$}}
 \newcommand{\NSRightarrow}{\text{$\nrightarrow$}}
 \newcommand{\Wedge}{\text{$\wedge$}}
-\newcommand{\AT}{\text{$@$}}
+\newcommand{\At}{\text{$@$}}
 \newcommand{\Subseteq}{\text{$\subseteq$}}
 \newcommand{\Vee}{\text{$\vee$}}
-\newcommand{\CUP}{\text{$\cup$}}
+%\newcommand{\Cup}{\text{$\cup$}}
 \newcommand{\STRINGCONCAT}{\text{$\hat{}$}}
 \newcommand{\DOT}{\text{$...$}}
 
@@ -193,6 +213,9 @@
 \newcommand{\FOR}{\text{or}}
 \newcommand{\FNOT}{\text{not}}
 \newcommand{\GETCONTRACTTYPE}{\text{get-contract-type}}
+\newcommand{\UNOP}{\text{unop}}
+\newcommand{\BINOP}{\text{binop}}
+
 
 
 %% transition relations
@@ -202,7 +225,41 @@
 
 
 %% types
+\newcommand\TEnv{\Gamma}
+\newcommand\JTypeCode[2]{\vdash_C#1 : #2}
+\newcommand\JTypeValue[2]{\vdash_V#1 : #2}
+\newcommand\JTypeExpr[3]{#1 \vdash #2 : #3}
 \newcommand{\TY}{\text{ty}}
+\newcommand{\TYF}{\text{ty$_{1}$}}
+\newcommand{\TYS}{\text{ty$_{2}$}}
+\newcommand{\TYT}{\text{ty$_{3}$}}
+\newcommand{\TYA}{\text{A}}
+\newcommand{\TYB}{\text{B}}
+\newcommand{\TYC}{\text{C}}
+%% standard types
+\newcommand{\TBOOL}{\text{bool}}
+\newcommand{\TOR}{\text{or}}
+\newcommand{\TYLIST}{\text{list}}
+\newcommand{\TUNIT}{\text{unit}}
+\newcommand{\TPAIR}{\text{pair}}
+\newcommand{\TOPTION}{\text{option}}
+\newcommand{\TMUTEZ}{\text{mutez}}
+\newcommand{\TSTR}{\text{string}}
+\newcommand{\TINT}{\text{int}}
+\newcommand{\TNAT}{\text{nat}}
+\newcommand{\TKEY}{\text{key}}
+\newcommand{\TKEYHASH}{\text{key-hash}}
+\newcommand{\TSIG}{\text{signature}}
+\newcommand{\TADDR}{\text{address}}
+\newcommand{\TTIME}{\text{timestamp}}
+\newcommand{\TCONTRACT}{\text{contract}}
+\newcommand{\TCHAINID}{\text{chain-id}}
+
+
+
+
+
+\newcommand{\LAMBDA}{\text{lambda}}
 
 %% typing related
 \newcommand{\EmptyEnv}{\cdot}

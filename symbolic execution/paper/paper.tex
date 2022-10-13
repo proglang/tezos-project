@@ -63,18 +63,90 @@
 \section{Symblic Execution Model}
 \label{sec:symblic-execution-model}
 \subsection{Models}
-Let \VARIABLE\ = \{\VariableOne, \VariableTwo, \DOT, \VariableN, \BALANCE\} is a set of variables.
+%Let \VARIABLE\ = \{\VariableOne, \VariableTwo, \DOT\ \} is a set of variables.\\
+%Let \CONSTANT\ = \{\BALANCE, \AMOUNT, \SENDER, \SOURCE, \NOW, \LEVEL, \CHAINID, \SELF, \ConstantOne, \ConstantTwo, \DOT\ \} is a set of constants.\\
+%Let \Term\ is a term that ranges over variables and constants.\\
+Let \STACK\ = \TermOne\ \STACKCONCAT\ \TermTwo\ \STACKCONCAT\ \DOT\ \STACKCONCAT\ \EMPTYSTACK\ is a stack, where elements are terms.
 \\
-Let \CONSTANT\ = \{\ConstantOne, \ConstantTwo, \DOT, \ConstantN, \AMOUNT, \SENDER, \SOURCE, \NOW, \LEVEL, \CHAINID, \SELF\} is a set of constants.
+Let \INSTRUCTION\ = \InstructionOne; \InstructionTwo; \DOT; \InstructionN\ is a sequence of intructions. 
 \\
-Let \TERM\ = \{\TermOne, \TermTwo, \DOT, \TermN\} is a set of terms.
-\\
-Let \STACK\ = \StackOne\ \STACKCONCAT\ \StackTwo\ \STACKCONCAT\ \DOT\ \STACKCONCAT\ \EMPTYSTACK\ is a stack, where \StackN are terms.
-\\
-Let \INSTRUCTION\ = \InstructionOne; \InstructionTwo; \DOT; \InstructionN is a sequence of intructions. 
-\\
-Let \PREDICATE\ = \PredicateOne\ \Wedge\ \PredicateTwo\ \Wedge\ \DOT\ \Wedge\ \PredicateN\ is a first-order formula, which is in a conjunction form.
+Let \PREDICATE\ is a predicate. 
 
+\begin{definition}
+A system state of the symbolic execusion is described as a tuple \STATE\ = [\INSTRUCTION, \STACK, \TSTACK, \PREDICATE], where \STACK\ is the main stack and \TSTACK\ is a temporary stack.
+\end{definition}
+
+Let \SYSTEM\ = \{\STATEONE, \STATETWO, \DOT, \STATEN \} be the set of system states.
+\\
+\\
+Let $S_{init}$  be the initial state. 
+
+\begin{itemize}
+\item[]  $S_{init}$ = (Pair $Pa$ \Term) \STACKCONCAT\ \EMPTYSTACK
+\end{itemize}
+
+
+\noindent Let $S_{final}$  be the final state. 
+
+\begin{itemize}
+\item[]  $S_{final}$ = (\PAIR\ $ops$ $t'$) \STACKCONCAT\ \EMPTYSTACK
+\end{itemize}
+
+%Where $t$ and $t'$ represent the storage and have the same structure.
+
+%Postcondition
+
+%(t.x = t'.x)
+
+\pagebreak
+
+\begin{figure}
+\begin{align*}
+T, U &::= \\
+   &\Mid\ < \text{comparable type}> \\
+   &\Mid\ \text{option} <\text{type}> \\
+   &\Mid\ \text{list} <\text{type}> \\
+   &\Mid\ \text{set} <\text{comparable type}> \\
+   &\Mid\ \text{operation} \\
+   &\Mid\ \text{contract} <\text{type}> \\
+   &\Mid\ \text{ticket} <\text{comparable type}> \\
+   &\Mid\ \text{pair} <\text{type}> <\text{type}> \\
+   &\Mid\ \text{or} <\text{type}> <\text{type}> \\
+   &\Mid\ \text{lambda} <\text{type}> <\text{type}> \\
+   &\Mid\ \text{map} <\text{comparable type}> <\text{type}> \\
+   &\Mid\ \text{big-map} <\text{comparable type}> <\text{type}> \\
+   &\Mid\ \text{bls12-381-g1} \\
+   &\Mid\ \text{bls12-381-g2} \\
+   &\Mid\ \text{bls12-381-fr} \\
+   &\Mid\ \text{sapling-transaction} <\text{natural number constant}> \\
+   &\Mid\ \text{sapling-state} <\text{natural number constant}> \\
+   &\Mid\ \text{chest} \\
+   &\Mid\ \text{chest-key} \\
+<\text{comparable type}> ::= \\
+   &\Mid\ \text{unit} \\
+   &\Mid\ \text{never} \\
+   &\Mid\ \text{bool} \\
+   &\Mid\ \text{int}\\
+   &\Mid\ \text{nat}\\
+   &\Mid\ \text{string}\\
+   &\Mid\ \text{chain-id}\\
+   &\Mid\ \text{bytes}\\
+   &\Mid\ \text{mutez}\\
+   &\Mid\ \text{key-hash}\\
+   &\Mid\ \text{key}\\
+   &\Mid\ \text{signature}\\
+   &\Mid\ \text{timestamp}\\
+   &\Mid\ \text{address}\\
+   &\Mid\ \text{tx-rollup-l2-address}\\
+   &\Mid\ \text{option} <\text{comparable type}>\\
+   &\Mid\ \text{or} <\text{comparable type}> <\text{comparable type}>\\
+   &\Mid\ \text{pair} <\text{comparable type}> <\text{comparable type}> \DOT \\
+\end{align*}
+\caption{Types}
+\label{fig:type}
+\end{figure}
+
+\pagebreak
 \begin{figure}
 \begin{align*}
 \text{t} &::= \\
@@ -96,15 +168,18 @@ Let \PREDICATE\ = \PredicateOne\ \Wedge\ \PredicateTwo\ \Wedge\ \DOT\ \Wedge\ \P
    &\Mid\ <\text{instruction}>   \\
 < \text{variable} > &::= \\ 
    &\Mid\ \VAR\\
-   &\Mid\ \BALANCE \\
 < \text{account constant} > &::= \\ 
-   &\Mid\ \AMOUNT \\
-   &\Mid\ \SENDER \\
-   &\Mid\ \SOURCE \\
-   &\Mid\ \NOW \\
-   &\Mid\ \LEVEL \\
-   &\Mid\ \CHAINID \\
-   &\Mid\ \SELF  \\
+   &\Mid\ \text{balance} \\
+   &\Mid\ \text{amount} \\
+   &\Mid\ \text{sender} \\
+   &\Mid\ \text{source} \\
+   &\Mid\ \text{now} \\
+   &\Mid\ \text{level} \\
+   &\Mid\ \text{chain-id} \\
+   &\Mid\ \text{self}  \\
+   &\Mid\ \text{self-address}  \\
+   &\Mid\ \text{total-voting-power}  \\
+   &\Mid\ \text{voting-power}  \\
 < \text{natural number constant} > &::= \\ 
    &\Mid\ \text {[0-9]+} \\
 < \text{int constant} > &::= \\
@@ -121,89 +196,115 @@ Let \PREDICATE\ = \PredicateOne\ \Wedge\ \PredicateTwo\ \Wedge\ \DOT\ \Wedge\ \P
 \label{fig:term}
 \end{figure}
 
+
+\pagebreak
 \begin{figure}
 \begin{align*}
 \text{p} &::= \\
-   &\Mid\ \TRUE \\
-   &\Mid\ \FALSE \\
-   &\Mid\ \BALANCE \\
-   &\Mid\ \SENDER \\
-   &\Mid\ \SOURCE \\
-   &\Mid\ \NOW \\
-   &\Mid\ \LEVEL \\
-   &\Mid\ \CHAINID \\
-   &\Mid\ \SELF
+   &\Mid\ < \text{atomic formula} > \\
+   &\Mid\ \NEG\ \text{p} \
+   \Mid\ \text{p}\ \CNF\ \text{q} \
+   \Mid\ \text{p}\ \DNF\ \text{q} \\
+< \text{atomic formula} > &::= \\ 
+    &\Mid\ < \text{buop} > < \text{bterm} >\\ 
+   &\Mid\  < \text{bterm} >  < \text{biop} > < \text{bterm} >\\ 
+< \text{butop} > &::= \\
+   &\Mid\ \text{not} \\
+< \text{biop} > &::= \\
+   &\Mid\ \text{$=$} \
+   \Mid\ \text{$>$} \
+   \Mid\ \text{$<$} \
+   \Mid\ \text{$>=$} \
+   \Mid\ \text{$=<$} \
+   \Mid\ \text{$!=$} \\
+   &\Mid\ \text{and}\ \Mid\ \text{or}\ \Mid\ \text{xor}\\
+< \text{bterm} > &::= \\ 
+   &\Mid\ \text{t} \\
+   &\Mid\ < \text{unop} > \text{t} \\ 
+   &\Mid\ \text{t}\ < \text{binop} > \text{t}\\  
+< \text{utop} > &::= \\ 
+   &\Mid\ \text{abs} \\
+   &\Mid\ \text{size} \\
+   &\Mid\ \text{int} \\
+   &\Mid\ \text{contract}  < \text{type} > \\
+   &\Mid\ \text{isleft} \\
+   &\Mid\ \text{isnone} \\
+   &\Mid\ \text{neg} \\
+   &\Mid\ \text{blake2b} \\
+   &\Mid\ \text{hash-key} \\
+   &\Mid\ \text{keccak} \\
+   &\Mid\ \text{pairing-check} \\
+   &\Mid\ \text{sha256} \\
+   &\Mid\ \text{sha3} \\
+   &\Mid\ \text{sha512} \\
+   &\Mid\ \text{implicit-account} \\
+   &\Mid\ \text{check-sig} \\
+< \text{bitop} > &::= \\ 
+   &\Mid\ \text{+}\ \Mid\ \text{-}\ \Mid\ \text{*}\ \Mid\ \text{/}
 \end{align*}
 \caption{Predicates}
-\label{fig:predicates}
+\label{fig:predicate}
 \end{figure}
 
-\begin{definition}
-A system state of the symbolic execusion is described as a tuple \STATE\ = [\INSTRUCTION, \STACK, \TSTACK, \PREDICATE], where \STACK\ is the main stack and \TSTACK\ is a temporary stack.
-\end{definition}
 
-Let \SYSTEM\ = \{\STATEONE, \STATETWO, \DOT, \STATEN \} be the set of system states.
-\\
-\\
-Let \SETA\ \Subseteq\ \VARIABLE\ \CUP\ \CONSTANT\ is a set of variables and constants that represents a initial stack. Namely, the initial state of main stack contains of only one element that is a term over \SETA.
 
-\SETA\ = \{\VariableOne, \VariableTwo, \DOT, \VariableN, \BALANCE, \AMOUNT, \SENDER, \SOURCE, \NOW, \LEVEL, \CHAINID, \SELF\}
-\\ 
-\\
-Example:
-\\
-Let us consider the auction contract.
-\\
-\SETAAUCTION\ = \{\AuctionBid, \AuctionOwner, \AuctionOpen, \AuctionBidder, \BALANCE, \AMOUNT, \SENDER, \SOURCE, \NOW, \LEVEL, \CHAINID, \SELF\}.
-\\
-\SINIT\ = \PAIR\ (\AuctionBidder\ (\PAIR\ \AuctionOpen\ (\PAIR\ \AuctionOwner\ \AuctionBidder))) \STACKCONCAT\ \EMPTYSTACK.
+%Let \SETA\ \Subseteq\ \VARIABLE\ \CUP\ \CONSTANT\ is a set of variables and constants that represents a initial stack. Namely, the initial state of main stack contains of only one element that is a term over \SETA.
 
-\begin{definition}
-The function maps assign values to variables. 
+%\SETA\ = \{\VariableOne, \VariableTwo, \DOT, \VariableN, \BALANCE, \AMOUNT, \SENDER, \SOURCE, \NOW, \LEVEL, \CHAINID, \SELF\}
 
-\FMAP : \SETA\  \Mapsto\ \TERM, 
-where \MAP(\VariableX) = \Term\ is donated as (\VariableX\ \Mapsto\ \Term)
-\end{definition}
+%Example:Let us consider the auction contract.
 
-To apply the map funtions to a set of variable, we introduce \MAPER.
+%\SETAAUCTION\ = \{\AuctionBid, \AuctionOwner, \AuctionOpen, \AuctionBidder, \BALANCE, \AMOUNT, \SENDER, \SOURCE, \NOW, \LEVEL, \CHAINID, \SELF\}.
 
-\begin{align*}
-\MAPER(\SETAAUCTION) = \{\VariableOne\ \Mapsto\ \TermOne, \VariableTwo\ \Mapsto\ \TermTwo, \DOT, \VariableN\ \Mapsto\ \TermN, \BALANCE\ \Mapsto\ \TermB \}. 
-\end{align*}
+%\SINIT\ = \PAIR\ (\AuctionBidder\ (\PAIR\ \AuctionOpen\ (\PAIR\ \AuctionOwner\ \AuctionBidder))) \STACKCONCAT\ \EMPTYSTACK.
 
-When the execution is terminated, \PREDICATE\ is called the precondition of the execution and the postcondition is the appication of the map function to the initial stack.
-\begin{align*}
-\SETPOST\ = \Overline\MAP(\SETA)
-\end{align*}
+%\begin{definition}
+%The function maps assign values to variables. 
 
-\paragraph{Example}
-\begin{align*}
-\SFINAL\ = \PAIR\ (\TRANSFER\MinusBalanceAmount\AuctionBidder)\\ (\PAIR\ \TRUE\ (\PAIR\ \AuctionOwner\ \SENDER))
-\end{align*}
-\begin{align*}
-\Overline\MapBidding(\SETAAUCTION) = \{\AuctionOwner\ \Mapsto\ \AuctionOwner, \AuctionOpen\ \Mapsto\ \TRUE, \\ \AuctionBidder\ \Mapsto\ \SENDER, \BALANCE\ \Mapsto \AMOUNT\}
-\end{align*}
+%\FMAP : \SETA\  \Mapsto\ \TERM, where \MAP(\VariableX) = \Term\ is donated as (\VariableX\ \Mapsto\ \Term)
+%\end{definition}
 
-\paragraph{Invariants.}
-\begin{definition}
-A predicate \Invariant\ is an invariant  iff (\SETA, \SETPOST) is a model of \Invariant.
-\begin{align*}
-(\SETA, \SETPOST) \Models\ \Invariant
-\end{align*}
-\end{definition}
+%To apply the map funtions to a set of variable, we introduce \MAPER.
 
-\paragraph{Example.}
-\begin{itemize}
-\item[] I1-constant-owner: (\AuctionOwner.\SETPOST\ \EQUAL\ \AuctionOwner.\SETA)
-\item[] I2-higher-bidding: (\AuctionBidder. \SETPOST\ \EQUAL\  SENDER. \SETA)
-\end{itemize}
+%\begin{align*}
+%\MAPER(\SETAAUCTION) = \{\VariableOne\ \Mapsto\ \TermOne, \VariableTwo\ \Mapsto\ \TermTwo, \DOT, \VariableN\ \Mapsto\ \TermN, \BALANCE\ \Mapsto\ \TermB \}. 
+%\end{align*}
 
+%When the execution is terminated, \PREDICATE\ is called the precondition of the execution and the postcondition is the appication of the map function to the initial stack.
+%\begin{align*}
+%\SETPOST\ = \Overline\MAP(\SETA)
+%\end{align*}
+
+%\paragraph{Example}
+%\begin{align*}
+%\SFINAL\ = \PAIR\ (\TRANSFER\MinusBalanceAmount\AuctionBidder)\\ (\PAIR\ \TRUE\ (\PAIR\ \AuctionOwner\ \SENDER))
+%\end{align*}
+%\begin{align*}
+%\SETPOSTAUCTION\ = \Overline\MapBidding(\SETAAUCTION) = \\ \{\AuctionOwner\  \Mapsto\ \SETAAUCTION.\AuctionOwner,  \\ \AuctionOpen\ \Mapsto\ \TRUE, \\ \AuctionBidder\ \Mapsto\ \SETAAUCTION.\SENDER, \\ \BALANCE\ \Mapsto \SETAAUCTION.\AMOUNT\}
+%\end{align*}
+
+%\paragraph{Invariants.}
+%\begin{definition}
+%A predicate \Invariant\ is an invariant  iff (\SETA, \SETPOST, \PREDICATE) is a model of \Invariant.
+%\begin{align*}
+%(\SETA, \SETPOST,\PREDICATE)\ \Models\ \Invariant
+%\end{align*}
+%\end{definition}
+
+%In another word, \PREDICATE[\SETA, \SETPOST]\Invariant.
+
+%\paragraph{Example.}
+%\begin{itemize}
+%\item[] I1-constant-owner: (\SETPOSTAUCTION.\AuctionOwner\ \EQUAL\ \SETAAUCTION.\AuctionOwner)
+%\item[] I2-higher-bidding: (\SETPOSTAUCTION.\AuctionBidder\ \EQUAL\  \SETAAUCTION.\SENDER)
+%\end{itemize}
+\pagebreak
 \paragraph{Sequence actions.}
-\begin{definition}
-There is a step from an entrypoint \A\ to \B: \A\ \SRightarrow\ \B\  iff  there is a model for the application of the map \Overline\MAPA\ to the predicate \PREDICATEB: \Models\ \Overline\MAPA(\PREDICATEB).
-\end{definition}
+%\begin{definition}
+%There is a step from an entrypoint \A\ to \B: \A\ \SRightarrow\ \B\  iff  there is a model for the application of the map \Overline\MAPA\ to the predicate \PREDICATEB: \Models\ \Overline\MAPA(\PREDICATEB).
+%\end{definition}
 
-Example.
+%Example.
 
 \begin{figure}[h]
 \center
@@ -212,44 +313,182 @@ Example.
 \label{fca1}
 \end{figure} 
 
-\paragraph{Preconditions}
-\begin{itemize}
-\item[] \PCreate\ = \{\EMPTY\} 
-\item[] \PBidding\ = \{\AuctionOpen\ \EQUAL\ \TRUE, \AMOUNT\ \MORE\ \BALANCE\ \MINUS\ \AMOUNT\} 
-\item[] \PClose\ = \{\AuctionOpen\ \EQUAL\ \TRUE\}
-\end{itemize}
+%\paragraph{Preconditions}
+%\begin{itemize}
+%\item[] \PCreate\ = \{\EMPTY\} 
+%\item[] \PBidding\ = \{\AuctionOpen\ \EQUAL\ \TRUE, \AMOUNT\ \MORE\ \BALANCE\ \MINUS\ \AMOUNT\} 
+%\item[] \PClose\ = \{\AuctionOpen\ \EQUAL\ \TRUE\}
+%\end{itemize}
 
 
-\paragraph{Maps}
-\begin{itemize}
-\item[] \Overline\MapCreate\ = \{\AuctionOpen\ \Mapsto\ \TRUE,  \AuctionBidder\ \Mapsto\ \SENDER, \BALANCE\ \Mapsto\ \ZERO\}
-\item[] \Overline\MapBidding\ = \{\AuctionOwner \Mapsto\ \AuctionOwner, \AuctionOpen\ \Mapsto\ \TRUE,  \AuctionBidder\ \Mapsto\ \SENDER, \BALANCE\ \Mapsto\  \AMOUNT\}
-\item[] \Overline\MapClose\ = \{\AuctionOpen\ \Mapsto\ \FALSE, \BALANCE\ \Mapsto\ \ZERO\}
-\end{itemize}
+%\paragraph{Maps}
+%\begin{itemize}
+%\item[] \Overline\MapCreate\ = \{\AuctionOpen\ \Mapsto\ \TRUE,  \AuctionBidder\ \Mapsto\ \SENDER, \BALANCE\ \Mapsto\ \ZERO\}
+%\item[] \Overline\MapBidding\ = \{\AuctionOwner \Mapsto\ \AuctionOwner, \AuctionOpen\ \Mapsto\ \TRUE,  \AuctionBidder\ \Mapsto\ \SENDER, \BALANCE\ \Mapsto\  \AMOUNT\}
+%\item[] \Overline\MapClose\ = \{\AuctionOpen\ \Mapsto\ \FALSE, \BALANCE\ \Mapsto\ \ZERO\}
+%\end{itemize}
 
-\begin{itemize}
-\item[(1)] ($\textbf{Create}$ \SRightarrow\ $\textbf{Bidding}$):
-\\ \Models\  \Overline\MapCreate(\PBidding) = \{\TRUE\ \EQUAL\ \TRUE, \AMOUNT\ \MORE\ \BALANCE\ - \AMOUNT\}
-\item[(2)] ($\textbf{Bidding}$ \SRightarrow\ $\textbf{Bidding}$) : 
-\\ \Models\  \Overline\MapBidding(\PBidding) = \{\TRUE\ \EQUAL\ \TRUE, \AMOUNT\ \MORE\ \AMOUNT'\ - \AMOUNT\}
-\item[(3)] ($\textbf{Bidding}$ \SRightarrow\ $\textbf{Close}$) : 
-\\ \Models\ \Overline\MapBidding(\PClose) = \{\TRUE\ \EQUAL\ \TRUE\}
-\item[(4)] ($\textbf{Create}$ \SRightarrow\ $\textbf{Close}$) : 
-\\ \Models\ \Overline\MapCreate(\PClose) \EQUAL\ \{\TRUE\ \EQUAL\ \TRUE\}
-\item[(5)] ($\textbf{Close}$ \NSRightarrow\ $\textbf{Bidding}$) : 
-\\ \Models\ \Overline\MapBidding(\PClose) = \{\FALSE\ \EQUAL\ \TRUE\}
-\end{itemize}
+%\begin{itemize}
+%\item[(1)] ($\textbf{Create}$ \SRightarrow\ $\textbf{Bidding}$):
+%\\ \Models\  \Overline\MapCreate(\PBidding) = \{\TRUE\ \EQUAL\ \TRUE, \AMOUNT\ \MORE\ \BALANCE\ - \AMOUNT\}
+%\item[(2)] ($\textbf{Bidding}$ \SRightarrow\ $\textbf{Bidding}$) : 
+%\\ \Models\  \Overline\MapBidding(\PBidding) = \{\TRUE\ \EQUAL\ \TRUE, \AMOUNT\ \MORE\ \AMOUNT'\ - \AMOUNT\}
+%\item[(3)] ($\textbf{Bidding}$ \SRightarrow\ $\textbf{Close}$) : 
+%\\ \Models\ \Overline\MapBidding(\PClose) = \{\TRUE\ \EQUAL\ \TRUE\}
+%\item[(4)] ($\textbf{Create}$ \SRightarrow\ $\textbf{Close}$) : 
+%\\ \Models\ \Overline\MapCreate(\PClose) \EQUAL\ \{\TRUE\ \EQUAL\ \TRUE\}
+%\item[(5)] ($\textbf{Close}$ \NSRightarrow\ $\textbf{Bidding}$) : 
+%\\ \Models\ \Overline\MapBidding(\PClose) = \{\FALSE\ \EQUAL\ \TRUE\}
+%\end{itemize}
+\pagebreak
+\begin{figure}[tp]
+\begin{mathpar}
+  \inferrule{}{
+      \JTypeExpr\TEnv{\VAR}{\TY} \\ \JTypeExpr\TEnv{\UNIT}{\TUNIT} \\ \JTypeExpr\TEnv{\TRUE}{\TBOOL} \\
+\JTypeExpr\TEnv{\FALSE}{\TBOOL}
+    }
+\end{mathpar}
 
+\begin{mathpar}
+  \inferrule{}{
+      \JTypeExpr\TEnv{\CBALANCE}{\TMUTEZ} \\ \JTypeExpr\TEnv{\CAMOUNT}{\TMUTEZ} \\ \JTypeExpr\TEnv{\CSENDER}{\TADDR} 
+    }
+\end{mathpar}
 
+\begin{mathpar}
+  \inferrule{}{
+\JTypeExpr\TEnv{\CSOURCE}{\TADDR} \\
+\JTypeExpr\TEnv{\CNOW}{\TTIME} \\
+\JTypeExpr\TEnv{\CLEVEL}{\TNAT} \\
+    }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule{}{
+\JTypeExpr\TEnv{\CCHAINID}{\TCHAINID} \\
+\JTypeExpr\TEnv{\CSELF}{\TCONTRACT\ \TY}
+%\JTypeExpr\TEnv{\CSELFADDR}{\TADDR} \\
+    }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule{\JTypeExpr\TEnv{\TermOne}{\TYF} \\ \JTypeExpr\TEnv{\TermTwo}{\TYS}}{
+      \JTypeExpr\TEnv{\PAIR\ \TermOne\ \TermTwo}{\TPAIR\ \TYF\ \TYS}
+    }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule{\JTypeExpr\TEnv{\TermOne}{\TYF}}{
+      \JTypeExpr\TEnv{\LEFT\ \TermOne}{\TOR\ \TYF\ \TY}
+    } 
+    
+    \inferrule{\JTypeExpr\TEnv{\TermOne}{\TYF}}{
+      \JTypeExpr\TEnv{\RIGHT\ \TermOne}{\TOR\ \TY\ \TYF}
+    }
+    
+     \inferrule{\JTypeExpr\TEnv{\TermOne}{\TYF}}{
+      \JTypeExpr\TEnv{\SOME\ \TermOne}{\TOPTION\ \TYF}
+    }
+    
+\end{mathpar}
+  \caption{Typing rules for Terms}
+  \label{fig:typing-rule}
+\end{figure}
+
+\pagebreak
+\begin{figure}[tp]
+\begin{mathpar}
+  \inferrule{}{
+      \JTypeExpr\TEnv{\EXE}{\TYF\ \STACKCONCAT\ \LAMBDA\ \TYF\ \TYS\ \STACKCONCAT\ \TYA\ \SRightarrow\ \TYS\ \STACKCONCAT\ \TYA}
+    }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule{}{
+      \JTypeExpr\TEnv{\APPLY}{\TYF\ \STACKCONCAT\ \LAMBDA\ (\PAIR\ \TYF\ \TYS)\ \TYT\ \STACKCONCAT\ \TYA\ \SRightarrow\ \LAMBDA\ \TYF\ \TYS\ \STACKCONCAT\ \TYA}
+    }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule{\JTypeExpr\TEnv{\INSTRUCTIONONE}{\TYA\ \SRightarrow\ \TYB} \\ \JTypeExpr\TEnv{\INSTRUCTIONTWO}{\TYA\ \SRightarrow\ \TYB}
+  }{
+      \JTypeExpr\TEnv{\IF\ \INSTRUCTIONONE\ \INSTRUCTIONTWO}{\TBOOL\ \STACKCONCAT\ \TYA\ \SRightarrow\ \TYB}
+    }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule{\JTypeExpr\TEnv{\INSTRUCTIONONE}{\TYA\ \SRightarrow\ \TYB} \\ \JTypeExpr\TEnv{\INSTRUCTIONTWO}{\TYA\ \SRightarrow\ \TYB}
+  }{
+      \JTypeExpr\TEnv{\IFLEFT\ \INSTRUCTIONONE\ \INSTRUCTIONTWO}{\TOR\ \TYF\ \TYS\ \STACKCONCAT\ \TYA\ \SRightarrow\ \TYB}
+    }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule{\JTypeExpr\TEnv{\INSTRUCTIONONE}{\TYA\ \SRightarrow\ \TYB} \\ \JTypeExpr\TEnv{\INSTRUCTIONTWO}{\TYB\ \SRightarrow\ \TYC}
+  }{
+      \JTypeExpr\TEnv{\INSTRUCTIONONE\ ; \INSTRUCTIONTWO}{\TYA\ \SRightarrow\ \TYC}
+    }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule{\JTypeExpr\TEnv{\INSTRUCTION}{\TY\ \STACKCONCAT\ \TYA\ \SRightarrow\ \TYA}
+  }{
+      \JTypeExpr\TEnv{\ITER\ \INSTRUCTION}{\TYLIST\ \TY\ \STACKCONCAT\ \TYA\ \SRightarrow\ \TYA}
+    }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule{\JTypeExpr\TEnv{\INSTRUCTION}{\TYA\ \SRightarrow\ \TBOOL\ \STACKCONCAT\ \TYA}
+  }{
+      \JTypeExpr\TEnv{\LOOP\ \INSTRUCTION}{\TBOOL\ \STACKCONCAT\ \TYA\ \SRightarrow\ \TYA}
+    }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule{\JTypeExpr\TEnv{\INSTRUCTION}{\TYA\ \SRightarrow\ \TYB}
+  }{
+      \JTypeExpr\TEnv{\DIP\ \INSTRUCTION}{\TY\ \STACKCONCAT\ \TYA\ \SRightarrow\ \TY\ \STACKCONCAT\ \TYB}
+    }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule{\JTypeExpr\TEnv{\INSTRUCTION}{\TYA\ \SRightarrow\ \TBOOL\ \STACKCONCAT\ \TYA}
+  }{
+      \JTypeExpr\TEnv{\DIP\ \INSTRUCTION}{\TBOOL\ \STACKCONCAT\ \TYA\ \SRightarrow\ \TYA}
+    }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule{}{
+      \JTypeExpr\TEnv{\ADD}{\TNAT\ \STACKCONCAT\ \TNAT\ \STACKCONCAT\ \TYA\ \SRightarrow\ \TNAT\ \STACKCONCAT\ \TYA}
+    }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule{
+   \FLEN\A\ \EQUAL\ \N \\
+  \JTypeExpr\TEnv{\INSTRUCTION}{\TYB\ \SRightarrow\ \TYC}
+  }{
+      \JTypeExpr\TEnv{\DIP\ \N\ \INSTRUCTION}{\TYA\ \At\ \TYB\ \SRightarrow\ \TYA\ \At\ \TYC}
+    }
+\end{mathpar}
+
+  \caption{Typing rules for Rules}
+  \label{fig:typing-rule}
+\end{figure}
+
+\pagebreak
 \subsection{Rules}
-The set of instructions is divided into two groups \INSTRUCTION\ and \TINSTRUCTION. Given an instruction \Instruction\, \TInstruction\ is a copy version of \Instruction, where \Instruction\ operates only on the main stack \STACK\ and \TInstruction\ operates only on the temporary stack \TSTACK.
+The set of instructions is divided into two groups \INSTRUCTION\ and \TINSTRUCTION. Given an instruction \Instruction, \TInstruction\ is a copy version of \Instruction, where \Instruction\ operates on the main stack \STACK\ and \TInstruction\ operates only on the temporary stack \TSTACK.
 
-The rule semantics is defined by several kinds of transitions:
+The rule semantic is defined by several kinds of transitions:
 \begin{enumerate}
 \item \ExprTrans\ single-step evaluation of an expression in a system state,
 \item \StateTrans\ internal transitions of a system state,
 \item \SystemTrans\ synbolic system transitions.
 \end{enumerate}
+
+
 
 \subsubsection{System rules}
 \begin{mathpar}
@@ -282,8 +521,34 @@ The rule semantics is defined by several kinds of transitions:
   \inferrule[IF]
   {  
   }{
-    \{[(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  \StackOne\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE], \SYSTEM\} \SystemTrans\  \{[\INSTRUCTIONONE, \STACK, \TSTACK, \PREDICATE\ \Wedge\ \StackOne], [\INSTRUCTIONTWO, \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\NEG\ \StackOne)], \SYSTEM\}}
+    \{[(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  \StackOne\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE], \SYSTEM\} \SystemTrans\  \{[\INSTRUCTIONONE, \STACK, \TSTACK, \PREDICATE\ \Wedge\ \StackOne], [\INSTRUCTIONTWO, \STACK, \TSTACK, \PREDICATE\ \Wedge\ \NEG\ \StackOne], \SYSTEM\}}
 \end{mathpar}
+
+
+%IF-LEFT-LEFT
+\begin{mathpar}
+  \inferrule[IF-LEFT-LEFT]
+  {  
+  }{
+    [(\IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  \LEFT\ \Term\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans\  [\INSTRUCTIONONE; \INSTRUCTION, \Term\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}
+\end{mathpar}
+
+%IF-LEFT-RIGHT
+\begin{mathpar}
+  \inferrule[IF-LEFT-RIGHT]
+  {  
+  }{
+    [(\IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  \RIGHT\ \Term\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans\  [\INSTRUCTIONTWO; \INSTRUCTION, \Term\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}
+\end{mathpar}
+
+%IF-LEFT-UNKNOWN
+\begin{mathpar}
+  \inferrule[IF-LEFT-UNKNOWN]
+  {  
+  }{
+    \{[(\IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  \StackOne\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE], \SYSTEM\} \SystemTrans\ \\ \{[\INSTRUCTIONONE, \VariableX\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \LEFT\ \VariableX)], [\INSTRUCTIONTWO, \VariableX\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\StackOne \EQUAL\ \RIGHT\ \VariableX)], \SYSTEM\}}
+\end{mathpar}
+
 
 %LOOP
 \begin{mathpar}
@@ -334,8 +599,8 @@ The rule semantics is defined by several kinds of transitions:
   {
    \text{\FLEN\A\ \EQUAL\ \N}
   }
-  {\text{[(\DIG\ \N ; \INSTRUCTION), \A\ \AT\ \StackOne\ \STACKCONCAT\ \B, \TSTACK, \PREDICATE]} \StateTrans 
-\text{[\INSTRUCTION, \StackOne\ \STACKCONCAT\ \A\ \AT\ \B, \TSTACK, \PREDICATE]}}
+  {\text{[(\DIG\ \N ; \INSTRUCTION), \A\ \At\ \StackOne\ \STACKCONCAT\ \B, \TSTACK, \PREDICATE]} \StateTrans 
+\text{[\INSTRUCTION, \StackOne\ \STACKCONCAT\ \A\ \At\ \B, \TSTACK, \PREDICATE]}}
 \end{mathpar}
 
 %DIP
@@ -361,8 +626,8 @@ The rule semantics is defined by several kinds of transitions:
   { 
      \text{\FLEN\A\ \EQUAL\ \N}
   }
-  {\text{[(\DIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \A\ \AT\ \B, \TSTACK, \PREDICATE]} \StateTrans 
-\text{[(\INSTRUCTIONONE; \TDIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \B, \A\ \AT\ \TSTACK, \PREDICATE]}}
+  {\text{[(\DIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \A\ \At\ \B, \TSTACK, \PREDICATE]} \StateTrans 
+\text{[(\INSTRUCTIONONE; \TDIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \B, \A\ \At\ \TSTACK, \PREDICATE]}}
 \end{mathpar}
 
 
@@ -371,8 +636,8 @@ The rule semantics is defined by several kinds of transitions:
   {
    \text{\FLEN\A\ \EQUAL\ \N}
   }
-  {\text{[(\TDIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \STACK, \A\ \AT \TSTACK, \PREDICATE]} \StateTrans 
-\text{[\INSTRUCTION, \A\ \AT\ \STACK, \TSTACK, \PREDICATE]}}
+  {\text{[(\TDIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \STACK, \A\ \At \TSTACK, \PREDICATE]} \StateTrans 
+\text{[\INSTRUCTION, \A\ \At\ \STACK, \TSTACK, \PREDICATE]}}
 \end{mathpar}
 
 \paragraph{Arithmetic operations}
@@ -382,7 +647,7 @@ The rule semantics is defined by several kinds of transitions:
   {
   }
   {\text{[(\ADD\ ; \INSTRUCTION), \StackOne\ \STACKCONCAT\ \StackTwo\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]} \StateTrans 
-\text{[\INSTRUCTION, \VariableX\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\VariableX\ \EQUAL\ \VariableA\ \PLUS\ \VariableB)]}}
+\text{[\INSTRUCTION, \VariableX\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\VariableX\ \EQUAL\ \StackOne\ \PLUS\ \StackTwo)]}}
 \end{mathpar}
 
 %ABS
@@ -399,7 +664,7 @@ The rule semantics is defined by several kinds of transitions:
   {
   }
   {\text{\{[(\COMPARE\ ; \INSTRUCTION), \StackOne\ \STACKCONCAT\ \StackTwo\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE], \SYSTEM\}} \SystemTrans \\
-\text{\{[\INSTRUCTION, \ONE\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\VariableA\ \MORE\ \VariableB)], [\INSTRUCTION, \ZERO\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\VariableA\ \EQUAL\ \VariableB)], [\INSTRUCTION, \MINUS\ONE\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\VariableA\ \LESS\ \VariableB)], \SYSTEM\}}}
+\text{\{[\INSTRUCTION, \ONE\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\StackOne\ \MORE\ \StackTwo)], [\INSTRUCTION, \ZERO\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\StackOne\ \EQUAL\ \StackTwo)], [\INSTRUCTION, \MINUS\ONE\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\StackOne\ \LESS\ \StackTwo)], \SYSTEM\}}}
 \end{mathpar}
 
 \paragraph{Boolean operations}
@@ -409,7 +674,7 @@ The rule semantics is defined by several kinds of transitions:
   {
   }
   {\text{[(\XOR\ ; \INSTRUCTION), \StackOne\ \STACKCONCAT\ \StackTwo\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]} \StateTrans 
-\text{[\INSTRUCTION, \VariableX\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\VariableX\ \EQUAL\ \VariableA\ \FXOR\ \VariableB)]}}
+\text{[\INSTRUCTION, \VariableX\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\VariableX\ \EQUAL\ \StackOne\ \FXOR\ \StackTwo)]}}
 \end{mathpar}
 
 \paragraph{Crytographic oprerations}
@@ -555,7 +820,7 @@ The rule semantics is defined by several kinds of transitions:
   {
   }
   {[(\TMAP\ \INSTRUCTIONONE ; \INSTRUCTION), \LIST\ \STACKCONCAT\ \STACK, \HEAD\ \STACKCONCAT\ \TLIST\ \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans 
-[(\TMAP\ \INSTRUCTIONONE; \INSTRUCTION), \LIST\ \AT\ \{\HEAD\} \STACKCONCAT\ \STACK, \TLIST\ \STACKCONCAT\ \TSTACK, \PREDICATE]}
+[(\TMAP\ \INSTRUCTIONONE; \INSTRUCTION), \LIST\ \At\ \{\HEAD\} \STACKCONCAT\ \STACK, \TLIST\ \STACKCONCAT\ \TSTACK, \PREDICATE]}
 \end{mathpar}
 
 \subsubsection{Operation on tickets}
@@ -569,7 +834,7 @@ The rule semantics is defined by several kinds of transitions:
   }
 \end{mathpar}
 
-
+\pagebreak
 \bibliographystyle{splncs04}
 \bibliography{bio}
 
