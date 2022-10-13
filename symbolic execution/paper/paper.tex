@@ -66,11 +66,11 @@
 %Let \VARIABLE\ = \{\VariableOne, \VariableTwo, \DOT\ \} is a set of variables.\\
 %Let \CONSTANT\ = \{\BALANCE, \AMOUNT, \SENDER, \SOURCE, \NOW, \LEVEL, \CHAINID, \SELF, \ConstantOne, \ConstantTwo, \DOT\ \} is a set of constants.\\
 %Let \Term\ is a term that ranges over variables and constants.\\
-Let \STACK\ = \TermOne\ \STACKCONCAT\ \TermTwo\ \STACKCONCAT\ \DOT\ \STACKCONCAT\ \EMPTYSTACK\ is a stack, where elements are terms.
+Let \STACK\ = \TermOne\ \STACKCONCAT\ \TermTwo\ \STACKCONCAT\ \DOT\ \STACKCONCAT\ \EMPTYSTACK\ be a stack, where elements are terms.
 \\
-Let \INSTRUCTION\ = \InstructionOne; \InstructionTwo; \DOT; \InstructionN\ is a sequence of intructions. 
+Let \INSTRUCTION\ = \InstructionOne; \InstructionTwo; \DOT; \InstructionN\ be a sequence of instructions. 
 \\
-Let \PREDICATE\ is a predicate. 
+Let \PREDICATE\ be a predicate. 
 
 \begin{definition}
 A system state of the symbolic execusion is described as a tuple \STATE\ = [\INSTRUCTION, \STACK, \TSTACK, \PREDICATE], where \STACK\ is the main stack and \TSTACK\ is a temporary stack.
@@ -206,7 +206,7 @@ T, U &::= \\
    \Mid\ \text{p}\ \CNF\ \text{q} \
    \Mid\ \text{p}\ \DNF\ \text{q} \\
 < \text{atomic formula} > &::= \\ 
-    &\Mid\ < \text{buop} > < \text{bterm} >\\ 
+    &\Mid\ < \text{butop} > < \text{bterm} >\\ 
    &\Mid\  < \text{bterm} >  < \text{biop} > < \text{bterm} >\\ 
 < \text{butop} > &::= \\
    &\Mid\ \text{not} \\
@@ -222,7 +222,7 @@ T, U &::= \\
    &\Mid\ \text{t} \\
    &\Mid\ < \text{unop} > \text{t} \\ 
    &\Mid\ \text{t}\ < \text{binop} > \text{t}\\  
-< \text{utop} > &::= \\ 
+< \text{unop} > &::= \\ 
    &\Mid\ \text{abs} \\
    &\Mid\ \text{size} \\
    &\Mid\ \text{int} \\
@@ -399,7 +399,7 @@ T, U &::= \\
 \begin{figure}[tp]
 \begin{mathpar}
   \inferrule{}{
-      \JTypeExpr\TEnv{\EXE}{\TYF\ \STACKCONCAT\ \LAMBDA\ \TYF\ \TYS\ \STACKCONCAT\ \TYA\ \SRightarrow\ \TYS\ \STACKCONCAT\ \TYA}
+      \JTypeExpr\TEnv{\EXEC}{\TYF\ \STACKCONCAT\ \LAMBDA\ \TYF\ \TYS\ \STACKCONCAT\ \TYA\ \SRightarrow\ \TYS\ \STACKCONCAT\ \TYA}
     }
 \end{mathpar}
 
@@ -502,10 +502,10 @@ The rule semantic is defined by several kinds of transitions:
 \paragraph{Control structures}
 %EXE
 \begin{mathpar}
-  \inferrule[EXE]
+  \inferrule[EXEC]
   {  
   }{
-    [(\EXE; \INSTRUCTION),  \StackOne\ \STACKCONCAT\ \{\INSTRUCTIONONE\} \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans\ [(\INSTRUCTIONONE; \INSTRUCTION), \StackOne\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}
+    [(\EXEC; \INSTRUCTION),  \StackOne\ \STACKCONCAT\ \{\INSTRUCTIONONE\} \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans\ [(\INSTRUCTIONONE; \INSTRUCTION), \StackOne\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}
 \end{mathpar}
 
 %APPLY
