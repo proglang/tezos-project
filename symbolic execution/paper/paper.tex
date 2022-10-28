@@ -356,10 +356,10 @@ The rule semantic is defined by several kinds of transitions:
 
 %IF_NON
 \begin{mathpar}
-  \inferrule[IF-CONS]
+  \inferrule[IF-NONE]
   {  
   }{
-    \{[(\IFNON\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ ; \INSTRUCTION),  \StackOne\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE], \SYSTEM\}\ \SystemTrans\  \\ \{[\INSTRUCTIONTWO\ ; \INSTRUCTION, \STACK, \TSTACK, \PREDICATE\ \Wedge\ \StackOne\ \EQUAL\ \EMPTYLIST], [\INSTRUCTIONONE, \HEAD\ \STACKCONCAT\ \TAIL\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQUAL\ \{\HEAD\ ; \STAIL \})], \SYSTEM\}}
+    \{[(\IFNONE\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ ; \INSTRUCTION),  \StackOne\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE], \SYSTEM\}\ \SystemTrans\  \\ \{[\INSTRUCTIONONE\ ; \INSTRUCTION, \STACK, \TSTACK, \PREDICATE\ \Wedge\ \StackOne\ \EQUAL\ \NONE], [\INSTRUCTIONTWO,  \VariableX\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQUAL\ \SOME\ \VariableX], \SYSTEM\}}
 \end{mathpar}
 
 
