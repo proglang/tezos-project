@@ -740,6 +740,8 @@ The rule semantic is defined by several kinds of transitions:
 \begin{mathpar}
 (\FABS \VariableX\ \MORE\ \ZERO) \Wedge\ (\FGetTy(\FABS\VariableX)\ \EQUAL\ \TNAT) \\
 (\FSIZE \VariableX\ \MORE\ \ZERO) \Wedge\ (\FGetTy(\FSIZE\VariableX)\ \EQUAL\ \TNAT) \\
+(\FGetTy(\FSLICE(\VBYT, \VOFFSET, \VLEN)) \EQUAL\ \TSTR) \Wedge\ (\FLEN(\FSLICE(\VBYT, \VOFFSET, \VLEN)) \EQUAL\ \VLEN)\\
+(\FGetTy(\FLEN(\VariableX)) \EQUAL\ \TNAT) \Wedge\ (\FLEN(\VariableX) \MOREEQUAL\ \ZERO) \\
 \end{mathpar}
 
 \section{Types}
