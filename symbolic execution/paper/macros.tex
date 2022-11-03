@@ -7,8 +7,8 @@
 \newcommand{\DNF}{\vee}
 \newcommand{\TRUE}{\text{True}}
 \newcommand{\FALSE}{\text{False}}
-\newcommand{\EMPTYSTRING}{\text{$""$}}
-\newcommand{\STACKCONCAT}{\text{$::$}}
+\newcommand{\EMPTYSTRING}{\ensuremath{""}}
+\newcommand{\STACKCONCAT}{\ensuremath{::}}
 \newcommand{\ZERO}{\text{0}}
 \newcommand{\ONE}{\text{1}}
 \newcommand{\VAMOUNT}{\text{amount}}
@@ -50,47 +50,47 @@
 %% system definition
 \newcommand{\VAL}{\textbf{v}}
 \newcommand{\VAR}{\textbf{x}}
-\newcommand{\VARIABLE}{\text{$Var$}}
-\newcommand{\CONSTANT}{\text{$Const$}}
-\newcommand{\TERM}{\text{$T$}}
-\newcommand{\ELT}{\text{$Elt$}}
-\newcommand{\A}{\text{$A$}}
-\newcommand{\B}{\text{$B$}}
-\newcommand{\N}{\text{$n$}}
-\newcommand{\K}{\text{$k$}}
-\newcommand{\V}{\text{$v$}}
-\newcommand{\M}{\text{$m$}}
-\newcommand{\VariableOne}{\text{$x_1$}}
-\newcommand{\VariableTwo}{\text{$x_2$}}
-\newcommand{\VariableN}{\text{$x_n$}}
-\newcommand{\Constant}{\text{$c$}}
-\newcommand{\ConstantOne}{\text{$c_1$}}
-\newcommand{\ConstantTwo}{\text{$c_2$}}
-\newcommand{\ConstantN}{\text{$c_n$}}
-\newcommand{\LIST}{\text{$l$}}
-\newcommand{\EMPTYLIST}{\text{$\{\}$}}
-\newcommand{\TLIST}{\text{$l'$}}
-\newcommand{\HEAD}{\text{$hd$}}
-\newcommand{\TAIL}{\text{$tl$}}
-\newcommand{\STAIL}{\text{$< tl >$}}
-\newcommand{\Term}{\text{$t$}}
-\newcommand{\TermOne}{\text{$t_1$}}
-\newcommand{\TermTwo}{\text{$t_2$}}
-\newcommand{\TermN}{\text{$t_n$}}
-\newcommand{\TermB}{\text{$t_b$}}
-\newcommand{\STACK}{\text{$S$}}
+\newcommand{\VARIABLE}{\textit{Var}}
+\newcommand{\CONSTANT}{\textit{Const}}
+\newcommand{\TERM}{\ensuremath{T}}
+\newcommand{\ELT}{\textit{Elt}}
+\newcommand{\A}{\ensuremath{A}}
+\newcommand{\B}{\ensuremath{B}}
+\newcommand{\N}{\ensuremath{n}}
+\newcommand{\K}{\ensuremath{k}}
+\newcommand{\V}{\ensuremath{v}}
+\newcommand{\M}{\ensuremath{m}}
+\newcommand{\VariableOne}{\ensuremath{x_1}}
+\newcommand{\VariableTwo}{\ensuremath{x_2}}
+\newcommand{\VariableN}{\ensuremath{x_n}}
+\newcommand{\Constant}{\ensuremath{c}}
+\newcommand{\ConstantOne}{\ensuremath{c_1}}
+\newcommand{\ConstantTwo}{\ensuremath{c_2}}
+\newcommand{\ConstantN}{\ensuremath{c_n}}
+\newcommand{\LIST}{\ensuremath{l}}
+\newcommand{\EMPTYLIST}{\ensuremath{[]}}
+\newcommand{\TLIST}{\ensuremath{l'}}
+\newcommand{\HEAD}{\textit{hd}}
+\newcommand{\TAIL}{\textit{tl}}
+\newcommand{\STAIL}{\ensuremath{\langle \mathit{tl} \rangle{}}}
+\newcommand{\Term}{\ensuremath{t}}
+\newcommand{\TermOne}{\ensuremath{t_1}}
+\newcommand{\TermTwo}{\ensuremath{t_2}}
+\newcommand{\TermN}{\ensuremath{t_n}}
+\newcommand{\TermB}{\ensuremath{t_b}}
+\newcommand{\STACK}{\ensuremath{S}}
 \newcommand{\EMPTYSTACK}{\text{[ ]}}
-\newcommand{\STACKONE}{\text{$S$}}
-\newcommand{\STACKTWO}{\text{$S$}}
-\newcommand{\STACKN}{\text{$S$}}
-\newcommand{\Stack}{\text{$s$}}
-\newcommand{\StackOne}{\text{$s_1$}}
-\newcommand{\StackTwo}{\text{$s_2$}}
-\newcommand{\StackN}{\text{$s_n$}}
-\newcommand{\TSTACK}{\text{$S'$}}
-\newcommand{\TStack}{\text{$s'$}}
-\newcommand{\STATE}{\text{$ST$}}
-\newcommand{\STATEONE}{\text{$ST_1$}}
+\newcommand{\STACKONE}{\ensuremath{S}}
+\newcommand{\STACKTWO}{\ensuremath{S}}
+\newcommand{\STACKN}{\ensuremath{S}}
+\newcommand{\Stack}{\ensuremath{s}}
+\newcommand{\StackOne}{\ensuremath{s_1}}
+\newcommand{\StackTwo}{\ensuremath{s_2}}
+\newcommand{\StackN}{\ensuremath{s_n}}
+\newcommand{\TSTACK}{\ensuremath{S'}}
+\newcommand{\TStack}{\ensuremath{s'}}
+\newcommand{\STATE}{\textit{ST}}
+\newcommand{\STATEONE}{\textit{ST}\ensuremath{_1}}
 \newcommand{\STATETWO}{\text{$ST_2$}}
 \newcommand{\STATEN}{\text{$ST_n$}}
 \newcommand{\SYSTEM}{\text{$SE$}}
@@ -132,15 +132,15 @@
 \newcommand{\MAPER}{\text{$\overline{\textbf{map}}$}}
 
 %% variables
-\newcommand{\VariableX}{\text{$x$}}
-\newcommand{\VariableY}{\text{$y$}}
-\newcommand{\VariableV}{\text{$v$}}
-\newcommand{\VariableK}{\text{$k$}}
-\newcommand{\VariableA}{\text{$a$}}
-\newcommand{\VariableB}{\text{$b$}}
-\newcommand{\VBYT}{\text{$byt$}}
-\newcommand{\VOFFSET}{\text{$offset$}}
-\newcommand{\VLEN}{\text{$len$}}
+\newcommand{\VariableX}{\ensuremath{x}}
+\newcommand{\VariableY}{\ensuremath{y}}
+\newcommand{\VariableV}{\ensuremath{v}}
+\newcommand{\VariableK}{\ensuremath{k}}
+\newcommand{\VariableA}{\ensuremath{a}}
+\newcommand{\VariableB}{\ensuremath{b}}
+\newcommand{\VBYT}{\textit{byt}}
+\newcommand{\VOFFSET}{\textit{offset}}
+\newcommand{\VLEN}{\textit{len}}
 
 
 %% operation
@@ -150,9 +150,9 @@
 \newcommand{\MINUS}{\textbf{-}}
 \newcommand{\EQUAL}{\textbf{=}}
 \newcommand{\LESS}{\textbf{$<$}}
-\newcommand{\LESSEQUAL}{\textbf{$<=$}}
+\newcommand{\LESSEQUAL}{\textbf{$\le$}}
 \newcommand{\MORE}{\textbf{$>$}}
-\newcommand{\MOREEQUAL}{\textbf{$>=$}}
+\newcommand{\MOREEQUAL}{\textbf{$\ge$}}
 
 %% instructions
 \newcommand{\UNIT}{\text{Unit}}
@@ -186,8 +186,8 @@
 \newcommand{\HASHKEY}{\text{HASH-KEY}}
 \newcommand{\CONCAT}{\text{CONCAT}}
 \newcommand{\TCONCAT}{\text{CONCAT'}}
-\newcommand{\MEN}{\text{MEN}}
-\newcommand{\TMEN}{\text{MEN'}}
+\newcommand{\MEN}{\text{MEM}}
+\newcommand{\TMEN}{\text{MEM'}}
 \newcommand{\TMAP}{\text{MAP'}}
 \newcommand{\PUSH}{\text{PUSH}}
 \newcommand{\XOR}{\text{XOR}}
@@ -199,20 +199,20 @@
 
 
 %symbols
-\newcommand{\Overline}[1]{\text{$\overline{#1}$}}
-\newcommand{\Mapsto}{\text{$\mapsto$}}
-\newcommand{\Mid}{\text{$\mid$}}
-\newcommand{\Mathcal}[1]{\text{$\mathcal{#1}$}}
-\newcommand{\Models}{\text{$\models$}}
-\newcommand{\SRightarrow}{\text{$\rightarrow$}}
-\newcommand{\NSRightarrow}{\text{$\nrightarrow$}}
-\newcommand{\Wedge}{\text{$\wedge$}}
-\newcommand{\At}{\text{$@$}}
-\newcommand{\Subseteq}{\text{$\subseteq$}}
-\newcommand{\Vee}{\text{$\vee$}}
-%\newcommand{\Cup}{\text{$\cup$}}
-\newcommand{\STRINGCONCAT}{\text{$\hat{}$}}
-\newcommand{\DOT}{\text{$...$}}
+\newcommand{\Overline}[1]{\ensuremath{\overline{#1}}}
+\newcommand{\Mapsto}{\ensuremath{\mapsto}}
+\newcommand{\Mid}{\ensuremath{\mid}}
+\newcommand{\Mathcal}[1]{\ensuremath{\mathcal{#1}}}
+\newcommand{\Models}{\ensuremath{\models}}
+\newcommand{\SRightarrow}{\ensuremath{\rightarrow}}
+\newcommand{\NSRightarrow}{\ensuremath{\nrightarrow}}
+\newcommand{\Wedge}{\ensuremath{\wedge}}
+\newcommand{\At}{\ensuremath{@}}
+\newcommand{\Subseteq}{\ensuremath{\subseteq}}
+\newcommand{\Vee}{\ensuremath{\vee}}
+%\newcommand{\Cup}{\ensuremath{\cup}}
+\newcommand{\STRINGCONCAT}{\ensuremath{\hat{}}}
+\newcommand{\DOT}{\dots}
 
 
 %% functions
@@ -235,9 +235,9 @@
 
 
 %% transition relations
-\newcommand{\StateTrans}{\text{$\longrightarrow_S$}}
-\newcommand{\ExprTrans}{\text{$\longrightarrow_E$}}
-\newcommand{\SystemTrans}{\text{$\longrightarrow$}}
+\newcommand{\StateTrans}{\ensuremath{\longrightarrow_S}}
+\newcommand{\ExprTrans}{\ensuremath{\longrightarrow_E}}
+\newcommand{\SystemTrans}{\ensuremath{\longrightarrow}}
 
 
 %% types
