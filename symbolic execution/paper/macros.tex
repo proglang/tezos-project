@@ -53,11 +53,6 @@
 \newcommand{\VARIABLE}{\text{$Var$}}
 \newcommand{\CONSTANT}{\text{$Const$}}
 \newcommand{\TERM}{\text{$T$}}
-\newcommand{\VariableX}{\text{$x$}}
-\newcommand{\VariableV}{\text{$v$}}
-\newcommand{\VariableK}{\text{$k$}}
-\newcommand{\VariableA}{\text{$a$}}
-\newcommand{\VariableB}{\text{$b$}}
 \newcommand{\ELT}{\text{$Elt$}}
 \newcommand{\A}{\text{$A$}}
 \newcommand{\B}{\text{$B$}}
@@ -77,6 +72,7 @@
 \newcommand{\TLIST}{\text{$l'$}}
 \newcommand{\HEAD}{\text{$hd$}}
 \newcommand{\TAIL}{\text{$tl$}}
+\newcommand{\STAIL}{\text{$< tl >$}}
 \newcommand{\Term}{\text{$t$}}
 \newcommand{\TermOne}{\text{$t_1$}}
 \newcommand{\TermTwo}{\text{$t_2$}}
@@ -135,6 +131,18 @@
 \newcommand{\MapClose}{\textbf{$map_{close}$}}
 \newcommand{\MAPER}{\text{$\overline{\textbf{map}}$}}
 
+%% variables
+\newcommand{\VariableX}{\text{$x$}}
+\newcommand{\VariableY}{\text{$y$}}
+\newcommand{\VariableV}{\text{$v$}}
+\newcommand{\VariableK}{\text{$k$}}
+\newcommand{\VariableA}{\text{$a$}}
+\newcommand{\VariableB}{\text{$b$}}
+\newcommand{\VBYT}{\text{$byt$}}
+\newcommand{\VOFFSET}{\text{$offset$}}
+\newcommand{\VLEN}{\text{$len$}}
+
+
 %% operation
 \newcommand{\CONS}{\text{cons}}
 \newcommand{\NIL}{\text{nil}}
@@ -165,6 +173,7 @@
 \newcommand{\IF}{\text{IF}}
 \newcommand{\IFLEFT}{\text{IF-LEFT}}
 \newcommand{\IFRIGHT}{\text{IF-RIGHT}}
+\newcommand{\IFCONS}{\text{IF-CONS}}
 \newcommand{\ITER}{\text{ITER}}
 \newcommand{\TITER}{\text{ITER'}}
 \newcommand{\DIG}{\text{DIG}}
@@ -183,6 +192,10 @@
 \newcommand{\PUSH}{\text{PUSH}}
 \newcommand{\XOR}{\text{XOR}}
 \newcommand{\MAP}{\textbf{MAP}}
+\newcommand{\LAMBDA}{\text{LAMBDA}}
+\newcommand{\IFNONE}{\text{IF-NONE}}
+\newcommand{\UPDATE}{\text{UPDATE}}
+\newcommand{\TUPDATE}{\text{UPDATE'}}
 
 
 %symbols
@@ -204,17 +217,20 @@
 
 %% functions
 \newcommand{\FABS}[1]{\text{abs($#1$)}}
+\newcommand{\FSIZE}[1]{\text{size($#1$)}}
 \newcommand{\FXOR}{\text{xor}}
 \newcommand{\FHASHKEY}[1]{\text{hash-key($#1$)}}
 \newcommand{\FCONCAT}[1]{\text{concat($#1$)}}
-\newcommand{\FGetTy}[1]{\text{get-ty($#1$)}}
-\newcommand{\FLEN}[1]{\text{len($#1$)}}
+\newcommand{\FGetTy}{\text{get-ty}}
+\newcommand{\FLEN}{\text{len}}
 \newcommand{\FAND}{\text{and}}
 \newcommand{\FOR}{\text{or}}
 \newcommand{\FNOT}{\text{not}}
+\newcommand{\FCOMPARE}{\text{compare}}
 \newcommand{\GETCONTRACTTYPE}{\text{get-contract-type}}
 \newcommand{\UNOP}{\text{unop}}
 \newcommand{\BINOP}{\text{binop}}
+\newcommand{\FSLICE}{\text{slice}}
 
 
 
@@ -254,12 +270,13 @@
 \newcommand{\TTIME}{\text{timestamp}}
 \newcommand{\TCONTRACT}{\text{contract}}
 \newcommand{\TCHAINID}{\text{chain-id}}
+\newcommand{\TLAMBDA}{\text{lambda}}
 
 
 
 
 
-\newcommand{\LAMBDA}{\text{lambda}}
+
 
 %% typing related
 \newcommand{\EmptyEnv}{\cdot}
