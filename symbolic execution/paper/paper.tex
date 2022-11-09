@@ -514,7 +514,7 @@ The rule semantic is defined by several kinds of transitions:
     \StateTrans^*
     [\EMPTYSTACK,  \B_1, \EMPTYSTACK, Q']
   }
-  {[(\DIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \A\ \At\ \B, \TSTACK, \PREDICATE] \StateTrans 
+  {[(\DIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \A\ \At\ \B, \TSTACK, \PREDICATE \wedge Q] \StateTrans 
 [(\INSTRUCTION), \A\ \At\ \B_1, \TSTACK, \PREDICATE \wedge Q']}
 \end{mathpar}
 
@@ -571,27 +571,45 @@ The rule semantic is defined by several kinds of transitions:
   }
   {
     [(\COMPARE ; \INSTRUCTION), (\StackOne, \TNAT) \STACKCONCAT (\StackTwo, \TNAT)
-    \STACKCONCAT \STACK, \TSTACK, \PREDICATE]
+    \STACKCONCAT \STACK, \TSTACK, \PREDICATE ]
     \SystemTrans \\
     [\INSTRUCTION, (\VariableX, \TINT) \STACKCONCAT \STACK, \TSTACK, \PREDICATE
-    \wedge (\StackOne > \StackTwo \Leftrightarrow \VariableX = 1)
-    \wedge (\StackOne = \StackTwo \Leftrightarrow \VariableX = 0)
-    \wedge (\StackOne < \StackTwo \Leftrightarrow \VariableX = -1)]
+    \wedge\ (\StackOne > \StackTwo \Leftrightarrow \VariableX = 1)
+    \wedge\ (\StackOne = \StackTwo \Leftrightarrow \VariableX = 0) \\
+    \wedge\ (\StackOne < \StackTwo \Leftrightarrow \VariableX = -1)]
     }
 \end{mathpar}
 
 \begin{mathpar}
-\inferrule[COMPARE-SOME]
+\inferrule[COMPARE-OPTION-SOME]
+  {
+  [\COMPARE,  (\VariableX, \TY) \STACKCONCAT (\VariableY, \TY) \STACKCONCAT\ \EMPTYSTACK, \EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\ \EMPTYSTACK, \EMPTYSTACK, Q']
+  }
+  {
+    [(\COMPARE ; \INSTRUCTION), (\StackOne, \TOPTION\ \TY) \STACKCONCAT (\StackTwo, \TOPTION\ \TY)
+    \STACKCONCAT \STACK, \TSTACK, \PREDICATE \wedge Q]
+    \SystemTrans \\
+    [\INSTRUCTION, (\VariableA, \TINT) \STACKCONCAT \STACK, \TSTACK,  \PREDICATE
+    \wedge (\StackOne\ \EQUAL\ \SOME\ \VariableX)
+    \wedge (\StackTwo\ \EQUAL\ \SOME\ \VariableY)
+    \wedge Q']
+    }
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[COMPARE-OPTION-NONE]
   {
   }
   {
-    [(\COMPARE ; \INSTRUCTION), (\StackOne, \TNAT) \STACKCONCAT (\StackTwo, \TNAT)
+    [(\COMPARE ; \INSTRUCTION), (\StackOne, \TOPTION\ \TY) \STACKCONCAT (\StackTwo, \TOPTION\ \TY)
     \STACKCONCAT \STACK, \TSTACK, \PREDICATE]
     \SystemTrans \\
-    [\INSTRUCTION, (\VariableX, \TINT) \STACKCONCAT \STACK, \TSTACK, \PREDICATE
-    \wedge (\StackOne > \StackTwo \Leftrightarrow \VariableX = 1)
-    \wedge (\StackOne = \StackTwo \Leftrightarrow \VariableX = 0)
-    \wedge (\StackOne < \StackTwo \Leftrightarrow \VariableX = -1)]
+    [\INSTRUCTION, (-1, \TINT) \STACKCONCAT \STACK, \TSTACK,  \PREDICATE
+    \wedge (\StackOne\ \EQUAL\ \SOME\ \VariableX)
+    \wedge (\StackTwo\ \EQUAL\ \NONE)
+    ]
     }
 \end{mathpar}
 
@@ -630,8 +648,8 @@ The rule semantic is defined by several kinds of transitions:
 \inferrule[XOR]
   {
   }
-  {[(\XOR\ ; \INSTRUCTION), \StackOne\ \STACKCONCAT\ \StackTwo\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans 
-[\INSTRUCTION, \VariableX\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\VariableX\ \EQUAL\ \StackOne\ \FXOR\ \StackTwo)]}
+  {[(\XOR\ ; \INSTRUCTION), (\StackOne, \TBOOL) \STACKCONCAT\ (\StackTwo, \TBOOL) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans \\
+[\INSTRUCTION, (\VariableX, \TBOOL) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\VariableX\ \EQUAL\ \StackOne\ \FXOR\ \StackTwo)]}
 \end{mathpar}
 
 \paragraph{Crytographic oprerations}
