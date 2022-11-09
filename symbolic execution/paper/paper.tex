@@ -67,9 +67,9 @@
 \section{Symblic Execution Model}
 \label{sec:symblic-execution-model}
 
-Let $\STACK = \TermOne \STACKCONCAT \TermTwo \STACKCONCAT \DOT
-\STACKCONCAT \EMPTYSTACK$ be a stack, where elements are terms.
-\pt{elements are types paired with terms}
+Let $\STACK = (\TermOne, \TYF) \STACKCONCAT (\TermTwo, \TYS) \STACKCONCAT \DOT
+\STACKCONCAT \EMPTYSTACK$ be a stack, where elements are types paired with terms.
+%\pt{elements are types paired with terms}
 \\
 Let $\INSTRUCTION = \InstructionOne; \InstructionTwo; \DOT; \InstructionN$ be a sequence of instructions. 
 \\
@@ -77,27 +77,27 @@ Let \PREDICATE\ be a predicate.
 
 \begin{definition}
 A system state of the symbolic execution is a tuple $\STATE =
-[\INSTRUCTION, \STACK, \TSTACK, \PREDICATE]$, where \STACK\ is the
-main stack and \TSTACK\ is a temporary stack. 
+[\INSTRUCTION, \STACK, \TSTACK, \PREDICATE]$, where \STACK\ is the main stack and \TSTACK\ is a temporary stack. Let $\SYSTEM = \{\STATEONE, \STATETWO, \DOT, \STATEN \}$ range over sets of system states.
 \end{definition}
 
-Let $\SYSTEM = \{\STATEONE, \STATETWO, \DOT, \STATEN \}$ range over sets of system states.
-\\
-\\
-Let $S_{init}$  be the initial state.\pt{you say
-  ``state'', but what you give is a stack}
+Let $S_{init}$  be the initial main stack.
+%\pt{you say ``state'', but what you give is a stack}
 \begin{itemize}
-\item[]  $S_{init}$ = (Pair $Par$ \Term) \STACKCONCAT\ \EMPTYSTACK
+\item[]  $S_{init}$ = (\KPAIR\ \VPAR\ \VSTORAGE, \TPAIR\ \TYF\ \TYS) \STACKCONCAT\ \EMPTYSTACK
 \end{itemize}
- \todo[author=PT,inline]{what is Par, ops,  and  what is $t$?}
+
+where \VPAR\ and \VSTORAGE\ are the terms that represent the parameter and the storage. 
+% \todo[author=PT,inline]{what is Par, ops,  and  what is $t$?}
 
 
 
-\noindent Let $S_{final}$  be the final state. 
+\noindent Let $S_{final}$  be the final main stack. 
 
 \begin{itemize}
-\item[]  $S_{final}$ = (\PAIR\ $ops$ $t'$) \STACKCONCAT\ \EMPTYSTACK
+\item[]  $S_{final}$ = (\PAIR\ \VOPERATIONLIST\ \VSTORAGE, \TPAIR\ (\TOPERATIONLIST) \TYS) \STACKCONCAT\ \EMPTYSTACK
 \end{itemize}
+
+where \VOPERATIONLIST\ repesents a operation list
 
 %Where $t$ and $t'$ represent the storage and have the same structure.
 
@@ -287,15 +287,15 @@ The rule semantic is defined by several kinds of transitions:
 \begin{mathpar}
   \inferrule[EXEC]
   {
-    [\INSTRUCTIONONE, \StackOne \STACKCONCAT \EMPTYSTACK, \EMPTYSTACK,
+    [\INSTRUCTIONONE, (\StackOne, \TYF) \STACKCONCAT \EMPTYSTACK, \EMPTYSTACK,
     Q]
     \StateTrans^*
-    [ \EMPTYSTACK, \StackOne' \STACKCONCAT \EMPTYSTACK, \EMPTYSTACK, Q']
+    [ \EMPTYSTACK, (\StackOne', \TYS) \STACKCONCAT \EMPTYSTACK, \EMPTYSTACK, Q']
   }{
     [(\EXEC; \INSTRUCTION),   \{\INSTRUCTIONONE\} \STACKCONCAT
-    \StackOne \STACKCONCAT \STACK, \TSTACK, \PREDICATE \wedge Q] 
+    (\StackOne, \TYF) \STACKCONCAT \STACK, \TSTACK, \PREDICATE \wedge Q] 
     \StateTrans
-    [ \INSTRUCTION, \StackOne' \STACKCONCAT \STACK, \TSTACK,
+    [ \INSTRUCTION, (\StackOne', \TYS) \STACKCONCAT \STACK, \TSTACK,
     \PREDICATE \wedge Q']}
 \end{mathpar}
 
@@ -304,7 +304,7 @@ The rule semantic is defined by several kinds of transitions:
   \inferrule[APPLY]
   {
   }{
-    \text{[(\APPLY; \INSTRUCTION), \StackOne\ \STACKCONCAT\ \{\INSTRUCTIONONE\} \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]} \StateTrans\ \text{[\INSTRUCTION, \{\PUSH\ (\FGetTy\StackOne)\ \StackOne; \IPAIR; \INSTRUCTIONONE\} \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}}
+    \text{[(\APPLY; \INSTRUCTION), (\StackOne, \TY) \STACKCONCAT\ \{\INSTRUCTIONONE\} \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]} \StateTrans\ \text{[\INSTRUCTION, \{\PUSH\ \TY\ \StackOne; \IPAIR; \INSTRUCTIONONE\} \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}}
 \end{mathpar}
 
 %LAMBLA
@@ -321,8 +321,8 @@ The rule semantic is defined by several kinds of transitions:
   {  
   }{
     [(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
-    \StackOne\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]
-    \SystemTrans
+    (\StackOne, \TBOOL) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]
+    \StateTrans
     [\INSTRUCTIONONE, \STACK, \TSTACK, \PREDICATE\ \Wedge\ \StackOne]
   }
 
@@ -330,8 +330,8 @@ The rule semantic is defined by several kinds of transitions:
   {  
   }{
     [(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
-    \StackOne\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]
-    \SystemTrans
+    (\StackOne, \TBOOL) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]
+    \StateTrans
    [\INSTRUCTIONTWO, \STACK, \TSTACK, \PREDICATE\ \Wedge\ \NEG\
    \StackOne]
  }
@@ -344,9 +344,9 @@ The rule semantic is defined by several kinds of transitions:
   {  
   }{
     [(\IFLEFT\ \INSTRUCTIONONE\ \INSTRUCTIONTWO; \INSTRUCTION),
-    \StackOne \STACKCONCAT \STACK, \TSTACK, \PREDICATE]
-    \StateTrans
-    [\INSTRUCTIONONE, \VariableX\ \STACKCONCAT\ \STACK, \TSTACK,
+    (\StackOne, \TOR\ \TYF\ \TYS) \STACKCONCAT \STACK, \TSTACK, \PREDICATE]
+    \StateTrans \\
+    [\INSTRUCTIONONE, (\VariableX, \TYF) \STACKCONCAT\ \STACK, \TSTACK,
     \PREDICATE \wedge (\StackOne\ \EQUAL\ \LEFT\ \VariableX)]
   }
 \end{mathpar}
@@ -357,45 +357,61 @@ The rule semantic is defined by several kinds of transitions:
   {  
   }{
     [(\IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
-    \StackOne \STACKCONCAT \STACK, \TSTACK, \PREDICATE]
-    \StateTrans
-    [\INSTRUCTIONTWO, \VariableX\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \wedge (\StackOne\ \EQUAL\ \RIGHT\ \VariableX)]
+    (\StackOne, \TOR\ \TYF\ \TYS) \STACKCONCAT \STACK, \TSTACK, \PREDICATE]
+    \StateTrans \\
+    [\INSTRUCTIONTWO, (\VariableX, \TYS) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \wedge (\StackOne\ \EQUAL\ \RIGHT\ \VariableX))]
   }
 \end{mathpar}
 
 
 
 %IF-CONS-EMPTY
-\begin{mathpar}
-  \inferrule[IF-CONS-EMPTY]
-  {  
-  }{
-    [(\IFCONS\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ ; \INSTRUCTION),  \EMPTYLIST\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans\  [\INSTRUCTIONTWO\ ; \INSTRUCTION, \STACK, \TSTACK, \PREDICATE]}
-\end{mathpar}
+%\begin{mathpar}
+%  \inferrule[IF-CONS-EMPTY]
+%  {  
+%  }{
+%    [(\IFCONS\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ ; \INSTRUCTION),  \EMPTYLIST\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans\  [\INSTRUCTIONTWO\ ; \INSTRUCTION, \STACK, \TSTACK, \PREDICATE]}
+%\end{mathpar}
 
 %IF-LEFT-NONEMPTY
-\begin{mathpar}
-  \inferrule[IF-CONS-NONEMPTY]
-  {  
-  }{
-    [(\IFCONS\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ ; \INSTRUCTION),  \{\HEAD\ ; \STAIL \}\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]\ \StateTrans\  [\INSTRUCTIONONE\ ; \INSTRUCTION, \HEAD\ \STACKCONCAT\ \TAIL\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}
-\end{mathpar}
+%\begin{mathpar}
+%  \inferrule[IF-CONS-NONEMPTY]
+%  {  
+%  }{
+%   [(\IFCONS\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ ; \INSTRUCTION),  \{\HEAD\ ; \STAIL \}\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]\ \StateTrans\  [\INSTRUCTIONONE\ ; \INSTRUCTION, \HEAD\ \STACKCONCAT\ \TAIL\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}
+%\end{mathpar}
 
 
 %IF_CONS
 \begin{mathpar}
-  \inferrule[IF-CONS]
+  \inferrule[IF-CONS-EMPTY]
   {  
   }{
-    \{[(\IFCONS\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ ; \INSTRUCTION),  \StackOne\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE], \SYSTEM\}\ \SystemTrans\  \\ \{[\INSTRUCTIONTWO\ ; \INSTRUCTION, \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST)], [\INSTRUCTIONONE, \HEAD\ \STACKCONCAT\ \TAIL\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQUAL\ \{\HEAD\ ; \STAIL \})], \SYSTEM\}}
+    [(\IFCONS\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ ; \INSTRUCTION),  (\StackOne, \TYLIST\ \TY) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans\  \\ [\INSTRUCTIONTWO\ ; \INSTRUCTION, \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST)]}
 \end{mathpar}
+
+\begin{mathpar}
+  \inferrule[IF-CONS-NONEMPTY]
+  {  
+  }{
+   [(\IFCONS\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ ; \INSTRUCTION),  (\StackOne, \TYLIST\ \TY) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE], \SYSTEM\ \StateTrans\  \\ [\INSTRUCTIONONE, (\HEAD, \TY) \STACKCONCAT\ (\TAIL, \TYLIST\ \TY) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQUAL\ \{\HEAD\ ; \STAIL \})]}
+\end{mathpar}
+
+
 
 %IF_NON
 \begin{mathpar}
-  \inferrule[IF-NONE]
+  \inferrule[IF-NONE-NONE]
   {  
   }{
-    \{[(\IFNONE\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ ; \INSTRUCTION),  \StackOne\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE], \SYSTEM\}\ \SystemTrans\  \\ \{[\INSTRUCTIONONE\ ; \INSTRUCTION, \STACK, \TSTACK, \PREDICATE\ \Wedge\ \StackOne\ \EQUAL\ \NONE], [\INSTRUCTIONTWO,  \VariableX\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQUAL\ \SOME\ \VariableX], \SYSTEM\}}
+    [(\IFNONE\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ ; \INSTRUCTION),  (\StackOne, \TOPTION\ \TY) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE], \SYSTEM\ \StateTrans\  \\ [\INSTRUCTIONONE\ ; \INSTRUCTION, \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \NONE)]}
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule[IF-NONE-SOME]
+  {  
+  }{
+    [(\IFNONE\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ ; \INSTRUCTION),   (\StackOne, \TOPTION\ \TY) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE], \SYSTEM\ \StateTrans\  \\ [\INSTRUCTIONTWO,  (\VariableX, \TY) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQUAL\ \SOME\ \VariableX)]}
 \end{mathpar}
 
 
@@ -404,9 +420,9 @@ The rule semantic is defined by several kinds of transitions:
   \inferrule[LOOP-TRUE]
   {  
   }{
-    [(\LOOP\ \INSTRUCTIONONE; \INSTRUCTION),  \StackOne\
+    [(\LOOP\ \INSTRUCTIONONE; \INSTRUCTION),  (\StackOne, \TBOOL)
     \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]
-    \SystemTrans
+    \StateTrans
     [(\INSTRUCTIONONE; \LOOP\ \INSTRUCTIONONE; \INSTRUCTION),
     \STACK, \TSTACK, \PREDICATE \wedge \StackOne]
   }
@@ -414,35 +430,44 @@ The rule semantic is defined by several kinds of transitions:
   \inferrule[LOOP-FALSE]
   {  
   }{
-    [(\LOOP\ \INSTRUCTIONONE; \INSTRUCTION),  \StackOne\ \STACKCONCAT\
+    [(\LOOP\ \INSTRUCTIONONE; \INSTRUCTION),  (\StackOne, \TBOOL) \STACKCONCAT\
     \STACK, \TSTACK, \PREDICATE]
-    \SystemTrans
+    \StateTrans
    [\INSTRUCTION, \STACK, \TSTACK, \PREDICATE \wedge
    (\NEG\StackOne)]
    }
 \end{mathpar}
 
-% \begin{mathpar}
-%   \inferrule[LOOP]
-%   {  
-%   }{
-%     \{[(\LOOP\ \INSTRUCTIONONE; \INSTRUCTION),  \StackOne\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE], \SYSTEM\} \SystemTrans \\ \{[(\INSTRUCTIONONE; \LOOP\ \INSTRUCTIONONE; \INSTRUCTION), \STACK, \TSTACK, \PREDICATE\ \Wedge\ \StackOne], [\INSTRUCTION, \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\NEG\StackOne)], \SYSTEM\}}
-% \end{mathpar}
-
-
+%%ITER
 \begin{mathpar}
-  \inferrule[ITER]
+  \inferrule[ITER-EMPTY]
   {  
   }{
-    \{[(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), \StackOne\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE], \SYSTEM\} \StateTrans \\ \{[\INSTRUCTION, \STACK,  \TSTACK, \PREDICATE\ \Wedge\  (\StackOne\ \EQUAL\ \EMPTYLIST)], [(\TITER\ \INSTRUCTIONONE ; \INSTRUCTION), \STACK, \StackOne\ \STACKCONCAT\ \TSTACK, \PREDICATE\ \Wedge\ \NEG\ (\StackOne\ \EQUAL\ \EMPTYLIST)], \SYSTEM\}
+    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans [\INSTRUCTION, \STACK,  \TSTACK, \PREDICATE\ \Wedge\  (\StackOne\ \EQUAL\ \EMPTYLIST)]
   }
 \end{mathpar}
 
 \begin{mathpar}
-  \inferrule[ITER']
+  \inferrule[ITER-NONEMPTY]
   {  
   }{
-    \{[(\TITER\ \INSTRUCTIONONE ; \INSTRUCTION), \STACK, \StackOne\ \STACKCONCAT\ \TSTACK, \PREDICATE], \SYSTEM \} \SystemTrans \\ \{[\INSTRUCTION, \STACK,  \TSTACK, \PREDICATE\ \Wedge\  (\StackOne\ \EQUAL\ \EMPTYLIST)], [(\INSTRUCTIONONE; \TITER\ \INSTRUCTIONONE ; \INSTRUCTION), \HEAD\ \STACKCONCAT\ \STACK,  \{\TAIL\} \STACKCONCAT\ \TSTACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQUAL\ \{\HEAD\ ; \STAIL \})], \SYSTEM\}
+    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans \\ [(\TITER\ \INSTRUCTIONONE ; \INSTRUCTION), \STACK, (\StackOne, \TYLIST\ \TY) \STACKCONCAT\ \TSTACK, \PREDICATE\ \Wedge\ \NEG\ (\StackOne\ \EQUAL\ \EMPTYLIST)]
+  }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule[ITER'-EMPTY]
+  {  
+  }{
+    [(\TITER\ \INSTRUCTIONONE ; \INSTRUCTION), \STACK, (\StackOne, \TYLIST\ \TY) \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans  [\INSTRUCTION, \STACK,  \TSTACK, \PREDICATE\ \Wedge\  (\StackOne\ \EQUAL\ \EMPTYLIST)]
+  }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule[ITER'-NONEMPTY]
+  {  
+  }{
+    [(\TITER\ \INSTRUCTIONONE ; \INSTRUCTION), \STACK, (\StackOne, \TYLIST\ \TY)  \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans \\ [(\INSTRUCTIONONE; \TITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\HEAD, \TY) \STACKCONCAT\ \STACK,  (\{\TAIL\}, \TYLIST\ \TY) \STACKCONCAT\ \TSTACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQUAL\ \{\HEAD\ ; \STAIL \})]
   }
 \end{mathpar}
 
@@ -451,10 +476,10 @@ The rule semantic is defined by several kinds of transitions:
 \begin{mathpar}
 \inferrule[DIG]
   {
-   \FLEN\A\ \EQUAL\ \N
+   \FLEN(\A) \EQUAL\ \N
   }
-  {[(\DIG\ \N ; \INSTRUCTION), \A\ \At\ \StackOne\ \STACKCONCAT\ \B, \TSTACK, \PREDICATE] \StateTrans 
-[\INSTRUCTION, \StackOne\ \STACKCONCAT\ \A\ \At\ \B, \TSTACK, \PREDICATE]}
+  {[(\DIG\ \N ; \INSTRUCTION), \A\ \At\ (\StackOne, \TY) \STACKCONCAT\ \B, \TSTACK, \PREDICATE] \StateTrans 
+[\INSTRUCTION, (\StackOne, \TY) \STACKCONCAT\ \A\ \At\ \B, \TSTACK, \PREDICATE]}
 \end{mathpar}
 
 %DIP
@@ -465,10 +490,10 @@ The rule semantic is defined by several kinds of transitions:
     \StateTrans^*
     [\EMPTYSTACK,  \STACK_1, \EMPTYSTACK, Q']
   }
-  {[(\DIP\ \INSTRUCTIONONE; \INSTRUCTION), \StackOne \STACKCONCAT
+  {[(\DIP\ \INSTRUCTIONONE; \INSTRUCTION), (\StackOne, \TY) \STACKCONCAT
     \STACK, \TSTACK, \PREDICATE \wedge Q]
     \StateTrans 
-    [\INSTRUCTION, \STACK_1,
+    [\INSTRUCTION, (\StackOne, \TY) \STACKCONCAT\ \STACK_1,
     \TSTACK, \PREDICATE \wedge Q']
   }
 \end{mathpar}
@@ -485,21 +510,23 @@ The rule semantic is defined by several kinds of transitions:
 \begin{mathpar}
 \inferrule[DIP n]
   { 
-     \text{\FLEN\A\ \EQUAL\ \N}
+     \FLEN(\A) \EQUAL\ \N \\ [\INSTRUCTIONONE,  \B, \EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  \B_1, \EMPTYSTACK, Q']
   }
-  {\text{[(\DIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \A\ \At\ \B, \TSTACK, \PREDICATE]} \StateTrans 
-\text{[(\INSTRUCTIONONE; \TDIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \B, \A\ \At\ \TSTACK, \PREDICATE]}}
+  {[(\DIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \A\ \At\ \B, \TSTACK, \PREDICATE] \StateTrans 
+[(\INSTRUCTION), \A\ \At\ \B_1, \TSTACK, \PREDICATE \wedge Q']}
 \end{mathpar}
 
 
-\begin{mathpar}
-\inferrule[DIP' n]
-  {
-   \text{\FLEN\A\ \EQUAL\ \N}
-  }
-  {\text{[(\TDIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \STACK, \A\ \At \TSTACK, \PREDICATE]} \StateTrans 
-\text{[\INSTRUCTION, \A\ \At\ \STACK, \TSTACK, \PREDICATE]}}
-\end{mathpar}
+%\begin{mathpar}
+%\inferrule[DIP' n]
+%  {
+%   \text{\FLEN\A\ \EQUAL\ \N}
+%  }
+%  {\text{[(\TDIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \STACK, \A\ \At \TSTACK, \PREDICATE]} \StateTrans 
+%\text{[\INSTRUCTION, \A\ \At\ \STACK, \TSTACK, \PREDICATE]}}
+%\end{mathpar}
 
 
 %PUSH
@@ -507,7 +534,7 @@ The rule semantic is defined by several kinds of transitions:
   \inferrule[PUSH]
   {  
   }{
-    [(\PUSH\ \TYF\ \VariableX\ ; \INSTRUCTION),\STACK, \TSTACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, \VariableX\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}
+    [(\PUSH\ \TY\ \VariableX\ ; \INSTRUCTION),\STACK, \TSTACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, (\VariableX, \TY) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}
 \end{mathpar}
 
 
@@ -517,8 +544,8 @@ The rule semantic is defined by several kinds of transitions:
 \inferrule[ADD]
   {
   }
-  {\text{[(\ADD\ ; \INSTRUCTION), \StackOne\ \STACKCONCAT\ \StackTwo\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]} \StateTrans 
-\text{[\INSTRUCTION, \VariableX\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\VariableX\ \EQUAL\ \StackOne\ \PLUS\ \StackTwo)]}}
+  {[(\ADD\ ; \INSTRUCTION), (\StackOne, \TNAT) \STACKCONCAT\ (\StackTwo, \TNAT) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans  \\
+[\INSTRUCTION, (\VariableX, \TNAT) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\VariableX\ \EQUAL\ \StackOne\ \PLUS\ \StackTwo)]}
 \end{mathpar}
 
 %ABS
@@ -527,10 +554,10 @@ The rule semantic is defined by several kinds of transitions:
   {
   }
   {
-    [(\ABS\ ; \INSTRUCTION), \StackOne \STACKCONCAT \STACK, \TSTACK,
+    [(\ABS\ ; \INSTRUCTION), (\StackOne, \TINT) \STACKCONCAT \STACK, \TSTACK,
     \PREDICATE]
-    \StateTrans
-    [\INSTRUCTION, \VariableX \STACKCONCAT \STACK, \TSTACK,
+    \StateTrans \\
+    [\INSTRUCTION, (\VariableX, \TNAT) \STACKCONCAT \STACK, \TSTACK,
     \PREDICATE \wedge (\StackOne \ge 0 \Rightarrow \VariableX =
     \StackOne) \wedge (\StackOne <0 \Rightarrow \VariableX = -\StackOne)]
  }
@@ -539,14 +566,29 @@ The rule semantic is defined by several kinds of transitions:
 % COMPARE
 \pt{I think \COMPARE\ can be simplified as follows}
 \begin{mathpar}
-\inferrule[COMPARE]
+\inferrule[COMPARE-NAT]
   {
   }
   {
-    [(\COMPARE ; \INSTRUCTION), \StackOne \STACKCONCAT \StackTwo
+    [(\COMPARE ; \INSTRUCTION), (\StackOne, \TNAT) \STACKCONCAT (\StackTwo, \TNAT)
     \STACKCONCAT \STACK, \TSTACK, \PREDICATE]
     \SystemTrans \\
-    [\INSTRUCTION, \VariableX \STACKCONCAT \STACK, \TSTACK, \PREDICATE
+    [\INSTRUCTION, (\VariableX, \TINT) \STACKCONCAT \STACK, \TSTACK, \PREDICATE
+    \wedge (\StackOne > \StackTwo \Leftrightarrow \VariableX = 1)
+    \wedge (\StackOne = \StackTwo \Leftrightarrow \VariableX = 0)
+    \wedge (\StackOne < \StackTwo \Leftrightarrow \VariableX = -1)]
+    }
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[COMPARE-SOME]
+  {
+  }
+  {
+    [(\COMPARE ; \INSTRUCTION), (\StackOne, \TNAT) \STACKCONCAT (\StackTwo, \TNAT)
+    \STACKCONCAT \STACK, \TSTACK, \PREDICATE]
+    \SystemTrans \\
+    [\INSTRUCTION, (\VariableX, \TINT) \STACKCONCAT \STACK, \TSTACK, \PREDICATE
     \wedge (\StackOne > \StackTwo \Leftrightarrow \VariableX = 1)
     \wedge (\StackOne = \StackTwo \Leftrightarrow \VariableX = 0)
     \wedge (\StackOne < \StackTwo \Leftrightarrow \VariableX = -1)]
