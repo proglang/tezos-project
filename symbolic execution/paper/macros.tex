@@ -2,17 +2,15 @@
 \newcommand{\Angle}[1]{\langle#1\rangle}
 
 %% values
-\newcommand{\NEG}{\neg}
-\newcommand{\CNF}{\wedge}
-\newcommand{\DNF}{\vee}
 \newcommand{\TRUE}{\text{True}}
 \newcommand{\FALSE}{\text{False}}
 \newcommand{\EMPTYSTRING}{\ensuremath{""}}
 \newcommand{\STACKCONCAT}{\ensuremath{::}}
+\newcommand{\EMPTYLIST}{\ensuremath{\{\}}}
+\newcommand{\EMPTYSET}{\ensuremath{\{\}}}
 \newcommand{\ZERO}{\text{0}}
 \newcommand{\ONE}{\text{1}}
-\newcommand{\VAMOUNT}{\text{amount}}
-\newcommand{\VCONTRACT}{\text{contract}}
+
 
 %% contract constants
 \newcommand{\CAMOUNT}{\text{amount}}
@@ -26,6 +24,8 @@
 \newcommand{\CSELFADDRESS}{\text{self-address}}
 \newcommand{\CTOTALVOTINGPOWER}{\text{total-voting-power}}
 \newcommand{\CVOTINGPOWER}{\text{voting-power}}
+\newcommand{\VAMOUNT}{\text{amount}}
+\newcommand{\VCONTRACT}{\text{contract}}
 
 %% contract instructions
 \newcommand{\AMOUNT}{\text{AMOUNT}}
@@ -40,6 +40,7 @@
 \newcommand{\TOTALVOTINGPOWER}{\text{TOTAL-VOTING-POWER}}
 \newcommand{\VOTINGPOWER}{\text{VOTING-POWER}}
 \newcommand{\MinusBalanceAmount}{\text{BALANCE-AMOUNT}}
+
 %% auction contract
 \newcommand{\AuctionOwner}{\text{auction-owner}}
 \newcommand{\AuctionBidder}{\text{auction-bidder}}
@@ -67,11 +68,6 @@
 \newcommand{\ConstantOne}{\ensuremath{c_1}}
 \newcommand{\ConstantTwo}{\ensuremath{c_2}}
 \newcommand{\ConstantN}{\ensuremath{c_n}}
-\newcommand{\LIST}{\ensuremath{l}}
-\newcommand{\EMPTYLIST}{\ensuremath{[]}}
-\newcommand{\TLIST}{\ensuremath{l'}}
-\newcommand{\HEAD}{\textit{hd}}
-\newcommand{\TAIL}{\textit{tl}}
 \newcommand{\STAIL}{\ensuremath{\langle \mathit{tl} \rangle{}}}
 \newcommand{\Term}{\ensuremath{t}}
 \newcommand{\TermOne}{\ensuremath{t_1}}
@@ -144,6 +140,14 @@
 \newcommand{\VPAR}{\ensuremath{par}}
 \newcommand{\VSTORAGE}{\ensuremath{stg}}
 \newcommand{\VOPERATIONLIST}{\ensuremath{opl}}
+\newcommand{\LIST}{\ensuremath{l}}
+\newcommand{\PLIST}{\ensuremath{l'}}
+\newcommand{\TLIST}{\ensuremath{l'}}
+\newcommand{\HEAD}{\textit{hd}}
+\newcommand{\TAIL}{\textit{$<$ tl $>$}}
+\newcommand{\PHEAD}{\textit{hd'}}
+\newcommand{\PTAIL}{\textit{tl'}}
+\newcommand{\VSTRING}{\textit{s}}
 
 
 %% operation
@@ -158,13 +162,7 @@
 \newcommand{\MOREEQUAL}{\textbf{$\ge$}}
 
 %% instructions
-\newcommand{\UNIT}{\text{Unit}}
 \newcommand{\IPAIR}{\text{PAIR}}
-\newcommand{\PAIR}{\text{Pair}}
-\newcommand{\LEFT}{\text{Left}}
-\newcommand{\RIGHT}{\text{Right}}
-\newcommand{\SOME}{\text{Some}}
-\newcommand{\NONE}{\text{None}}
 \newcommand{\ADD}{\text{ADD}}
 \newcommand{\DROP}{\text{DROP}}
 \newcommand{\LOOP}{\text{LOOP}}
@@ -201,6 +199,14 @@
 \newcommand{\UPDATE}{\text{UPDATE}}
 \newcommand{\TUPDATE}{\text{UPDATE'}}
 
+%% contructors
+\newcommand{\UNIT}{\text{Unit}}
+\newcommand{\PAIR}{\text{Pair}}
+\newcommand{\LEFT}{\text{Left}}
+\newcommand{\RIGHT}{\text{Right}}
+\newcommand{\SOME}{\text{Some}}
+\newcommand{\NONE}{\text{None}}
+
 
 %symbols
 \newcommand{\Overline}[1]{\ensuremath{\overline{#1}}}
@@ -214,6 +220,9 @@
 \newcommand{\At}{\ensuremath{@}}
 \newcommand{\Subseteq}{\ensuremath{\subseteq}}
 \newcommand{\Vee}{\ensuremath{\vee}}
+\newcommand{\NEG}{\neg}
+\newcommand{\CNF}{\wedge}
+\newcommand{\DNF}{\vee}
 %\newcommand{\Cup}{\ensuremath{\cup}}
 \newcommand{\STRINGCONCAT}{\ensuremath{\hat{}}}
 \newcommand{\DOT}{\dots}
@@ -245,6 +254,7 @@
 
 
 %% types
+%% types variables
 \newcommand\TEnv{\Gamma}
 \newcommand\JTypeCode[2]{\vdash_C#1 : #2}
 \newcommand\JTypeValue[2]{\vdash_V#1 : #2}
@@ -260,6 +270,7 @@
 \newcommand{\TBOOL}{\text{bool}}
 \newcommand{\TOR}{\text{or}}
 \newcommand{\TYLIST}{\text{list}}
+\newcommand{\TSET}{\text{set}}
 \newcommand{\TUNIT}{\text{unit}}
 \newcommand{\TPAIR}{\text{pair}}
 \newcommand{\TOPTION}{\text{option}}

@@ -669,16 +669,24 @@ The rule semantic is defined by several kinds of transitions:
   {
   }
   {[(\AMOUNT\ ; \INSTRUCTION), \STACK, \TSTACK, \PREDICATE] \StateTrans 
-\text{[\INSTRUCTION, \VAMOUNT\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\VAMOUNT\ \MOREEQUAL\ \ZERO)]}}
+\text{[\INSTRUCTION, (\VAMOUNT, \TMUTEZ) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\VAMOUNT\ \MOREEQUAL\ \ZERO)]}}
 \end{mathpar}
 
 %CONTRACT ty
 \begin{mathpar}
-\inferrule[\CONTRACT\ ty]
+\inferrule[CONTRACT TY - SOME]
   {
   }
-  {\{[(\CONTRACT\ \TY ; \INSTRUCTION), \StackOne\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE], \SYSTEM\} \SystemTrans \\
-\{[\INSTRUCTION, \SOME\ (\VCONTRACT\ \TY\ \StackOne) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\GETCONTRACTTYPE(\StackOne, \TY) = \SOME\ (\VCONTRACT\ \TY\ \StackOne)], \\ [\INSTRUCTION, \NONE \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\GETCONTRACTTYPE(\StackOne, \TY) = \NONE], \SYSTEM\}}
+  {[(\CONTRACT\ \TY ; \INSTRUCTION), (\StackOne, \TADDR) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \SystemTrans \\
+[\INSTRUCTION, (\SOME\ \VariableX, \TOPTION\ (\TCONTRACT\ \TY)) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\GETCONTRACTTYPE(\StackOne, \TY) = \SOME\ \VariableX)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[CONTRACT TY - NONE]
+  {
+  }
+  {[(\CONTRACT\ \TY ; \INSTRUCTION), (\StackOne, \TADDR) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \SystemTrans \\
+[\INSTRUCTION, \NONE \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE \Wedge\ (\GETCONTRACTTYPE(\StackOne, \TY) = \NONE]}
 \end{mathpar}
 
 \paragraph{Operations on data structures}
@@ -687,41 +695,61 @@ The rule semantic is defined by several kinds of transitions:
 \inferrule[\CAR]
   {
   }
-  {[(\CAR\ ; \INSTRUCTION), (\PAIR\ \VariableA\ \VariableB) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans 
-[\INSTRUCTION, \VariableA\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}
+  {[(\CAR\ ; \INSTRUCTION), (\StackOne, \TPAIR\ \TYF\ \TYS) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans \\
+[\INSTRUCTION, (\VariableX, \TYF) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \PAIR\ \VariableX\ \VariableY)]}
 \end{mathpar}
 
 %CONCAT
-\begin{mathpar}
-\inferrule[CONCAT]
-  {
-  }
-  {[(\CONCAT\ ; \INSTRUCTION), \EMPTYLIST\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans 
-[\INSTRUCTION, \EMPTYSTRING\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}
-\end{mathpar}
+%\begin{mathpar}
+%\inferrule[CONCAT]
+%  {
+%  }
+%  {[(\CONCAT\ ; \INSTRUCTION), (\StackOne, \TSTR) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans \\
+%[\INSTRUCTION, (\EMPTYSTRING, \TSTR) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST)]}
+%\end{mathpar}
 
 \begin{mathpar}
 \inferrule[CONCAT]
   {
   }
-  {[(\CONCAT\ ; \INSTRUCTION), \{\HEAD\ ; \TAIL\} \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans 
-[(\TCONCAT\ ; \INSTRUCTION), \EMPTYSTRING\ \STACKCONCAT\ \STACK, \{\HEAD\ ; \TAIL\} \STACKCONCAT\ \TSTACK, \PREDICATE]}
+  {[(\CONCAT\ ; \INSTRUCTION), (\StackOne, \TYLIST\ \TSTR) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans \\
+[(\TCONCAT\ ; \INSTRUCTION), (\EMPTYSTRING, \TSTR) \STACKCONCAT\ \STACK, (\StackOne, \TYLIST\ \TSTR) \STACKCONCAT\ \TSTACK, \PREDICATE]}
 \end{mathpar}
 
 \begin{mathpar}
 \inferrule[CONCAT']
   {
   }
-  {[(\TCONCAT\ ; \INSTRUCTION), \StackOne\  \STACKCONCAT\ \STACK, \EMPTYLIST\ \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans 
-[\INSTRUCTION, \StackOne\  \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}
+  {[(\TCONCAT\ ; \INSTRUCTION), \STACK, (\StackTwo, \TSTR) \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans 
+[\INSTRUCTION, \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\StackTwo\ \EQUAL\ \EMPTYLIST)]}
 \end{mathpar}
 
 \begin{mathpar}
 \inferrule[CONCAT']
   {
   }
-  {[(\TCONCAT\ ; \INSTRUCTION), \StackOne\ \STACKCONCAT\ \STACK, \{\HEAD\ ; \TAIL\} \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans 
-[(\TCONCAT\ ; \INSTRUCTION), \StackOne\ \STRINGCONCAT\ \HEAD\ \STACKCONCAT\ \STACK, \{\TAIL\} \STACKCONCAT\ \TSTACK, \PREDICATE]}
+  {[(\TCONCAT\ ; \INSTRUCTION), (\StackOne, \TSTR) \STACKCONCAT\ \STACK, (\StackTwo, \TYLIST\ \TSTR) \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans \\
+[(\TCONCAT\ ; \INSTRUCTION), (\StackOne\ \STRINGCONCAT\ \HEAD\ \STACKCONCAT\ \STACK, \TSTR), \\ (\{\TAIL\}, \TYLIST\ \TSTR) \STACKCONCAT\ \TSTACK, \PREDICATE\ \Wedge\ (\StackTwo\ \EQUAL\ \{\HEAD\ ; \TAIL\})]}
+\end{mathpar}
+
+\pt{This is the second way}
+\begin{mathpar}
+\inferrule[CONCAT-LOOP-EMPTY]
+  {
+  }
+  {[(\CONCAT\ ; \INSTRUCTION), (\StackOne, \TYLIST\ \TSTR) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans 
+[\INSTRUCTION, \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST)] }
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[CONCAT-LOOP-NONEMPTY]
+  {
+  [\CONCAT,  (\{\TAIL\}, \TYLIST\ \TSTR) \STACKCONCAT\ \EMPTYSTACK, \EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\VSTRING, \TSTR) \STACKCONCAT\ \EMPTYSTACK, \EMPTYSTACK, Q']
+  }
+  {[(\CONCAT\ ; \INSTRUCTION), (\StackOne, \TYLIST\ \TSTR) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ Q] \StateTrans \\
+[\INSTRUCTION, (\HEAD\ \STRINGCONCAT\ \VSTRING, \TSTR) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \{\HEAD\ ; \TAIL\}) \Wedge\ Q') ]}
 \end{mathpar}
 
 %MEM
@@ -729,8 +757,8 @@ The rule semantic is defined by several kinds of transitions:
 \inferrule[MEM-EMPTY]
   {
   }
-  {[(\MEM\ ; \INSTRUCTION), \StackOne\ \STACKCONCAT\ \EMPTYLIST\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans 
-[\INSTRUCTION, \FALSE \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}
+  {[(\MEM\ ; \INSTRUCTION), (\StackOne, \TY) \STACKCONCAT\ (\StackTwo, \TSET\ \TY) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans \\
+[\INSTRUCTION, \FALSE \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\StackTwo\ \EQUAL\ \EMPTYSET)]}
 \end{mathpar}
 
 \begin{mathpar}
