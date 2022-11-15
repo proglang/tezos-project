@@ -757,76 +757,103 @@ The rule semantic is defined by several kinds of transitions:
 \inferrule[MEM-EMPTY]
   {
   }
-  {[(\MEM\ ; \INSTRUCTION), (\StackOne, \TY) \STACKCONCAT\ (\StackTwo, \TSET\ \TY) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans \\
+  {[(\MEM\ ; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT\ (\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans \\
 [\INSTRUCTION, \FALSE \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\StackTwo\ \EQUAL\ \EMPTYSET)]}
 \end{mathpar}
 
 \begin{mathpar}
 \inferrule[MEM-NONEMPTY]
   {
+  [\COMPARE, (\StackOne, \TYF) \STACKCONCAT\  (\K, \TYF) \STACKCONCAT\ \EMPTYSTACK, \EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\VariableB, \TBOOL) \STACKCONCAT\ \EMPTYSTACK, \EMPTYSTACK, Q']
   }
-  {[(\MEM\ ; \INSTRUCTION), \StackOne\ \STACKCONCAT\ \{\ELT\ \K\ \V\ ; \LESS\ \M\ \MORE\} \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans  \\
-[(\TCOMPARE\ ; \TMEM\; \INSTRUCTION), \StackOne\ \STACKCONCAT\ \{\LESS\ \M\ \MORE\} \STACKCONCAT\ \STACK, \StackOne\ \STACKCONCAT\ \K\ \STACKCONCAT\ \TSTACK, \PREDICATE]}
-\end{mathpar}
-
-
-
-\begin{mathpar}
-\inferrule[MEM'-TRUE]
-  {
-  }
-  {[(\TMEM\ ; \INSTRUCTION), \STACK, \TRUE\ \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans
-[\INSTRUCTION, \TRUE\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}
+  {[(\MEM\ ; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT\ (\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ Q] \StateTrans  \\
+[\MEM\; \INSTRUCTION, \StackOne\ \STACKCONCAT\ \{\LESS\ \M\ \MORE\} \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQUAL\ \{\ELT\ \K\ \V\ ; \LESS\ \M\ \MORE\})  \Wedge\ (\VariableB\ \EQUAL\ \ONE)]}
 \end{mathpar}
 
 \begin{mathpar}
-\inferrule[MEM'-FALSE]
+\inferrule[MEM-NONEMPTY]
   {
+  [\COMPARE, (\StackOne, \TYF) \STACKCONCAT\  (\K, \TYF) \STACKCONCAT\ \EMPTYSTACK, \EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\VariableB, \TBOOL) \STACKCONCAT\ \EMPTYSTACK, \EMPTYSTACK, Q']
   }
-  {[(\TMEM\ ; \INSTRUCTION), \STACK,  \FALSE\ \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans
-[(\MEM\ ; \INSTRUCTION), \STACK, \TSTACK, \PREDICATE]}
+  {[(\MEM\ ; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT\ (\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ Q] \StateTrans  \\
+[\INSTRUCTION, \TRUE\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQUAL\ \{\ELT\ \K\ \V\ ; \LESS\ \M\ \MORE\}) \Wedge\ (\VariableB\ \EQUAL\ \ZERO)]}
 \end{mathpar}
+
+\begin{mathpar}
+\inferrule[MEM-NONEMPTY]
+  {
+  [\COMPARE, (\StackOne, \TYF) \STACKCONCAT\  (\K, \TYF) \STACKCONCAT\ \EMPTYSTACK, \EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\VariableB, \TBOOL) \STACKCONCAT\ \EMPTYSTACK, \EMPTYSTACK, Q']
+  }
+  {[(\MEM\ ; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT\ (\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ Q] \StateTrans  \\
+[\INSTRUCTION,\FALSE\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQUAL\ \{\ELT\ \K\ \V\ ; \LESS\ \M\ \MORE\})  \Wedge\ (\VariableB\ \EQUAL\ \MINUS\ \ONE)]}
+\end{mathpar}
+
+
+
+%\begin{mathpar}
+%\inferrule[MEM'-TRUE]
+%  {
+%  }
+%  {[(\TMEM\ ; \INSTRUCTION), \STACK, \TRUE\ \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans
+%[\INSTRUCTION, \TRUE\ \STACKCONCAT\ %\STACK, \TSTACK, \PREDICATE]}
+%\end{mathpar}
+
+%\begin{mathpar}
+%\inferrule[MEM'-FALSE]
+%  {
+%  }
+ % {[(\TMEM\ ; \INSTRUCTION), \STACK,  \FALSE\ \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans [(\MEM\ ; \INSTRUCTION), \STACK, \TSTACK, \PREDICATE]}
+%\end{mathpar}
 
 %MAP
 \begin{mathpar}
 \inferrule[MAP-EMPTY]
   {
   }
-  {[(\MAP\ \INSTRUCTIONONE ; \INSTRUCTION), \EMPTYLIST\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans 
-[\INSTRUCTION, \EMPTYLIST\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE]}
+  {[(\MAP\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans 
+[\INSTRUCTION, (\StackOne, \TYLIST\ \TY) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST)]}
 \end{mathpar}
 
 \begin{mathpar}
 \inferrule[MAP-NONEMPTY]
   {
   }
-  {[(\MAP\ \INSTRUCTIONONE ; \INSTRUCTION), \LIST\ \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans 
-[(\TMAP\ \INSTRUCTIONONE; \INSTRUCTION), \EMPTYLIST\ \STACKCONCAT\ \STACK, \LIST\ \STACKCONCAT\ \TSTACK, \PREDICATE]}
+  {[(\MAP\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\ \STACK, \TSTACK, \PREDICATE] \StateTrans \\
+[(\TMAP\ \INSTRUCTIONONE; \INSTRUCTION), (\EMPTYLIST, \TYLIST\ \TY) \STACKCONCAT\ \STACK, (\StackOne, \TYLIST\ \TY) \STACKCONCAT\ \TSTACK, \PREDICATE\ \Wedge\ \NEG(\StackOne\ \EQUAL\ \EMPTYLIST)]}
 \end{mathpar}
 
 \begin{mathpar}
 \inferrule[MAP'-EMPTY]
   {
   }
-  {[(\TMAP\ \INSTRUCTIONONE ; \INSTRUCTION), \STACK, \EMPTYLIST\ \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans 
-[\INSTRUCTION, \STACK, \TSTACK, \PREDICATE]}
+  {[(\TMAP\ \INSTRUCTIONONE ; \INSTRUCTION), \STACK, (\StackTwo, \TYLIST\ \TY) \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans 
+[\INSTRUCTION, \STACK, \TSTACK, \PREDICATE\ \Wedge\ (\StackTwo\ \EQUAL\ \EMPTYLIST)]}
 \end{mathpar}
 
 \begin{mathpar}
 \inferrule[MAP'-NONEMPTY]
   {
+  [\INSTRUCTIONONE, (\HEAD, \TY) \STACKCONCAT\ \STACK , \EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\PHEAD, \TY) \STACKCONCAT\ \STACK , \EMPTYSTACK, Q']
   }
-  {[(\TMAP\ \INSTRUCTIONONE ; \INSTRUCTION), \STACK, \{\HEAD; \TAIL\} \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans 
-[(\INSTRUCTIONONE'; \TMAP\ \INSTRUCTIONONE; \INSTRUCTION), \STACK, \HEAD\ \STACKCONCAT\ \{\TAIL\} \STACKCONCAT\ \TSTACK, \PREDICATE]}
+  {[(\TMAP\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\ \STACK, (\StackTwo, \TYLIST\ \TY) \STACKCONCAT\ \TSTACK, \PREDICATE\ \Wedge\ Q] \StateTrans  \\
+[(\TMAP\ \INSTRUCTIONONE; \INSTRUCTION), (\StackOne \At\ \{\HEAD\}, \TYLIST\ \TY) \STACKCONCAT\ \STACK,  (\{\TAIL\}, \TYLIST\ \TY) \STACKCONCAT\ \TSTACK, \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQUAL\ \{\HEAD; \TAIL\})]}
 \end{mathpar}
 
-\begin{mathpar}
-\inferrule[MAP'-NONEMPTY']
-  {
-  }
-  {[(\TMAP\ \INSTRUCTIONONE ; \INSTRUCTION), \LIST\ \STACKCONCAT\ \STACK, \HEAD\ \STACKCONCAT\ \TLIST\ \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans 
-[(\TMAP\ \INSTRUCTIONONE; \INSTRUCTION), \LIST\ \At\ \{\HEAD\} \STACKCONCAT\ \STACK, \TLIST\ \STACKCONCAT\ \TSTACK, \PREDICATE]}
-\end{mathpar}
+%\begin{mathpar}
+%\inferrule[MAP'-NONEMPTY']
+%  {
+%  }
+%  {[(\TMAP\ \INSTRUCTIONONE ; \INSTRUCTION), \LIST\ \STACKCONCAT\ \STACK, \HEAD\ \STACKCONCAT\ \TLIST\ \STACKCONCAT\ \TSTACK, \PREDICATE] \StateTrans 
+%[(\TMAP\ \INSTRUCTIONONE; \INSTRUCTION), \LIST\ \At\ \{\HEAD\} \STACKCONCAT\ \STACK, \TLIST\ \STACKCONCAT\ \TSTACK, \PREDICATE]}
+%\end{mathpar}
 
 
 \begin{mathpar}
@@ -907,10 +934,10 @@ The rule semantic is defined by several kinds of transitions:
 
 \section{Constraints}
 \begin{mathpar}
-(\FABS \VariableX\ \MORE\ \ZERO) \Wedge\ (\FGetTy{(\FABS\VariableX)}\ \EQUAL\ \TNAT) \\
-(\FSIZE \VariableX\ \MORE\ \ZERO) \Wedge\ (\FGetTy{(\FSIZE\VariableX)}\ \EQUAL\ \TNAT) \\
-(\FGetTy{(\FSLICE(\VBYT, \VOFFSET, \VLEN))} \EQUAL\ \TSTR) \Wedge\ (\FLEN(\FSLICE(\VBYT, \VOFFSET, \VLEN)) \EQUAL\ \VLEN)\\
-(\FGetTy{(\FLEN(\VariableX))} \EQUAL\ \TNAT) \Wedge\ (\FLEN(\VariableX) \MOREEQUAL\ \ZERO) \\
+\FABS \VariableX\ \MOREEQUAL\ \ZERO \\
+\FSIZE \VariableX\ \MOREEQUAL\ \ZERO \\
+\FLEN(\FSLICE(\VBYT, \VOFFSET, \VLEN)) \EQUAL\ \VLEN \\
+\FLEN(\VariableX) \MOREEQUAL\ \ZERO \\
 \end{mathpar}
 
 \section{Types}
