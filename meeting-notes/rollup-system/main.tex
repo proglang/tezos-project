@@ -40,17 +40,16 @@ We tend to keep the prototype pure. The implementation contains only the core co
 \end{figure}
 
 \subsection{Interacting with the main network}
-The operation of the rollup system is controlled by a smart contract deployed on- chain. The L2 system interacts with L1 through the smart contract. The contract receives and processes rollup blocks. It also stores and updates the status of the rollup system and tracks user deposits. In addition, the contract provides functions to verify rollup batches in the challenge period. Users must deposit money into the smart contract before they can use the system. The money is then locked in the contract and the user receives a corresponding amount that can be used in the rollup system.
+The operation of the rollup system is controlled by a smart contract deployed on-chain. The L2 system interacts with L1 through the smart contract. The contract receives and processes rollup blocks. It also stores and updates the status of the rollup system and tracks user deposits. In addition, the contract provides functions to verify rollup batches in the challenge period. Users must deposit money into the smart contract before they can use the system. The money is then locked in the contract and the user receives a corresponding amount that can be used in the rollup system.
 
 \subsection{Submitting rollup batches}
-The aggregator receives transactions signed and sent by users. In a rollup system, a transaction may come from a user in L2 via a direct peer-to-peer network or from L1 via an intermediate contract running on L1. However, here the rollup system only serves transactions from users in L2. After the aggregator receives the transactions from users, it verifies, orders, and executes them. The aggregator then bundles the off-chain transactions into a rollup batch and sends it to L1 via the smart contract. In this process, the transaction data is compressed and published on-chain as calldata. The published data contains the system state and the transaction batch in a highly compressed form. Since calldata is on-chain as part of the history logs, but is not stored in the smart contract, it is cheaper.
+The aggregator receives transactions signed and sent by users. In a rollup system, a transaction may come from a user in L2 via a direct peer-to-peer network or from L1 via an intermediate contract running on L1. However, in this prototype rollup system, for simplicity, only transactions that are transmitted by and originate from users in L2 are offered. After the aggregator receives the transactions from users, it verifies, orders, and executes them. The aggregator then bundles the off-chain transactions into a rollup batch and sends it to L1 via the smart contract call. In this process, the transaction data is compressed and published on-chain as call data. The published data contains the system state root and the transaction stack in a rollup block in a highly compressed form. Since the calldata is on-chain as part of the history logs, but not stored in the smart contract, it is less expensive.
 
-A system state ( Fig~\ref{rollup-batch-data}) is a term that refers to the available information about the rollup network at a given time. The state includes key information about the network such as accounts, balances, etc. It is organized as a Merkle tree and the root of this tree is the state root, which refers to the last state of the rollup system. Each state transition in the chain results in a new rollup state, which the aggregator determines by computing a new state root. This root state is hashed, sent, and stored in the on-chain smart contract. The aggregator must transmit both the previous and new state roots when it publishes rollup batches. If the previous state root matches the existing state root in the smart contract, the latter is discarded and replaced with the new state root (post state root).
+A system state constructed as shown in  Fig~\ref{rollup-batch-data} is a term that refers to the available information about the rollup system at a given time. The state includes key information about the network such as accounts, balances, etc. It is organized as a Merkle tree and the root of this tree is the state root, which refers to the last state of the rollup system. Each state transition in the chain results in a new rollup state, which the aggregator determines by computing a new state root. This root state is hashed, sent, and stored in the on-chain smart contract. The aggregator must transmit both the previous and new state roots when it publishes the rollup batches. If the previous state root matches the existing state root in the smart contract, the latter is discarded and replaced with the new state root (post state root).
 
 \subsection{Data availability}
 
-Due to the fact that a malicious aggregator can steal funds by publishing invalid transaction and root state, the security of the system relies on an honest verifier re-executing transactions in a rollup batch and submitting fraud proofs to challenge invalid state transitions. Since the on-chain execution is based on the submitted transactions-related data, anyone can use this information to execute the rollup state and verify the correctness of the state transitions.
-Data availability is critical because without access to the state data, the verifier cannot create fraud evidence to dispute invalid rollup batches. Therefore, all necessary transaction information must be published in L1 so that these transactions can be re-run if necessary.
+Since a malicious aggregator can steal funds by publishing invalid transactions and root state, the security of the system relies on an honest verifier re-executing transactions in a rollup batch and submitting fraud proofs to challenge invalid state transitions. Since on-chain execution is based on submitted transaction-related data, anyone can use this information to execute rollup state and verify the correctness of state transitions. Therefore, data availability is critical because without access to the state data, the verifier cannot create fraud evidence to dispute invalid rollup batches. Therefore, all required transaction information must be published in L1 so that these transactions can be re-executed when needed.
 
 However, if the full transaction data is published as calldata on the mainnet, this could be expensive. Therefore, the rollup system uses compression techniques to reduce the amount of transaction-related data. Compression of the data is achieved by publishing only the information required to deterministically re-execute the transaction. The batch of these transactions in compressed form is published on the chain as call data for the smart contract.
 \begin{figure}[t]
@@ -59,27 +58,27 @@ However, if the full transaction data is published as calldata on the mainnet, t
 \label{rollup-batch-data}
 \end{figure}
 \subsection{Dispute period}
-The system allows the aggregator to publish rollup batches without providing any proof of validity. However, to prevent any misbehaviour by the aggregator, the rollup system proposes a time period, called the challenge period, during which anyone can challenge a state transition. This actor is called a verifier in our model. Note that when rollup batches are published to L1, the aggregator must deposit a certain amount of funds that is locked until  the end of the challenge period. Similarly, the verifier must lock the same amount as the aggregator if it wishes to challenge the aggregator.
+The system allows the aggregator to publish rollup batches without providing proof of validity. However, to prevent any misbehaviour by the aggregator, the rollup system proposes a period of time, called the challenge period, during which anyone can challenge a state transition. This actor is called a verifier in our model. Note that when rollup batches are published on L1, the aggregator must deposit a certain amount of funds that is locked until the end of the challenge period. Similarly, the verifier must lock the same amount as the aggregator if it wishes to challenge the aggregator.
 
-When a verifier initiates the dispute process by submitting a fraud proof claiming that a state transition is invalid and therefore the entire batch should be reversed, the system  re-executes transactions in the rollup batch on the main chain to calculate the post-root state determining who wins the challenge.  If this root state is different from the one submitted by the aggregator, the aggregator is penalised. As a result, half of the aggregator's deposit is transferred to the verifier and the other half is burned. If the verifier fails to prove the aggregator's misconduct, the same will happen to the verifier's deposit.
+When a verifier initiates the dispute process by submitting a fraud proof claiming that a state transition is invalid and therefore the entire batch should be reversed, the system reruns the transactions in the rollup batch on the master chain to calculate the post-root state that determines who wins the challenge. If this root state is different from the one specified by the aggregator, the aggregator is penalised. As a result, half of the aggregator's deposit is transferred to the verifier and the other half is burned. If the verifier  fails to prove the aggregator's misconduct, the same will happen to the verifier's deposit.
 
 \section{Tasks}
-\subsection{Survey on the current rollup technologies}
-\begin{itemize}
-    \item Optimistic rollups.
-    \item ZK-rollups.
-    \item The efficiency of rollups to Layer 2 scaling.
+\subsection{Survey of current rollup technologies}
+\begin{itemize} 
+\item Optimistic rollups. 
+\item ZK rollups. 
+\item The efficiency of rollups for Layer 2 scaling.
 \end{itemize}
-\subsection{Investing technologies}
-\begin{itemize}
-    \item The state tree and the state root.
-    \item Data compression: several techniques to achieve transaction data compression and improve TPS rates. 
-    \item Dispute progress.
+\subsection{Investment technologies}
+\begin{itemize} 
+\item The state tree and state root. 
+\item Data compression: various techniques for compressing transaction data. 
+\item Dispute progress.
 \end{itemize}
-\subsection{Developing the rollup system}
-\begin{itemize}
-    \item Design, code and deploy the smart contract on chain.
-    \item Implement the layer 2 system.
-    \item Develop the interface to interaction between L1 and L2.
+\subsection{development of rollup system}
+\begin{itemize} 
+\item Design, code, and deploy the smart contract on the chain. 
+\item Implement the layer 2 system. 
+\item Develop the interface for interaction between L1 and L2.
 \end{itemize}
 \end{document}
