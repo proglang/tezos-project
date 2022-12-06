@@ -1,0 +1,85 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+
+\title{Expos\'{e} Master Thesis\\
+  Rollup System for Layer 2 Scaling}
+\author{Thi Thu Ha Doan \and  Peter Thiemann}
+\date{December 2022}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+The blockchain system has grown rapidly in recent years. However, the increased activity has come at a cost to use the network. Many blockchains have reached their capacity limits. The high demand on the network slows down transactions and increases gas prices, so a "scaling solution" is needed and becomes an urgent problem. The main goal of scalability is to increase transaction speed and throughput while ensuring decentralization and security.
+
+Various scaling solutions have been proposed by both industry and academic circles. The solutions can be divided into two catalogues: first layer and second layer scaling solutions. The first layer scaling solutions (on-chain scaling) require changes to the blockchain protocol. For this solution, we can mention Proof-of-stake protocol and Sharding. Second layer scaling (off-chain scaling)  uses a separate network called layer 2 (L2) that runs on top of the main layer 1 (L1) network and derives the security guarantee from the main network. Current second layer scaling solutions include: State Channels, Sidechain, Plasma and Rollup.
+
+Rollups is an off-chain scaling solution, which reduce computational overhead on the mainnet by moving computations and storage of out-of-chain state to L2. By publishing computation results on the chain, they preserve the security of the mainnet. Rollups can process a large number of transactions in a rollup batch and then send only some compressed summary data, defines the changes to be made to the state of the mainnet  to L1. This approach allows fixed costs to be spread across multiple transactions in each batch, thus reducing user charges. Rollups therefore provide a significant improvement in transaction throughput. 
+
+In rollup systems, users sign transactions and submit them to an aggregator (sequencer), which checks, orders, and executes these transactions. The aggregator then compresses the data into a rollup batch and publishes the batch as a single transaction on L1. There are two different ways to publish the data to the network. The first approach is optimistic rollup, which assumes that the off-chain transactions are valid and does not require validity proofs for off-chain transactions in the rollup batch. Another approach is zero-knowladge rollup (ZK rollup), in which the aggregator must publish proofs of validity. In contrast, an optimistic rollup responds to a fraud proof to determine where transactions are invalid. After a rollup batch is submitted on L1, anyone can challenge the results of a rollup transaction by computing a fraud proof.
+
+%There are no delays when moving funds from a ZK-rollup because exit transactions are executed once the ZK-rollup contract verifies the validity proof. Conversely, withdrawing funds from optimistic rollups is subject to a delay to allow anyone to challenge the exit transaction with a fraud proof. Delays in transaction finality due to potential fraud challenges. 
+
+\begin{figure}[t]
+\caption{Rollup systems}
+\includegraphics[width=12cm]{rollup-batch}
+\centering
+\end{figure}
+
+The goal of this work is to investigate the efficiency of the rollup scaling solution for the blockchain scaling problem. This work aim to explain the rollup technology in depth.  We design and implement a prototype of the rollup system that covers all the main architects of a rollup system, but keeps it as the core system.
+
+\section{Design and Implementation of the Rollup System}
+The rollup system is an off-chain scaling solution and operates on top of the main network. We tend to keep the prototype pure. The implementation contains the core components of a rollup system, but is able to extend the system if we want to enrich it for future research. For security, the system relies on a fraud proof process like in optimistic rollups. A fraud proof is an assertion that a state transition is invalid and therefore the entire batch should be reversed. The system targets the Etherum blockchain, which is the second largest blockchain and seriously suffers from a "scaling problem." The architect of the rollup system is shown in Fig~\ref{rollup-design}.
+\begin{figure}[t]
+\caption{Design of the rollup system}
+\includegraphics[width=12cm]{rollup-design.png}
+\centering
+\label{rollup-design}
+\end{figure}
+
+\subsection{Interacting with the main network}
+The operation of the rollup system is controlled by a smart contract deployed on-chain. The L2 system interacts with L1  through the smart contract. The contract receives and process rollup batches. It also stores and  updates the rollup system state (state root), and tracks user deposits. In addition, the contract provides functions to verify rollup batches in the challenge period.
+
+Users must deposit money into the contract before they can use the system. The money is then locked into the contract and the user receives a corresponding amount that can be used in the rollup system.
+\subsection{Submitting rollup batches}
+The aggregator receives transactions signed and sent by users. In a rollup system, a transaction may come from a user in L2 via a direct peer-to-peer network or from L1 via an intermediate contract running on L1. However, here the rollup system only serves transactions from users in L2. After the aggregator receives the transactions from users, it verifies, orders, and executes them. The aggregator then bundles the off-chain transactions into a rollup batch and sends it to L1 via the smart contract. In this process, the transaction data is compressed and published on-chain as calldata. The published data contains the system state and the transaction batch in a highly compressed form. Since calldata is on-chain as part of the history logs, but is not stored in the smart contract, it is cheaper.
+
+A system state ( Fig~\ref{rollup-batch-data}) is a term that refers to the available information about the rollup network at a given time. The state includes key information about the network such as accounts, balances, etc. It is organized as a Merkle tree and the root of this tree is the state root, which refers to the last state of the rollup system. Each state transition in the chain results in a new rollup state, which the aggregator determines by computing a new state root. This root state is hashed, sent, and stored in the on-chain smart contract. The aggregator must transmit both the previous and new state roots when it publishes rollup batches. If the previous state root matches the existing state root in the smart contract, the latter is discarded and replaced with the new state root (post state root).
+
+\subsection{Data availability}
+
+For example, the fact that a malicious aggregator can steal funds by publishing invalid transaction and root state. The security of the system relies on an honest verifier re-executing all transactions in a rollup batch and submitting fraud proofs to challenge invalid state transitions. Since rollup chain execution is based on the submitted transactions-ralated data, anyone can use this information to execute the rollup state and verify the correctness of the state transitions.
+Data availability is critical because without access to the state data, the verifier cannot create fraud evidence to dispute invalid rollup batches. To this end, all necessary transaction information must be published in L1 so that the transaction can be re-run if necessary 
+
+However, if the full transaction data is published as calldata on the mainnet, this could be expensive. Therefore, the rollup system uses compression techniques to reduce the amount of transaction-related data. Compression of the data is achieved by publishing only the information required to deterministically re-execute the transaction. The batch of these transactions in compressed form is published on the chain as call data for the smart contract.
+\begin{figure}[t]
+\includegraphics[width=12cm]{rollup-batch-data}
+\centering
+\end{figure}
+\subsection{Dispute period}
+The system allows the aggregator to publish rollup batches without providing any proof of validity. However, to prevent any misbehaviour by the aggregator, the rollup system proposes a time period, called the challenge period, during which anyone can challenge a state transition. This actor is called a verifier in our model. Note that when rollup batches are published to L1, the aggregator must deposit a certain amount of funds that is locked until  the end of the challenge period. Similarly, the verifier must lock the same amount as the aggregator if it wishes to challenge the aggregator.
+
+When a verifier initiates the dispute process by submitting a fraud proof claiming that a state transition is invalid and therefore the entire batch should be reversed, the system  re-executes transactions in the rollup batch on the main chain to calculate the post-root state determining who wins the challenge.  If this root state is different from the one submitted by the aggregator, the aggregator is penalised. As a result, half of the aggregator's deposit is transferred to the verifier and the other half is burned. If the verifier fails to prove the aggregator's misconduct, the same will happen to the verifier's deposit.
+
+\section{Tasks}
+\subsection{Survey on the current rollup technologies}
+\begin{itemize}
+    \item Optimistic rollups.
+    \item ZK-rollups.
+    \item The efficiency of rollups to Layer 2 scaling.
+\end{itemize}
+\subsection{Investing technologies}
+\begin{itemize}
+    \item The state tree and the state root.
+    \item Data compression: several techniques to achieve transaction data compression and improve TPS rates. 
+    \item Dispute progress.
+\end{itemize}
+\subsection{Developing the rollup system}
+\begin{itemize}
+    \item Design, code and deploy the smart contract on chain.
+    \item Implement the layer 2 system.
+    \item Develop the interface to interaction between L1 and L2.
+\end{itemize}
+\end{document}
