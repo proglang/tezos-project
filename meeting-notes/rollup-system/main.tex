@@ -81,7 +81,7 @@ The operation of the rollup system is controlled by a smart contract that is dep
 In a rollup system, a transaction can come from a user in layer 2 (L2) via a direct peer-to-peer network or from L1 via an intermediate contract running on L1. However, in this prototype rollup system, for simplicity, only transactions submitted by and originating from users in L2 are offered. The aggregator receives transactions signed and sent by users. After that, the aggregator
 \begin{itemize} 
 \item verifies, orders, and executes these transactions off-chain on L2; 
-\item bundles the transaction data in a rollup batch, compresses it, and forms a rollup block with this and other necessary data (e.g., system state ) to L1. 
+\item bundles the transactions in a rollup batch, forms and publishes a rollup block to L1. 
 \end{itemize}
 %verifies, orders, and executes them. The aggregator then bundles the off-chain transactions into a rollup batch and sends it to L1 via the smart contract call. In this process, the transaction data is compressed and published on-chain as call data. The published data contains the system state root and the transaction stack in a rollup block in a highly compressed form. Since the calldata is on-chain as part of the history logs, but not stored in the smart contract, it is less expensive.
 
@@ -90,21 +90,21 @@ In a rollup system, a transaction can come from a user in layer 2 (L2) via a dir
 \subsubsection{Verifier}
 The system allows the aggregator to publish rollup batches without providing proof of validity. However, to prevent any misbehaviour by the aggregator, the rollup system proposes a period of time, called the challenge period, during which a verifier can challenge a state transition. Note that when rollup batches are published on L1, the aggregator must deposit a certain amount of funds that is locked until the end of the challenge period. Similarly, the verifier must lock the same amount as the aggregator when disputing the aggregator.
 
-When a verifier initiates the challenge process by submitting a fraud proof, the transactions in the rollup batch are re-executed on-chain to calculate the system state that determines who wins the challenge. If the aggregator is penalised, as a result, half of the aggregator's deposit is transferred to the verifier and the other half is burned. If the verifier fails to prove the aggregator's wrongdoing, the same will happen with the verifier's deposit.
+When a verifier initiates the challenge process by submitting a fraud proof, the transactions in the rollup batch are re-executed on-chain to determines who wins the challenge. If the aggregator is penalised, as a result, half of the aggregator's deposit is transferred to the verifier and the other half is burned. If the verifier fails to prove the aggregator's wrongdoing, the same will happen with the verifier's deposit.
 
 A verifier is responsible for
 \begin{itemize} 
-\item watches the rollup system to detect a published batch of invalid transactions and turns it into a fraud proof;
+\item watches the rollup system to detect a published batch with invalid transactions and turns it into a fraud proof;
 \item starts the dispute process by submitting a fraud proof to L1 when it finds an invalid batch; 
 \item cooperates with L1 in the dispute process.
 \end{itemize}
 
 \subsection{Data availability}
-Since a malicious aggregator can steal funds by publishing invalid transactions and system states, the security of the system relies on an honest verifier re-executing transactions in a rollup batch and submitting fraud proofs to challenge invalid state transitions. Since on-chain execution is based on the submitted transaction batch, data availability is critical because without access to this data, the verifier cannot create fraud evidence. The published data contains the transaction batch and other necessary data in a rollup block in a highly compressed form.
+Since a malicious aggregator can steal funds by publishing invalid transactions, the security of the system relies on an honest verifier re-executing transactions in a rollup batch and submitting a fraud proof to challenge invalid state transitions. Since on-chain execution is based on the published data, the data availability is critical because without access to this data, the verifier cannot create fraud evidence. The data contains the transaction batch and other necessary data in a rollup block in a highly compressed form and is published on-chain as calldata for the smart contract.
 %A system state is a term that refers to the available information about the rollup system at a given time. 
 %The state includes key information about the network such as accounts, balances, etc.
 
-If the full transaction data is published on the mainnet, it could be expensive. Therefore, the rollup system uses compression techniques to reduce the amount of transaction-related data. Compression of the data is achieved by publishing only the information required to deterministically re-execute the transaction. The batch of these transactions in compressed form is published on-chain as calldata for the smart contract.
+If the full transaction data is published on the mainnet, it could be expensive. Therefore, the rollup system uses compression techniques to reduce the amount of transaction-related data. Compression of the data is achieved by publishing only the information required to deterministically re-execute the transaction.
 
 %\begin{figure}[t]
 %\includegraphics[width=12cm]{rollup-batch-data}
