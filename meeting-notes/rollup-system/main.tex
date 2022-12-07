@@ -11,26 +11,54 @@
 
 \maketitle
 
-\section{Introduction}
-Blockchain systems have grown rapidly in recent years. However, the increased activity has come at a cost to the use of the network. Many blockchains have reached their capacity limits. The high demand on the network slows down transactions and increases gas prices, so a "scaling solution" is needed and becomes an urgent problem. The main goal of scalability is to increase transaction speed and throughput while ensuring decentralization and security.
-
-Various scaling solutions have been proposed by both industry and academic communities. The solutions can be divided into two catalogues: first layer and second layer scaling solutions. The first layer scaling solutions (on-chain scaling) require changes to the blockchain protocol. For this solution, we can mention Proof-of-stake protocol and Sharding. Second layer scaling (off-chain scaling)  uses a separate network called layer 2 (L2) that runs on top of the main layer 1 (L1) network and derives the security guarantee from the main network. Current second layer scaling solutions include: State Channels, Sidechain, Plasma and Rollup.
-
-Rollups are an off-chain scaling solution that reduces computational overhead in the main network by moving computation and storage off-chain to L2. Rollup systems inherit the security of the mainnet by publishing computation results on the chain, as shown in Fig~\ref{rollup-batch}. Rollups process a large number of transactions in a rollup batch and then send the compressed summary data defining the changes to the system state to L1. This approach allows fixed costs to be spread across multiple transactions in each rollup batch, reducing user charges. Rollups therefore provide a significant improvement in transaction throughput.
-
-\begin{figure}[t]
-\caption{Rollup systems}
-\includegraphics[width=12cm]{rollup-batch}
-\label{rollup-batch}
-\centering
-\end{figure}
-
-The goal of this work is to investigate the efficiency of the rollup scaling solution for the blockchain scaling problem. This work aim to explain the rollup technology in depth.  We design and implement a prototype of  rollup systems that covers all the main architects of a rollup system, but keeps it as the core system.
-
 \section{Design and Implementation of a Prototype for Rollup Systems}
+
+% Blockchain systems have grown rapidly in recent years. However, the increased activity has come at
+% a cost to the use of the network. Many blockchains have reached their capacity limits. The high
+% demand on the network slows down transactions and increases gas prices, so a "scaling solution" is
+% needed and becomes an urgent problem. The main goal of scalability is to increase transaction
+% speed and throughput while ensuring decentralization and security.  
+
+% Various scaling solutions have been proposed by both industry and academic communities. The
+% solutions can be divided into two catalogues: first layer and second layer scaling solutions. The
+% first layer scaling solutions (on-chain scaling) require changes to the blockchain protocol. For
+% this solution, we can mention Proof-of-stake protocol and Sharding. Second layer scaling
+% (off-chain scaling)  uses a separate network called layer 2 (L2) that runs on top of the main
+% layer 1 (L1) network and derives the security guarantee from the main network. Current second
+% layer scaling solutions include: State Channels, Sidechain, Plasma and Rollup. 
+
+% Rollups are an off-chain scaling solution that reduces computational overhead in the main network
+% by moving computation and storage off-chain to L2. Rollup systems inherit the security of the
+% mainnet by publishing computation results on the chain, as shown in
+% Fig~\ref{rollup-batch}. Rollups process a large number of transactions in a rollup batch and then
+% send the compressed summary data defining the changes to the system state to L1. This approach
+% allows fixed costs to be spread across multiple transactions in each rollup batch, reducing user
+% charges. Rollups therefore provide a significant improvement in transaction throughput. 
+
+% \begin{figure}[t]
+% \caption{Rollup systems}
+% \includegraphics[width=12cm]{rollup-batch}
+% \label{rollup-batch}
+% \centering
+% \end{figure}
+
+The goal of this work is to investigate the design and implementation of a rollup system for the Ethereum blockchain. To make that palatable, we suggest a number of restrictions on the functionality:
+\begin{itemize}
+\item only transfers of Ether, i.e., there are no contracts on the rollup;
+\item optimistic rollup (less ambitious).
+\end{itemize}
+
+\subsection{Design considerations}
+\label{sec:design-consy}
+
+
 In rollup systems, users sign transactions and submit them to an aggregator (sequencer) that checks, orders, and executes these transactions. The aggregator then compresses the data into a rollup batch and compresses the batch with other necessary data (e.g., system state ) into a rollup block and publishes that rollup block as a single transaction on L1. There are two different ways to publish the data to the network. The first approach is optimistic rollup, which assumes that the off-chain transactions are valid and does not require validity proofs for the off-chain transactions in the rollup batch. Another approach is zero-knowladge rollup (ZK rollup), in which the aggregator must publish proofs of validity. In contrast, an optimistic rollup responds to a fraud proof to determine where transactions are invalid. After a rollup batch is submitted to L1, anyone can challenge the results of a rollup transaction by computing a fraud proof.
 
-We tend to keep the prototype pure. The implementation contains only the core components of a rollup system, but is capable of extending the system if we want to enrich it for future research. For security, the system relies on a fraud detection procedure as in optimistic rollups. A fraud proof is an assertion that a state transition is invalid and therefore the entire batch should be reversed. The prototype targets the Etherum blockchain, which is the second largest blockchain and has an urgent "scaling problem." The architect of the prototype rollup system is shown in Fig~\ref{rollup-design}.
+The design should contain only the core components of a rollup system, but is capable of extending
+the system if we want to enrich it for future research. For security, the system relies on a fraud
+detection procedure as in optimistic rollups. A fraud proof is an assertion that a state transition
+is invalid and therefore the entire batch should be reversed. The prototype targets the Etherum
+blockchain. Fig~\ref{rollup-design} sketches a possible architecture of the prototype rollup system.
 
 \begin{figure}[t]
 \caption{Design of the rollup system}
