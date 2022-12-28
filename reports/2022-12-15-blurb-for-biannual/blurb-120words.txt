@@ -1,0 +1,3 @@
+The Proglang Group at the department of Informatics, University of Freiburg, Germany, works on Contract Modules, an infrastructure that provides statically-typed programmatic interfaces to the Tezos blockchain.
+Our infrastructure also provides support for contract orchestration: starting from a programmer specification, our symbolic interpreter Michelsym extracts verification conditions against which the implemented contracts can be verified.
+This will lead to improved reasoning about applications that span multiple contracts.
