@@ -1,0 +1,16 @@
+(executable
+ (public_name static_checker)
+ (name main)
+ (libraries core))
+
+(ocamllex lexer)
+
+(menhir
+ (modules parser))
+
+(env
+  (dev
+    (flags (:standard -w -32 -w -27 -w -11))))
+
+
+
