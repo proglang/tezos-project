@@ -1,0 +1,316 @@
+%% structure
+\newcommand{\Angle}[1]{\langle#1\rangle}
+
+%% values
+\newcommand{\TRUE}{\text{True}}
+\newcommand{\FALSE}{\text{False}}
+\newcommand{\EMPTYSTRING}{\ensuremath{""}}
+\newcommand{\STACKCONCAT}{\ensuremath{::}}
+\newcommand{\EMPTYLIST}{\ensuremath{\{\}}}
+\newcommand{\EMPTYSET}{\ensuremath{\{\}}}
+\newcommand{\ZERO}{\text{0}}
+\newcommand{\ONE}{\text{1}}
+
+
+%% contract constants
+\newcommand{\CAMOUNT}{\text{amount}}
+\newcommand{\CBALANCE}{\text{balance}}
+\newcommand{\CSENDER}{\text{sender}}
+\newcommand{\CSOURCE}{\text{source}}
+\newcommand{\CNOW}{\text{now}}
+\newcommand{\CLEVEL}{\text{level}}
+\newcommand{\CCHAINID}{\text{chain-id}}
+\newcommand{\CSELF}{\text{self}}
+\newcommand{\CSELFADDRESS}{\text{self-address}}
+\newcommand{\CTOTALVOTINGPOWER}{\text{total-voting-power}}
+\newcommand{\CVOTINGPOWER}{\text{voting-power}}
+\newcommand{\VAMOUNT}{\text{amount}}
+\newcommand{\VCONTRACT}{\text{contract}}
+
+%% contract instructions
+\newcommand{\AMOUNT}{\text{AMOUNT}}
+\newcommand{\BALANCE}{\text{BALANCE}}
+\newcommand{\SENDER}{\text{SENDER}}
+\newcommand{\SOURCE}{\text{SOURCE}}
+\newcommand{\NOW}{\text{NOW}}
+\newcommand{\LEVEL}{\text{LEVEL}}
+\newcommand{\CHAINID}{\text{CHAIN-ID}}
+\newcommand{\SELF}{\text{SELF}}
+\newcommand{\SELFADDRESS}{\text{SELF-ADDRESS}}
+\newcommand{\TOTALVOTINGPOWER}{\text{TOTAL-VOTING-POWER}}
+\newcommand{\VOTINGPOWER}{\text{VOTING-POWER}}
+\newcommand{\MinusBalanceAmount}{\text{BALANCE-AMOUNT}}
+
+%% auction contract
+\newcommand{\AuctionOwner}{\text{auction-owner}}
+\newcommand{\AuctionBidder}{\text{auction-bidder}}
+\newcommand{\AuctionClose}{\text{auction-close}}
+\newcommand{\AuctionOpen}{\text{auction-open}}
+\newcommand{\AuctionBid}{\text{auction-bid}}
+
+%% system definition
+\newcommand{\VAL}{\textbf{v}}
+\newcommand{\VAR}{\textbf{x}}
+\newcommand{\VARIABLE}{\textit{Var}}
+\newcommand{\CONSTANT}{\textit{Const}}
+\newcommand{\TERM}{\ensuremath{T}}
+\newcommand{\ELT}{\textit{Elt}}
+\newcommand{\A}{\ensuremath{A}}
+\newcommand{\B}{\ensuremath{B}}
+\newcommand{\N}{\ensuremath{n}}
+\newcommand{\K}{\ensuremath{k}}
+\newcommand{\V}{\ensuremath{v}}
+\newcommand{\M}{\ensuremath{m}}
+\newcommand{\VariableOne}{\ensuremath{x_1}}
+\newcommand{\VariableTwo}{\ensuremath{x_2}}
+\newcommand{\VariableN}{\ensuremath{x_n}}
+\newcommand{\Constant}{\ensuremath{c}}
+\newcommand{\ConstantOne}{\ensuremath{c_1}}
+\newcommand{\ConstantTwo}{\ensuremath{c_2}}
+\newcommand{\ConstantN}{\ensuremath{c_n}}
+\newcommand{\STAIL}{\ensuremath{\langle \mathit{tl} \rangle{}}}
+\newcommand{\Term}{\ensuremath{t}}
+\newcommand{\TermOne}{\ensuremath{t_1}}
+\newcommand{\TermTwo}{\ensuremath{t_2}}
+\newcommand{\TermN}{\ensuremath{t_n}}
+\newcommand{\TermB}{\ensuremath{t_b}}
+\newcommand{\STACK}{\ensuremath{S}}
+\newcommand{\EMPTYSTACK}{\text{[ ]}}
+\newcommand{\STACKONE}{\ensuremath{S}}
+\newcommand{\STACKTWO}{\ensuremath{S}}
+\newcommand{\STACKN}{\ensuremath{S}}
+\newcommand{\STACKZ}{\ensuremath{S_0}}
+\newcommand{\Stack}{\ensuremath{s}}
+\newcommand{\StackOne}{\ensuremath{s_1}}
+\newcommand{\StackTwo}{\ensuremath{s_2}}
+\newcommand{\StackN}{\ensuremath{s_n}}
+\newcommand{\TSTACK}{\ensuremath{S'}}
+\newcommand{\TStack}{\ensuremath{s'}}
+\newcommand{\STATE}{\textit{ST}}
+\newcommand{\STATEONE}{\textit{ST}\ensuremath{_1}}
+\newcommand{\STATETWO}{\text{$ST_2$}}
+\newcommand{\STATEN}{\text{$ST_n$}}
+\newcommand{\SYSTEM}{\text{$SE$}}
+\newcommand{\INSTRUCTION}{\ensuremath{I}}
+\newcommand{\TINSTRUCTION}{\ensuremath{I'}}
+\newcommand{\INSTRUCTIONONE}{\ensuremath{I_1}}
+\newcommand{\INSTRUCTIONTWO}{\ensuremath{I_2}}
+\newcommand{\Instruction}{\ensuremath{i}}
+\newcommand{\TInstruction}{\ensuremath{i'}}
+\newcommand{\InstructionOne}{\ensuremath{i_1}}
+\newcommand{\InstructionTwo}{\ensuremath{i_2}}
+\newcommand{\InstructionN}{\ensuremath{i_n}}
+\newcommand{\Invariant}{\textit{Iv}}
+\newcommand{\PREDICATE}{\ensuremath{P}}
+\newcommand{\PREDICATEA}{\ensuremath{P_A}}
+\newcommand{\PREDICATEB}{\ensuremath{P_B}}
+\newcommand{\Predicate}{\ensuremath{p}}
+\newcommand{\Failwith}{\textit{Failwith}}
+\newcommand{\PredicateOne}{\ensuremath{p_1}}
+\newcommand{\PredicateTwo}{\ensuremath{p_2}}
+\newcommand{\PredicateN}{\ensuremath{p_n}}
+\newcommand{\SETA}{\ensuremath{\mathcal{A}}}
+\newcommand{\SETAAUCTION}{\ensuremath{\mathcal{A}_{auction}}}
+\newcommand{\SETPOST}{\ensuremath{\mathcal{A'}}}
+\newcommand{\SETPOSTAUCTION}{\ensuremath{\mathcal{A'}_{auction}}}
+\newcommand{\EMPTY}{\ensuremath{\O}}
+\newcommand{\PCreate}{\ensuremath{P_{Create}}}
+\newcommand{\PBidding}{\ensuremath{P_{Bidding}}}
+\newcommand{\PClose}{\ensuremath{P_{Close}}}
+\newcommand{\SE}{\text{SE}}
+\newcommand{\SINIT}{\ensuremath{s_{init}}}
+\newcommand{\SFINAL}{\ensuremath{s_{final}}}
+\newcommand{\FMAP}{\textbf{map}}
+\newcommand{\MAPA}{\textbf{$map_A$}}
+\newcommand{\MAPB}{\textbf{$map_B$}}
+\newcommand{\MapBidding}{\textbf{$map_{bidding}$}}
+\newcommand{\MapCreate}{\textbf{$map_{create}$}}
+\newcommand{\MapClose}{\textbf{$map_{close}$}}
+\newcommand{\MAPER}{\text{$\overline{\textbf{map}}$}}
+
+%% variables
+\newcommand{\VariableX}{\ensuremath{x}}
+\newcommand{\VariableY}{\ensuremath{y}}
+\newcommand{\VariableV}{\ensuremath{v}}
+\newcommand{\VariableK}{\ensuremath{k}}
+\newcommand{\VariableA}{\ensuremath{a}}
+\newcommand{\VariableB}{\ensuremath{b}}
+\newcommand{\VBYT}{\ensuremath{byt}}
+\newcommand{\VOFFSET}{\ensuremath{offset}}
+\newcommand{\VLEN}{\ensuremath{len}}
+\newcommand{\VPAR}{\ensuremath{par}}
+\newcommand{\VSTORAGE}{\ensuremath{stg}}
+\newcommand{\VOPERATIONLIST}{\ensuremath{opl}}
+\newcommand{\LIST}{\ensuremath{l}}
+\newcommand{\PLIST}{\ensuremath{l'}}
+\newcommand{\TLIST}{\ensuremath{l'}}
+\newcommand{\HEAD}{\textit{hd}}
+\newcommand{\TAIL}{\textit{$<$ tl $>$}}
+\newcommand{\PHEAD}{\textit{hd'}}
+\newcommand{\PTAIL}{\textit{tl'}}
+\newcommand{\VSTRING}{\textit{s}}
+\newcommand{\FOLD}{\textit{fold}}
+
+
+%% operation
+\newcommand{\CONS}{\text{cons}}
+\newcommand{\NIL}{\text{nil}}
+\newcommand{\PLUS}{\textbf{+}}
+\newcommand{\MINUS}{\textbf{-}}
+\newcommand{\EQUAL}{\textbf{=}}
+\newcommand{\LESS}{\textbf{$<$}}
+\newcommand{\LESSEQUAL}{\textbf{$\le$}}
+\newcommand{\MORE}{\textbf{$>$}}
+\newcommand{\MOREEQUAL}{\textbf{$\ge$}}
+
+%% instructions
+\newcommand{\IPAIR}{\text{PAIR}}
+\newcommand{\ADD}{\text{ADD}}
+\newcommand{\DROP}{\text{DROP}}
+\newcommand{\LOOP}{\text{LOOP}}
+\newcommand{\FAILWITH}{\text{FAILWITH}}
+\newcommand{\TRANSFER}[2]{\text{Transfer($#1$, $#2$)}}
+\newcommand{\CONTRACT}{\text{CONTRACT}}
+\newcommand{\CAR}{\text{CAR}}
+\newcommand{\EXEC}{\text{EXEC}}
+\newcommand{\APPLY}{\text{APPLY}}
+\newcommand{\IF}{\text{IF}}
+\newcommand{\IFLEFT}{\text{IF-LEFT}}
+\newcommand{\IFRIGHT}{\text{IF-RIGHT}}
+\newcommand{\IFCONS}{\text{IF-CONS}}
+\newcommand{\ITER}{\text{ITER}}
+\newcommand{\TITER}{\text{ITER'}}
+\newcommand{\DIG}{\text{DIG}}
+\newcommand{\DIP}{\text{DIP}}
+\newcommand{\DIPN}{\text{DIP n}}
+\newcommand{\TDIP}{\text{DIP'}}
+\newcommand{\ABS}{\text{ABS}}
+\newcommand{\COMPARE}{\text{COMPARE}}
+\newcommand{\TCOMPARE}{\text{COMPARE'}}
+\newcommand{\HASHKEY}{\text{HASH-KEY}}
+\newcommand{\CONCAT}{\text{CONCAT}}
+\newcommand{\TCONCAT}{\text{CONCAT'}}
+\newcommand{\MEM}{\text{MEM}}
+\newcommand{\TMEM}{\text{MEM'}}
+\newcommand{\TMAP}{\text{MAP'}}
+\newcommand{\PUSH}{\text{PUSH}}
+\newcommand{\XOR}{\text{XOR}}
+\newcommand{\MAP}{\text{MAP}}
+\newcommand{\LAMBDA}{\text{LAMBDA}}
+\newcommand{\IFNONE}{\text{IF-NONE}}
+\newcommand{\UPDATE}{\text{UPDATE}}
+\newcommand{\TUPDATE}{\text{UPDATE'}}
+
+%% contructors
+\newcommand{\UNIT}{\text{Unit}}
+\newcommand{\PAIR}{\text{Pair}}
+\newcommand{\LEFT}{\text{Left}}
+\newcommand{\RIGHT}{\text{Right}}
+\newcommand{\SOME}{\text{Some}}
+\newcommand{\NONE}{\text{None}}
+
+
+%symbols
+\newcommand{\Overline}[1]{\ensuremath{\overline{#1}}}
+\newcommand{\Mapsto}{\ensuremath{\mapsto}}
+\newcommand{\Mid}{\ensuremath{\mid}}
+\newcommand{\Mathcal}[1]{\ensuremath{\mathcal{#1}}}
+\newcommand{\Models}{\ensuremath{\models}}
+\newcommand{\SRightarrow}{\ensuremath{\rightarrow}}
+\newcommand{\NSRightarrow}{\ensuremath{\nrightarrow}}
+\newcommand{\Wedge}{\ensuremath{\wedge}}
+\newcommand{\At}{\ensuremath{@}}
+\newcommand{\Subseteq}{\ensuremath{\subseteq}}
+\newcommand{\Vee}{\ensuremath{\vee}}
+\newcommand{\NEG}{\neg}
+\newcommand{\CNF}{\wedge}
+\newcommand{\DNF}{\vee}
+%\newcommand{\Cup}{\ensuremath{\cup}}
+\newcommand{\STRINGCONCAT}{\ensuremath{\hat{}}}
+\newcommand{\DOT}{\dots}
+
+
+%% functions
+\newcommand{\FABS}[1]{\text{abs($#1$)}}
+\newcommand{\FSIZE}[1]{\text{size($#1$)}}
+\newcommand{\FXOR}{\text{xor}}
+\newcommand{\FHASHKEY}{\text{hash-key}}
+\newcommand{\FCONCAT}[1]{\text{concat($#1$)}}
+\newcommand{\FGetTy}[1]{\text{get-ty}~#1}
+\newcommand{\FLEN}{\text{len}}
+\newcommand{\FAND}{\text{and}}
+\newcommand{\FOR}{\text{or}}
+\newcommand{\FNOT}{\text{not}}
+\newcommand{\FCOMPARE}{\text{compare}}
+\newcommand{\GETCONTRACTTYPE}{\text{get-contract-type}}
+\newcommand{\UNOP}{\text{unop}}
+\newcommand{\BINOP}{\text{binop}}
+\newcommand{\FSLICE}{\text{slice}}
+
+
+
+%% transition relations
+\newcommand{\StateTrans}{\ensuremath{\longrightarrow_S}}
+\newcommand{\ExprTrans}{\ensuremath{\longrightarrow_E}}
+\newcommand{\SystemTrans}{\ensuremath{\longrightarrow}}
+
+
+%% types
+%% types variables
+\newcommand\TEnv{\Gamma}
+\newcommand\JTypeCode[2]{\vdash_C#1 : #2}
+\newcommand\JTypeValue[2]{\vdash_V#1 : #2}
+\newcommand\JTypeExpr[3]{#1 \vdash #2 : #3}
+\newcommand{\TY}{\text{ty}}
+\newcommand{\TYF}{\text{ty$_{1}$}}
+\newcommand{\TYS}{\text{ty$_{2}$}}
+\newcommand{\TYT}{\text{ty$_{3}$}}
+\newcommand{\TYA}{\text{A}}
+\newcommand{\TYB}{\text{B}}
+\newcommand{\TYC}{\text{C}}
+%% standard types
+\newcommand{\TBOOL}{\text{bool}}
+\newcommand{\TOR}{\text{or}}
+\newcommand{\TYLIST}{\text{list}}
+\newcommand{\TSET}{\text{set}}
+\newcommand{\TUNIT}{\text{unit}}
+\newcommand{\TPAIR}{\text{pair}}
+\newcommand{\TOPTION}{\text{option}}
+\newcommand{\TMUTEZ}{\text{mutez}}
+\newcommand{\TSTR}{\text{string}}
+\newcommand{\TINT}{\text{int}}
+\newcommand{\TNAT}{\text{nat}}
+\newcommand{\TKEY}{\text{key}}
+\newcommand{\TYMAP}{\text{map}}
+\newcommand{\TKEYHASH}{\text{key-hash}}
+\newcommand{\TSIG}{\text{signature}}
+\newcommand{\TADDR}{\text{address}}
+\newcommand{\TTIME}{\text{timestamp}}
+\newcommand{\TCONTRACT}{\text{contract}}
+\newcommand{\TCHAINID}{\text{chain-id}}
+\newcommand{\TLAMBDA}{\text{lambda}}
+\newcommand{\TBYTE}{\text{byte}}
+\newcommand{\TOPERATIONLIST}{\text{operation list}}
+
+%%keywords
+\newcommand{\KPAIR}{\text{Pair}}
+
+
+
+
+
+
+
+%% typing related
+\newcommand{\EmptyEnv}{\cdot}
+
+%% evaluation contexts
+\newcommand\EC[1]{\epsilon[#1]}
+
+%% metavariables
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "paper"
+%%% End:
