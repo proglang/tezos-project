@@ -989,7 +989,6 @@ let opp_assertion = function
   | SLt (t1, t2) -> SGe (t1, t2)
   | SGt (t1, t2) -> SLe (t1, t2)
   | SEq (t1, t2) -> SNot (SEq (t1, t2))
-(*  | SNeq (t1, t2) -> SEq (t1, t2) *)
   | SGe (t1, t2) -> SLt (t1, t2)
   | SLe (t1, t2) -> SGt (t1, t2)
   | SNot t -> t

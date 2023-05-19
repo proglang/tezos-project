@@ -525,7 +525,6 @@ body_check:
   ;
 entrypoint:
   | LPAREN; emtry = entrypoint; RPAREN { emtry }
-  | ENTRYPOINT; s = STRING;  b =  body_check { `Entrypoint (s, b) }
   | ENTRYPOINT; PERCENT; s = IDEN;  b =  body_check { `Entrypoint (s, b) }
   ;
 pentrypoint:
