@@ -1,0 +1,86 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{authblk}
+
+\title{A Statically Checked Interface and a Checker for Tezos Smart Contracts}
+\author{Peter Thiemann}
+\author{Thi Thu Ha Doan}
+\affil{University of Freiburg, Germany}
+\begin{document}
+\maketitle{}
+
+\section{Report January-June 2023}
+\label{sec:executive-summary}
+
+We proposed the following activities and deliverables for the
+project. We started all planned activities for the reporting period
+and we already started some planned activities for the next period.
+
+Currently, the project is on track and making good progress, but Ms.\ Doan is on maternal leave
+and it is unclear if she will take parental leave thereafter. If she
+does, it may lead to unforseeable delays.
+
+\subsection{January 2023 - June 2023}
+
+\begin{itemize}
+\item Proposed activity: Development of a dynamic logic as a formal foundation for symbolic interpretation of Michelson. \\
+  $\Rightarrow$ This activity progressed significantly with the help of a master's
+  student supervised by Thiemann. The activity started later than
+  planned because the student was unavailable till the end of the
+  teaching period in March.
+\item Deliverable: Formalization (in Agda) of a dynamic logic for a core fragment of Michelson with soundness proof. \\
+  $\Rightarrow$ This deliverable is currently in beta and will be finished when the
+  master's thesis submission is due in September 2023.
+\item Deliverable: Paper about this formalization (writeup starting
+  July 2023). \\
+  $\Rightarrow$ The paper will be based on the master's thesis, so the final writing
+  starts after the submission in September. The goal is to submit to a
+  conference during the winter/early spring.
+\end{itemize}
+
+\subsection{July 2023 - December 2023}
+\label{sec:july-2023-december}
+
+\begin{itemize}
+\item Activity: Implementation of symbolic interpreter for a core
+  fragment of Michelson in OCaml based on an SMT solver, most likely
+  on Z3. \\
+  $\Rightarrow$ This activity has been driven by Doan between January and June
+  2023. 
+\item Deliverable: Symbolic interpreter. \\
+  $\Rightarrow$ The current prototype of the symbolic interpreter is available here
+  \url{https://github.com/proglang/tezos-project/tree/master/static_checker}
+\item Deliverable: Case studies with example contracts.
+\item Deliverable: Paper or tutorial on this tool (writeup starting
+  January 2024) \\
+  $\Rightarrow$ A draft is available here \url{https://github.com/proglang/tezos-project/tree/master/symbolic-execution/paper}
+\end{itemize}
+
+\subsection{January 2024 - June 2024}
+\label{sec:january-2024-june}
+
+Not started.
+
+\begin{itemize}
+\item Activity: Design and implementation of a DSL for static contract properties. This DSL will compile to SMT and interface with the symbolic interpreter to perform verification.  
+\item Deliverable: Implementation of the DSL aka contract checker.
+\item Deliverable: Report on this tool.
+\end{itemize}
+
+\subsection{July 2024 - December 2024}
+\label{sec:july-2024-december}
+
+Not started.
+
+\begin{itemize}
+\item Activity: Complete design and implementation of the contract module DSL including contract orchestration. 
+\item Deliverable: Full implementation of contract modules.
+\item Deliverable: Followup on our FMBC paper. 
+\end{itemize}
+
+\bibliography{report}
+\bibliographystyle{plainurl}
+\end{document}
