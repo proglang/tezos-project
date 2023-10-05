@@ -1,0 +1,90 @@
+
+%This is a template for producing reports for "Dagstuhl Reports".
+%See dagrep-v2021.pdf for further information.
+
+\documentclass[a4paper,UKenglish]{dagrep-v2021}
+  %for A4 paper format use option "a4paper", for US-letter use option "letterpaper"
+  %for british hyphenation rules use option "UKenglish", for american hyphenation rules use option "USenglish"
+  %for section-numbered lemmas etc., use "numberwithinsect"
+  %for producing a PDF according the PDF/A standard, add "pdfa"
+
+\usepackage{microtype}%if unwanted, comment out or use option "draft"
+
+\bibliographystyle{plain}%the recommnded bibstyle
+
+\subject{Report from Dagstuhl Seminar 11013}
+\title{Formal Verification Tool Based on Symbolic Execution for Smart Contract}
+\titlerunning{11013 -- Seminar Sample}%optional
+
+\author[1]{Thi Thu Ha Doan}
+\author[2]{Peter Thiemann}
+\affil[1]{University of Freiburg, Germany
+  \texttt{doanha@informatik.uni-freiburg.de}}
+\affil[2]{University of Freiburg, Germany
+  \texttt{thiemann@informatik.uni-freiburg.de}}
+\authorrunning{T.T.H Doan and P.Thiemann}%optional
+
+\keywords{Smart Contract, Blockchain, Formal Verification, Symbolic Execution}%mandatory
+
+%Organizer macros:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\seminarnumber{11013}
+\semdata{03.--07.~January, 2011 -- \url{https://www.dagstuhl.de/11013}}
+
+\ccsdesc[100]{General and reference~General literature}
+\ccsdesc[500]{Hardware~3D integrated circuits}
+\ccsdesc[500]{Software and its engineering~Software design engineering}
+\ccsdesc[300]{Networks~Network performance analysis}
+
+\additionaleditors{Tom Collector}%optional
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%Dagstuhl editorial office macros:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\volumeinfo%(easychair interface)
+  {John Q. Open and Joan R. Access}%editors
+  {2}%number of editors
+  {Seminar Sample}%event
+  {1}%volume
+  {1}%issue
+  {1}%starting page number
+\DOI{10.4230/DagRep.1.1.1}%(DagRep.<issue no>.<volume no>.<firstpage>)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+In the context of blockchain technology, the immutability of smart contracts once implemented underscores the critical need to ensure their accuracy. Even in cases where smart contract implementations are not overly extensive and have undergone testing before deployment, the blockchain community has identified significant vulnerabilities in their design. In addition, the relatively new nature of smart contract languages has led to unforeseen errors due to a lack of familiarity with their intricacies. To overcome these challenges, formal verification emerges as a key solution to guarantee the correctness of smart contracts. In response to this need, we have developed a formal verification tool for smart contracts, particularly those written in Michelson. This tool uses symbolic execution to simulate the implementation of the smart contract language, helping to detect subtle errors that are difficult for smart contract developers to detect. In addition, our tool includes a domain-specific language that allows users to precisely specify contract properties. By interacting with an SMT solver, it can handle a wide range of properties. In particular, it streamlines the process of reviewing requirements, uncovering hidden errors, and validating user-defined properties. In summary, our research highlights the need for robust verification of smart contracts. We present a purpose-built tool that utilizes symbolic execution and a domain-specific language to improve the correctness of smart contracts and provide a comprehensive solution to mitigate potential pitfalls in blockchain-based applications.
+\end{abstract}
+
+\section{Executive Summary}
+\summaryauthor[T.T.Ha Doan and P. Thiemann]{%
+T.T.Ha Doan (University of Freiburg, Germany, doanha@informatik.uni-freiburg.de)\\
+P. Thiemann (University of Freiburg, Germany, \\thiemann@informatik.uni-freiburg.de)
+}
+
+\license
+
+This summary summarizes the outcomes of  our seminar. The seminar focused on\begin{itemize}
+\item important issues,
+\item relevant problems, and
+\item adequate solutions.
+\end{itemize}
+
+As a major result from the seminar, the following problems have been identified: 
+\begin{enumerate}
+\item The problem of writing a brief, but concise executive summary.
+\item The problem of collecting all abstracts from talks.
+\item The problem of preparing summaries from working groups, open problem sessions, and panel discussions.
+\end{enumerate}
+
+
+
+\tableofcontents
+
+%\newpage
+
+\section{Introduction}
+
+
+\end{document}
