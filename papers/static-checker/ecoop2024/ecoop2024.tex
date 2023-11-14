@@ -280,7 +280,7 @@ T, U &::= \\
 The rule semantic is defined by several kinds of transitions:
 \begin{enumerate}
 \item \ExprTrans\ single-step evaluation of an expression in a system state,
-\item \StateTrans\ internal transitions of a system state, which is non-deterministic  as shown for instructions \ITER\ and \LOOP,
+\item \StateTrans\ internal transitions of a system state, which is non-deterministic  as shown for instructions \LOOP\ and \LOOP-LEFT,
 \item \SystemTrans\ symbolic system transitions.
 \end{enumerate}
 
@@ -448,7 +448,7 @@ The rule semantic is defined by several kinds of transitions:
     \StateTrans^*
     [ \EMPTYSTACK,  \STACK', Q']
   }{
-    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE \wedge Q] \StateTrans \\ [(\TITER\ \INSTRUCTIONONE ; \INSTRUCTION), \{\STAIL\}\ \STACKCONCAT\STACK',  \PREDICATE\ \Wedge  ( \StackOne\ \EQUAL\ \{\HEAD; \STAIL \})  \wedge Q']
+    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE \wedge Q] \StateTrans \\ [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), \{\STAIL\}\ \STACKCONCAT\STACK',  \PREDICATE \wedge Q' \Wedge  ( \StackOne\ \EQUAL\ \{\HEAD; \STAIL \}) ]
   }
 \end{mathpar}
 
@@ -797,9 +797,14 @@ The rule semantic is defined by several kinds of transitions:
   {
   }{[(\FAILWITH; \INSTRUCTION), (\StackOne,  \TY) \STACKCONCAT \STACK,  \PREDICATE] \StateTrans [\EMPTYSTACK, failwith (\StackOne) \STACKCONCAT\EMPTYSTACK, \PREDICATE]}
 \end{mathpar}
+\subsection{Dealing with loops}
+\subsubsection{For loop: ITER}
+\subsubsection{While loops: \LOOP\ and \LOOP-LEFT}
 \section {Domain Specific Language}
 \section {Static Checker}
 \section {Case Studies}
+\subsection{USDtz}
+\subsection{Kolibri Oracle Contract}
 \section {Related Work}
 \section {Conclusion}
 \end{document}
