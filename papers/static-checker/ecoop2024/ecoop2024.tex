@@ -1,13 +1,21 @@
 
-%This is a template for producing reports for "Dagstuhl Reports".
-%See dagrep-v2021.pdf for further information.
+\documentclass[a4paper,UKenglish,cleveref, autoref, thm-restate]{lipics-v2021}
+%This is a template for producing LIPIcs articles. 
+%See lipics-v2021-authors-guidelines.pdf for further information.
+%for A4 paper format use option "a4paper", for US-letter use option "letterpaper"
+%for british hyphenation rules use option "UKenglish", for american hyphenation rules use option "USenglish"
+%for section-numbered lemmas etc., use "numberwithinsect"
+%for enabling cleveref support, use "cleveref"
+%for enabling autoref support, use "autoref"
+%for anonymousing the authors (e.g. for double-blind review), add "anonymous"
+%for enabling thm-restate support, use "thm-restate"
+%for enabling a two-column layout for the author/affilation part (only applicable for > 6 authors), use "authorcolumns"
+%for producing a PDF according the PDF/A standard, add "pdfa"
 
-\documentclass[a4paper,UKenglish]{dagrep-v2021}
-  %for A4 paper format use option "a4paper", for US-letter use option "letterpaper"
-  %for british hyphenation rules use option "UKenglish", for american hyphenation rules use option "USenglish"
-  %for section-numbered lemmas etc., use "numberwithinsect"
-  %for producing a PDF according the PDF/A standard, add "pdfa"
+%\pdfoutput=1 %uncomment to ensure pdflatex processing (mandatatory e.g. to submit to arXiv)
+%\hideLIPIcs  %uncomment to remove references to LIPIcs series (logo, DOI, ...), e.g. when preparing a pre-final version to be uploaded to arXiv or another public repository
 
+%\graphicspath{{./graphics/}}%helpful if your graphic files are in another directory
 \usepackage{microtype}%if unwanted, comment out or use option "draft"
 \pdfoutput=1
 \usepackage[utf8]{inputenc}
@@ -40,67 +48,62 @@
 \input{macros}
 
 
-\bibliographystyle{plain}%the recommnded bibstyle
+\bibliographystyle{plainurl}% the mandatory bibstyle
 
-\subject{Report from Dagstuhl Seminar 11013}
-\title{Formal Verification Tool Based on Symbolic Execution for Smart Contract}
-\titlerunning{11013 -- Seminar Sample}%optional
+\title{Formal Verification Tool Based on Symbolic Execution for Smart Contract} %TODO Please add
 
-\author[1]{Thi Thu Ha Doan}
-\author[2]{Peter Thiemann}
-\affil[1]{University of Freiburg, Germany
-  \texttt{doanha@informatik.uni-freiburg.de}}
-\affil[2]{University of Freiburg, Germany
-  \texttt{thiemann@informatik.uni-freiburg.de}}
-\authorrunning{T.T.H Doan and P.Thiemann}%optional
+%\titlerunning{Dummy short title} %TODO optional, please use if title is longer than one line
 
-\keywords{Smart Contract, Blockchain, Formal Verification, Symbolic Execution}%mandatory
+\author{Thi Thu Ha Doan}{University of Freiburg, Germany}{doanha@informatik.uni-freiburg.de}{https://orcid.org/0000−0001−7524−4497}{(Optional) author-specific funding acknowledgements}%TODO mandatory, please use full name; only 1 author per \author macro; first two parameters are mandatory, other parameters can be empty. Please provide at least the name of the affiliation and the country. The full address is optional. Use additional curly braces to indicate the correct name splitting when the last name consists of multiple name parts.
 
-%Organizer macros:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\seminarnumber{11013}
-\semdata{03.--07.~January, 2011 -- \url{https://www.dagstuhl.de/11013}}
+\author{Peter Thiemann}{University of Freiburg, Germany}{thiemann@informatik.uni-freiburg.de}{https://orcid.org/0000−0002−9000−1239}{[funding]}
 
-\ccsdesc[100]{General and reference~General literature}
-\ccsdesc[500]{Hardware~3D integrated circuits}
-\ccsdesc[500]{Software and its engineering~Software design engineering}
-\ccsdesc[300]{Networks~Network performance analysis}
+\authorrunning{T.T.Ha Doan and P.Thiemann} %TODO mandatory. First: Use abbreviated first/middle names. Second (only in severe cases): Use first author plus 'et al.'
 
-\additionaleditors{Tom Collector}%optional
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\Copyright{T.T.Ha Doan and Peter Thiemann} %TODO mandatory, please use full first names. LIPIcs license is "CC-BY";  http://creativecommons.org/licenses/by/3.0/
 
-%Dagstuhl editorial office macros:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\volumeinfo%(easychair interface)
-  {John Q. Open and Joan R. Access}%editors
-  {2}%number of editors
-  {Seminar Sample}%event
-  {1}%volume
-  {1}%issue
-  {1}%starting page number
-\DOI{10.4230/DagRep.1.1.1}%(DagRep.<issue no>.<volume no>.<firstpage>)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\ccsdesc[100]{\textcolor{red}{Replace ccsdesc macro with valid one}} %TODO mandatory: Please choose ACM 2012 classifications from https://dl.acm.org/ccs/ccs_flat.cfm 
+
+\keywords{Smart Contract, Blockchain, Formal Verification, Symbolic Execution} %TODO mandatory; please add comma-separated list of keywords
+
+\category{} %optional, e.g. invited paper
+
+\relatedversion{} %optional, e.g. full version hosted on arXiv, HAL, or other respository/website
+%\relatedversiondetails[linktext={opt. text shown instead of the URL}, cite=DBLP:books/mk/GrayR93]{Classification (e.g. Full Version, Extended Version, Previous Version}{URL to related version} %linktext and cite are optional
+
+%\supplement{}%optional, e.g. related research data, source code, ... hosted on a repository like zenodo, figshare, GitHub, ...
+%\supplementdetails[linktext={opt. text shown instead of the URL}, cite=DBLP:books/mk/GrayR93, subcategory={Description, Subcategory}, swhid={Software Heritage Identifier}]{General Classification (e.g. Software, Dataset, Model, ...)}{URL to related version} %linktext, cite, and subcategory are optional
+
+%\funding{(Optional) general funding statement \dots}%optional, to capture a funding statement, which applies to all authors. Please enter author specific funding statements as fifth argument of the \author macro.
+
+\acknowledgements{I want to thank \dots}%optional
+
+%\nolinenumbers %uncomment to disable line numbering
+
+
+
+%Editor-only macros:: begin (do not touch as author)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\EventEditors{John Q. Open and Joan R. Access}
+\EventNoEds{2}
+\EventLongTitle{42nd Conference on Very Important Topics (CVIT 2016)}
+\EventShortTitle{CVIT 2016}
+\EventAcronym{CVIT}
+\EventYear{2016}
+\EventDate{December 24--27, 2016}
+\EventLocation{Little Whinging, United Kingdom}
+\EventLogo{}
+\SeriesVolume{42}
+\ArticleNo{23}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{document}
 
 \maketitle
 
+%TODO mandatory: add short abstract of the document
 \begin{abstract}
 In the context of blockchain technology, the immutability of smart contracts once implemented underscores the critical need to ensure their accuracy. Even in cases where smart contract implementations are not overly extensive and have undergone testing before deployment, the blockchain community has identified significant vulnerabilities in their design. In addition, the relatively new nature of smart contract languages has led to unforeseen errors due to a lack of familiarity with their intricacies. To overcome these challenges, formal verification emerges as a key solution to guarantee the correctness of smart contracts. In response to this need, we have developed a formal verification tool for smart contracts, particularly those written in Michelson. This tool uses symbolic execution to simulate the implementation of the smart contract language, helping to detect subtle errors that are difficult for smart contract developers to detect. In addition, our tool includes a domain-specific language that allows users to precisely specify contract properties. By interacting with an SMT solver, it can handle a wide range of properties. In particular, it streamlines the process of reviewing requirements, uncovering hidden errors, and validating user-defined properties. In summary, our research highlights the need for robust verification of smart contracts. We present a purpose-built tool that utilizes symbolic execution and a domain-specific language to improve the correctness of smart contracts and provide a comprehensive solution to mitigate potential pitfalls in blockchain-based applications.
 \end{abstract}
-
-\summaryauthor[T.T.Ha Doan and P. Thiemann]{%
-T.T.Ha Doan (University of Freiburg, Germany, doanha@informatik.uni-freiburg.de)\\
-P. Thiemann (University of Freiburg, Germany, \\thiemann@informatik.uni-freiburg.de)
-}
-
-\license
-
-
-
-
-\tableofcontents
-
-%\newpage
-
 \section{Introduction}
 \label{sec:introduction}
 
@@ -120,14 +123,12 @@ Each piece of data in Michelson is assigned a specific type, and the language im
 
 A Michelson program is a sequence of instructions executed in a sequential manner. Each instruction takes, as input, the stack produced by the preceding instruction and modifies it for the subsequent one. This sequential flow ensures that each instruction builds upon the state left by its predecessor in the program. Let $\INSTRUCTION = \InstructionOne; \InstructionTwo; \DOT; \InstructionN$ represent a sequence of instructions.
 
-While undergoing symbolic execution, branching may occur depending on the conditions, and these branching conditions are recorded as predicates. Let \PREDICATE\ represent a predicate expressed in conjunction form.
-
+While undergoing symbolic execution,  a symbolic execution state assumes different values based on the constraints of symbolic values. Additionally, branching may occur depending on conditions, and both constraints and branching conditions are recorded as predicates. Let \PREDICATE\ symbolize a predicate expressed in conjunction form, capturing the conditions and constraints encountered during the symbolic execution process.
 \begin{definition}
 A symbolic execution's state is represented by the tuple $\STATE = [\INSTRUCTION, \STACK, \PREDICATE]$. Here, $\SYSTEM = \{\STATEONE, \STATETWO, \DOT, \STATEN \}$ range over sets of  states.
 \end{definition}
-
 The Michelson program takes as input a stack that consists of a single pair whose first element is an input value referred to as the parameter, and second element represents the content of the storage space. The program produces a stack as output, containing a single pair. The first element of this pair is the list of internal operations that the program intends to emit, and the second element is the new contents of the storage space.
- 
+
 Define the initial stack as $S_{init}$   = (\KPAIR\ \VPAR\ \VSTORAGE, \TPAIR\ \TYF\ \TYS) \STACKCONCAT\EMPTYSTACK, where \VPAR\ and \VSTORAGE\ denote terms representing the parameter and the storage, and \TYF\ and \TYS\ are their corresponding types. Similarly, designate the final stack as $S_{final}$   = (\PAIR\ \VOPERATIONLIST\ \VSTORAGE, \TPAIR\ (\TOPERATIONLIST) \TYS) \STACKCONCAT\EMPTYSTACK, where \VOPERATIONLIST\ repesents a operation list.
 
 
@@ -1072,4 +1073,5 @@ a Michelson program can fail, explicitly using a specific opcode
 \subsection{Dealing with loops}
 \subsubsection{For loop: ITER}
 \subsubsection{While loops: \LOOP\ and \LOOP-LEFT}
+
 \end{document}
