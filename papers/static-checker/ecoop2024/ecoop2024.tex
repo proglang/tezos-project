@@ -1,0 +1,1077 @@
+
+\documentclass[a4paper,UKenglish,cleveref, autoref, thm-restate]{lipics-v2021}
+%This is a template for producing LIPIcs articles. 
+%See lipics-v2021-authors-guidelines.pdf for further information.
+%for A4 paper format use option "a4paper", for US-letter use option "letterpaper"
+%for british hyphenation rules use option "UKenglish", for american hyphenation rules use option "USenglish"
+%for section-numbered lemmas etc., use "numberwithinsect"
+%for enabling cleveref support, use "cleveref"
+%for enabling autoref support, use "autoref"
+%for anonymousing the authors (e.g. for double-blind review), add "anonymous"
+%for enabling thm-restate support, use "thm-restate"
+%for enabling a two-column layout for the author/affilation part (only applicable for > 6 authors), use "authorcolumns"
+%for producing a PDF according the PDF/A standard, add "pdfa"
+
+%\pdfoutput=1 %uncomment to ensure pdflatex processing (mandatatory e.g. to submit to arXiv)
+%\hideLIPIcs  %uncomment to remove references to LIPIcs series (logo, DOI, ...), e.g. when preparing a pre-final version to be uploaded to arXiv or another public repository
+
+%\graphicspath{{./graphics/}}%helpful if your graphic files are in another directory
+\usepackage{microtype}%if unwanted, comment out or use option "draft"
+\pdfoutput=1
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathpartir}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{comment}
+\usepackage{todonotes}
+\newcommand\pt{\todo[author=PT,inline]}
+\lstdefinelanguage{michelson}{
+  basicstyle=\fontsize{8}{9.6}\selectfont,
+  morekeywords={parameter,storage,or,unit,mutez,pair,bool,address}, sensitive=false,
+  morecomment=[l]{\#},
+  morecomment=[\STACK]{/*}{*/},
+  morestring=[b]",
+}
+\lstset{
+  language=Caml,
+  captionpos=b,
+  aboveskip=-\smallskipamount,
+  belowskip=-\smallskipamount,
+  belowcaptionskip=0pt,
+  basicstyle=\fontsize{8}{9.6}\selectfont,
+  morekeywords={val}
+}
+
+\input{macros}
+
+
+\bibliographystyle{plainurl}% the mandatory bibstyle
+
+\title{Formal Verification Tool Based on Symbolic Execution for Smart Contract} %TODO Please add
+
+%\titlerunning{Dummy short title} %TODO optional, please use if title is longer than one line
+
+\author{Thi Thu Ha Doan}{University of Freiburg, Germany}{doanha@informatik.uni-freiburg.de}{https://orcid.org/0000−0001−7524−4497}{(Optional) author-specific funding acknowledgements}%TODO mandatory, please use full name; only 1 author per \author macro; first two parameters are mandatory, other parameters can be empty. Please provide at least the name of the affiliation and the country. The full address is optional. Use additional curly braces to indicate the correct name splitting when the last name consists of multiple name parts.
+
+\author{Peter Thiemann}{University of Freiburg, Germany}{thiemann@informatik.uni-freiburg.de}{https://orcid.org/0000−0002−9000−1239}{[funding]}
+
+\authorrunning{T.T.Ha Doan and P.Thiemann} %TODO mandatory. First: Use abbreviated first/middle names. Second (only in severe cases): Use first author plus 'et al.'
+
+\Copyright{T.T.Ha Doan and Peter Thiemann} %TODO mandatory, please use full first names. LIPIcs license is "CC-BY";  http://creativecommons.org/licenses/by/3.0/
+
+\ccsdesc[100]{\textcolor{red}{Replace ccsdesc macro with valid one}} %TODO mandatory: Please choose ACM 2012 classifications from https://dl.acm.org/ccs/ccs_flat.cfm 
+
+\keywords{Smart Contract, Blockchain, Formal Verification, Symbolic Execution} %TODO mandatory; please add comma-separated list of keywords
+
+\category{} %optional, e.g. invited paper
+
+\relatedversion{} %optional, e.g. full version hosted on arXiv, HAL, or other respository/website
+%\relatedversiondetails[linktext={opt. text shown instead of the URL}, cite=DBLP:books/mk/GrayR93]{Classification (e.g. Full Version, Extended Version, Previous Version}{URL to related version} %linktext and cite are optional
+
+%\supplement{}%optional, e.g. related research data, source code, ... hosted on a repository like zenodo, figshare, GitHub, ...
+%\supplementdetails[linktext={opt. text shown instead of the URL}, cite=DBLP:books/mk/GrayR93, subcategory={Description, Subcategory}, swhid={Software Heritage Identifier}]{General Classification (e.g. Software, Dataset, Model, ...)}{URL to related version} %linktext, cite, and subcategory are optional
+
+%\funding{(Optional) general funding statement \dots}%optional, to capture a funding statement, which applies to all authors. Please enter author specific funding statements as fifth argument of the \author macro.
+
+\acknowledgements{I want to thank \dots}%optional
+
+%\nolinenumbers %uncomment to disable line numbering
+
+
+
+%Editor-only macros:: begin (do not touch as author)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\EventEditors{John Q. Open and Joan R. Access}
+\EventNoEds{2}
+\EventLongTitle{42nd Conference on Very Important Topics (CVIT 2016)}
+\EventShortTitle{CVIT 2016}
+\EventAcronym{CVIT}
+\EventYear{2016}
+\EventDate{December 24--27, 2016}
+\EventLocation{Little Whinging, United Kingdom}
+\EventLogo{}
+\SeriesVolume{42}
+\ArticleNo{23}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\maketitle
+
+%TODO mandatory: add short abstract of the document
+\begin{abstract}
+In the context of blockchain technology, the immutability of smart contracts once implemented underscores the critical need to ensure their accuracy. Even in cases where smart contract implementations are not overly extensive and have undergone testing before deployment, the blockchain community has identified significant vulnerabilities in their design. In addition, the relatively new nature of smart contract languages has led to unforeseen errors due to a lack of familiarity with their intricacies. To overcome these challenges, formal verification emerges as a key solution to guarantee the correctness of smart contracts. In response to this need, we have developed a formal verification tool for smart contracts, particularly those written in Michelson. This tool uses symbolic execution to simulate the implementation of the smart contract language, helping to detect subtle errors that are difficult for smart contract developers to detect. In addition, our tool includes a domain-specific language that allows users to precisely specify contract properties. By interacting with an SMT solver, it can handle a wide range of properties. In particular, it streamlines the process of reviewing requirements, uncovering hidden errors, and validating user-defined properties. In summary, our research highlights the need for robust verification of smart contracts. We present a purpose-built tool that utilizes symbolic execution and a domain-specific language to improve the correctness of smart contracts and provide a comprehensive solution to mitigate potential pitfalls in blockchain-based applications.
+\end{abstract}
+\section{Introduction}
+\label{sec:introduction}
+
+\section{Symbolic Execution Model}
+\label{sec:symbolic-execution-model}
+\subsection{System Model}
+Michelson is the low-level smart contract language employed in the Tezos blockchain platform. It is characterized as a stack-based language, featuring high-level data types and primitives and integrates strict static type checking into its stack-based execution mode.
+
+The processing and manipulation of data during the execution of smart contracts are facilitated using a stack. A stack  can be written:
+\begin{itemize}
+\item[]  \EMPTYSTACK\ for the empty stack.
+\item[]  \HEAD\ \STACKCONCAT\ \NTAIL\ for the stack whose first value has type (\HEAD) and queue has stack type (\NTAIL).
+\end{itemize}
+
+Each piece of data in Michelson is assigned a specific type, and the language imposes restrictions preventing programmers from introducing custom types. Consider a stack denoted as $\STACK = (\TermOne, \TYF) \STACKCONCAT (\TermTwo, \TYS) \STACKCONCAT \DOT
+\STACKCONCAT \EMPTYSTACK$ where elements are types paired with terms. 
+
+A Michelson program is a sequence of instructions executed in a sequential manner. Each instruction takes, as input, the stack produced by the preceding instruction and modifies it for the subsequent one. This sequential flow ensures that each instruction builds upon the state left by its predecessor in the program. Let $\INSTRUCTION = \InstructionOne; \InstructionTwo; \DOT; \InstructionN$ represent a sequence of instructions.
+
+While undergoing symbolic execution,  a symbolic execution state assumes different values based on the constraints of symbolic values. Additionally, branching may occur depending on conditions, and both constraints and branching conditions are recorded as predicates. Let \PREDICATE\ symbolize a predicate expressed in conjunction form, capturing the conditions and constraints encountered during the symbolic execution process.
+\begin{definition}
+A symbolic execution's state is represented by the tuple $\STATE = [\INSTRUCTION, \STACK, \PREDICATE]$. Here, $\SYSTEM = \{\STATEONE, \STATETWO, \DOT, \STATEN \}$ range over sets of  states.
+\end{definition}
+The Michelson program takes as input a stack that consists of a single pair whose first element is an input value referred to as the parameter, and second element represents the content of the storage space. The program produces a stack as output, containing a single pair. The first element of this pair is the list of internal operations that the program intends to emit, and the second element is the new contents of the storage space.
+
+Define the initial stack as $S_{init}$   = (\KPAIR\ \VPAR\ \VSTORAGE, \TPAIR\ \TYF\ \TYS) \STACKCONCAT\EMPTYSTACK, where \VPAR\ and \VSTORAGE\ denote terms representing the parameter and the storage, and \TYF\ and \TYS\ are their corresponding types. Similarly, designate the final stack as $S_{final}$   = (\PAIR\ \VOPERATIONLIST\ \VSTORAGE, \TPAIR\ (\TOPERATIONLIST) \TYS) \STACKCONCAT\EMPTYSTACK, where \VOPERATIONLIST\ repesents a operation list.
+
+
+
+
+%\paragraph{Sequence actions.}
+%\begin{figure}[h]
+%\center
+%\includegraphics[width= 10 cm]{life-cycle-1}
+%\caption{Life-cycle for the auction contract.}
+%\label{fca1}
+%\end{figure} 
+
+\pagebreak
+\subsection{Rules}
+
+Each instruction is defined by a rule on the system model. The rule semantic is defined by several kinds of transitions:
+\begin{enumerate}
+\item \ExprTrans\ single-step evaluation of an expression in a system state,
+\item \StateTrans\ internal transitions of a state, which is non-deterministic  as shown for loop instructions, such as \LOOP\ and \LOOP-LEFT,
+\item \SystemTrans\ symbolic system transitions.
+\end{enumerate}
+
+During the execution of symbolic analysis, numberous states are generated. However, certain states may be unreachable from a symbolic initial state. This occurs when the predicate \PREDICATE\ is unsatisfied. Consequently, a system state is disregarded when the predicate \PREDICATE\ is fail.
+
+\begin{mathpar}
+\inferrule[]
+  { \NEG\ \PREDICATE
+  }{
+  \{[\INSTRUCTION, \STACK, \PREDICATE]\} \cup \SYSTEM \SystemTrans \SYSTEM}
+\end{mathpar}
+
+There are various types of instructions in Michelson, categorized based on their functions. These include control structures, stack manipulation, arithmetic operations, boolean operations, cryptographic operations, and operations on data structures. In our model, we classify them into three main groups: basic instructions, branch instructions, and loop instructions. This categorization reflects how these instructions are handled within our specific model.
+\subsubsection{One-step Instructions}
+A one-step instruction only effects a system state itself, does not produce a new state, and halts the execution after a single operation. The ABS rule specifies the corresponding instruction that applies to the first element of the stack. This element must have the type of int and returns the positive value of its current value, which is of a natural number type. Another example, the COMPARE instruction compares the two first elements of a stack, both of which have a natural number type. It returns a result of either -1, 0, or 1 depending on the comperations of their values.
+%ABS
+\begin{mathpar}
+\inferrule[ABS]
+  {
+  }
+  {
+    [(\ABS; \INSTRUCTION), (\StackOne, \TINT) \STACKCONCAT \STACK,
+    \PREDICATE]
+    \StateTrans \
+    [\INSTRUCTION, (\VariableX, \TNAT) \STACKCONCAT \STACK,
+    \PREDICATE \wedge (\StackOne \ge 0 \Rightarrow \VariableX =
+    \StackOne) \wedge (\StackOne <0 \Rightarrow \VariableX = -\StackOne)]
+ }
+\end{mathpar}
+
+% COMPARE
+\begin{mathpar}
+\inferrule[COMPARE]
+  {
+  }
+  {
+    [(\COMPARE ; \INSTRUCTION), (\StackOne, \TNAT) \STACKCONCAT (\StackTwo, \TNAT)
+    \STACKCONCAT \STACK, \PREDICATE ]
+    \SystemTrans \\
+    [\INSTRUCTION, (\VariableX, \TINT) \STACKCONCAT \STACK, \PREDICATE
+    \wedge\ (\StackOne > \StackTwo \Leftrightarrow \VariableX = 1)
+    \wedge\ (\StackOne = \StackTwo \Leftrightarrow \VariableX = 0) 
+    \wedge\ (\StackOne < \StackTwo \Leftrightarrow \VariableX = -1)]
+    }
+\end{mathpar}
+\subsubsection{Multi-step Instructions}
+Multi-step instructions require the execution of a sub-sequence of instructions before returning to the main execution. The following rule models the instruction EXEC, which executes a function specified as a sequence of instructions denoted as \INSTRUCTIONONE\ in the rule. This instruction first applies the code of the function to the first element of the stack. It then places the result back into the main execution.
+\begin{mathpar}
+  \inferrule[EXEC]
+  {
+    [\INSTRUCTIONONE, (\StackOne, \TYF) \STACKCONCAT \EMPTYSTACK, 
+    Q]
+    \StateTrans^*
+    [ \EMPTYSTACK, (\StackOne', \TYS) \STACKCONCAT Q']
+  }{
+     [(\EXEC; \INSTRUCTION),   (\{\INSTRUCTIONONE\}, \TYF\ \rightarrow\ \TYS) \STACKCONCAT
+    (\StackOne, \TYF) \STACKCONCAT \STACK, \PREDICATE \wedge Q] 
+    \StateTrans \
+    [ \INSTRUCTION, (\StackOne', \TYS) \STACKCONCAT \STACK,
+    \PREDICATE \wedge Q']}
+\end{mathpar}
+ 
+The \DIP\ \N\ instruction delves into the first \N\ elements of a stack, applies the sequence of instructions denoted as \INSTRUCTIONONE\ to the remaining part of the stack, modifies a part of the predicate and subsequently pushes the result back into the main execution.
+%DIP n
+\begin{mathpar}
+\inferrule[\DIP\ \N]
+  { 
+     \FLEN(\A) \EQUAL\ \N \\ [\INSTRUCTIONONE,  \B, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  \B_1, Q']
+  }
+  {[(\DIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \A\ \At\ \B, \PREDICATE \wedge Q] \StateTrans 
+[(\INSTRUCTION), \A\ \At\ \B_1, \PREDICATE \wedge Q']}
+\end{mathpar}
+\subsubsection{Blockchain Instructions}
+ Blockchain instructions make implicit use of data from an execution environment, derived from the current state of the blockchain (the context), from the transaction that triggered the contract, and from the block containing this transaction. We model these data as symbolic values, which satisfis some constrants. For example, the AMOUNT instruction adds to the stack the amount of tokens that sent together with the transcation which calls this smart contract. Here, the amount is modeled as a symbolic value donated as \VAMOUNT, which has \TMUTEZ\ type, which is a positive number value.
+
+\begin{mathpar}
+\inferrule[AMOUNT]
+  {
+  }
+  {[(\AMOUNT; \INSTRUCTION), \STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\VAMOUNT, \TMUTEZ) \STACKCONCAT\STACK, \PREDICATE}
+\end{mathpar}
+
+\subsubsection{Cryptographic Instructions}
+Cryptographic instructions in Michelson utilize built-in functions that manage cryptographic features. These functions are symbolically modeled in our framework, specifying their inputs and outputs. For instance, the instruction \SHA\ computes the cryptographic hash of the top of the stack using the SHA-256 cryptographic hash function. The function SHA-256 is symbolically represented as the function  \FSHA\  that takes an input of type \TBYTE\ and returns another byte value, constrained to a length of 256.
+%HASH-KEY
+\begin{mathpar}
+\inferrule[\SHA]
+  {
+  }
+  {[(\SHA; \INSTRUCTION), (\StackOne, \TBYTE) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\VariableX, \TBYTE) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\VariableX\ = \FSHA(\StackOne))]}
+\end{mathpar}
+\subsubsection{Branch Instructions}
+The Michelson language incorporates conditional branching, enabling the execution of specific code segments based on certain criteria. One of the instructions facilitating this is the IF {} {} construct. For example, the \IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction allows the creation of branches in execution. It takes two sequences as arguments. Expecting a boolean value at the top of the stack, it consumes this top element. If the boolean is True, it executes the first provided sequence; otherwise, it executes the second sequence.
+%IF
+\begin{mathpar}
+  \inferrule[IF]
+  {  
+  }{
+    \{[(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
+    (\StackOne, \TBOOL) \STACKCONCAT\STACK, \PREDICATE]\} \cup \SYSTEM 
+      \SystemTrans 
+    \{[\INSTRUCTIONONE, \STACK, \PREDICATE\ \Wedge\ \StackOne]\} \cup \{ [\INSTRUCTIONTWO, \STACK, \PREDICATE\ \Wedge\ \NEG\
+   \StackOne]\} \cup  \SYSTEM
+  }
+\end{mathpar}
+
+The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value at the top of the stack, it consumes this top element. If the value is Left, it executes the first provided sequence; otherwise, it executes the second sequence.
+%IF-LEFT
+\begin{mathpar}
+  \inferrule[IF-LEFT]
+  {  
+  }{
+    \{[(\IFLEFT\ \INSTRUCTIONONE\ \INSTRUCTIONTWO; \INSTRUCTION),
+    (\StackOne, \TOR\ \TYF\ \TYS) \STACKCONCAT \STACK, \PREDICATE]\}  \cup  \SYSTEM
+    \SystemTrans \\
+    \{[\INSTRUCTIONONE, (\VariableX, \TYF) \STACKCONCAT\STACK,
+    \PREDICATE \wedge (\StackOne\ \EQUAL\ \LEFT\ \VariableX)]\}  \cup  \{  [\INSTRUCTIONTWO, (\VariableX, \TYS) \STACKCONCAT\STACK, \PREDICATE \wedge (\StackOne\ \EQUAL\ \RIGHT\ \VariableX))]\} \cup \SYSTEM
+  }
+\end{mathpar}
+
+\subsubsection{Loop Instructions}
+In Michelson, there are several loop instructions that execute a loop over the data structure, such as ITER, MAP, MEMBER, SIZE and UPDATE on list, set, map or on the stack, such as LOOP and LOOP-LEFT. 
+
+%%ITER
+\begin{mathpar}
+  \inferrule[ITER-empty]
+  {  
+  }{
+    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, \STACK,  \PREDICATE\ \Wedge\  (\StackOne\ \EQUAL\ \EMPTYLIST)]
+  }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule[ITER-nonempty]
+  {  [\ITER,  (\HEAD, \TY) \STACKCONCAT\STACK, 
+    Q]
+    \StateTrans^*
+    [ \EMPTYSTACK,  \STACK', Q']
+  }{
+    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE \wedge Q] \StateTrans \\ [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), \{\STAIL\}\ \STACKCONCAT\STACK',  \PREDICATE \wedge Q' \Wedge  ( \StackOne\ \EQUAL\ \{\HEAD; \STAIL \}) ]
+  }
+\end{mathpar}
+
+
+
+Let us consider the \ITER\ instruction (for list), which applies to a stack \STACK, where the top element has type  (\TY\ \TYLIST) and the rest of the stack has type \TYA, returns the result stack of type \TYA. The \ITER\ instruction loops on the datastructure list. 
+Typing
+\begin{mathpar}
+  \inferrule{\JTypeExpr\TEnv{\INSTRUCTION}{\TY : \TYA\ \SRightarrow\ \TYA}
+  }{
+      \JTypeExpr\TEnv{\ITER\ \INSTRUCTION}{\TYLIST\ \TY : \TYA\ \SRightarrow\ \TYA}
+    }
+\end{mathpar}
+
+Semantic
+
+\begin{mathpar}
+  \inferrule{
+  }{
+    \ITER\ \INSTRUCTION\ / \{ \} \STACKCONCAT\ \STACK\ \SRightarrow\  \STACK
+    }
+\end{mathpar}
+
+\begin{mathpar} 
+  \inferrule{\INSTRUCTION\  /  \VariableX\ \STACKCONCAT\ \STACK \SRightarrow\ \STACK'
+  }{
+    \ITER\ \INSTRUCTION\ / \{ \VariableX\ ; \TAIL\ \} \STACKCONCAT\ \STACK\ \SRightarrow\ \ITER\ \INSTRUCTION\ / \{ \TAIL\ \} \STACKCONCAT\ \STACK' 
+    }
+\end{mathpar}
+
+If a list \LIST\ is concrete, the intructuion simply loops until the list ends with an empty list construction. Here we consider the synbolic execution of \ITER\ when the list is a sybolic term or variable. 
+
+The sequence of intructuions I is a lamda function  (\TLAMBDA\ (\TY\ : \TYA)\ \TYA) applied to the stack of type (\TY\ : \TYA), returning the stack of type \TYA. We can represent I as the function f that takes an element of type \TY\ and a stack of type \TYA\ and returns a stack of type \TYA.
+
+\begin{mathpar}
+  f : \TY\  \TYA\ \SRightarrow\ \TYA
+\end{mathpar}
+
+\begin{mathpar}
+  f  \VariableX\ \STACK =  (\TLAMBDA\ (\TY\ : \TYA)\ \TYA) (\VariableX\  \STACKCONCAT\ \STACK)
+\end{mathpar}
+
+or 
+
+\begin{mathpar}
+  f  \VariableX\ \STACK = I / (\VariableX\  \STACKCONCAT\ \STACK)
+\end{mathpar}
+
+Let  
+\LIST\ \STACKCONCAT\ \STACK
+
+ be the stack just before applying the instruction ITER I, where \VariableX\ be the head of the list and \STACK\ be the rest of the stack . For first  loop, let  \STACK\ be f (\VariableX, \STACK). \STACK\ is the stack resulting from applying the function f to the element \VariableX\ and the stack \STACK. In other words, the stack \STACK\ is formed by applying the sequence of the instructions I to the stack \VariableX\ \STACKCONCAT\ \STACK. 
+
+Let the result of applying the instruction \ITER\ I on the stack \LIST\ ::  \STACK\ be the stack S', then Z is resulted from the \FOLD\ function that applies the function f  to each element of the list \LIST\ and initial value is the stack \STACK.
+
+\begin{mathpar}
+S' =  \FOLD\ \STACK\ f   \LIST
+\end{mathpar}
+
+%MAP
+\begin{mathpar}
+\inferrule[MAP-empty]
+  {
+  }
+  {[(\MAP\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[MAP-nonempty]
+  {
+  [\INSTRUCTIONONE, (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q1]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\PHEAD, \TY) \STACKCONCAT\EMPTYSTACK , Q1'] \\  [\MAP\ \INSTRUCTIONONE, (\{\TAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK , Q2]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\{\PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK , Q2']
+  }
+  {[(\MAP\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1 \Wedge\ Q2 ] \StateTrans  \\
+[\INSTRUCTION, (\{\PHEAD; \PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1' \Wedge\ Q2'  \Wedge\ (\StackOne \EQUAL\ \{\HEAD; \TAIL\})]}
+\end{mathpar}
+
+
+%LOOP
+\begin{mathpar}
+  \inferrule[LOOP-true]
+  {  
+  }{
+    [(\LOOP\ \INSTRUCTIONONE; \INSTRUCTION),  (\StackOne, \TBOOL)
+    \STACKCONCAT\STACK, \PREDICATE]
+    \StateTrans\
+    [(\INSTRUCTIONONE; \LOOP\ \INSTRUCTIONONE; \INSTRUCTION),
+    \STACK, \PREDICATE \wedge \StackOne]
+  }
+
+  \inferrule[LOOP-false]
+  {  
+  }{
+    [(\LOOP\ \INSTRUCTIONONE; \INSTRUCTION),  (\StackOne, \TBOOL) \STACKCONCAT\
+    \STACK, \PREDICATE]
+    \StateTrans\
+   [\INSTRUCTION, \STACK, \PREDICATE \wedge
+   (\NEG\StackOne)]
+   }
+\end{mathpar}
+
+\subsubsection{FAILWITH}
+a Michelson program can fail, explicitly using a specific opcode
+
+%FAILWITH
+\begin{mathpar}
+  \inferrule[FAILWITH]
+  {
+  }{[(\FAILWITH; \INSTRUCTION), (\StackOne,  \TY) \STACKCONCAT \STACK,  \PREDICATE] \StateTrans [\EMPTYSTACK, failwith (\StackOne) \STACKCONCAT\EMPTYSTACK, \PREDICATE]}
+\end{mathpar}
+\section {Domain Specific Language}
+\section {Static Checker}
+\section {Case Studies}
+\subsection{USDtz}
+\subsection{Kolibri Oracle Contract}
+\section {Related Work}
+\section {Conclusion}
+\section {Appendix}
+
+\begin{figure} []
+\begin{align*}
+T, U &::= \\
+   &\Mid\ \langle \text{comparable type}\rangle \\
+   &\Mid\ \text{option}\ \langle\text{type}\rangle \\
+   &\Mid\ \text{list}\ \langle\text{type}\rangle \\
+   &\Mid\ \text{set}\ \langle\text{comparable type}\rangle \\
+   &\Mid\ \text{operation} \\
+   &\Mid\ \text{contract}\ \langle\text{type}\rangle \\
+   &\Mid\ \text{ticket}\ \langle\text{comparable type}\rangle \\
+   &\Mid\ \text{pair}\ \langle\text{type}\rangle \langle\text{type}\rangle \\
+   &\Mid\ \text{or}\ \langle\text{type}\rangle \langle\text{type}\rangle \\
+   &\Mid\ \text{lambda}\ \langle\text{type}\rangle \langle\text{type}\rangle \\
+   &\Mid\ \text{map}\ \langle\text{comparable type}\rangle \langle\text{type}\rangle \\
+   &\Mid\ \text{big-map}\ \langle\text{comparable type}\rangle \langle\text{type}\rangle \\
+   &\Mid\ \text{bls12-381-g1} \\
+   &\Mid\ \text{bls12-381-g2} \\
+   &\Mid\ \text{bls12-381-fr} \\
+   &\Mid\ \text{sapling-transaction}\ \langle\text{natural number constant}\rangle \\
+   &\Mid\ \text{sapling-state}\ \langle\text{natural number constant}\rangle \\
+   &\Mid\ \text{chest} \\
+   &\Mid\ \text{chest-key} \\
+\langle\text{comparable type}\rangle ::= \\
+   &\Mid\ \text{unit} \\
+   &\Mid\ \text{never} \\
+   &\Mid\ \text{bool} \\
+   &\Mid\ \text{int}\\
+   &\Mid\ \text{nat}\\
+   &\Mid\ \text{string}\\
+   &\Mid\ \text{chain-id}\\
+   &\Mid\ \text{bytes}\\
+   &\Mid\ \text{mutez}\\
+   &\Mid\ \text{key-hash}\\
+   &\Mid\ \text{key}\\
+   &\Mid\ \text{signature}\\
+   &\Mid\ \text{timestamp}\\
+   &\Mid\ \text{address}\\
+   &\Mid\ \text{tx-rollup-l2-address}\\
+   &\Mid\ \text{option}\ \langle\text{comparable type}\rangle\\
+   &\Mid\ \text{or}\ \langle\text{comparable type}\rangle \langle\text{comparable type}\rangle\\
+   &\Mid\ \text{pair}\ \langle\text{comparable type}\rangle \langle\text{comparable type}\rangle \DOT \\
+\end{align*}
+\caption{Types}
+\label{fig:type}
+\end{figure}
+
+\begin{figure}[h]
+\begin{align*}
+\text{t} &::= \\
+   &\Mid\ \langle \text{variable} \rangle \\
+   &\Mid\ \langle \text{account constant} \rangle \\
+   &\Mid\ \langle \text{int constant} \rangle \\
+   &\Mid\ \langle \text{string constant} \rangle \\
+   &\Mid\ \langle \text{byte sequence constant} \rangle \\
+   &\Mid\ \UNIT \\
+   &\Mid\ \TRUE \\
+   &\Mid\ \FALSE \\
+   &\Mid\ \PAIR\ \text{t1 t2}\\
+   &\Mid\ \LEFT\ \text{t}\\
+   &\Mid\ \RIGHT\ \text{t}\\ 
+   &\Mid\ \SOME\ \text{t}\\
+   &\Mid\ \NONE \\
+   &\Mid\ \text{\{t ; ... \}}\\
+   &\Mid\ \text{\{ Elt t1 t2 ; ... \}}\\
+   &\Mid\ \{ \langle\text{instruction}\rangle; ... \}   \\
+\langle \text{variable} \rangle &::= \\ 
+   &\Mid\ \VAR\\
+\langle \text{account constant} \rangle &::= \\ 
+   &\Mid\ \text{balance} \\
+   &\Mid\ \text{amount} \\
+   &\Mid\ \text{sender} \\
+   &\Mid\ \text{source} \\
+   &\Mid\ \text{now} \\
+   &\Mid\ \text{level} \\
+   &\Mid\ \text{chain-id} \\
+   &\Mid\ \text{self}  \\
+   &\Mid\ \text{self-address}  \\
+   &\Mid\ \text{total-voting-power}  \\
+   &\Mid\ \text{voting-power}  \\
+\langle \text{natural number constant} \rangle &::= \\ 
+   &\Mid\ \text {[0-9]+} \\
+\langle \text{int constant} \rangle &::= \\
+  &\Mid\ \langle \text{natural number constant} \rangle \\
+  &\Mid\ \text{-} \langle \text{natural number constant} \rangle \\
+\langle\text{string constant}\rangle &::= \\
+  &\Mid\ \text{"} \langle \text{string content}\rangle\text{*"} \\
+\langle\text{instruction}\rangle &::= \\
+  &\Mid\ \DROP \\
+  &\Mid\ \DROP \langle\text{natural number constant}\rangle \\
+  &\text{...}
+\end{align*}
+\caption{Terms}
+\label{fig:term}
+\end{figure}
+
+
+\begin{figure}[h]
+\begin{align*}
+\text{p} &::= \\
+   &\Mid\ \langle \text{atomic formula} \rangle \\
+   &\Mid\ \NEG\ \text{p} \
+   \Mid\ \text{p}\ \CNF\ \text{q} \
+   \Mid\ \text{p}\ \DNF\ \text{q} \\
+\langle \text{atomic formula} \rangle &::= \\ 
+    &\Mid\ \langle \text{butop} \rangle \langle \text{bterm} \rangle\\ 
+   &\Mid\  \langle \text{bterm} \rangle  \langle \text{biop} \rangle \langle \text{bterm} \rangle\\ 
+\langle \text{butop} \rangle &::= \\
+   &\Mid\ \text{not} \\
+\langle \text{biop} \rangle &::= \\
+   &\Mid\ \text{$=$} \
+   \Mid\ \text{$>$} \
+   \Mid\ \text{$<$} \
+   \Mid\ \text{$>=$} \
+   \Mid\ \text{$=<$} \
+   \Mid\ \text{$!=$} \\
+   &\Mid\ \text{and}\ \Mid\ \text{or}\ \Mid\ \text{xor}\\
+\langle \text{bterm} \rangle &::= \\ 
+   &\Mid\ \text{t} \\
+   &\Mid\ \langle \text{unop} \rangle \text{t} \\ 
+   &\Mid\ \text{t}\ \langle \text{binop} \rangle \text{t}\\  
+\langle \text{unop} \rangle &::= \\ 
+   &\Mid\ \text{abs} \\
+   &\Mid\ \text{size} \\
+   &\Mid\ \text{int} \\
+   &\Mid\ \text{contract}  \langle \text{type} \rangle \\
+   &\Mid\ \text{isleft} \\
+   &\Mid\ \text{isnone} \\
+   &\Mid\ \text{neg} \\
+   &\Mid\ \text{blake2b} \\
+   &\Mid\ \text{hash-key} \\
+   &\Mid\ \text{keccak} \\
+   &\Mid\ \text{pairing-check} \\
+   &\Mid\ \text{sha256} \\
+   &\Mid\ \text{sha3} \\
+   &\Mid\ \text{sha512} \\
+   &\Mid\ \text{implicit-account} \\
+   &\Mid\ \text{check-sig} \\
+\langle \text{bitop} \rangle &::= \\ 
+   &\Mid\ \text{+}\ \Mid\ \text{-}\ \Mid\ \text{*}\ \Mid\ \text{/}
+\end{align*}
+\caption{Predicates}
+\label{fig:predicate}
+\end{figure}
+\subsubsection{Basic Instructions}
+
+\paragraph{Control structures}
+%EXE
+\begin{mathpar}
+  \inferrule[EXEC]
+  {
+    [\INSTRUCTIONONE, (\StackOne, \TYF) \STACKCONCAT \EMPTYSTACK, 
+    Q]
+    \StateTrans^*
+    [ \EMPTYSTACK, (\StackOne', \TYS) \STACKCONCAT Q']
+  }{
+     [(\EXEC; \INSTRUCTION),   (\{\INSTRUCTIONONE\}, \TYF\ \rightarrow\ \TYS) \STACKCONCAT
+    (\StackOne, \TYF) \STACKCONCAT \STACK, \PREDICATE \wedge Q] 
+    \StateTrans \
+    [ \INSTRUCTION, (\StackOne', \TYS) \STACKCONCAT \STACK,
+    \PREDICATE \wedge Q']}
+\end{mathpar}
+
+%APPLY
+\begin{mathpar}
+  \inferrule[APPLY]
+  {
+  }{
+    [(\APPLY; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT(\{\INSTRUCTIONONE\}, \TLAMBDA\ (\TPAIR\ \TYF\  \TYS)\ \TYT) \STACKCONCAT\STACK, \PREDICATE] \StateTrans\\ [\INSTRUCTION, (\{\PUSH\ \TYF\ \StackOne; \IPAIR; \INSTRUCTIONONE\}, \TLAMBDA\ \TYS\ \TYT ) \STACKCONCAT\STACK, \PREDICATE]}
+\end{mathpar}
+
+%LAMBLA
+\begin{mathpar}
+  \inferrule[LAMBDA]
+  {  
+  }{
+    [(\LAMBDA\ \TYF\ \TYS\ \{ \INSTRUCTIONONE \} ; \INSTRUCTION),\STACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, (\{\INSTRUCTIONONE\}, \TLAMBDA\ \TYF\ \rightarrow\ \TYS) \STACKCONCAT\STACK, \PREDICATE]}
+\end{mathpar}
+
+\paragraph{Stack Manipulation}
+%DIG
+\begin{mathpar}
+\inferrule[DIG]
+  {
+   \FLEN(\A) \EQUAL\ \N
+  }
+  {[(\DIG\ \N ; \INSTRUCTION), \A\ \At\ (\StackOne, \TY) \STACKCONCAT\B, \PREDICATE] \StateTrans 
+[\INSTRUCTION, (\StackOne, \TY) \STACKCONCAT\A\ \At\ \B, \PREDICATE]}
+\end{mathpar}
+
+%DIP
+\begin{mathpar}
+  \inferrule[DIP]
+  {
+    [\INSTRUCTIONONE,  \STACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  \STACK_1, Q']
+  }
+  {[(\DIP\ \INSTRUCTIONONE; \INSTRUCTION), (\StackOne, \TY) \STACKCONCAT
+    \STACK, \PREDICATE \wedge Q]
+    \StateTrans 
+    [\INSTRUCTION, (\StackOne, \TY) \STACKCONCAT\STACK_1,
+    \PREDICATE \wedge Q']
+  }
+\end{mathpar}
+
+%DIP n
+\begin{mathpar}
+\inferrule[DIP n]
+  { 
+     \FLEN(\A) \EQUAL\ \N \\ [\INSTRUCTIONONE,  \B, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  \B_1, Q']
+  }
+  {[(\DIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \A\ \At\ \B, \PREDICATE \wedge Q] \StateTrans 
+[(\INSTRUCTION), \A\ \At\ \B_1, \PREDICATE \wedge Q']}
+\end{mathpar}
+
+%PUSH
+\begin{mathpar}
+  \inferrule[PUSH]
+  {  
+  }{
+    [(\PUSH\ \TY\ \VariableX; \INSTRUCTION),\STACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, (\VariableX, \TY) \STACKCONCAT\STACK, \PREDICATE]}
+\end{mathpar}
+
+
+\paragraph{Arithmetic operations}
+%ADD
+\begin{mathpar}
+\inferrule[ADD]
+  {
+  }
+  {[(\ADD; \INSTRUCTION), (\StackOne, \TNAT) \STACKCONCAT(\StackTwo, \TNAT) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\VariableX, \TNAT) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\VariableX\ \EQUAL\ \StackOne\ \PLUS\ \StackTwo)]}
+\end{mathpar}
+
+%ABS
+\begin{mathpar}
+\inferrule[ABS]
+  {
+  }
+  {
+    [(\ABS; \INSTRUCTION), (\StackOne, \TINT) \STACKCONCAT \STACK,
+    \PREDICATE]
+    \StateTrans \
+    [\INSTRUCTION, (\VariableX, \TNAT) \STACKCONCAT \STACK,
+    \PREDICATE \wedge (\StackOne \ge 0 \Rightarrow \VariableX =
+    \StackOne) \wedge (\StackOne <0 \Rightarrow \VariableX = -\StackOne)]
+ }
+\end{mathpar}
+
+% COMPARE
+\begin{mathpar}
+\inferrule[COMPARE-nat]
+  {
+  }
+  {
+    [(\COMPARE ; \INSTRUCTION), (\StackOne, \TNAT) \STACKCONCAT (\StackTwo, \TNAT)
+    \STACKCONCAT \STACK, \PREDICATE ]
+    \SystemTrans \\
+    [\INSTRUCTION, (\VariableX, \TINT) \STACKCONCAT \STACK, \PREDICATE
+    \wedge\ (\StackOne > \StackTwo \Leftrightarrow \VariableX = 1)
+    \wedge\ (\StackOne = \StackTwo \Leftrightarrow \VariableX = 0) 
+    \wedge\ (\StackOne < \StackTwo \Leftrightarrow \VariableX = -1)]
+    }
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[COMPARE-some-some]
+  {
+  [\COMPARE,  (\VariableX, \TY) \STACKCONCAT (\VariableY, \TY) \STACKCONCAT\EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {
+    [(\COMPARE ; \INSTRUCTION), (\StackOne, \TOPTION\ \TY) \STACKCONCAT (\StackTwo, \TOPTION\ \TY)
+    \STACKCONCAT \STACK, \PREDICATE \wedge Q]
+    \SystemTrans \\
+    [\INSTRUCTION, (\VariableA, \TINT) \STACKCONCAT \STACK,  \PREDICATE
+    \wedge (\StackOne\ \EQUAL\ \SOME\ \VariableX)
+    \wedge (\StackTwo\ \EQUAL\ \SOME\ \VariableY)
+    \wedge Q']
+    }
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[COMPARE-some-none]
+  {
+  }
+  {
+    [(\COMPARE ; \INSTRUCTION), (\StackOne, \TOPTION\ \TY) \STACKCONCAT (\StackTwo, \TOPTION\ \TY)
+    \STACKCONCAT \STACK, \PREDICATE]
+    \SystemTrans \\
+    [\INSTRUCTION, (1, \TINT) \STACKCONCAT \STACK,  \PREDICATE
+    \wedge (\StackOne\ \EQUAL\ \SOME\ \VariableX)
+    \wedge (\StackTwo\ \EQUAL\ \NONE)
+    ]
+    }
+\end{mathpar}
+
+\paragraph{Boolean operations}
+%XOR
+\begin{mathpar}
+\inferrule[XOR]
+  {
+  }
+  {[(\XOR; \INSTRUCTION), (\StackOne, \TBOOL) \STACKCONCAT(\StackTwo, \TBOOL) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\VariableX, \TBOOL) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\VariableX\ \EQUAL\ \StackOne\ \FXOR\ \StackTwo)]}
+\end{mathpar}
+
+\paragraph{Crytographic oprerations}
+%HASH-KEY
+\begin{mathpar}
+\inferrule[HASH-KEY]
+  {
+  }
+  {[(\HASHKEY; \INSTRUCTION), (\StackOne, \TBYTE) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\VariableX, \TBYTE) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\VariableX\ = \FHASHKEY(\StackOne))]}
+\end{mathpar}
+
+%AMOUNT
+\paragraph{Blockchain operations}
+\begin{mathpar}
+\inferrule[AMOUNT]
+  {
+  }
+  {[(\AMOUNT; \INSTRUCTION), \STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\VAMOUNT, \TMUTEZ) \STACKCONCAT\STACK, \PREDICATE}
+\end{mathpar}
+
+%CONTRACT ty
+\begin{mathpar}
+\inferrule[CONTRACT TY - some]
+  {
+  }
+  {[(\CONTRACT\ \TY ; \INSTRUCTION), (\StackOne, \TADDR) \STACKCONCAT\STACK, \PREDICATE] \SystemTrans \
+[\INSTRUCTION, (\SOME\ \VariableX, \TOPTION\ (\TCONTRACT\ \TY)) \STACKCONCAT\STACK, \\ \PREDICATE \Wedge\ (\GETCONTRACTTYPE(\StackOne, \TY) = \SOME\ \VariableX)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[CONTRACT TY - none]
+  {
+  }
+  {[(\CONTRACT\ \TY ; \INSTRUCTION), (\StackOne, \TADDR) \STACKCONCAT\STACK, \PREDICATE] \SystemTrans \
+[\INSTRUCTION, \NONE \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\GETCONTRACTTYPE(\StackOne, \TY) = \NONE]}
+\end{mathpar}
+
+\paragraph{Operations on data structures}
+%CAR
+\begin{mathpar}
+\inferrule[\CAR]
+  {
+  }
+  {[(\CAR; \INSTRUCTION), (\StackOne, \TPAIR\ \TYF\ \TYS) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\VariableX, \TYF) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \PAIR\ \VariableX\ \VariableY)]}
+\end{mathpar}
+
+\subsubsection{Branch Instructions}
+%IF
+\begin{mathpar}
+  \inferrule[IF-true]
+  {  
+  }{
+    [(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
+    (\StackOne, \TBOOL) \STACKCONCAT\STACK, \PREDICATE]
+    \StateTrans\
+    [\INSTRUCTIONONE, \STACK, \PREDICATE\ \Wedge\ \StackOne]
+  }
+
+  \inferrule[IF-false]
+  {  
+  }{
+    [(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
+    (\StackOne, \TBOOL) \STACKCONCAT\STACK, \PREDICATE]
+    \StateTrans\
+   [\INSTRUCTIONTWO, \STACK, \PREDICATE\ \Wedge\ \NEG\
+   \StackOne]
+ }
+\end{mathpar}
+
+
+%IF-LEFT-LEFT
+\begin{mathpar}
+  \inferrule[IF-LEFT-left]
+  {  
+  }{
+    [(\IFLEFT\ \INSTRUCTIONONE\ \INSTRUCTIONTWO; \INSTRUCTION),
+    (\StackOne, \TOR\ \TYF\ \TYS) \STACKCONCAT \STACK, \PREDICATE]
+    \StateTrans \
+    [\INSTRUCTIONONE, (\VariableX, \TYF) \STACKCONCAT\STACK,
+    \PREDICATE \wedge (\StackOne\ \EQUAL\ \LEFT\ \VariableX)]
+  }
+\end{mathpar}
+
+%IF-LEFT-RIGHT
+\begin{mathpar}
+  \inferrule[IF-LEFT-right]
+  {  
+  }{
+    [(\IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
+    (\StackOne, \TOR\ \TYF\ \TYS) \STACKCONCAT \STACK, \PREDICATE]
+    \StateTrans \
+    [\INSTRUCTIONTWO, (\VariableX, \TYS) \STACKCONCAT\STACK, \PREDICATE \wedge (\StackOne\ \EQUAL\ \RIGHT\ \VariableX))]
+  }
+\end{mathpar}
+
+
+
+%IF_CONS
+\begin{mathpar}
+  \inferrule[IF-CONS-empty]
+  {  
+  }{
+    [(\IFCONS\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans\  [\INSTRUCTIONTWO; \INSTRUCTION, \STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST)]}
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule[IF-CONS-nonempty]
+  {  
+  }{
+   [(\IFCONS\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE], \SYSTEM\ \StateTrans\  \\ [\INSTRUCTIONONE, (\HEAD, \TY) \STACKCONCAT(\{ \TAIL \}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQUAL\ \{\HEAD; \STAIL \})]}
+\end{mathpar}
+
+
+
+%IF_NON
+\begin{mathpar}
+  \inferrule[IF-NONE-none]
+  {  
+  }{
+    [(\IFNONE\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  (\StackOne, \TOPTION\ \TY) \STACKCONCAT\STACK, \PREDICATE], \SYSTEM\ \StateTrans\   [\INSTRUCTIONONE; \INSTRUCTION, \STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \NONE)]}
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule[IF-NONE-some]
+  {  
+  }{
+    [(\IFNONE\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),   (\StackOne, \TOPTION\ \TY) \STACKCONCAT\STACK, \PREDICATE], \SYSTEM\ \StateTrans\   [\INSTRUCTIONTWO,  (\VariableX, \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQUAL\ \SOME\ \VariableX)]}
+\end{mathpar}
+
+\subsubsection{Loop Instructions}
+\paragraph{While loops}
+%LOOP
+\begin{mathpar}
+  \inferrule[LOOP-true]
+  {  
+  }{
+    [(\LOOP\ \INSTRUCTIONONE; \INSTRUCTION),  (\StackOne, \TBOOL)
+    \STACKCONCAT\STACK, \PREDICATE]
+    \StateTrans\
+    [(\INSTRUCTIONONE; \LOOP\ \INSTRUCTIONONE; \INSTRUCTION),
+    \STACK, \PREDICATE \wedge \StackOne]
+  }
+
+  \inferrule[LOOP-false]
+  {  
+  }{
+    [(\LOOP\ \INSTRUCTIONONE; \INSTRUCTION),  (\StackOne, \TBOOL) \STACKCONCAT\
+    \STACK, \PREDICATE]
+    \StateTrans\
+   [\INSTRUCTION, \STACK, \PREDICATE \wedge
+   (\NEG\StackOne)]
+   }
+\end{mathpar}
+\paragraph{For loops}
+%%ITER
+\begin{mathpar}
+  \inferrule[ITER-empty]
+  {  
+  }{
+    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, \STACK,  \PREDICATE\ \Wedge\  (\StackOne\ \EQUAL\ \EMPTYLIST)]
+  }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule[ITER-nonempty]
+  {  [\ITER,  (\HEAD, \TY) \STACKCONCAT\STACK, 
+    Q]
+    \StateTrans^*
+    [ \EMPTYSTACK,  \STACK', Q']
+  }{
+    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE \wedge Q] \StateTrans \\ [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), \{\STAIL\}\ \STACKCONCAT\STACK',  \PREDICATE \wedge Q' \Wedge  ( \StackOne\ \EQUAL\ \{\HEAD; \STAIL \}) ]
+  }
+\end{mathpar}
+
+
+
+
+\begin{mathpar}
+\inferrule[CONCAT]
+  {
+  }
+  {[(\CONCAT; \INSTRUCTION), (\StackOne, \TYLIST\ \TSTR) \STACKCONCAT\STACK,  \PREDICATE] \StateTrans 
+[\INSTRUCTION,  ("",  \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[CONCAT]
+  {
+  [\CONCAT,  (\{\TAIL\}, \TYLIST\ \TSTR) \STACKCONCAT\EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK, (\StackTwo,  \TSTR) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {[(\CONCAT; \INSTRUCTION),  (\StackOne, \TYLIST\ \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \StateTrans \\
+[\INSTRUCTION, ( \HEAD\ \STRINGCONCAT\ \StackTwo, \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \{\HEAD; \TAIL\}) \Wedge\ Q']}
+\end{mathpar}
+
+
+%MEM
+\begin{mathpar}
+\inferrule[MEM-empty]
+  {
+  }
+  {[(\MEM; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT(\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\FALSE, \TBOOL) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackTwo\ \EQUAL\ \EMPTYSET)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[MEM-nonempty]
+  {
+  [\COMPARE, (\StackOne, \TYF) \STACKCONCAT (\K, \TYF) \STACKCONCAT\EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\VariableB, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {[(\MEM; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT(\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \StateTrans  \
+[\MEM; \INSTRUCTION, \StackOne\ \STACKCONCAT\{\LESS\ \M\ \MORE\} \STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQUAL\ \{\ELT\ \K\ \V; \LESS\ \M\ \MORE\})  \Wedge\ (\VariableB\ \EQUAL\ \ONE)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[MEM-nonempty]
+  {
+  [\COMPARE, (\StackOne, \TYF) \STACKCONCAT (\K, \TYF) \STACKCONCAT\EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\VariableB, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {[(\MEM; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT(\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \StateTrans  \\
+[\INSTRUCTION, (\TRUE, \TBOOL) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQUAL\ \{\ELT\ \K\ \V; \LESS\ \M\ \MORE\}) \Wedge\ (\VariableB\ \EQUAL\ \ZERO)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[MEM-nonempty]
+  {
+  [\COMPARE, (\StackOne, \TYF) \STACKCONCAT (\K, \TYF) \STACKCONCAT\EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\VariableB, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {[(\MEM; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT(\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \StateTrans  \\
+[\INSTRUCTION, (\FALSE, \TBOOL) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQUAL\ \{\ELT\ \K\ \V; \LESS\ \M\ \MORE\})  \Wedge\ (\VariableB\ \EQUAL\ \MINUS\ \ONE)]}
+\end{mathpar}
+
+%MAP
+\begin{mathpar}
+\inferrule[MAP-empty]
+  {
+  }
+  {[(\MAP\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[MAP-nonempty]
+  {
+  [\INSTRUCTIONONE, (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q1]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\PHEAD, \TY) \STACKCONCAT\EMPTYSTACK , Q1'] \\  [\MAP\ \INSTRUCTIONONE, (\{\TAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK , Q2]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\{\PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK , Q2']
+  }
+  {[(\MAP\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1 \Wedge\ Q2 ] \StateTrans  \\
+[\INSTRUCTION, (\{\PHEAD; \PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1' \Wedge\ Q2'  \Wedge\ (\StackOne \EQUAL\ \{\HEAD; \TAIL\})]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[UPDATE-empty-true]
+  {
+  }
+  {[(\UPDATE; \INSTRUCTION), (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE]\ \SystemTrans\  \\ [\INSTRUCTION, (\{\VariableX \}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\  \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST) \Wedge\ (\VariableB\ \EQUAL\ \TRUE)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[UPDATE-empty-false]
+  {
+  }
+  {[(\UPDATE; \INSTRUCTION), (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE]\ \SystemTrans\  \\ [\INSTRUCTION, (\EMPTYLIST, \TYLIST\ \TY)\ \STACKCONCAT\STACK, \PREDICATE\  \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST) \Wedge\ (\VariableB\ \EQUAL\ \FALSE)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[UPDATE-nonempty-true]
+  {
+  [\COMPARE, (\VariableX, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
+    [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {[(\UPDATE; \INSTRUCTION), (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans
+[\INSTRUCTION, (\StackOne, \TYLIST\ \TY)
+\STACKCONCAT\STACK,\\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQUAL\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQUAL\ \TRUE) \Wedge\ (\VariableA\ \EQUAL\ \ZERO)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[UPDATE-nonempty-false]
+  {
+  [\COMPARE, (\VariableX, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
+    [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {[(\UPDATE; \INSTRUCTION), (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans  \\
+[\INSTRUCTION, (\{\TAIL\}, \TYLIST\ \TY)
+\STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQUAL\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQUAL\ \FALSE) \Wedge\ (\VariableA\ \EQUAL\ \ZERO)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[UPDATE-nonempty-true]
+  {
+  [\COMPARE, (\VariableX, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
+    [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {[(\UPDATE; \INSTRUCTION), (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans  \\
+[\INSTRUCTION, (\{\VariableX; \HEAD; \TAIL\}, \TYLIST\ \TY)
+\STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQUAL\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQUAL\ \TRUE) \Wedge\ (\VariableA\ \EQUAL\ \MINUS\ \ONE)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[UPDATE-nonempty-false]
+  {
+  [\COMPARE, (\VariableX, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
+    [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {[(\UPDATE; \INSTRUCTION), (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans\  \\
+[\INSTRUCTION, (\{\HEAD; \TAIL\}, \TYLIST\ \TY)
+\STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQUAL\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQUAL\ \FALSE) \Wedge\ (\VariableA\ \EQUAL\ \MINUS\ \ONE)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[UPDATE-nonempty-1]
+  {
+  [\COMPARE, (\VariableX, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q1] \StateTrans^*
+    [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q1'] \\
+ [\UPDATE, (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT( \{\TAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK, Q2] \StateTrans^* \\  [\EMPTYSTACK, ( \{\PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK, Q2']
+  }
+  {[(\UPDATE; \INSTRUCTION), (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1 \Wedge\ Q2 ] \SystemTrans\  \\
+[\INSTRUCTION; (\{\HEAD; \PTAIL\}, \TYLIST\ \TY)
+\STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1' \Wedge\ Q2' \Wedge\ (\StackOne\ \EQUAL\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableA\ \EQUAL\ \ONE)]}
+\end{mathpar}
+
+
+
+\subsubsection{Operation on tickets}
+\subsubsection{FAILWITH}
+a Michelson program can fail, explicitly using a specific opcode
+
+%FAILWITH
+\begin{mathpar}
+  \inferrule[FAILWITH]
+  {
+  }{[(\FAILWITH; \INSTRUCTION), (\StackOne,  \TY) \STACKCONCAT \STACK,  \PREDICATE] \StateTrans [\EMPTYSTACK, failwith (\StackOne) \STACKCONCAT\EMPTYSTACK, \PREDICATE]}
+\end{mathpar}
+\subsection{Dealing with loops}
+\subsubsection{For loop: ITER}
+\subsubsection{While loops: \LOOP\ and \LOOP-LEFT}
+
+\end{document}
