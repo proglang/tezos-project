@@ -61,9 +61,16 @@
 \newcommand{\K}{\ensuremath{k}}
 \newcommand{\V}{\ensuremath{v}}
 \newcommand{\M}{\ensuremath{m}}
+\newcommand{\I}{\ensuremath{i}}
+\newcommand{\J}{\ensuremath{j}}
 \newcommand{\VariableOne}{\ensuremath{x_1}}
 \newcommand{\VariableTwo}{\ensuremath{x_2}}
 \newcommand{\VariableN}{\ensuremath{x_n}}
+\newcommand{\X}{\ensuremath{x}}
+\newcommand{\XOne}{\ensuremath{x_1}}
+\newcommand{\XTwo}{\ensuremath{x_2}}
+\newcommand{\XI}{\ensuremath{x_i}}
+\newcommand{\XN}{\ensuremath{x_n}}
 \newcommand{\Constant}{\ensuremath{c}}
 \newcommand{\ConstantOne}{\ensuremath{c_1}}
 \newcommand{\ConstantTwo}{\ensuremath{c_2}}
@@ -76,13 +83,48 @@
 \newcommand{\TermB}{\ensuremath{t_b}}
 \newcommand{\STACK}{\ensuremath{S}}
 \newcommand{\EMPTYSTACK}{\text{[ ]}}
-\newcommand{\STACKONE}{\ensuremath{S}}
-\newcommand{\STACKTWO}{\ensuremath{S}}
-\newcommand{\STACKN}{\ensuremath{S}}
+\newcommand{\STACKZERO}{\ensuremath{S_0}}
+\newcommand{\STACKJ}{\ensuremath{S_j}}
+\newcommand{\STACKJMINUS}{\ensuremath{S_j}}
+\newcommand{\STACKZEROBAR}{\ensuremath{\overline{S_0}}}
+\newcommand{\STACKJMINUSBAR}{\ensuremath{\overline{S_{j-1}}}}
+\newcommand{\STACKONE}{\ensuremath{S_1}}
+\newcommand{\STACKTWO}{\ensuremath{S_2}}
+\newcommand{\STACKN}{\ensuremath{S_n}}
 \newcommand{\Stack}{\ensuremath{s}}
+\newcommand{\StackZero}{\ensuremath{s_0}}
 \newcommand{\StackOne}{\ensuremath{s_1}}
 \newcommand{\StackTwo}{\ensuremath{s_2}}
 \newcommand{\StackN}{\ensuremath{s_n}}
+\newcommand{\StackI}{\ensuremath{s_i}}
+\newcommand{\StackOneZero}{\ensuremath{s_1^0}}
+\newcommand{\StackTwoZero}{\ensuremath{s_2^0}}
+\newcommand{\StackNZero}{\ensuremath{s_n^0}}
+\newcommand{\StackZeroOne}{\ensuremath{s_0^1}}
+\newcommand{\StackOneOne}{\ensuremath{s_1^1}}
+\newcommand{\StackTwoOne}{\ensuremath{s_2^1}}
+\newcommand{\StackNOne}{\ensuremath{s_n^1}}
+\newcommand{\StackOneJ}{\ensuremath{s_1^j}}
+\newcommand{\StackTwoJ}{\ensuremath{s_2^j}}
+\newcommand{\StackNJ}{\ensuremath{s_n^j}}
+\newcommand{\StackOneTwo}{\ensuremath{s_1^2}}
+\newcommand{\StackTwoTwo}{\ensuremath{s_2^2}}
+\newcommand{\StackNTwo}{\ensuremath{s_n^2}}
+\newcommand{\StackOneM}{\ensuremath{s_1^m}}
+\newcommand{\StackTwoM}{\ensuremath{s_2^m}}
+\newcommand{\StackNM}{\ensuremath{s_n^m}}
+\newcommand{\StackIZero}{\ensuremath{s_i^0}}
+\newcommand{\StackIOne}{\ensuremath{s_i^1}}
+\newcommand{\StackITwo}{\ensuremath{s_i^2}}
+\newcommand{\StackIM}{\ensuremath{s_i^m}}
+\newcommand{\F}{\ensuremath{f}}
+\newcommand{\FZero}{\ensuremath{f_0}}
+\newcommand{\FOne}{\ensuremath{f_1}}
+\newcommand{\FTwo}{\ensuremath{f_2}}
+\newcommand{\FI}{\ensuremath{f_i}}
+\newcommand{\FN}{\ensuremath{f_n}}
+\newcommand{\FOLD}{\ensuremath{fold}}
+\newcommand{\FMAP}{\ensuremath{map}}
 \newcommand{\TSTACK}{\ensuremath{S'}}
 \newcommand{\TStack}{\ensuremath{s'}}
 \newcommand{\STATE}{\textit{ST}}
@@ -117,9 +159,8 @@
 \newcommand{\PBidding}{\ensuremath{P_{Bidding}}}
 \newcommand{\PClose}{\ensuremath{P_{Close}}}
 \newcommand{\SE}{\text{SE}}
-\newcommand{\SINIT}{\ensuremath{s_{init}}}
-\newcommand{\SFINAL}{\ensuremath{s_{final}}}
-\newcommand{\FMAP}{\textbf{map}}
+\newcommand{\SINIT}{\ensuremath{S_{init}}}
+\newcommand{\SFINAL}{\ensuremath{S_{final}}}
 \newcommand{\MAPA}{\textbf{$map_A$}}
 \newcommand{\MAPB}{\textbf{$map_B$}}
 \newcommand{\MapBidding}{\textbf{$map_{bidding}$}}
@@ -143,12 +184,17 @@
 \newcommand{\LIST}{\ensuremath{l}}
 \newcommand{\PLIST}{\ensuremath{l'}}
 \newcommand{\TLIST}{\ensuremath{l'}}
-\newcommand{\HEAD}{\textit{hd}}
-\newcommand{\TAIL}{\textit{$<$ tl $>$}}
-\newcommand{\NTAIL}{\textit{tl}}
-\newcommand{\PHEAD}{\textit{hd'}}
-\newcommand{\PTAIL}{\textit{$<$ tl' $>$}}
-\newcommand{\VSTRING}{\textit{s}}
+\newcommand{\HEAD}{\ensuremath{hd}}
+\newcommand{\HEADZERO}{\ensuremath{hd_0}}
+\newcommand{\HEADONE}{\ensuremath{hd_1}}
+\newcommand{\HEADTWO}{\ensuremath{hd_2}}
+\newcommand{\HEADI}{\ensuremath{hd_i}}
+\newcommand{\HEADJMINUS}{\ensuremath{hd_{j-1}}}
+\newcommand{\TAIL}{\ensuremath{$<$ tl $>$}}
+\newcommand{\NTAIL}{\ensuremath{tl}}
+\newcommand{\PHEAD}{\ensuremath{hd'}}
+\newcommand{\PTAIL}{\ensuremath{$<$ tl' $>$}}
+\newcommand{\VSTRING}{\ensuremath{s}}
 
 
 %% operation
@@ -203,6 +249,7 @@
 
 %% contructors
 \newcommand{\UNIT}{\text{Unit}}
+\newcommand{\NEVER}{\text{Never}}
 \newcommand{\PAIR}{\text{Pair}}
 \newcommand{\LEFT}{\text{Left}}
 \newcommand{\RIGHT}{\text{Right}}
@@ -247,7 +294,7 @@
 \newcommand{\UNOP}{\text{unop}}
 \newcommand{\BINOP}{\text{binop}}
 \newcommand{\FSLICE}{\text{slice}}
-\newcommand{\FOLD}{\text{fold}}
+
 
 
 
@@ -263,13 +310,17 @@
 \newcommand\JTypeCode[2]{\vdash_C#1 : #2}
 \newcommand\JTypeValue[2]{\vdash_V#1 : #2}
 \newcommand\JTypeExpr[3]{#1 \vdash #2 : #3}
-\newcommand{\TY}{\text{ty}}
-\newcommand{\TYF}{\text{ty$_{1}$}}
-\newcommand{\TYS}{\text{ty$_{2}$}}
-\newcommand{\TYT}{\text{ty$_{3}$}}
-\newcommand{\TYA}{\text{A}}
-\newcommand{\TYB}{\text{B}}
-\newcommand{\TYC}{\text{C}}
+\newcommand{\TY}{\ensuremath{ty}}
+\newcommand{\TYF}{\ensuremath{ty_1}}
+\newcommand{\TYS}{\ensuremath{ty_2}}
+\newcommand{\TYT}{\ensuremath{ty_3}}
+\newcommand{\TYI}{\ensuremath{ty_i}}
+\newcommand{\TYN}{\ensuremath{ty_n}}
+\newcommand{\TYA}{\ensuremath{A}}
+\newcommand{\TYABAR}{\ensuremath{\overline{A}}}
+\newcommand{\TYB}{\ensuremath{B}}
+\newcommand{\TYC}{\ensuremath{C}}
+
 %% standard types
 \newcommand{\TBOOL}{\text{bool}}
 \newcommand{\TOR}{\text{or}}

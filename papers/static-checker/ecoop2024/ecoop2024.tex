@@ -50,7 +50,7 @@
 
 \bibliographystyle{plainurl}% the mandatory bibstyle
 
-\title{Formal Verification Tool Based on Symbolic Execution for Smart Contract} %TODO Please add
+\title{Formal Verification Framework Based on Symbolic Execution for Smart Contract} %TODO Please add
 
 %\titlerunning{Dummy short title} %TODO optional, please use if title is longer than one line
 
@@ -110,41 +110,108 @@ In the context of blockchain technology, the immutability of smart contracts onc
 \section{Symbolic Execution Model}
 \label{sec:symbolic-execution-model}
 \subsection{System Model}
-Michelson is the low-level smart contract language employed in the Tezos blockchain platform. It is characterized as a stack-based language, featuring high-level data types and primitives and integrates strict static type checking into its stack-based execution mode.
-
-The processing and manipulation of data during the execution of smart contracts are facilitated using a stack. A stack  can be written:
+Michelson serves as the low-level smart contract language for the Tezos blockchain platform. The processing and manipulation of data during the execution of smart contracts are managed using a stack. The representation of a stack can be described as follows:
 \begin{itemize}
-\item[]  \EMPTYSTACK\ for the empty stack.
-\item[]  \HEAD\ \STACKCONCAT\ \NTAIL\ for the stack whose first value has type (\HEAD) and queue has stack type (\NTAIL).
+\item[]  \EMPTYSTACK\ represents the empty stack.
+\item[]  \HEAD\ \STACKCONCAT\ \NTAIL\ denotes a stack with the top element as \HEAD\ and the remaining stack as \NTAIL.
 \end{itemize}
+\begin{figure} []
+\begin{align*}
+T, U &::= \\
+   &\Mid\ \langle \text{comparable type}\rangle \\
+   &\Mid\ \text{option}\ \langle\text{type}\rangle \\
+   &\Mid\ \text{list}\ \langle\text{type}\rangle \\
+   &\Mid\ \text{set}\ \langle\text{comparable type}\rangle \\
+   &\Mid\ \text{operation} \\
+   &\Mid\ \text{contract}\ \langle\text{type}\rangle \\
+   &\Mid\ \text{ticket}\ \langle\text{comparable type}\rangle \\
+   &\Mid\ \text{pair}\ \langle\text{type}\rangle \langle\text{type}\rangle \\
+   &\Mid\ \text{or}\ \langle\text{type}\rangle \langle\text{type}\rangle \\
+   &\Mid\ \text{lambda}\ \langle\text{type}\rangle \langle\text{type}\rangle \\
+   &\Mid\ \text{map}\ \langle\text{comparable type}\rangle \langle\text{type}\rangle \\
+   &\Mid\ \text{big-map}\ \langle\text{comparable type}\rangle \langle\text{type}\rangle \\
+   &\Mid\ \text{bls12-381-g1} \\
+   &\Mid\ \text{bls12-381-g2} \\
+   &\Mid\ \text{bls12-381-fr} \\
+   &\Mid\ \text{sapling-transaction}\ \langle\text{natural number constant}\rangle \\
+   &\Mid\ \text{sapling-state}\ \langle\text{natural number constant}\rangle \\
+   &\Mid\ \text{chest} \\
+   &\Mid\ \text{chest-key} \\
+\langle\text{comparable type}\rangle ::= \\
+   &\Mid\ \text{unit} \\
+   &\Mid\ \text{never} \\
+   &\Mid\ \text{bool} \\
+   &\Mid\ \text{int}\\
+   &\Mid\ \text{nat}\\
+   &\Mid\ \text{string}\\
+   &\Mid\ \text{chain-id}\\
+   &\Mid\ \text{bytes}\\
+   &\Mid\ \text{mutez}\\
+   &\Mid\ \text{key-hash}\\
+   &\Mid\ \text{key}\\
+   &\Mid\ \text{signature}\\
+   &\Mid\ \text{timestamp}\\
+   &\Mid\ \text{address}\\
+   &\Mid\ \text{tx-rollup-l2-address}\\
+   &\Mid\ \text{option}\ \langle\text{comparable type}\rangle\\
+   &\Mid\ \text{or}\ \langle\text{comparable type}\rangle \langle\text{comparable type}\rangle\\
+   &\Mid\ \text{pair}\ \langle\text{comparable type}\rangle \langle\text{comparable type}\rangle \DOT \\
+\end{align*}
+\caption{Types}
+\label{fig:type}
+\end{figure}
+Each piece of data in Michelson is assigned a specific type, and the language restricts programmers from introducing custom types. The complete list of types can be found in Figure \ref{fig:type}. To model the system, we use a stack in which each element is a pair consisting of term and its corresponding type. Terms are defined in Figure \ref{fig:term}. The stack is denoted as \STACK\ = (\TermOne, \TYF) \STACKCONCAT\ (\TermTwo, \TYS) \STACKCONCAT\ \DOT\ \STACKCONCAT\ \EMPTYSTACK\ where elements are types paired with terms. 
 
-Each piece of data in Michelson is assigned a specific type, and the language imposes restrictions preventing programmers from introducing custom types. Consider a stack denoted as $\STACK = (\TermOne, \TYF) \STACKCONCAT (\TermTwo, \TYS) \STACKCONCAT \DOT
-\STACKCONCAT \EMPTYSTACK$ where elements are types paired with terms. 
-
-A Michelson program is a sequence of instructions executed in a sequential manner. Each instruction takes, as input, the stack produced by the preceding instruction and modifies it for the subsequent one. This sequential flow ensures that each instruction builds upon the state left by its predecessor in the program. Let $\INSTRUCTION = \InstructionOne; \InstructionTwo; \DOT; \InstructionN$ represent a sequence of instructions.
-
-While undergoing symbolic execution,  a symbolic execution state assumes different values based on the constraints of symbolic values. Additionally, branching may occur depending on conditions, and both constraints and branching conditions are recorded as predicates. Let \PREDICATE\ symbolize a predicate expressed in conjunction form, capturing the conditions and constraints encountered during the symbolic execution process.
+A Michelson program is a sequence of instructions executed in a sequential manner. Each instruction takes, as input, the stack produced by the preceding instruction and modifies it for the subsequent one. Let \INSTRUCTION\ = \InstructionOne; \InstructionTwo; \DOT\  \InstructionN\ represent a sequence of instructions.
+During symbolic execution,  the system state evolves, assuming different values based on the constraints of symbolic values. Moreover, branching may occur depending on conditions, and both constraints and branching conditions are recorded as predicates. Let \PREDICATE\ symbolize a predicate expressed in conjunction form, capturing the branching conditions and constraints encountered during the symbolic execution process.
 \begin{definition}
-A symbolic execution's state is represented by the tuple $\STATE = [\INSTRUCTION, \STACK, \PREDICATE]$. Here, $\SYSTEM = \{\STATEONE, \STATETWO, \DOT, \STATEN \}$ range over sets of  states.
+A symbolic execution state is represented by the tuple \STATE\ = [\INSTRUCTION, \STACK, \PREDICATE]. Here, \SYSTEM\ = \{\STATEONE, \STATETWO, \DOT, \STATEN \} range over sets of  states.
 \end{definition}
-The Michelson program takes as input a stack that consists of a single pair whose first element is an input value referred to as the parameter, and second element represents the content of the storage space. The program produces a stack as output, containing a single pair. The first element of this pair is the list of internal operations that the program intends to emit, and the second element is the new contents of the storage space.
 
-Define the initial stack as $S_{init}$   = (\KPAIR\ \VPAR\ \VSTORAGE, \TPAIR\ \TYF\ \TYS) \STACKCONCAT\EMPTYSTACK, where \VPAR\ and \VSTORAGE\ denote terms representing the parameter and the storage, and \TYF\ and \TYS\ are their corresponding types. Similarly, designate the final stack as $S_{final}$   = (\PAIR\ \VOPERATIONLIST\ \VSTORAGE, \TPAIR\ (\TOPERATIONLIST) \TYS) \STACKCONCAT\EMPTYSTACK, where \VOPERATIONLIST\ repesents a operation list.
-
-
-
-
-%\paragraph{Sequence actions.}
-%\begin{figure}[h]
-%\center
-%\includegraphics[width= 10 cm]{life-cycle-1}
-%\caption{Life-cycle for the auction contract.}
-%\label{fca1}
-%\end{figure} 
-
-\pagebreak
+The smart contract program takes a stack as input, consisting of a single pair where the first element is an input value referred to as parameter denoted as \VPAR and the second element represents the content of the storage space denoted as \VSTORAGE. The program produces a stack as output, which is a single pair. The first element of this pair is the list of internal operations that the program intends to emit (\VOPERATIONLIST), and the second element is the new contents of the storage space.  Let's define the initial stack as  \SINIT\   = (\KPAIR\ \VPAR\ \VSTORAGE, \TPAIR\ \TYF\ \TYS) \STACKCONCAT\ \EMPTYSTACK, where \VPAR\ and \VSTORAGE\ denote terms representing the parameter and the storage, and \TYF\ and \TYS\ are their corresponding types. Similarly, designate the final stack as \SFINAL\   = (\PAIR\ \VOPERATIONLIST\ \VSTORAGE, \TPAIR\ (\TOPERATIONLIST) \TYS) \STACKCONCAT\ \EMPTYSTACK, where \VOPERATIONLIST\ repesents a operation list.
+\begin{figure}[]
+\begin{align*}
+\text{t} &::= \\
+   &\Mid\ \langle \text{variable} \rangle \\
+   &\Mid\ \langle \text{account constant} \rangle \\
+   &\Mid\ \langle \text{int constant} \rangle \\
+   &\Mid\ \langle \text{string constant} \rangle \\
+   &\Mid\ \langle \text{byte sequence constant} \rangle \\
+   &\Mid\ \UNIT \\
+   &\Mid\ \NEVER \\
+   &\Mid\ \TRUE \\
+   &\Mid\ \FALSE \\
+   &\Mid\ \PAIR\ \text{t1 t2}\\
+   &\Mid\ \LEFT\ \text{t}\\
+   &\Mid\ \RIGHT\ \text{t}\\ 
+   &\Mid\ \SOME\ \text{t}\\
+   &\Mid\ \NONE \\
+   &\Mid\ \text{\{t ; ... \}}\\
+   &\Mid\ \text{\{ Elt t1 t2 ; ... \}}\\
+   &\Mid\ \{ \langle\text{instruction}\rangle; ... \}   \\
+\langle \text{variable} \rangle &::= \\ 
+   &\Mid\ \VAR\\
+\langle \text{account constant} \rangle &::= \\ 
+   &\Mid\ \text{balance} \\
+   &\Mid\ \text{amount} \\
+   &\Mid\ \text{sender} \\
+   &\Mid\ \text{source} \\
+   &\Mid\ \text{now} \\
+   &\Mid\ \text{level} \\
+   &\Mid\ \text{chain-id} \\
+   &\Mid\ \text{self}  \\
+   &\Mid\ \text{self-address}  \\
+   &\Mid\ \text{total-voting-power}  \\
+   &\Mid\ \text{voting-power}  \\
+\langle\text{instruction}\rangle &::= \\
+  &\Mid\ \DROP \\
+  &\Mid\ \DROP \langle\text{natural number constant}\rangle \\
+  &\text{...}
+\end{align*}
+\caption{Terms}
+\label{fig:term}
+\end{figure}
 \subsection{Rules}
-
 Each instruction is defined by a rule on the system model. The rule semantic is defined by several kinds of transitions:
 \begin{enumerate}
 \item \ExprTrans\ single-step evaluation of an expression in a system state,
@@ -152,7 +219,7 @@ Each instruction is defined by a rule on the system model. The rule semantic is 
 \item \SystemTrans\ symbolic system transitions.
 \end{enumerate}
 
-During the execution of symbolic analysis, numberous states are generated. However, certain states may be unreachable from a symbolic initial state. This occurs when the predicate \PREDICATE\ is unsatisfied. Consequently, a system state is disregarded when the predicate \PREDICATE\ is fail.
+During the symbolic execution, numerous states are generated, but some may be unreachable from a symbolic initial state. This happens when the predicate \PREDICATE\ is unsatisfied, leading to the exclusion of a system state where the predicate fails.
 
 \begin{mathpar}
 \inferrule[]
@@ -160,10 +227,9 @@ During the execution of symbolic analysis, numberous states are generated. Howev
   }{
   \{[\INSTRUCTION, \STACK, \PREDICATE]\} \cup \SYSTEM \SystemTrans \SYSTEM}
 \end{mathpar}
-
-There are various types of instructions in Michelson, categorized based on their functions. These include control structures, stack manipulation, arithmetic operations, boolean operations, cryptographic operations, and operations on data structures. In our model, we classify them into three main groups: basic instructions, branch instructions, and loop instructions. This categorization reflects how these instructions are handled within our specific model.
+Michelson instructions are categorized based on their functions. These include such as control structures, stack manipulation, arithmetic operations, boolean operations, cryptographic operations, and operations on data structures. In our model, we classified them as one-step, multi-step, blockchain, cryptographic, branch, and loop instructions. This categorization reflects how these instructions are handled within our specific model.
 \subsubsection{One-step Instructions}
-A one-step instruction only effects a system state itself, does not produce a new state, and halts the execution after a single operation. The ABS rule specifies the corresponding instruction that applies to the first element of the stack. This element must have the type of int and returns the positive value of its current value, which is of a natural number type. Another example, the COMPARE instruction compares the two first elements of a stack, both of which have a natural number type. It returns a result of either -1, 0, or 1 depending on the comperations of their values.
+One-step instructions have a localized effect, modifying the system state directly without branching a new state, and they end the execution after a single operation. The ABS rule exemplifies such an instruction, operating on the first element of the stack. This element must be of type int, and the instruction returns the positive value of its current value, treated as a natural number.
 %ABS
 \begin{mathpar}
 \inferrule[ABS]
@@ -172,13 +238,13 @@ A one-step instruction only effects a system state itself, does not produce a ne
   {
     [(\ABS; \INSTRUCTION), (\StackOne, \TINT) \STACKCONCAT \STACK,
     \PREDICATE]
-    \StateTrans \
+    \StateTrans 
     [\INSTRUCTION, (\VariableX, \TNAT) \STACKCONCAT \STACK,
     \PREDICATE \wedge (\StackOne \ge 0 \Rightarrow \VariableX =
     \StackOne) \wedge (\StackOne <0 \Rightarrow \VariableX = -\StackOne)]
  }
 \end{mathpar}
-
+Another example is the COMPARE instruction for natural numbers, which compares the first two elements of the stack, both having a natural number type. It returns a result of either -1, 0, or 1 based on the comparison of their values.
 % COMPARE
 \begin{mathpar}
 \inferrule[COMPARE]
@@ -195,9 +261,9 @@ A one-step instruction only effects a system state itself, does not produce a ne
     }
 \end{mathpar}
 \subsubsection{Multi-step Instructions}
-Multi-step instructions require the execution of a sub-sequence of instructions before returning to the main execution. The following rule models the instruction EXEC, which executes a function specified as a sequence of instructions denoted as \INSTRUCTIONONE\ in the rule. This instruction first applies the code of the function to the first element of the stack. It then places the result back into the main execution.
+Multi-step instructions involve the execution of a sub-sequence of instructions before returning to the main execution. The rule below models the \EXEC\ instruction, which executes a function specified as a sequence of instructions denoted by \INSTRUCTIONONE\ in the rule. This instruction applies the code of the function to the first element of the stack and then places the result back into the main execution.
 \begin{mathpar}
-  \inferrule[EXEC]
+  \inferrule[\EXEC]
   {
     [\INSTRUCTIONONE, (\StackOne, \TYF) \STACKCONCAT \EMPTYSTACK, 
     Q]
@@ -245,37 +311,125 @@ Cryptographic instructions in Michelson utilize built-in functions that manage c
 [\INSTRUCTION, (\VariableX, \TBYTE) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\VariableX\ = \FSHA(\StackOne))]}
 \end{mathpar}
 \subsubsection{Branch Instructions}
-The Michelson language incorporates conditional branching, enabling the execution of specific code segments based on certain criteria. One of the instructions facilitating this is the IF {} {} construct. For example, the \IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction allows the creation of branches in execution. It takes two sequences as arguments. Expecting a boolean value at the top of the stack, it consumes this top element. If the boolean is True, it executes the first provided sequence; otherwise, it executes the second sequence.
+The Michelson language incorporates conditional branching, enabling the execution of specific code segments based on certain criteria. One of the instructions facilitating this is the \IF\ \{\} \{\} construct. For example, the \IF\ \{ \INSTRUCTIONONE\ \} \{ \INSTRUCTIONTWO\  \} instruction allows the creation of branches in execution. It takes two sequences as arguments. Expecting a boolean value at the top of the stack, it consumes this top element. If the boolean is True, it executes the first provided sequence; otherwise, it executes the second sequence.
 %IF
 \begin{mathpar}
-  \inferrule[IF]
+  \inferrule[IF-true]
   {  
   }{
-    \{[(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
-    (\StackOne, \TBOOL) \STACKCONCAT\STACK, \PREDICATE]\} \cup \SYSTEM 
-      \SystemTrans 
-    \{[\INSTRUCTIONONE, \STACK, \PREDICATE\ \Wedge\ \StackOne]\} \cup \{ [\INSTRUCTIONTWO, \STACK, \PREDICATE\ \Wedge\ \NEG\
-   \StackOne]\} \cup  \SYSTEM
+    [(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
+    (\StackOne, \TBOOL) \STACKCONCAT\STACK, \PREDICATE]
+    \StateTrans\
+    [\INSTRUCTIONONE, \STACK, \PREDICATE\ \Wedge\ \StackOne]
+  }
+
+  \inferrule[IF-false]
+  {  
+  }{
+    [(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
+    (\StackOne, \TBOOL) \STACKCONCAT\STACK, \PREDICATE]
+    \StateTrans\
+   [\INSTRUCTIONTWO, \STACK, \PREDICATE\ \Wedge\ \NEG\
+   \StackOne]
+ }
+\end{mathpar}
+
+Another branch instruction is the IF-LEFT instruction, which is used for conditional execution based on the left or right branch of a tagged union (sum) type. 
+%IF-LEFT-LEFT
+\begin{mathpar}
+  \inferrule[IF-LEFT-left]
+  {  
+  }{
+    [(\IFLEFT\ \INSTRUCTIONONE\ \INSTRUCTIONTWO; \INSTRUCTION),
+    (\StackOne, \TOR\ \TYF\ \TYS) \STACKCONCAT \STACK, \PREDICATE]
+    \StateTrans \
+    [\INSTRUCTIONONE, (\VariableX, \TYF) \STACKCONCAT\STACK,
+    \PREDICATE \wedge (\StackOne\ \EQUAL\ \LEFT\ \VariableX)]
   }
 \end{mathpar}
 
-The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value at the top of the stack, it consumes this top element. If the value is Left, it executes the first provided sequence; otherwise, it executes the second sequence.
-%IF-LEFT
+%IF-LEFT-RIGHT
 \begin{mathpar}
-  \inferrule[IF-LEFT]
+  \inferrule[IF-LEFT-right]
   {  
   }{
-    \{[(\IFLEFT\ \INSTRUCTIONONE\ \INSTRUCTIONTWO; \INSTRUCTION),
-    (\StackOne, \TOR\ \TYF\ \TYS) \STACKCONCAT \STACK, \PREDICATE]\}  \cup  \SYSTEM
-    \SystemTrans \\
-    \{[\INSTRUCTIONONE, (\VariableX, \TYF) \STACKCONCAT\STACK,
-    \PREDICATE \wedge (\StackOne\ \EQUAL\ \LEFT\ \VariableX)]\}  \cup  \{  [\INSTRUCTIONTWO, (\VariableX, \TYS) \STACKCONCAT\STACK, \PREDICATE \wedge (\StackOne\ \EQUAL\ \RIGHT\ \VariableX))]\} \cup \SYSTEM
+    [(\IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
+    (\StackOne, \TOR\ \TYF\ \TYS) \STACKCONCAT \STACK, \PREDICATE]
+    \StateTrans \
+    [\INSTRUCTIONTWO, (\VariableX, \TYS) \STACKCONCAT\STACK, \PREDICATE \wedge (\StackOne\ \EQUAL\ \RIGHT\ \VariableX))]
   }
 \end{mathpar}
+These above rules collectively define the behavior of the IF-LEFT instruction based on the left or right branch of a tagged union type. This rule applies when the top element of the stack is a tagged union of type \TOR\ \TYF\ \TYS (either of type \TYF or \TYS), and the IF-LEFT instruction is followed by instructions \INSTRUCTIONONE\ and \INSTRUCTIONTWO. The first rule apply with the condition that the top element of the stack is of the form Left \VariableX\ (indicating the left branch of the union), it transitions to execute the instructions \INSTRUCTIONONE\ with the stack modified accordingly and the predicate is updated to include the condition that the top element of the stack is equal to Left \VariableX.  Similerly, The second rule apply with the condition that  the top element is of the form Right \VariableX (indicating the right branch of the union), it transitions to execute the instructions \INSTRUCTIONTWO with the stack modified accordingly and the predicate is updated to include the condition that the top element of the stack is equal to Right \VariableX.
 
 \subsubsection{Loop Instructions}
-In Michelson, there are several loop instructions that execute a loop over the data structure, such as ITER, MAP, MEMBER, SIZE and UPDATE on list, set, map or on the stack, such as LOOP and LOOP-LEFT. 
+Loops represent fundamental and powerful programming constructs. In computer programming, a loop is an instruction that iteratively executes a set of statements until a specific condition is met. In a loop structure, the program poses a question, and if the answer necessitates action, the associated code is executed. This questioning and execution process repeats until the condition is no longer met. Each iteration of this cycle is referred to as an iteration of the loop. In Michelson, various loop instructions facilitate the iteration over data structures, allowing for the manipulation and traversal of different data structures within the language. These loop instructions, including ITER, MAP, MEMBER, UPDATE, LOOP, and LOOP-LEFT, are designed for operations on lists, sets, maps, and the stack itself. Similar to other programming languages, Michelson categorizes loop instructions into two main types:
+\begin{itemize}
+\item[] "For" loops: there are sequence-based loops, such as ITER.
+\item[] "While" loops: these are predicates-based loops, illustrated by LOOP and LOOP-LEFT.
+\end{itemize}
+To illustrate the structures of  loops in Michelson, we can draw a parallel with OCaml syntax:
+\begin{verbatim}
+while <loop_condition> do
+   <loop_body>
+done
+\end{verbatim}
+This "while" loop structure involves a loop condition that is evaluated at the beginning of each iteration. If the condition holds true, the loop body is executed, and the process repeats until the condition becomes false.  In Michelson, this pattern is evident in instructions like LOOP and LOOP-LEFT, which rely on predicate-based conditions for their iteration.
+\begin{verbatim}
+LOOP {<loop-body>}
+\end{verbatim}
+Additionally, Michelson features a "For" loop, where the index runs from the initial value to the final value:
+\begin{verbatim}
+for index = <initial_value> to <final_value> do
+  <loop_body>
+done
+\end{verbatim}
+This is represented by the ITER instruction:
+\begin{verbatim}
+ITER {<loop-body>}
+\end{verbatim}
+The fundamental concept underlying the definition of a loop is its loop condition, which is the predicate that must hold true for the loop to continue execution. In the case of while loops, the  loop condition is explicitly embedded in the loop syntax. In the case of for loops, the loop condition is more implicit. It can be rewritten as a while loop to make the  loop condition explicit. This "For" loop structure can also be expressed as a "while" loop:
+\begin{verbatim}
+index = 0
+while index < length(sequence) do
+  <loop_body>
+  index += 1
+done
+\end{verbatim}
+Here, the implicit loop condition asserts that the index of our sequence element is less than the length of the sequence.
 
+It's worth noting that, unlike imperative-style loops, Michelson does not explicitly contain their  loop condition. Instead, the  loop condition is established:
+\begin{itemize}
+ \item In the expressions preceding the loop for the first time entering the loop.
+ \item Inside the loop body for subsequent iterations.
+\end{itemize}
+
+The loop instructions in Michelson are applied to a stack, and the loop condition is checked with the first element of the stack. For a "while" loop the first element of the stack must be a boolean value and for the "for" loop, it must be a sequence data that the loop support, such as list, set and map. If we denote the function to retrieve the first element of a stack as "pop," the "while" loop instruction can be expressed as:
+\begin{verbatim}
+while pop(S) do
+   loop_body
+done
+\end{verbatim}
+and the "for" instruction is expressed as
+\begin{verbatim}
+index = 0
+while index < length(pop(S)) do
+  <loop_body>
+  index += 1
+done
+\end{verbatim}
+
+Certainly, let's continue exploring how these loop constructs are modeled in the symbolic execution. 
+\paragraph {\ITER}
+Consider the \ITER\ instruction for lists, which operates on a stack \STACK. Here, the top element of the stack has type (\TY\ \TYLIST), and the rest of the stack has type \TYA. The instruction returns a result stack of type \TYA. The \ITER\ instruction iterates over the data structure list. The corresponding typing rule is as follows:
+\begin{mathpar}
+  \inferrule{\JTypeExpr\TEnv{\INSTRUCTION}{\TY : \TYA\ \SRightarrow\ \TYA}
+  }{
+      \JTypeExpr\TEnv{\ITER\ \INSTRUCTION}{\TYLIST\ \TY : \TYA\ \SRightarrow\ \TYA}
+    }
+\end{mathpar}
+This typing rule ensures that if the loop body (\INSTRUCTION) has the type \TY\ : \TYA\ \SRightarrow\ \TYA, then the entire \ITER\ instruction, when applied to a stack with the top element of type (\TY\ \TYLIST) and the rest of the stack of type \TYA, produces a result stack of type \TYA. This facilitates symbolic iteration over a list while maintaining compatibility with further symbolic execution.
+
+We delve into the symbolic execution of \ITER\ when the list is a symbolic term.
 %%ITER
 \begin{mathpar}
   \inferrule[ITER-empty]
@@ -284,7 +438,7 @@ In Michelson, there are several loop instructions that execute a loop over the d
     [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, \STACK,  \PREDICATE\ \Wedge\  (\StackOne\ \EQUAL\ \EMPTYLIST)]
   }
 \end{mathpar}
-
+This rule handles the case where the list is empty, and thus the \ITER\ instruction does not iterate. The resulting state transitions to the next instruction with an updated stack that is actually the same as before entering the \ITER\ intruction and an augmented predicate \PREDICATE $\Wedge$ (\StackOne \EQUAL \EMPTYLIST).
 \begin{mathpar}
   \inferrule[ITER-nonempty]
   {  [\ITER,  (\HEAD, \TY) \STACKCONCAT\STACK, 
@@ -295,63 +449,84 @@ In Michelson, there are several loop instructions that execute a loop over the d
     [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE \wedge Q] \StateTrans \\ [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), \{\STAIL\}\ \STACKCONCAT\STACK',  \PREDICATE \wedge Q' \Wedge  ( \StackOne\ \EQUAL\ \{\HEAD; \STAIL \}) ]
   }
 \end{mathpar}
+This rule handles the case where the list is non-empty. It symbolically executes the instructions \INSTRUCTIONONE\ within the \ITER\ block with the head of the list (\HEAD) removed from the stack and a subpart of the predicate Q. The resulting state transitions to a new stack (\STACK') and an updated predicate (\PREDICATE\ $\Wedge$ Q' $\Wedge$ (\StackOne \EQUAL \{\HEAD;\STAIL\}), where \{\STAIL\} represents the rest of the list.
+In summery, These rules capture the symbolic execution behavior of the \ITER\ instruction, considering both the cases where the list is empty and non-empty.
 
+When the sequence (list, set, map) is empty, the \ITER\ loop halts. Otherwise, it continues to execute its loop body, which applies to an element value of the list. For example, if a list \LIST\ is concrete, the instruction simply loops until the list ends with an empty list construction. The question arises: how do we deal with it symbolically when the list is a symbolic value? One solution could involve running the loop for a number of times to obtain the symbolic value. However, we aim for the result value to express the loop body more efficiently in a mathematical way and be capable of performing property checks.
 
-
-Let us consider the \ITER\ instruction (for list), which applies to a stack \STACK, where the top element has type  (\TY\ \TYLIST) and the rest of the stack has type \TYA, returns the result stack of type \TYA. The \ITER\ instruction loops on the datastructure list. 
-Typing
+Let again consider the instruction \ITER \{ \INSTRUCTION\ \}. Semantically, \INSTRUCTION\ denote the loop body, which is a sequence of instructions. In fact, the sequence of instructions, \INSTRUCTION, represents a lambda function lambda (\TY\ : \TYA\ \SRightarrow\ \TYA) applied to a stack of type \TY:\TYA, resulting in a stack of type \TYA. Assuming that the first element of the stack is a list and  it is a non-empty. Then the list is in the form  \{\HEAD; \STAIL \}, and the rest of the stack is \STACKZERO\ = \StackOne\  \STACKCONCAT\ \StackTwo\ \STACKCONCAT\ ... \STACKCONCAT\ \StackN. Then the \ITER\ \{ \INSTRUCTION\ \} instruction apply \M\ time of function \INSTRUCTION\ to the stack with each element  \HEADI\ of the list, where \M\ is the length of list. The result after the fist loop is \STACKONE\ = \StackOneOne\  \STACKCONCAT\ \StackTwoOne\ \STACKCONCAT\ ... \STACKCONCAT\ \StackNOne. Note that the type of the result stack must be the same as the prevoud stack. Let us assume that the element \I\ of the stack  \STACK\ has the type \TYI. Let the function  \FI\ that takes the head of the list and all elements of  the stack \STACKZERO\ as  \StackOne, \StackTwo, ... \StackN, donated  as \STACKZEROBAR\ and returns the i-element  \StackIOne\ of the stack \STACKONE. The lambda function is defined as a set of these subfunctions \FI. 
 \begin{mathpar}
-  \inferrule{\JTypeExpr\TEnv{\INSTRUCTION}{\TY : \TYA\ \SRightarrow\ \TYA}
+\StackOneOne\ = \FOne\  \HEADZERO\ \STACKZEROBAR \\
+\StackTwoOne\ = \FTwo\  \HEADZERO\ \STACKZEROBAR \\
+...\\
+\StackNOne\ = \FN\  \HEADZERO\ \STACKZEROBAR 
+\end{mathpar}
+When the next loop is performed, the same function \FI\ is applied to the next element of the list and all element of the the stack \STACKONE\ and we get the \StackITwo. In the same way, the the loop is performed for \J\ time, we get the stack \STACKJ\ as follows:
+
+\begin{mathpar}
+\StackOneJ\ = \FOne\  \HEADJMINUS\ \STACKJMINUSBAR \\
+\StackTwoJ\ = \FTwo\  \HEADJMINUS\ \STACKJMINUSBAR \\
+...\\
+\StackNJ\ = \FN\  \HEADJMINUS\ \STACKJMINUSBAR 
+\end{mathpar}
+
+As result, we can reprensed the value of the stack after running the instruction \ITER\  as the result of a fold function that apply the function \FI\ to the list l with the inital value is \StackOneZero, \StackTwoZero, ... \StackNZero.
+\begin{mathpar}
+\StackOneM\ = \FOLD\ \FOne\ \STACKZEROBAR\  \LIST\  \\
+\StackTwoM\ = \FOLD\ \FTwo\  \STACKZEROBAR\ \LIST\  \\
+...\\
+\StackNM\ = \FOLD\ \FN\ \STACKZEROBAR\  \LIST
+\end{mathpar}
+
+
+Generally, we can represent the sequence of instructions \INSTRUCTION\ as the function \F\ that takes an element of type \TY\ of a list \LIST\ and a  stack \STACK\ of type \TYA\ and returns a stack of type \TYA.
+
+\begin{mathpar}
+\STACK'\ =  \FOLD\ \F\ \STACK\ \LIST
+\end{mathpar}
+
+Let consider an example \ITER\ \{ \ADD\ \} that apply to a stack \STACK\ that has a integer list as the top element and the rest \STACKZERO: 
+\begin{mathpar}
+\ITER\ \{ \ADD\ \} / \LIST\ \STACKCONCAT\ \STACKZERO
+\end{mathpar}
+Assumming that \STACKZERO\ = \StackOne\  \STACKCONCAT\ \StackTwo\ \STACKCONCAT\ ... \STACKCONCAT\ \StackN. For the requirement of the \ADD\ instruction, the top element of the stack \STACKZERO, namely \StackOne, need to have the interger type. Let build the function \FOne. Assuming that the list \LIST\ is not empty as \{\HEAD; \STAIL \}, For each loop \ADD\ instruction adds each element of the list to the top element of the stack and then the rest of the stack is unchanged. 
+\begin{mathpar}
+\FOne\ (\HEAD, \StackOne,  \StackTwo, ..., \StackN) = \HEAD\ + \StackOne\\
+\FTwo\ (\HEAD, \StackOne,  \StackTwo, ..., \StackN) = \StackTwo\\
+... \\
+\FN\ (\HEAD, \StackOne,  \StackTwo, ..., \StackN) = \StackN\\
+\end{mathpar}
+
+The function \FOne\ is the fucntion that take (\N\ + 1) intergers as inputs and result the sum of two first one 
+\begin{mathpar}
+\FOne\ (\X, \XOne, \XTwo, ..., \XN) = \X\ + \XOne
+\end{mathpar}
+since \XTwo, ..., \XN do not paricipaint in the calculation, we can omit them as
+\begin{mathpar}
+\FOne\ (\X, \XOne) = \X\ + \XOne
+\end{mathpar}
+The result of the first element of the stack after the \ITER\ \{ \ADD\ \} loop is.
+\begin{mathpar}
+\FOLD\ \FOne\ \StackOne\ \LIST
+\end{mathpar}
+Because the loop does not change the rest of the stack, for all funtion \FI\ for the element \StackI\ of the stack \STACK\ could consider as a identy function
+\begin{mathpar}
+\FI\ (\X, \XOne, ..., \XI, ..., \XN) = \XI
+\end{mathpar}
+So we can omit them in the implementation. 
+
+The \FOLD\ function also can be used to symbolicly the result of other "for" loop intructions on sequence data structure such as CONCAT or SIZE.
+
+\paragraph {\MAP}
+The \ITER\ instruction and some other can be symbolicly implemented using \FOLD\ function applying on the sequance data structures as list, set and map. Let consider the \MAP\ instruction, where we can use a map function to symbolic the result of the instruction. Consider the  \MAP\ \{ \I \}   instruction for lists, which operates on a stack \STACK. Here, the top element of the stack has type (\TY\ \TYLIST), and the rest of the stack has type \TYA. The instruction returns a result stack of type (\TY\ \TYLIST) : \TYA. The \MAP\ instruction iterates over the data structure list. The corresponding typing rule is as follows:
+\begin{mathpar}
+  \inferrule{\JTypeExpr\TEnv{\INSTRUCTION}{\TY  \SRightarrow\ \TY'}
   }{
-      \JTypeExpr\TEnv{\ITER\ \INSTRUCTION}{\TYLIST\ \TY : \TYA\ \SRightarrow\ \TYA}
+      \JTypeExpr\TEnv{\MAP\ \INSTRUCTION}{\TYLIST\ \TY : \TYA\ \SRightarrow\ \TYLIST\ \TY' : \TYA}
     }
 \end{mathpar}
-
-Semantic
-
-\begin{mathpar}
-  \inferrule{
-  }{
-    \ITER\ \INSTRUCTION\ / \{ \} \STACKCONCAT\ \STACK\ \SRightarrow\  \STACK
-    }
-\end{mathpar}
-
-\begin{mathpar} 
-  \inferrule{\INSTRUCTION\  /  \VariableX\ \STACKCONCAT\ \STACK \SRightarrow\ \STACK'
-  }{
-    \ITER\ \INSTRUCTION\ / \{ \VariableX\ ; \TAIL\ \} \STACKCONCAT\ \STACK\ \SRightarrow\ \ITER\ \INSTRUCTION\ / \{ \TAIL\ \} \STACKCONCAT\ \STACK' 
-    }
-\end{mathpar}
-
-If a list \LIST\ is concrete, the intructuion simply loops until the list ends with an empty list construction. Here we consider the synbolic execution of \ITER\ when the list is a sybolic term or variable. 
-
-The sequence of intructuions I is a lamda function  (\TLAMBDA\ (\TY\ : \TYA)\ \TYA) applied to the stack of type (\TY\ : \TYA), returning the stack of type \TYA. We can represent I as the function f that takes an element of type \TY\ and a stack of type \TYA\ and returns a stack of type \TYA.
-
-\begin{mathpar}
-  f : \TY\  \TYA\ \SRightarrow\ \TYA
-\end{mathpar}
-
-\begin{mathpar}
-  f  \VariableX\ \STACK =  (\TLAMBDA\ (\TY\ : \TYA)\ \TYA) (\VariableX\  \STACKCONCAT\ \STACK)
-\end{mathpar}
-
-or 
-
-\begin{mathpar}
-  f  \VariableX\ \STACK = I / (\VariableX\  \STACKCONCAT\ \STACK)
-\end{mathpar}
-
-Let  
-\LIST\ \STACKCONCAT\ \STACK
-
- be the stack just before applying the instruction ITER I, where \VariableX\ be the head of the list and \STACK\ be the rest of the stack . For first  loop, let  \STACK\ be f (\VariableX, \STACK). \STACK\ is the stack resulting from applying the function f to the element \VariableX\ and the stack \STACK. In other words, the stack \STACK\ is formed by applying the sequence of the instructions I to the stack \VariableX\ \STACKCONCAT\ \STACK. 
-
-Let the result of applying the instruction \ITER\ I on the stack \LIST\ ::  \STACK\ be the stack S', then Z is resulted from the \FOLD\ function that applies the function f  to each element of the list \LIST\ and initial value is the stack \STACK.
-
-\begin{mathpar}
-S' =  \FOLD\ \STACK\ f   \LIST
-\end{mathpar}
-
+This typing rule ensures that if the loop body (\INSTRUCTION) has the type \TY\ \SRightarrow\ \TY', then the entire \ITER\ instruction, when applied to a stack with the top element of type (\TY\ \TYLIST) and the rest of the stack of type \TYA, produces a result stack of type \TYLIST\ \TY' : \TYA.
+ The follow is the rules for the map intruction that apply to a list. 
 %MAP
 \begin{mathpar}
 \inferrule[MAP-empty]
@@ -374,6 +549,33 @@ S' =  \FOLD\ \STACK\ f   \LIST
 [\INSTRUCTION, (\{\PHEAD; \PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1' \Wedge\ Q2'  \Wedge\ (\StackOne \EQUAL\ \{\HEAD; \TAIL\})]}
 \end{mathpar}
 
+now let consider how can we syboliclly the execution of the \MAP\ instruction. The list of instruction \I\ can be repeseted as a function \F\ that takes a input of type \TY\ and return an output of type \TY'. 
+\begin{mathpar}
+\F\ : \TY\ \SRightarrow\ \TY
+\end{mathpar}
+The \MAP\ instruction loops on the list \LIST\ by applying the function \F\ to each element of the list \LIST. Symbolilly the result of the \MAP\ \{ \I \} to the list \LIST\ is the result of a map function  that apply the fucntion \F\ that represent of the sequence of instructions \I\ to the list.
+
+\begin{mathpar}
+\MAP\ \{ \I \} / \LIST\ :: \STACK\ \SRightarrow\ (map \F\ \LIST) ::  \STACK
+\end{mathpar}
+
+Consider the example as MAP \{ PUSH int 1; ADD \}, which apply to a stack with have a list of intergers \LIST\ as a top elemnt of the stack. The function expressed as \{ PUSH int 1; ADD \} basiclly adds the number 1 to each element of the list. For this kind of instruction the same technical could be apply. Let f is the function that is specified as the sequcne of instruction \I. f take a element of type int and returen another elemnt of type int
+
+\begin{mathpar}
+\F\ : \TINT \SRightarrow\ \TINT. \\
+\F\ \X\ = \X\ + 1 
+\end{mathpar}
+then the result of the loop is a stack with a list at the top whis have simbolic value as \FMAP\ \F\ \l. 
+\paragraph {\LOOP}
+Now let consider an example of the while loop, namely the \LOOP\ instruction that is a while loop. The \LOOP\ \{ \I\ \} intruction apply to a stack \STACK\ that has the top element is a boolean type. If a top element is true then and only then the loop body (\I) is executed. After the body of a loop is executed then control again goes back at the top element, and checked if it is true, the same process is executed until the top element becomes false. Once the value of the top element becomes false, the control goes out of the loop. The loop condition is calucated by the loop body and the result  back to the firt elevemnt of the stack.
+\begin{mathpar}
+  \inferrule{\JTypeExpr\TEnv{\INSTRUCTION}{\TYA  \SRightarrow\ \TBOOL\ : \TYA}
+  }{
+      \JTypeExpr\TEnv{\MAP\ \INSTRUCTION}{\TYLIST\ \TBOOL\ : \TYA\ \SRightarrow\ \TYA}
+    }
+\end{mathpar}
+
+The rules for \LOOP\ instruction.
 
 %LOOP
 \begin{mathpar}
@@ -397,7 +599,20 @@ S' =  \FOLD\ \STACK\ f   \LIST
    (\NEG\StackOne)]
    }
 \end{mathpar}
+ let \STACKZERO\ =  \StackZero\ \STACKCONCAT\ \StackOne\  \STACKCONCAT\ \StackTwo\ \STACKCONCAT\ ... \STACKCONCAT\ \StackN, where  has the boolean type. Let \FI\ is the function that takes the top elemement of the stack and the rest of \N\ elements of the stack, which have types \TYF, \TYS, ...\TYI, ...\TYN\ noted as \TYABAR\ and return a single type of the element \I.
+\begin{mathpar}
+\FZero\ : \TBOOL\ \SRightarrow\  \TBOOL. \\
+... \\
+\FI\ : \TBOOL\ \TYF, \TYS, ...\TYI, ...\TYN\  \SRightarrow\  \TYI. \\
+....
+\end{mathpar}
 
+\begin{mathpar}
+\FZero\  \StackZero\ \StackOne\ ... \StackI\ ... \StackN\ =   \StackZeroOne. \\
+... \\
+\FI\  \StackZero\ \StackOne\ ... \StackI\ ... \StackN\ =   \StackIOne. \\
+....
+\end{mathpar}
 \subsubsection{FAILWITH}
 a Michelson program can fail, explicitly using a specific opcode
 
@@ -408,7 +623,29 @@ a Michelson program can fail, explicitly using a specific opcode
   }{[(\FAILWITH; \INSTRUCTION), (\StackOne,  \TY) \STACKCONCAT \STACK,  \PREDICATE] \StateTrans [\EMPTYSTACK, failwith (\StackOne) \STACKCONCAT\EMPTYSTACK, \PREDICATE]}
 \end{mathpar}
 \section {Domain Specific Language}
+Michelson, being a stack-based language, may be less familiar to many developers compared to popular languages like Python, Java, or C. To bridge this gap, several high-level languages such as LIGO, SmartPy, and Liquidity have been developed. These languages enable developers to write Tezos smart contracts in a more readable manner, resembling popular programming languages. Contracts written in these languages are then compiled down to Michelson.
+
+In addition, Tezos users, who don't have much knowleage about Michelson language may wish to verify smart contract code before deployment. Our framework aims to provide a tool that doesn't require users to be Michelson experts. We intend to design a domain-specific language that enables users to specify smart contract properties in a mathematical way, making it readable and easy  to understand.
+
+Given that our framework utilizes an SMT solver, specifically Z3, for property verification, we offer a language that allows users to express formulas compatible with the capabilities of the SMT solver (Z3). This empowers users to write formulas that the solver can effectively handle for property verification.
+
+One of the main challenges with formal verification is that it ofen requires the specifier to express the program code in a specification language. This poses two problems: it demands expertise in formal verification from the specifier and introduces a gap between the actual code and its specification. In our framework, this gap is eliminated as the exact Michelson code used for verification precisely corresponds to the real code. Users are not required to be formal verification experts. The necessary Michelson knowledge revolves around understanding data types and their usage when calling a smart contract on the Tezos blockchain, both as parameters and in storage. 
+
+The grama of the DLS is as follows:
+
+\begin{verbatim}
+MContract ‘NAME' with
+Code := c
+Input := t1
+Output := t20
+Pre-condition := c1
+Post-condition := c2
+\end{verbatim}
+
+Where "MContract", "with", Code, Input, Output, Pre-condition and Post-condition are keywords. NAME is preplaced by the user contract name, we prpect to the capital to make it impressive clear. The c is repeced with the Michosonl contract code. in the input and output fild is to specify the input and ourpout paterm. Since Miachonl work on a stack. The input of the code should be a stack. As a real smart contract. Here assume that the stack have only one element as speicfy in the input partan and similarly th eoutput stack is the stack with only one element which is specified in output. For a real michesol smart contract code. The output have be a pair of operation list and a storage then the output is prepesent by the store in the storage after the execution is finished. 
+
 \section {Static Checker}
+
 \section {Case Studies}
 \subsection{USDtz}
 \subsection{Kolibri Oracle Contract}
@@ -559,6 +796,9 @@ T, U &::= \\
 \caption{Predicates}
 \label{fig:predicate}
 \end{figure}
+
+
+
 \subsubsection{Basic Instructions}
 
 \paragraph{Control structures}
@@ -775,55 +1015,32 @@ T, U &::= \\
 
 \subsubsection{Branch Instructions}
 %IF
+
 \begin{mathpar}
-  \inferrule[IF-true]
+  \inferrule[IF]
   {  
   }{
-    [(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
-    (\StackOne, \TBOOL) \STACKCONCAT\STACK, \PREDICATE]
-    \StateTrans\
-    [\INSTRUCTIONONE, \STACK, \PREDICATE\ \Wedge\ \StackOne]
-  }
-
-  \inferrule[IF-false]
-  {  
-  }{
-    [(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
-    (\StackOne, \TBOOL) \STACKCONCAT\STACK, \PREDICATE]
-    \StateTrans\
-   [\INSTRUCTIONTWO, \STACK, \PREDICATE\ \Wedge\ \NEG\
-   \StackOne]
- }
-\end{mathpar}
-
-
-%IF-LEFT-LEFT
-\begin{mathpar}
-  \inferrule[IF-LEFT-left]
-  {  
-  }{
-    [(\IFLEFT\ \INSTRUCTIONONE\ \INSTRUCTIONTWO; \INSTRUCTION),
-    (\StackOne, \TOR\ \TYF\ \TYS) \STACKCONCAT \STACK, \PREDICATE]
-    \StateTrans \
-    [\INSTRUCTIONONE, (\VariableX, \TYF) \STACKCONCAT\STACK,
-    \PREDICATE \wedge (\StackOne\ \EQUAL\ \LEFT\ \VariableX)]
+    \{[(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
+    (\StackOne, \TBOOL) \STACKCONCAT\STACK, \PREDICATE]\} \cup \SYSTEM 
+      \SystemTrans 
+    \{[\INSTRUCTIONONE, \STACK, \PREDICATE\ \Wedge\ \StackOne]\} \cup \{ [\INSTRUCTIONTWO, \STACK, \PREDICATE\ \Wedge\ \NEG\
+   \StackOne]\} \cup  \SYSTEM
   }
 \end{mathpar}
 
-%IF-LEFT-RIGHT
+The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value at the top of the stack, it consumes this top element. If the value is Left, it executes the first provided sequence; otherwise, it executes the second sequence.
+%IF-LEFT
 \begin{mathpar}
-  \inferrule[IF-LEFT-right]
+  \inferrule[IF-LEFT]
   {  
   }{
-    [(\IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
-    (\StackOne, \TOR\ \TYF\ \TYS) \STACKCONCAT \STACK, \PREDICATE]
-    \StateTrans \
-    [\INSTRUCTIONTWO, (\VariableX, \TYS) \STACKCONCAT\STACK, \PREDICATE \wedge (\StackOne\ \EQUAL\ \RIGHT\ \VariableX))]
+    \{[(\IFLEFT\ \INSTRUCTIONONE\ \INSTRUCTIONTWO; \INSTRUCTION),
+    (\StackOne, \TOR\ \TYF\ \TYS) \STACKCONCAT \STACK, \PREDICATE]\}  \cup  \SYSTEM
+    \SystemTrans \\
+    \{[\INSTRUCTIONONE, (\VariableX, \TYF) \STACKCONCAT\STACK,
+    \PREDICATE \wedge (\StackOne\ \EQUAL\ \LEFT\ \VariableX)]\}  \cup  \{  [\INSTRUCTIONTWO, (\VariableX, \TYS) \STACKCONCAT\STACK, \PREDICATE \wedge (\StackOne\ \EQUAL\ \RIGHT\ \VariableX))]\} \cup \SYSTEM
   }
 \end{mathpar}
-
-
-
 %IF_CONS
 \begin{mathpar}
   \inferrule[IF-CONS-empty]
@@ -1072,6 +1289,21 @@ a Michelson program can fail, explicitly using a specific opcode
 \end{mathpar}
 \subsection{Dealing with loops}
 \subsubsection{For loop: ITER}
+Semantic
+
+\begin{mathpar}
+  \inferrule{
+  }{
+    \ITER\ \INSTRUCTION\ / \{ \} \STACKCONCAT\ \STACK\ \SRightarrow\  \STACK
+    }
+\end{mathpar}
+
+\begin{mathpar} 
+  \inferrule{\INSTRUCTION\  /  \VariableX\ \STACKCONCAT\ \STACK \SRightarrow\ \STACK'
+  }{
+    \ITER\ \INSTRUCTION\ / \{ \VariableX\ ; \TAIL\ \} \STACKCONCAT\ \STACK\ \SRightarrow\ \ITER\ \INSTRUCTION\ / \{ \TAIL\ \} \STACKCONCAT\ \STACK' 
+    }
+\end{mathpar}
 \subsubsection{While loops: \LOOP\ and \LOOP-LEFT}
 
 \end{document}
