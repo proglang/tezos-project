@@ -106,7 +106,9 @@ In the context of blockchain technology, the immutability of smart contracts onc
 \end{abstract}
 \section{Introduction}
 \label{sec:introduction}
+Symbolic execution techniques encounter challenges related to state explosion, particularly when applied to large systems. Fortunately, the constraints of storing and running smart contracts on a blockchain platform impose size limitations, making them manageable for symbolic execution.
 
+In this work, we present the design of a domain-specific language for specifying smart contract properties and demonstrate the integration of symbolic execution with an SMT solver for formal verification of these properties.
 \section{Symbolic Execution Model}
 \label{sec:symbolic-execution-model}
 \subsection{System Model}
@@ -163,7 +165,7 @@ T, U &::= \\
 Each piece of data in Michelson is assigned a specific type, and the language restricts programmers from introducing custom types. The complete list of types can be found in Figure \ref{fig:type}. To model the system, we use a stack in which each element is a pair consisting of term and its corresponding type. Terms are defined in Figure \ref{fig:term}. The stack is denoted as \STACK\ = (\TermOne, \TYF) \STACKCONCAT\ (\TermTwo, \TYS) \STACKCONCAT\ \DOT\ \STACKCONCAT\ \EMPTYSTACK\ where elements are types paired with terms. 
 
 A Michelson program is a sequence of instructions executed in a sequential manner. Each instruction takes, as input, the stack produced by the preceding instruction and modifies it for the subsequent one. Let \INSTRUCTION\ = \InstructionOne; \InstructionTwo; \DOT\  \InstructionN\ represent a sequence of instructions.
-During symbolic execution,  the system state evolves, assuming different values based on the constraints of symbolic values. Moreover, branching may occur depending on conditions, and both constraints and branching conditions are recorded as predicates. Let \PREDICATE\ symbolize a predicate expressed in conjunction form, capturing the branching conditions and constraints encountered during the symbolic execution process.
+During symbolic execution,  the system state evolves, assuming different values based on the constraints of symbolic values. Moreover, branching may occur depending on conditions, and both constraints and branching conditions are recorded as predicates. Let \PREDICATE\ is a path predicate that is extended at each conditional and expressed in conjunction form, capturing the branching conditions and constraints encountered during the symbolic execution process.
 \begin{definition}
 A symbolic execution state is represented by the tuple \STATE\ = [\INSTRUCTION, \STACK, \PREDICATE]. Here, \SYSTEM\ = \{\STATEONE, \STATETWO, \DOT, \STATEN \} range over sets of  states.
 \end{definition}
@@ -615,38 +617,57 @@ The rules for \LOOP\ instruction.
 \DOT
 \end{mathpar}
 \subsubsection{FAILWITH}
-A Michelson program can fail, explicitly using a specific opcode
+A Michelson program can fail, employing a designated opcode. The \FAILWITH\ instruction aborts the ongoing program and reveals the top element of the stack.
 
 %FAILWITH
 \begin{mathpar}
   \inferrule[FAILWITH]
   {
-  }{[(\FAILWITH; \INSTRUCTION), (\StackOne,  \TY) \STACKCONCAT \STACK,  \PREDICATE] \StateTrans [\EMPTYSTACK, failwith (\StackOne) \STACKCONCAT\EMPTYSTACK, \PREDICATE]}
+  }{[(\FAILWITH; \INSTRUCTION), (\StackOne,  \TY) \STACKCONCAT \STACK,  \PREDICATE] \StateTrans [\EMPTYSTACK, (\FAIL\ (\StackOne)) \STACKCONCAT\EMPTYSTACK, \PREDICATE]}
 \end{mathpar}
-\section {Domain Specific Language}
+\section {Domain Specific Language For Smart Contract Property Specification}
 Michelson, as a stack-based language, may pose a challenge for developers less familiar with it compared to more mainstream languages like Python, Java, or C. To address this, several high-level languages such as LIGO, SmartPy, and Liquidity have been created. These languages provide a more readable syntax, resembling popular programming languages, allowing developers to write Tezos smart contracts more comfortably. These high-level contracts are then compiled down to Michelson.
 
 For Tezos users who may lack expertise in Michelson, there is a desire to verify smart contract code before interaction. Our framework addresses this by introducing a domain-specific language (DSL) that facilitates the specification of smart contract properties in a mathematical and readable format. The goal is to create a language that is accessible and easily understandable, even for users who are not Michelson experts.
 
 To achieve this, our framework employs an SMT solver, specifically Z3, for property verification. The DSL is designed to allow users to express formulas that align with the capabilities of the SMT solver (Z3). This empowers users to write formulas that the solver can effectively handle, facilitating property verification in a more user-friendly manner.
 
-One of the main challenges with formal verification is that it ofen requires the users to specify the system in a specification language. This poses two problems: it demands expertise in formal verification from the specifier and introduces a gap between the actual code and its specification. In our framework, this gap is eliminated as the exact Michelson code used for verification precisely corresponds to the real code. Users are not required to be formal verification experts. The necessary Michelson knowledge revolves around understanding data types and their usage when calling a smart contract on the Tezos blockchain, both as parameters and in storage. 
+One of the main challenges with formal verification is that it is often the requirement for users to express the system in a specialized specification language. This poses two problems: it demands expertise in formal verification from the specifier and introduces a gap between the actual code and its specification. In our framework, this gap is eliminated as the exact Michelson code used for verification precisely corresponds to the actual code.  Users are not obligated to possess formal verification expertise. 
 
-The grama of the DLS is as follows:
+The Michelson code, readily available on the Tezos blockchain, remains consistent across various high-level language platforms like LIGO, SmartPy, and Liquidity, all of which offer functions to compile programs into Michelson. This approach eliminates the need for users to be formal verification experts. The essential Michelson knowledge revolves around understanding data types and their usage when interacting with a smart contract on the Tezos blockchain, whether as parameters or in storage.
 
+Given a smart contract code c, the syntax of our property specification language is as follows: 
 \begin{verbatim}
-MContract ‘NAME' with
-Code := c
-Input := t1
-Output := t20
-Pre-condition := c1
-Post-condition := c2
-\end{verbatim}
+MContract ‘Name' with
+Code := {c}
+Input := t
+Output := t'
+Pre-condition := cd
+Post-condition := cd'
+\end{verbatim} 
+Here, \KMCONTRACT, \KWITH, \KCODE, \KINPUT, \KOUTPUT, \KPRECONDI, and \KPOSTCONDI are keywords. The 'Name' is replaced by the contract name. In the input and output fields, the input and output patterns are specified. Since Michelson operates on a stack, we assume that the stack has only one element, as specified in the input pattern. Similarly, the output stack is assumed to be a stack with only one element, which is specified in the output field. As we have mentioned before, the output should be a pair consisting of an operation list and a storage. In our syntax, for verification purpose, we omit the operation list and then the output is represented by the patern of the value in the storage after the execution is finished.
 
-Where "MContract", "with", Code, Input, Output, Pre-condition and Post-condition are keywords. NAME is preplaced by the user contract name, we prpect to the capital to make it impressive clear. The c is repeced with the Michosonl contract code. in the input and output fild is to specify the input and ourpout paterm. Since Miachonl work on a stack. The input of the code should be a stack. As a real smart contract. Here assume that the stack have only one element as speicfy in the input partan and similarly th eoutput stack is the stack with only one element which is specified in output. For a real michesol smart contract code. The output have be a pair of operation list and a storage then the output is prepesent by the store in the storage after the execution is finished. 
+The input and output patterns represent Michelson terms, which can be either concrete values or symbolic values, including variables. When a variable appears for the first time, it needs to be accompanied by its corresponding type declaration. However, subsequent mentions can omit the type declaration. Formally, the pre and post-condition instances are formulas in first-order logic, and they can be handled by an SMT solver, namely the Z3 solver in our framework. The detail of the language grammar is described in in Figure \ref{}. 
+
+
+
+Let's consider the following example of the property specification for the contract named Add:
+\begin{verbatim}
+MContract ‘Add' with
+Code := {UNPAIR; COMPARE; GE; 
+        IF {ADD}{PUSH string 'Unexpected pair'; FAILWITH}}
+Input := Pair (x : int) (y : int)
+Output := (z : int)
+Pre-condition := (x >= 5) | (y >= 3)
+Post-condition := (z >= 8)
+\end{verbatim}
+Here, the program takes as input a stack with only one element, which is a pair of two integers, symbolically specified in the Input field. It then unpairs the input pair to obtain two elements as two integers \VariableX\ and \VariableY.  It then proceeds to destructure the input pair, yielding two integers, denoted as \VariableX\ and \VariableY. Subsequently, the program performs a comparison between these two integers. If \VariableX\ is greater than or equal to \VariableY, the program constructs a new stack with a solitary element at the top representing the sum of \VariableX\ and \VariableY, designated as \VariableZ. Otherwise, the execution terminates with an error message containing the content 'Unexpected pair.' The specification continues by defining pre and post conditions, where the precondition states the assumption that the integer \VariableX\ is greater than or equal to 5 and \VariableY\ is greater than or equal to 3. The postcondition asserts that the result sum \VariableZ\ is greater than or equal to 8.
+
+
+
 
 \section {Static Checker}
-
+Formulas that are used in assertions or added to solvers are terms of Boolean sort. Otherwise, terms of Boolean and non-Boolean sort may be mixed in any combination where sorts match up. Universal and existential quantifiers bind variables to the scope of the quantified formula.
 \section {Case Studies}
 \subsection{USDtz}
 \subsection{Kolibri Oracle Contract}
