@@ -114,8 +114,8 @@ In this work, we present the design of a domain-specific language for specifying
 \subsection{System Model}
 Michelson serves as the low-level smart contract language for the Tezos blockchain platform. The processing and manipulation of data during the execution of smart contracts are managed using a stack. The representation of a stack can be described as follows:
 \begin{itemize}
-\item[]  \EMPTYSTACK\ represents the empty stack.
-\item[]  \HEAD\ \STACKCONCAT\ \NTAIL\ denotes a stack with the top element as \HEAD\ and the remaining stack as \NTAIL.
+\item[]  \ensuremath{[\ ]} represents the empty stack.
+\item[]  \ensuremath{hd :: tl} denotes a stack with the top element as \ensuremath{hd} and the remaining stack as \ensuremath{tl}.
 \end{itemize}
 \begin{figure} []
 \begin{align*}
@@ -217,7 +217,7 @@ The smart contract program takes a stack as input, consisting of a single pair w
 Each instruction is defined by a rule on the system model. The rule semantic is defined by several kinds of transitions:
 \begin{enumerate}
 \item \ExprTrans\ single-step evaluation of an expression in a system state,
-\item \StateTrans\ internal transitions of a state, which is non-deterministic  as shown for loop instructions, such as \LOOP\ and \LOOP-LEFT,
+\item \StateTrans\ internal transitions of a state, which is non-deterministic  as shown for loop instructions, such as \LOOP\ and \LOOPLEFT,
 \item \SystemTrans\ symbolic system transitions.
 \end{enumerate}
 
@@ -240,13 +240,13 @@ One-step instructions have a localized effect, modifying the system state direct
   {
     [(\ABS; \INSTRUCTION), (\StackOne, \TINT) \STACKCONCAT \STACK,
     \PREDICATE]
-    \StateTrans 
-    [\INSTRUCTION, (\VariableX, \TNAT) \STACKCONCAT \STACK,
-    \PREDICATE \wedge (\StackOne \ge 0 \Rightarrow \VariableX =
-    \StackOne) \wedge (\StackOne <0 \Rightarrow \VariableX = -\StackOne)]
+    \StateTrans \\
+    [\INSTRUCTION, (\X, \TNAT) \STACKCONCAT \STACK,
+    \PREDICATE\ \wedge\ (\StackOne\ \GE\ \ZERO\ \Rightarrow\ \X\ =
+    \StackOne) \wedge\ (\StackOne\ \LT\ \ZERO\ \Rightarrow\ \X\ = \MINUS\ \StackOne)]
  }
 \end{mathpar}
-Another example is the COMPARE instruction for natural numbers, which compares the first two elements of the stack, both having a natural number type. It returns a result of either -1, 0, or 1 based on the comparison of their values.
+Another example is the \COMPARE\ instruction for natural numbers, which compares the first two elements of the stack, both having a natural number type. It returns a result of either -1, 0, or 1 based on the comparison of their values.
 % COMPARE
 \begin{mathpar}
 \inferrule[COMPARE]
@@ -256,10 +256,10 @@ Another example is the COMPARE instruction for natural numbers, which compares t
     [(\COMPARE ; \INSTRUCTION), (\StackOne, \TNAT) \STACKCONCAT (\StackTwo, \TNAT)
     \STACKCONCAT \STACK, \PREDICATE ]
     \SystemTrans \\
-    [\INSTRUCTION, (\VariableX, \TINT) \STACKCONCAT \STACK, \PREDICATE
-    \wedge\ (\StackOne > \StackTwo \Leftrightarrow \VariableX = 1)
-    \wedge\ (\StackOne = \StackTwo \Leftrightarrow \VariableX = 0) 
-    \wedge\ (\StackOne < \StackTwo \Leftrightarrow \VariableX = -1)]
+    [\INSTRUCTION, (\X, \TINT) \STACKCONCAT \STACK, \PREDICATE
+    \wedge\ (\StackOne\ \GT\ \StackTwo\ \Leftrightarrow\ \X\ \EQ\ \ONE)
+    \wedge\ (\StackOne\ \EQ\ \StackTwo\ \Leftrightarrow\ \X\ \EQ\ \ZERO) 
+    \wedge\ (\StackOne\ \LT\ \StackTwo\ \Leftrightarrow\ \X\ \EQ\ \MINUS \ONE)]
     }
 \end{mathpar}
 \subsubsection{Multi-step Instructions}
@@ -268,15 +268,15 @@ Multi-step instructions involve the execution of a sub-sequence of instructions 
   \inferrule[\EXEC]
   {
     [\INSTRUCTIONONE, (\StackOne, \TYF) \STACKCONCAT \EMPTYSTACK, 
-    Q]
+    \Q]
     \StateTrans^*
-    [ \EMPTYSTACK, (\StackOne', \TYS) \STACKCONCAT Q']
+    [ \EMPTYSTACK, (\StackOne', \TYS) \STACKCONCAT \Q']
   }{
      [(\EXEC; \INSTRUCTION),   (\{\INSTRUCTIONONE\}, \TYF\ \rightarrow\ \TYS) \STACKCONCAT
-    (\StackOne, \TYF) \STACKCONCAT \STACK, \PREDICATE \wedge Q] 
+    (\StackOne, \TYF) \STACKCONCAT \STACK, \PREDICATE \wedge \Q] 
     \StateTrans \
     [ \INSTRUCTION, (\StackOne', \TYS) \STACKCONCAT \STACK,
-    \PREDICATE \wedge Q']}
+    \PREDICATE \wedge \Q']}
 \end{mathpar}
  
 The \DIP\ \N\ instruction delves into the first \N\ elements of a stack, applies the sequence of instructions denoted as \INSTRUCTIONONE\ to the remaining part of the stack, modifies a part of the predicate and subsequently pushes the result back into the main execution.
@@ -284,22 +284,22 @@ The \DIP\ \N\ instruction delves into the first \N\ elements of a stack, applies
 \begin{mathpar}
 \inferrule[\DIP\ \N]
   { 
-     \FLEN(\A) \EQUAL\ \N \\ [\INSTRUCTIONONE,  \B, Q]
+     \FLEN(\A) \EQ\ \N \\ [\INSTRUCTIONONE,  \B, \Q]
     \StateTrans^*
-    [\EMPTYSTACK,  \B_1, Q']
+    [\EMPTYSTACK,  \B_1, \Q']
   }
-  {[(\DIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \A\ \At\ \B, \PREDICATE \wedge Q] \StateTrans 
-[(\INSTRUCTION), \A\ \At\ \B_1, \PREDICATE \wedge Q']}
+  {[(\DIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \A\ \At\ \B, \PREDICATE \wedge \Q] \StateTrans 
+[(\INSTRUCTION), \A\ \At\ \B_1, \PREDICATE \wedge \Q']}
 \end{mathpar}
 \subsubsection{Blockchain Instructions}
- Blockchain instructions make implicit use of data from an execution environment, derived from the current state of the blockchain (the context), from the transaction that triggered the contract, and from the block containing this transaction. We model these data as symbolic values, which satisfis some constrants. For example, the AMOUNT instruction adds to the stack the amount of tokens that sent together with the transcation which calls this smart contract. Here, the amount is modeled as a symbolic value donated as \VAMOUNT, which has \TMUTEZ\ type, which has a nature number value.
+ Blockchain instructions make implicit use of data from an execution environment, derived from the current state of the blockchain (the context), from the transaction that triggered the contract, and from the block containing this transaction. We model these data as symbolic values, which satisfis some constrants. For example, the \AMOUNT\ instruction adds to the stack the amount of tokens that sent together with the transcation which calls this smart contract. Here, the amount is modeled as a symbolic value donated as \CAMOUNT, which has \TMUTEZ\ type, which has a nature number value.
 
 \begin{mathpar}
 \inferrule[AMOUNT]
   {
   }
   {[(\AMOUNT; \INSTRUCTION), \STACK, \PREDICATE] \StateTrans \
-[\INSTRUCTION, (\VAMOUNT, \TMUTEZ) \STACKCONCAT\STACK, \PREDICATE}
+[\INSTRUCTION, (\CAMOUNT, \TMUTEZ) \STACKCONCAT \STACK, \PREDICATE]}
 \end{mathpar}
 
 \subsubsection{Cryptographic Instructions}
@@ -310,7 +310,7 @@ Cryptographic instructions in Michelson utilize built-in functions that manage c
   {
   }
   {[(\SHA; \INSTRUCTION), (\StackOne, \TBYTE) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
-[\INSTRUCTION, (\VariableX, \TBYTE) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\VariableX\ = \FSHA(\StackOne))]}
+[\INSTRUCTION, (\X, \TBYTE) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\X\ \EQ\ \FSHA(\StackOne))]}
 \end{mathpar}
 \subsubsection{Branch Instructions}
 The Michelson language incorporates conditional branching, enabling the execution of specific code segments based on certain criteria. One of the instructions facilitating this is the \IF\ \{\} \{\} construct. For example, the \IF\ \{ \INSTRUCTIONONE\ \} \{ \INSTRUCTIONTWO\  \} instruction allows the creation of branches in execution. It takes two sequences as arguments. Expecting a boolean value at the top of the stack, it consumes this top element. If the boolean is True, it executes the first provided sequence; otherwise, it executes the second sequence.
@@ -345,8 +345,8 @@ Another branch instruction is the IF-LEFT instruction, which is used for conditi
     [(\IFLEFT\ \INSTRUCTIONONE\ \INSTRUCTIONTWO; \INSTRUCTION),
     (\StackOne, \TOR\ \TYF\ \TYS) \STACKCONCAT \STACK, \PREDICATE]
     \StateTrans \
-    [\INSTRUCTIONONE, (\VariableX, \TYF) \STACKCONCAT\STACK,
-    \PREDICATE \wedge (\StackOne\ \EQUAL\ \LEFT\ \VariableX)]
+    [\INSTRUCTIONONE, (\X, \TYF) \STACKCONCAT\STACK,
+    \PREDICATE \wedge (\StackOne\ \EQ\ \LEFT\ \X)]
   }
 \end{mathpar}
 
@@ -358,18 +358,18 @@ Another branch instruction is the IF-LEFT instruction, which is used for conditi
     [(\IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
     (\StackOne, \TOR\ \TYF\ \TYS) \STACKCONCAT \STACK, \PREDICATE]
     \StateTrans \
-    [\INSTRUCTIONTWO, (\VariableX, \TYS) \STACKCONCAT\STACK, \PREDICATE \wedge (\StackOne\ \EQUAL\ \RIGHT\ \VariableX))]
+    [\INSTRUCTIONTWO, (\X, \TYS) \STACKCONCAT\STACK, \PREDICATE \wedge (\StackOne\ \EQ\ \RIGHT\ \X))]
   }
 \end{mathpar}
-These above rules collectively define the behavior of the IF-LEFT instruction based on the left or right branch of a tagged union type. This rule applies when the top element of the stack is a tagged union of type \TOR\ \TYF\ \TYS (either of type \TYF\ or \TYS), and the IF-LEFT instruction is followed by instructions \INSTRUCTIONONE\ and \INSTRUCTIONTWO. The first rule apply with the condition that the top element of the stack is of the form Left \VariableX\ (indicating the left branch of the union), it transitions to execute the instructions \INSTRUCTIONONE\ with the stack modified accordingly and the predicate is updated to include the condition that the top element of the stack is equal to Left \VariableX.  Similerly, the second rule apply with the condition that  the top element is of the form Right \VariableX\ (indicating the right branch of the union), it transitions to execute the instructions \INSTRUCTIONTWO\ with the stack modified accordingly and the predicate is updated to include the condition that the top element of the stack is equal to Right \VariableX.
+These above rules collectively define the behavior of the \IFLEFT instruction based on the left or right branch of a tagged union type. This rule applies when the top element of the stack is a tagged union of type \TOR\ \TYF\ \TYS (either of type \TYF\ or \TYS), and the \IFLEFT instruction is followed by instructions \INSTRUCTIONONE\ and \INSTRUCTIONTWO. The first rule apply with the condition that the top element of the stack is of the form Left \X\ (indicating the left branch of the union), it transitions to execute the instructions \INSTRUCTIONONE\ with the stack modified accordingly and the predicate is updated to include the condition that the top element of the stack is equal to Left \X.  Similerly, the second rule apply with the condition that  the top element is of the form Right \X\ (indicating the right branch of the union), it transitions to execute the instructions \INSTRUCTIONTWO\ with the stack modified accordingly and the predicate is updated to include the condition that the top element of the stack is equal to Right \X.
 
 \subsubsection{Loop Instructions}
-In Michelson, loops are fundamental constructs that repeatedly execute a set of instructions until a specific condition is met. There are various loop instructions, including ITER, MAP, CONCAT, SIZE, LOOP, and LOOP-LEFT, enable the manipulation and traversal of different data structures like lists, sets, maps, and the stack itself. 
+In Michelson, loops are fundamental constructs that repeatedly execute a set of instructions until a specific condition is met. There are various loop instructions, including \ITER, \MAP, \CONCAT, \SIZE, \LOOP, and \LOOPLEFT, enable the manipulation and traversal of different data structures like lists, sets, maps, and the stack itself. 
 
 Michelson, similar to other programming languages, classifies loop instructions into two main types:
 \begin{itemize}
-\item \KFOR\ loops: These are sequence-based loops, exemplified by ITER, MAP, CONCAT and SIZE.
-\item \KWHILE\ loops: These are predicates-based loops, illustrated by LOOP and LOOP-LEFT.
+\item \KFOR\ loops: These are sequence-based loops, exemplified by \ITER, \MAP, \CONCAT\ and \SIZE.
+\item \KWHILE\ loops: These are predicates-based loops, illustrated by \LOOP and \LOOPLEFT.
 \end{itemize}
 To illustrate the structures of  loops, we can draw a parallel with OCaml syntax:
 \begin{verbatim}
@@ -440,10 +440,10 @@ We delve into the symbolic execution of \ITER\ instruction when the list is a sy
   \inferrule[ITER-empty]
   {  
   }{
-    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, \STACK,  \PREDICATE\ \Wedge\  (\StackOne\ \EQUAL\ \EMPTYLIST)]
+    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, \STACK,  \PREDICATE\ \Wedge\  (\StackOne\ \EQ\ \EMPTYLIST)]
   }
 \end{mathpar}
-This rule handles the case where the list is empty, and thus the \ITER\ instruction does not iterate. The resulting state transitions to the next instruction with an updated stack that is actually the same as before entering the \ITER\ intruction and an augmented predicate \PREDICATE\ $\Wedge$ (\StackOne \EQUAL \EMPTYLIST).
+This rule handles the case where the list is empty, and thus the \ITER\ instruction does not iterate. The resulting state transitions to the next instruction with an updated stack that is actually the same as before entering the \ITER\ intruction and an augmented predicate \PREDICATE\ $\Wedge$ (\StackOne \EQ \EMPTYLIST).
 \begin{mathpar}
   \inferrule[ITER-nonempty]
   {  [\ITER,  (\HEAD, \TY) \STACKCONCAT\STACK, 
@@ -451,10 +451,10 @@ This rule handles the case where the list is empty, and thus the \ITER\ instruct
     \StateTrans^*
     [ \EMPTYSTACK,  \STACK', Q']
   }{
-    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE \wedge Q] \StateTrans \\ [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), \{\STAIL\}\ \STACKCONCAT\STACK',  \PREDICATE \wedge Q' \Wedge  ( \StackOne\ \EQUAL\ \{\HEAD; \STAIL \}) ]
+    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE \wedge Q] \StateTrans \\ [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), \{\STAIL\}\ \STACKCONCAT\STACK',  \PREDICATE \wedge Q' \Wedge  ( \StackOne\ \EQ\ \{\HEAD; \STAIL \}) ]
   }
 \end{mathpar}
-The next rule handles the case where the list is non-empty. It symbolically executes the instructions \INSTRUCTIONONE\ within the \ITER\ block with the head of the list (\HEAD) removed from the stack and a subpart of the predicate Q. The resulting state transitions to a new stack (\STACK') and an updated predicate (\PREDICATE\ $\Wedge$ Q' $\Wedge$ (\StackOne \EQUAL \{\HEAD;\STAIL\}), where \{\STAIL\} represents the rest of the list.
+The next rule handles the case where the list is non-empty. It symbolically executes the instructions \INSTRUCTIONONE\ within the \ITER\ block with the head of the list (\HEAD) removed from the stack and a subpart of the predicate Q. The resulting state transitions to a new stack (\STACK') and an updated predicate (\PREDICATE\ $\Wedge$ Q' $\Wedge$ (\StackOne \EQ \{\HEAD;\STAIL\}), where \{\STAIL\} represents the rest of the list.
 In summery, these rules capture the symbolic execution behavior of the \ITER\ instruction, considering both the cases where the list is empty and non-empty.
 
 When the sequence (list, set, map) is empty, the \ITER\ loop halts. Otherwise, it continues to execute its loop body, which applies to an element of the list. If a list \LIST\ is concrete, the instruction simply loops until the list ends with an empty list construction. The question arises: how do we deal with it symbolically when the list is a symbolic value? One solution could involve running the loop for a number of times to obtain the symbolic value. However, we aim for the result value to express the loop body more efficiently in a mathematical way and be capable of performing property checks.
@@ -537,7 +537,7 @@ This typing rule ensures that if the loop body (\INSTRUCTION) has the type \TY\ 
   {
   }
   {[(\MAP\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \ 
-[\INSTRUCTION, (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST)]}
+[\INSTRUCTION, (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \EMPTYLIST)]}
 \end{mathpar}
 
 \begin{mathpar}
@@ -550,7 +550,7 @@ This typing rule ensures that if the loop body (\INSTRUCTION) has the type \TY\ 
     [\EMPTYSTACK,  (\{\PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK , Q2']
   }
   {[(\MAP\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1 \Wedge\ Q2 ] \StateTrans  \\
-[\INSTRUCTION, (\{\PHEAD; \PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1' \Wedge\ Q2'  \Wedge\ (\StackOne \EQUAL\ \{\HEAD; \TAIL\})]}
+[\INSTRUCTION, (\{\PHEAD; \PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1' \Wedge\ Q2'  \Wedge\ (\StackOne \EQ\ \{\HEAD; \TAIL\})]}
 \end{mathpar}
 Let consider how can we syboliclly the execution of the \MAP\ instruction. The list of instruction \INSTRUCTION\ can be repeseted as a function \F\ that takes a input of type \TY\ and return an output of type \TY'. 
 \begin{mathpar}
@@ -636,34 +636,99 @@ One of the main challenges with formal verification is that it is often the requ
 
 The Michelson code, readily available on the Tezos blockchain, remains consistent across various high-level language platforms like LIGO, SmartPy, and Liquidity, all of which offer functions to compile programs into Michelson. This approach eliminates the need for users to be formal verification experts. The essential Michelson knowledge revolves around understanding data types and their usage when interacting with a smart contract on the Tezos blockchain, whether as parameters or in storage.
 
-Given a smart contract code c, the syntax of our property specification language is as follows: 
-\begin{verbatim}
-MContract ‘Name' with
-Code := {c}
-Input := t
-Output := t'
-Pre-condition := cd
-Post-condition := cd'
-\end{verbatim} 
-Here, \KMCONTRACT, \KWITH, \KCODE, \KINPUT, \KOUTPUT, \KPRECONDI, and \KPOSTCONDI are keywords. The 'Name' is replaced by the contract name. In the input and output fields, the input and output patterns are specified. Since Michelson operates on a stack, we assume that the stack has only one element, as specified in the input pattern. Similarly, the output stack is assumed to be a stack with only one element, which is specified in the output field. As we have mentioned before, the output should be a pair consisting of an operation list and a storage. In our syntax, for verification purpose, we omit the operation list and then the output is represented by the patern of the value in the storage after the execution is finished.
+The syntax of our property specification language is as follows: 
+\begin{lstlisting}[float,captionpos=b,caption={Smart contract property specification},label={lst:safer-contract-module},numbers=left]
+mcontract Name = spec
+code := {c}
+input := t
+output := t'
+pre-condition := cd
+post-condition := cd'
+\end{lstlisting}
+Here, \KMCONTRACT, \KWITH, \KCODE, \KINPUT, \KOUTPUT, \KPRECONDI, and \KPOSTCONDI\ are keywords. The \KNAME\ is replaced by the contract name. In the input and output fields, the input and output patterns are specified. Since Michelson operates on a stack, we assume that the stack has only one element, as specified in the input pattern. Similarly, the output stack is assumed to be a stack with only one element, which is specified in the output field. As we have mentioned before, the output should be a pair consisting of an operation list and a storage. In our syntax, for verification purpose, we omit the operation list and then the output is represented by the patern of the value in the storage after the execution is finished.
 
 The input and output patterns represent Michelson terms, which can be either concrete values or symbolic values, including variables. When a variable appears for the first time, it needs to be accompanied by its corresponding type declaration. However, subsequent mentions can omit the type declaration. Formally, the pre and post-condition instances are formulas in first-order logic, and they can be handled by an SMT solver, namely the Z3 solver in our framework. The detail of the language grammar is described in in Figure \ref{}. 
 
 
 
 Let's consider the following example of the property specification for the contract named Add:
-\begin{verbatim}
-MContract ‘Add' with
-Code := {UNPAIR; COMPARE; GE; 
-        IF {ADD}{PUSH string 'Unexpected pair'; FAILWITH}}
-Input := Pair (x : int) (y : int)
-Output := (z : int)
-Pre-condition := (x >= 5) | (y >= 3)
-Post-condition := (z >= 8)
-\end{verbatim}
-Here, the program takes as input a stack with only one element, which is a pair of two integers, symbolically specified in the Input field. It then unpairs the input pair to obtain two elements as two integers \VariableX\ and \VariableY.  It then proceeds to destructure the input pair, yielding two integers, denoted as \VariableX\ and \VariableY. Subsequently, the program performs a comparison between these two integers. If \VariableX\ is greater than or equal to \VariableY, the program constructs a new stack with a solitary element at the top representing the sum of \VariableX\ and \VariableY, designated as \VariableZ. Otherwise, the execution terminates with an error message containing the content 'Unexpected pair.' The specification continues by defining pre and post conditions, where the precondition states the assumption that the integer \VariableX\ is greater than or equal to 5 and \VariableY\ is greater than or equal to 3. The postcondition asserts that the result sum \VariableZ\ is greater than or equal to 8.
+\begin{lstlisting}[float,captionpos=b,caption={The specification of Add contracr},label={lst:safer-contract-module},numbers=left]
+mcontract Add = spec
+code := {UNPAIR; COMPARE; GE; 
+        IF {ADD}{PUSH string 'Unexpected Pair'; FAILWITH}}
+input := Pair (x : int) (y : int)
+output := (z : int)
+pre-condition := (x >= 5) | (y >= 3)
+post-condition := (z >= 8)
+\end{lstlisting}
+Here, the program takes as input a stack with only one element, which is a pair of two integers, symbolically specified in the Input field. It then unpairs the input pair to obtain two elements as two integers \VX\ and \VY.  It then proceeds to destructure the input pair, yielding two integers. Subsequently, the program performs a comparison between these two integers. If  \VX\ is greater than or equal to \VY, the program constructs a new stack with a solitary element at the top representing the sum of  \VX\ and \VY, designated as \VZ. Otherwise, the execution terminates with an error message containing the content 'Unexpected pair.' The specification continues by defining pre and post conditions, where the precondition states the assumption that the integer  \VX\ is greater than or equal to 5 and \VY\ is greater than or equal to 3. The postcondition asserts that the result sum \VZ\ is greater than or equal to 8.
 
+A smart contract may offer various functions for users to interact. Therefore, our language is designed to allow users to specify different functions, referred to as entrypoints, in Michelson. This design enables us to specify and verify all functions within a smart contract. Furthermore, this design allows us to describe and verify relationships between functions.  The syntax is as follows: 
+\begin{lstlisting}[float,captionpos=b,caption={Multiple entrypoint specification syntax},label={lst:safer-contract-module},numbers=left][h]
+mcontract Name = spec
+   entrypoint %a 
+      code := {c1}
+      input := t1
+      output := t1'
+      pre-condition := cd1
+      post-condition := cd1'
+   entrypoint %b 
+      code := {c2}
+      input := t2
+      output := t2'
+      pre-condition := cd2
+      post-condition := cd2'
+   entrypoint %c 
+      ...
+   < entrypoint relations>
+\end{lstlisting}
+where the entrypoint name is written after the \lstinline/%/ symbol and is followed by a property specification for the entrypoint. At the end of the specification is the entrypoint relation specification, which we will explain next.
 
+To illustrate this, let's consider the following auction smart contract. This contract has two entrypoints, bid and close, which serve as functions for bidding and closing the contract, respectively. The smart contract storage on the blockchain is a pair containing the first element as a boolean value that indicates whether the contract is still open for bidding or already closed. The second element is another nested pair, where the first element  stores the highest bidder's address, and the second element is the contract owner's address.
+
+Closing the contract transfers the balance to the owner and is restricted to the owner. Both closing and bidding operations fail if the auction is already closed. If bidding is open and the amount of tokens accompanying the bid exceeds the current highest bid, the current bidder replaces the previous highest bidder, and the previous highest bidder is reimbursed. Otherwise, bidding fails.
+
+Upon deployment, the owner deposits an initial balance to indicate the minimum bid. The contract is supposed to be deployed with the storage value  \lstinline/Pair True (Pair owner owner)/, indicating that bidding is allowed, and the contract owner is currently the highest bidder.
+
+\begin{lstlisting}[float,captionpos=b,caption={Multiple entrypoint specification syntax},label={lst:safer-contract-module},numbers=left]
+mcontract Auction = spec 
+  entrypoint %bid
+    code := {...}
+    input := Pair Unit (Pair (auction_open: bool) 
+                             (Pair (highest_bidder: mutez)
+                                   (contract_owner: address)))
+    output :=   Pair (new_contract_open: bool) 
+                     Pair (new_highest_bidder: address)
+                          (new_contract_owner: address))
+    pre-condition := (auction_open = true) |
+                     (Amount > Balance) 
+    post-condition := (Post_Balance = Amount) |
+                      (new_highest_bidder = Sender) |
+                      (new_contract_owner = contract_owner) |
+                      Transfer_token (Unit, Balance, highest_bidder) ;
+  entrypoint %close
+    code := {...}
+    input := Pair Unit (Pair (auction_open: bool) 
+                             (Pair (highest_bidder: mutez)
+                                   (contract_owner: address)))
+    output :=   Pair (new_contract_open: bool) 
+                     Pair (new_highest_bidder: address)
+                          (new_contract_owner: address))
+    pre-condition := (auction_open = true) |
+                     (Sender = contract_owner)                  
+    post-condition := (Post_Balance = 0) |
+                      Transfer_token (Unit, Balance, contract_owner) ;
+    (%create -> %close) with (auction_open = true)  && (Amount > Balance) | 
+    (%create  -> %close) with (auction_open = true) && (Sender > contract_owner) |
+    (%bid -> %bid) with (auction_open = true) && (Amount > Balance)  | 
+    (%bid -> %close) with (auction_open = true) && (Sender > Balance)  | 
+    not (%close -> %bid) |
+    not (%close -> %close)"
+\end{lstlisting}
+
+There are several properies that we want to grantuee in this contract. Lets take look at the specification for the auction contract. For the  \lstinline/bid/ entrypoint, the input stack is  the one with only one element, which is a pair consitting the parameter and the current storage. Here, the parameter is \lstinline/Unit/ of type \lstinline/unit/. The current storage represnted symbolicly as a nested pair, where the first element is the auction-open variable of type bool and the second element is an other pair consiting the highest-bidder of type address as the first element and the contract-owner variable of also type address as the second 
+
+There are several properties that we want to guarantee in this contract. Let's take a look at the specification for the auction contract. For the \lstinline/bid/ entrypoint, the input stack is the one with only one element, which is a pair consisting of the parameter and the current storage. Here, the parameter is \lstinline/Unit/ of type \lstinline/unit/. The current storage is represented symbolically as a nested pair, where the first element is the \lstinline/auction_open/ variable of type \lstinline/bool/, and the second element is another pair consisting of the \lstinline/highest_bidder/ of type \lstinline/address/ as the first element and the \lstinline/contract_owner/ variable, also of type \lstinline/address/, as the second element. The output term should maintain the required pattern of the storage, where the values may be changed, and these changes are recorded in other symbolic variables. We add the prefix \lstinline/new/ to the old variable names to represent the new variables corresponding to the old ones
 
 
 \section {Static Checker}
@@ -861,7 +926,7 @@ T, U &::= \\
 \begin{mathpar}
 \inferrule[DIG]
   {
-   \FLEN(\A) \EQUAL\ \N
+   \FLEN(\A) \EQ\ \N
   }
   {[(\DIG\ \N ; \INSTRUCTION), \A\ \At\ (\StackOne, \TY) \STACKCONCAT\B, \PREDICATE] \StateTrans 
 [\INSTRUCTION, (\StackOne, \TY) \STACKCONCAT\A\ \At\ \B, \PREDICATE]}
@@ -887,7 +952,7 @@ T, U &::= \\
 \begin{mathpar}
 \inferrule[DIP n]
   { 
-     \FLEN(\A) \EQUAL\ \N \\ [\INSTRUCTIONONE,  \B, Q]
+     \FLEN(\A) \EQ\ \N \\ [\INSTRUCTIONONE,  \B, Q]
     \StateTrans^*
     [\EMPTYSTACK,  \B_1, Q']
   }
@@ -900,7 +965,7 @@ T, U &::= \\
   \inferrule[PUSH]
   {  
   }{
-    [(\PUSH\ \TY\ \VariableX; \INSTRUCTION),\STACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, (\VariableX, \TY) \STACKCONCAT\STACK, \PREDICATE]}
+    [(\PUSH\ \TY\ \X; \INSTRUCTION),\STACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, (\X, \TY) \STACKCONCAT\STACK, \PREDICATE]}
 \end{mathpar}
 
 
@@ -911,7 +976,7 @@ T, U &::= \\
   {
   }
   {[(\ADD; \INSTRUCTION), (\StackOne, \TNAT) \STACKCONCAT(\StackTwo, \TNAT) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
-[\INSTRUCTION, (\VariableX, \TNAT) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\VariableX\ \EQUAL\ \StackOne\ \PLUS\ \StackTwo)]}
+[\INSTRUCTION, (\X, \TNAT) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\X\ \EQ\ \StackOne\ \PLUS\ \StackTwo)]}
 \end{mathpar}
 
 %ABS
@@ -923,9 +988,9 @@ T, U &::= \\
     [(\ABS; \INSTRUCTION), (\StackOne, \TINT) \STACKCONCAT \STACK,
     \PREDICATE]
     \StateTrans \
-    [\INSTRUCTION, (\VariableX, \TNAT) \STACKCONCAT \STACK,
-    \PREDICATE \wedge (\StackOne \ge 0 \Rightarrow \VariableX =
-    \StackOne) \wedge (\StackOne <0 \Rightarrow \VariableX = -\StackOne)]
+    [\INSTRUCTION, (\X, \TNAT) \STACKCONCAT \STACK,
+    \PREDICATE \wedge (\StackOne \ge 0 \Rightarrow \X =
+    \StackOne) \wedge (\StackOne <0 \Rightarrow \X = -\StackOne)]
  }
 \end{mathpar}
 
@@ -938,17 +1003,17 @@ T, U &::= \\
     [(\COMPARE ; \INSTRUCTION), (\StackOne, \TNAT) \STACKCONCAT (\StackTwo, \TNAT)
     \STACKCONCAT \STACK, \PREDICATE ]
     \SystemTrans \\
-    [\INSTRUCTION, (\VariableX, \TINT) \STACKCONCAT \STACK, \PREDICATE
-    \wedge\ (\StackOne > \StackTwo \Leftrightarrow \VariableX = 1)
-    \wedge\ (\StackOne = \StackTwo \Leftrightarrow \VariableX = 0) 
-    \wedge\ (\StackOne < \StackTwo \Leftrightarrow \VariableX = -1)]
+    [\INSTRUCTION, (\X, \TINT) \STACKCONCAT \STACK, \PREDICATE
+    \wedge\ (\StackOne > \StackTwo \Leftrightarrow \X = 1)
+    \wedge\ (\StackOne = \StackTwo \Leftrightarrow \X = 0) 
+    \wedge\ (\StackOne < \StackTwo \Leftrightarrow \X = -1)]
     }
 \end{mathpar}
 
 \begin{mathpar}
 \inferrule[COMPARE-some-some]
   {
-  [\COMPARE,  (\VariableX, \TY) \STACKCONCAT (\VariableY, \TY) \STACKCONCAT\EMPTYSTACK, Q]
+  [\COMPARE,  (\X, \TY) \STACKCONCAT (\Y, \TY) \STACKCONCAT\EMPTYSTACK, Q]
     \StateTrans^*
     [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
   }
@@ -957,8 +1022,8 @@ T, U &::= \\
     \STACKCONCAT \STACK, \PREDICATE \wedge Q]
     \SystemTrans \\
     [\INSTRUCTION, (\VariableA, \TINT) \STACKCONCAT \STACK,  \PREDICATE
-    \wedge (\StackOne\ \EQUAL\ \SOME\ \VariableX)
-    \wedge (\StackTwo\ \EQUAL\ \SOME\ \VariableY)
+    \wedge (\StackOne\ \EQ\ \SOME\ \X)
+    \wedge (\StackTwo\ \EQ\ \SOME\ \Y)
     \wedge Q']
     }
 \end{mathpar}
@@ -972,8 +1037,8 @@ T, U &::= \\
     \STACKCONCAT \STACK, \PREDICATE]
     \SystemTrans \\
     [\INSTRUCTION, (1, \TINT) \STACKCONCAT \STACK,  \PREDICATE
-    \wedge (\StackOne\ \EQUAL\ \SOME\ \VariableX)
-    \wedge (\StackTwo\ \EQUAL\ \NONE)
+    \wedge (\StackOne\ \EQ\ \SOME\ \X)
+    \wedge (\StackTwo\ \EQ\ \NONE)
     ]
     }
 \end{mathpar}
@@ -985,7 +1050,7 @@ T, U &::= \\
   {
   }
   {[(\XOR; \INSTRUCTION), (\StackOne, \TBOOL) \STACKCONCAT(\StackTwo, \TBOOL) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
-[\INSTRUCTION, (\VariableX, \TBOOL) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\VariableX\ \EQUAL\ \StackOne\ \FXOR\ \StackTwo)]}
+[\INSTRUCTION, (\X, \TBOOL) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\X\ \EQ\ \StackOne\ \FXOR\ \StackTwo)]}
 \end{mathpar}
 
 \paragraph{Crytographic oprerations}
@@ -995,7 +1060,7 @@ T, U &::= \\
   {
   }
   {[(\HASHKEY; \INSTRUCTION), (\StackOne, \TBYTE) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
-[\INSTRUCTION, (\VariableX, \TBYTE) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\VariableX\ = \FHASHKEY(\StackOne))]}
+[\INSTRUCTION, (\X, \TBYTE) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\X\ = \FHASHKEY(\StackOne))]}
 \end{mathpar}
 
 %AMOUNT
@@ -1005,7 +1070,7 @@ T, U &::= \\
   {
   }
   {[(\AMOUNT; \INSTRUCTION), \STACK, \PREDICATE] \StateTrans \
-[\INSTRUCTION, (\VAMOUNT, \TMUTEZ) \STACKCONCAT\STACK, \PREDICATE}
+[\INSTRUCTION, (\CAMOUNT, \TMUTEZ) \STACKCONCAT\STACK, \PREDICATE}
 \end{mathpar}
 
 %CONTRACT ty
@@ -1014,7 +1079,7 @@ T, U &::= \\
   {
   }
   {[(\CONTRACT\ \TY ; \INSTRUCTION), (\StackOne, \TADDR) \STACKCONCAT\STACK, \PREDICATE] \SystemTrans \
-[\INSTRUCTION, (\SOME\ \VariableX, \TOPTION\ (\TCONTRACT\ \TY)) \STACKCONCAT\STACK, \\ \PREDICATE \Wedge\ (\GETCONTRACTTYPE(\StackOne, \TY) = \SOME\ \VariableX)]}
+[\INSTRUCTION, (\SOME\ \X, \TOPTION\ (\TCONTRACT\ \TY)) \STACKCONCAT\STACK, \\ \PREDICATE \Wedge\ (\GETCONTRACTTYPE(\StackOne, \TY) \EQ\ \SOME\ \X)]}
 \end{mathpar}
 
 \begin{mathpar}
@@ -1032,7 +1097,7 @@ T, U &::= \\
   {
   }
   {[(\CAR; \INSTRUCTION), (\StackOne, \TPAIR\ \TYF\ \TYS) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
-[\INSTRUCTION, (\VariableX, \TYF) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \PAIR\ \VariableX\ \VariableY)]}
+[\INSTRUCTION, (\X, \TYF) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \PAIR\ \X\ \Y)]}
 \end{mathpar}
 
 \subsubsection{Branch Instructions}
@@ -1059,8 +1124,8 @@ The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value a
     \{[(\IFLEFT\ \INSTRUCTIONONE\ \INSTRUCTIONTWO; \INSTRUCTION),
     (\StackOne, \TOR\ \TYF\ \TYS) \STACKCONCAT \STACK, \PREDICATE]\}  \cup  \SYSTEM
     \SystemTrans \\
-    \{[\INSTRUCTIONONE, (\VariableX, \TYF) \STACKCONCAT\STACK,
-    \PREDICATE \wedge (\StackOne\ \EQUAL\ \LEFT\ \VariableX)]\}  \cup  \{  [\INSTRUCTIONTWO, (\VariableX, \TYS) \STACKCONCAT\STACK, \PREDICATE \wedge (\StackOne\ \EQUAL\ \RIGHT\ \VariableX))]\} \cup \SYSTEM
+    \{[\INSTRUCTIONONE, (\X, \TYF) \STACKCONCAT\STACK,
+    \PREDICATE \wedge (\StackOne\ \EQ\ \LEFT\ \X)]\}  \cup  \{  [\INSTRUCTIONTWO, (\X, \TYS) \STACKCONCAT\STACK, \PREDICATE \wedge (\StackOne\ \EQ\ \RIGHT\ \X))]\} \cup \SYSTEM
   }
 \end{mathpar}
 %IF_CONS
@@ -1068,14 +1133,14 @@ The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value a
   \inferrule[IF-CONS-empty]
   {  
   }{
-    [(\IFCONS\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans\  [\INSTRUCTIONTWO; \INSTRUCTION, \STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST)]}
+    [(\IFCONS\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans\  [\INSTRUCTIONTWO; \INSTRUCTION, \STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \EMPTYLIST)]}
 \end{mathpar}
 
 \begin{mathpar}
   \inferrule[IF-CONS-nonempty]
   {  
   }{
-   [(\IFCONS\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE], \SYSTEM\ \StateTrans\  \\ [\INSTRUCTIONONE, (\HEAD, \TY) \STACKCONCAT(\{ \TAIL \}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQUAL\ \{\HEAD; \STAIL \})]}
+   [(\IFCONS\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE], \SYSTEM\ \StateTrans\  \\ [\INSTRUCTIONONE, (\HEAD, \TY) \STACKCONCAT(\{ \TAIL \}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQ\ \{\HEAD; \STAIL \})]}
 \end{mathpar}
 
 
@@ -1085,14 +1150,14 @@ The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value a
   \inferrule[IF-NONE-none]
   {  
   }{
-    [(\IFNONE\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  (\StackOne, \TOPTION\ \TY) \STACKCONCAT\STACK, \PREDICATE], \SYSTEM\ \StateTrans\   [\INSTRUCTIONONE; \INSTRUCTION, \STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \NONE)]}
+    [(\IFNONE\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  (\StackOne, \TOPTION\ \TY) \STACKCONCAT\STACK, \PREDICATE], \SYSTEM\ \StateTrans\   [\INSTRUCTIONONE; \INSTRUCTION, \STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \NONE)]}
 \end{mathpar}
 
 \begin{mathpar}
   \inferrule[IF-NONE-some]
   {  
   }{
-    [(\IFNONE\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),   (\StackOne, \TOPTION\ \TY) \STACKCONCAT\STACK, \PREDICATE], \SYSTEM\ \StateTrans\   [\INSTRUCTIONTWO,  (\VariableX, \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQUAL\ \SOME\ \VariableX)]}
+    [(\IFNONE\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),   (\StackOne, \TOPTION\ \TY) \STACKCONCAT\STACK, \PREDICATE], \SYSTEM\ \StateTrans\   [\INSTRUCTIONTWO,  (\X, \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQ\ \SOME\ \X)]}
 \end{mathpar}
 
 \subsubsection{Loop Instructions}
@@ -1125,7 +1190,7 @@ The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value a
   \inferrule[ITER-empty]
   {  
   }{
-    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, \STACK,  \PREDICATE\ \Wedge\  (\StackOne\ \EQUAL\ \EMPTYLIST)]
+    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, \STACK,  \PREDICATE\ \Wedge\  (\StackOne\ \EQ\ \EMPTYLIST)]
   }
 \end{mathpar}
 
@@ -1136,7 +1201,7 @@ The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value a
     \StateTrans^*
     [ \EMPTYSTACK,  \STACK', Q']
   }{
-    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE \wedge Q] \StateTrans \\ [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), \{\STAIL\}\ \STACKCONCAT\STACK',  \PREDICATE \wedge Q' \Wedge  ( \StackOne\ \EQUAL\ \{\HEAD; \STAIL \}) ]
+    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE \wedge Q] \StateTrans \\ [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), \{\STAIL\}\ \STACKCONCAT\STACK',  \PREDICATE \wedge Q' \Wedge  ( \StackOne\ \EQ\ \{\HEAD; \STAIL \}) ]
   }
 \end{mathpar}
 
@@ -1148,7 +1213,7 @@ The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value a
   {
   }
   {[(\CONCAT; \INSTRUCTION), (\StackOne, \TYLIST\ \TSTR) \STACKCONCAT\STACK,  \PREDICATE] \StateTrans 
-[\INSTRUCTION,  ("",  \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST)]}
+[\INSTRUCTION,  ("",  \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \EMPTYLIST)]}
 \end{mathpar}
 
 \begin{mathpar}
@@ -1159,7 +1224,7 @@ The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value a
     [\EMPTYSTACK, (\StackTwo,  \TSTR) \STACKCONCAT\EMPTYSTACK, Q']
   }
   {[(\CONCAT; \INSTRUCTION),  (\StackOne, \TYLIST\ \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \StateTrans \\
-[\INSTRUCTION, ( \HEAD\ \STRINGCONCAT\ \StackTwo, \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \{\HEAD; \TAIL\}) \Wedge\ Q']}
+[\INSTRUCTION, ( \HEAD\ \STRINGCONCAT\ \StackTwo, \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \{\HEAD; \TAIL\}) \Wedge\ Q']}
 \end{mathpar}
 
 
@@ -1169,7 +1234,7 @@ The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value a
   {
   }
   {[(\MEM; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT(\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
-[\INSTRUCTION, (\FALSE, \TBOOL) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackTwo\ \EQUAL\ \EMPTYSET)]}
+[\INSTRUCTION, (\FALSE, \TBOOL) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackTwo\ \EQ\ \EMPTYSET)]}
 \end{mathpar}
 
 \begin{mathpar}
@@ -1180,7 +1245,7 @@ The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value a
     [\EMPTYSTACK,  (\VariableB, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
   }
   {[(\MEM; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT(\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \StateTrans  \
-[\MEM; \INSTRUCTION, \StackOne\ \STACKCONCAT\{\LESS\ \M\ \MORE\} \STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQUAL\ \{\ELT\ \K\ \V; \LESS\ \M\ \MORE\})  \Wedge\ (\VariableB\ \EQUAL\ \ONE)]}
+[\MEM; \INSTRUCTION, \StackOne\ \STACKCONCAT\{\LESS\ \M\ \MORE\} \STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQ\ \{\ELT\ \K\ \V; \LESS\ \M\ \MORE\})  \Wedge\ (\VariableB\ \EQ\ \ONE)]}
 \end{mathpar}
 
 \begin{mathpar}
@@ -1191,7 +1256,7 @@ The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value a
     [\EMPTYSTACK,  (\VariableB, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
   }
   {[(\MEM; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT(\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \StateTrans  \\
-[\INSTRUCTION, (\TRUE, \TBOOL) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQUAL\ \{\ELT\ \K\ \V; \LESS\ \M\ \MORE\}) \Wedge\ (\VariableB\ \EQUAL\ \ZERO)]}
+[\INSTRUCTION, (\TRUE, \TBOOL) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQ\ \{\ELT\ \K\ \V; \LESS\ \M\ \MORE\}) \Wedge\ (\VariableB\ \EQ\ \ZERO)]}
 \end{mathpar}
 
 \begin{mathpar}
@@ -1202,7 +1267,7 @@ The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value a
     [\EMPTYSTACK,  (\VariableB, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
   }
   {[(\MEM; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT(\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \StateTrans  \\
-[\INSTRUCTION, (\FALSE, \TBOOL) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQUAL\ \{\ELT\ \K\ \V; \LESS\ \M\ \MORE\})  \Wedge\ (\VariableB\ \EQUAL\ \MINUS\ \ONE)]}
+[\INSTRUCTION, (\FALSE, \TBOOL) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQ\ \{\ELT\ \K\ \V; \LESS\ \M\ \MORE\})  \Wedge\ (\VariableB\ \EQ\ \MINUS\ \ONE)]}
 \end{mathpar}
 
 %MAP
@@ -1211,7 +1276,7 @@ The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value a
   {
   }
   {[(\MAP\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
-[\INSTRUCTION, (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST)]}
+[\INSTRUCTION, (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \EMPTYLIST)]}
 \end{mathpar}
 
 \begin{mathpar}
@@ -1224,77 +1289,77 @@ The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value a
     [\EMPTYSTACK,  (\{\PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK , Q2']
   }
   {[(\MAP\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1 \Wedge\ Q2 ] \StateTrans  \\
-[\INSTRUCTION, (\{\PHEAD; \PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1' \Wedge\ Q2'  \Wedge\ (\StackOne \EQUAL\ \{\HEAD; \TAIL\})]}
+[\INSTRUCTION, (\{\PHEAD; \PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1' \Wedge\ Q2'  \Wedge\ (\StackOne \EQ\ \{\HEAD; \TAIL\})]}
 \end{mathpar}
 
 \begin{mathpar}
 \inferrule[UPDATE-empty-true]
   {
   }
-  {[(\UPDATE; \INSTRUCTION), (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE]\ \SystemTrans\  \\ [\INSTRUCTION, (\{\VariableX \}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\  \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST) \Wedge\ (\VariableB\ \EQUAL\ \TRUE)]}
+  {[(\UPDATE; \INSTRUCTION), (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE]\ \SystemTrans\  \\ [\INSTRUCTION, (\{\X \}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\  \Wedge\ (\StackOne\ \EQ\ \EMPTYLIST) \Wedge\ (\VariableB\ \EQ\ \TRUE)]}
 \end{mathpar}
 
 \begin{mathpar}
 \inferrule[UPDATE-empty-false]
   {
   }
-  {[(\UPDATE; \INSTRUCTION), (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE]\ \SystemTrans\  \\ [\INSTRUCTION, (\EMPTYLIST, \TYLIST\ \TY)\ \STACKCONCAT\STACK, \PREDICATE\  \Wedge\ (\StackOne\ \EQUAL\ \EMPTYLIST) \Wedge\ (\VariableB\ \EQUAL\ \FALSE)]}
+  {[(\UPDATE; \INSTRUCTION), (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE]\ \SystemTrans\  \\ [\INSTRUCTION, (\EMPTYLIST, \TYLIST\ \TY)\ \STACKCONCAT\STACK, \PREDICATE\  \Wedge\ (\StackOne\ \EQ\ \EMPTYLIST) \Wedge\ (\VariableB\ \EQ\ \FALSE)]}
 \end{mathpar}
 
 \begin{mathpar}
 \inferrule[UPDATE-nonempty-true]
   {
-  [\COMPARE, (\VariableX, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
+  [\COMPARE, (\X, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
     [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
   }
-  {[(\UPDATE; \INSTRUCTION), (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans
+  {[(\UPDATE; \INSTRUCTION), (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans
 [\INSTRUCTION, (\StackOne, \TYLIST\ \TY)
-\STACKCONCAT\STACK,\\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQUAL\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQUAL\ \TRUE) \Wedge\ (\VariableA\ \EQUAL\ \ZERO)]}
+\STACKCONCAT\STACK,\\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQ\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQ\ \TRUE) \Wedge\ (\VariableA\ \EQ\ \ZERO)]}
 \end{mathpar}
 
 \begin{mathpar}
 \inferrule[UPDATE-nonempty-false]
   {
-  [\COMPARE, (\VariableX, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
+  [\COMPARE, (\X, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
     [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
   }
-  {[(\UPDATE; \INSTRUCTION), (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans  \\
+  {[(\UPDATE; \INSTRUCTION), (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans  \\
 [\INSTRUCTION, (\{\TAIL\}, \TYLIST\ \TY)
-\STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQUAL\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQUAL\ \FALSE) \Wedge\ (\VariableA\ \EQUAL\ \ZERO)]}
+\STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQ\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQ\ \FALSE) \Wedge\ (\VariableA\ \EQ\ \ZERO)]}
 \end{mathpar}
 
 \begin{mathpar}
 \inferrule[UPDATE-nonempty-true]
   {
-  [\COMPARE, (\VariableX, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
+  [\COMPARE, (\X, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
     [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
   }
-  {[(\UPDATE; \INSTRUCTION), (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans  \\
-[\INSTRUCTION, (\{\VariableX; \HEAD; \TAIL\}, \TYLIST\ \TY)
-\STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQUAL\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQUAL\ \TRUE) \Wedge\ (\VariableA\ \EQUAL\ \MINUS\ \ONE)]}
+  {[(\UPDATE; \INSTRUCTION), (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans  \\
+[\INSTRUCTION, (\{\X; \HEAD; \TAIL\}, \TYLIST\ \TY)
+\STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQ\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQ\ \TRUE) \Wedge\ (\VariableA\ \EQ\ \MINUS\ \ONE)]}
 \end{mathpar}
 
 \begin{mathpar}
 \inferrule[UPDATE-nonempty-false]
   {
-  [\COMPARE, (\VariableX, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
+  [\COMPARE, (\X, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
     [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
   }
-  {[(\UPDATE; \INSTRUCTION), (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans\  \\
+  {[(\UPDATE; \INSTRUCTION), (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans\  \\
 [\INSTRUCTION, (\{\HEAD; \TAIL\}, \TYLIST\ \TY)
-\STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQUAL\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQUAL\ \FALSE) \Wedge\ (\VariableA\ \EQUAL\ \MINUS\ \ONE)]}
+\STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQ\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQ\ \FALSE) \Wedge\ (\VariableA\ \EQ\ \MINUS\ \ONE)]}
 \end{mathpar}
 
 \begin{mathpar}
 \inferrule[UPDATE-nonempty-1]
   {
-  [\COMPARE, (\VariableX, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q1] \StateTrans^*
+  [\COMPARE, (\X, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q1] \StateTrans^*
     [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q1'] \\
- [\UPDATE, (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT( \{\TAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK, Q2] \StateTrans^* \\  [\EMPTYSTACK, ( \{\PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK, Q2']
+ [\UPDATE, (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT( \{\TAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK, Q2] \StateTrans^* \\  [\EMPTYSTACK, ( \{\PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK, Q2']
   }
-  {[(\UPDATE; \INSTRUCTION), (\VariableX, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1 \Wedge\ Q2 ] \SystemTrans\  \\
+  {[(\UPDATE; \INSTRUCTION), (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1 \Wedge\ Q2 ] \SystemTrans\  \\
 [\INSTRUCTION; (\{\HEAD; \PTAIL\}, \TYLIST\ \TY)
-\STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1' \Wedge\ Q2' \Wedge\ (\StackOne\ \EQUAL\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableA\ \EQUAL\ \ONE)]}
+\STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1' \Wedge\ Q2' \Wedge\ (\StackOne\ \EQ\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableA\ \EQ\ \ONE)]}
 \end{mathpar}
 
 
@@ -1321,9 +1386,9 @@ Semantic
 \end{mathpar}
 
 \begin{mathpar} 
-  \inferrule{\INSTRUCTION\  /  \VariableX\ \STACKCONCAT\ \STACK \SRightarrow\ \STACK'
+  \inferrule{\INSTRUCTION\  /  \X\ \STACKCONCAT\ \STACK \SRightarrow\ \STACK'
   }{
-    \ITER\ \INSTRUCTION\ / \{ \VariableX\ ; \TAIL\ \} \STACKCONCAT\ \STACK\ \SRightarrow\ \ITER\ \INSTRUCTION\ / \{ \TAIL\ \} \STACKCONCAT\ \STACK' 
+    \ITER\ \INSTRUCTION\ / \{ \X\ ; \TAIL\ \} \STACKCONCAT\ \STACK\ \SRightarrow\ \ITER\ \INSTRUCTION\ / \{ \TAIL\ \} \STACKCONCAT\ \STACK' 
     }
 \end{mathpar}
 \subsubsection{While loops: \LOOP\ and \LOOP-LEFT}
