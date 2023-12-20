@@ -797,6 +797,25 @@ Consider the specification of the Add contract in Listing \ref{lst:add-contract-
 \subsubsection{Life-cycle check}
 \section {Case Studies}
 \subsection{USDtz}
+In a blockchain ecosystem, tokens represent digital assets that can be transferred between accounts. These tokens are securely stored and verified within the blockchain network. There are various types of tokens, including native tokens (cryptocurrencies) like Bitcoin, Ether, Tezos, and others. Additionally, tokens can be created through smart contracts on an existing blockchain. Two common categories are: (1) Fungible Tokens (FT), which are interchangeable and (2) Non-Fungible Tokens (NFTs), which represent unique digital assets, and each unit is distinct. Stablecoins, falling under fungible tokens, are designed to maintain a stable value by tracking the value of a fiat currency like USD or EUR.
+
+While you can create tokens that behave in any way that you want them to behave, implementing tokens that adhere to established standards is advisable for interoperability and compatibility across different platforms. A Token standard defines a set of rules and an interface that smart contracts must follow to ensure consistency and compatibility with decentralized exchanges, wallets, and other tools within the ecosystem. For example, ERC-20 is a standard used in Ethereum for implementing tokens. 
+
+Tezos blockchain has its own set of standards called Financial Applications (FA). Two popular standards are: (1) FA 1.2, which is designed for fungible tokens, and FA 2, which is more versatile, accommodating both fungible and non-fungible tokens (NFTs). The detail of FA 1.2 is published in \ref{}. In this section, we verify USDtz \ref{}, which is an implementation of the FA 1.2 standard . Our goal is to confirm that the implementation aligns with the standard, ensuring its correctness.  USDtz is written to the FA token standard and The USDtz smart-contract's initial deployment has been under the FA 1.2 standard.
+
+
+FA 1.2  includes functions such as transfer (transacting between users), approve (allowing one user to send tokens from another user's address), allowance (checking the amount of tokens available for a specific transaction), user balance (checking the balance of a user), and current supply (checking the total supply of tokens across all addresses). A contract which implements approvable ledger must have the following entrypoints:
+
+\begin{lstlisting}[float,captionpos=b,caption={FA 1.2 interface},label={lst:fail-condition-auction-contract-close},numbers=left]
+(address :from, (address :to, nat :value)) %transfer
+(address :spender, nat :value) %approve
+(view (address :owner, address :spender) nat) %getAllowance
+(view (address :owner) nat) %getBalance
+(view unit nat) %getTotalSupply
+\end{lstlisting}
+
+
+
 
 \subsection{Kolibri Oracle Contract}
 \section {Related Work}
