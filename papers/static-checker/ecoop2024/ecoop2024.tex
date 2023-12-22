@@ -827,11 +827,14 @@ The implementation consists of approximately 1000 instructions. It contains all 
 
 
 \subsubsection{transfer}
-As illustrated in Listing \ref{lst:fa12-interface}, the \lstinline/transfer/ entrypoint credits the account associated with the address provided in the \lstinline/to/ parameter, while debiting the account corresponding to the \lstinline/from/ parameter with the specified \lstinline/value/ amount. The FA 1.2 standard mandates that this call must fail under the following two conditions: (1) In the event of insufficient balance, this entrypoint MUST fail with the error \lstinline/NotEnoughBalance/, indicating insufficient funds in the sender's account to execute the transfer. The error MUST contain a \lstinline/pair (nat :value) (nat :present)/ pair, where \lstinline/value/ is the requested amount of tokens, and \lstinline/present/ is the available amount. (2) If the sender's account has no permission to withdraw the \lstinline/value/ amount of funds, the call will fail with the \lstinline/NotEnoughAllowance/ error, which also contains the same pair message as the first failure scenario. To verify these requirements, we unize the failwith condition of the tool and the result return as in Listing \ref{}. 
+As illustrated in Listing \ref{lst:fa12-interface}, the \lstinline/transfer/ entrypoint credits the account associated with the address provided in the \lstinline/to/ parameter, while debiting the account corresponding to the \lstinline/from/ parameter with the specified \lstinline/value/ amount. The FA 1.2 standard mandates that this call must fail under the following two conditions: (1) In the event of insufficient balance, this entrypoint MUST fail with the error \lstinline/NotEnoughBalance/, indicating insufficient funds in the sender's account to execute the transfer. The error MUST contain a \lstinline/pair (nat :value) (nat :present)/ pair, where \lstinline/value/ is the requested amount of tokens, and \lstinline/present/ is the available amount. (2) If the sender's account has no permission to withdraw the \lstinline/value/ amount of funds, the call will fail with the \lstinline/NotEnoughAllowance/ error, which also contains the same pair message as the first failure scenario. To verify these requirements, we utilize the failwith condition feature of the tool and examine the returned results, as outlined in Listing \ref{}.  
 
+The fundamental property that this entrypoint should satisfy is the decrement of the allowance of the sender's account by the \lstinline/value/ that has been sent.
 
+\subsubsection{approve}
 
-
+\subsubsection{getAllowance, getBalance and  getTotalSupply}
+These entrypoints are view entrypoints, and their results, as natural numbers, are sent back to specific addresses, which are smart contracts with entrypoints that have a parameter type of \lstinline/nat/. The property is that there should be no modification in the ledger when these entrypoints are called, and the correct information is sent to the users.
 
 \subsection{Kolibri Oracle Contract}
 \section {Conclusion}
