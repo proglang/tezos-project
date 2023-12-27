@@ -801,7 +801,7 @@ In a blockchain ecosystem, tokens represent digital assets that can be transferr
 
 While you can create tokens that behave in any way that you want them to behave, implementing tokens that adhere to established standards is advisable for interoperability and compatibility across different platforms. A Token standard defines a set of rules and an interface that smart contracts must follow to ensure consistency and compatibility with decentralized exchanges, wallets, and other tools within the ecosystem. For example, ERC-20 is a stoken tandard used in Ethereum. 
 
-Tezos blockchain has its own set of standards known as Financial Applications (FA). Two notable standards are: (1) FA 1.2, designed for fungible tokens, and (2) FA 2, a more versatile standard accommodating both fungible and non-fungible tokens (NFTs).  The standard outlines a smart contract that functions as a ledger, associating identities with balances. This ledger is designed to facilitate token transfer operations and enable approvals for spending tokens from other accounts. Any contract aiming to implement the standard must incorporate the functions specified in Listing \ref{lst:fa12-interface} such as transfer (transacting between users), approve (allowing one user to send tokens from another user's address), allowance (browsing the amount of tokens available for an account to sending from another address), user balance (checking the balance of a user), and current supply (checking the total supply of tokens across all addresses). Further elaboration on the details of FA 1.2 can be found in \ref{}, and we will delve into these functions in subsequent sections.
+Tezos blockchain has its own set of standards known as Financial Applications (FA). Two notable standards are: (1) FA 1.2, designed for fungible tokens, and (2) FA 2, a more versatile standard accommodating both fungible and non-fungible tokens (NFTs).  The standard outlines a smart contract that functions as a ledger, associating identities with balances. This ledger is designed to facilitate token transfer operations and enable approvals for spending tokens from other accounts. Any contract aiming to implement the standard must incorporate the functions specified in Listing \ref{lst:fa12-interface} such as transfer (transacting between users), approve (allowing one user to send tokens from another user's address), allowance (browsing the amount of tokens available for an account to sending from another address), user balance (checking the balance of a user), and current supply (checking the total supply of tokens across all addresses), where \lstinline/view a r = pair a (contract r)/ implies an view entrypoint.  A view is an entrypoint which represents a computation that takes an argument of type \lstinline/a/ and a callback that result in a value of type \lstinline/r/. The callback in this case will be another contract address. Further elaboration on the details of FA 1.2 can be found in \ref{}, and we will delve into these functions in subsequent sections.
 
 \begin{lstlisting}[float,captionpos=b,caption={FA 1.2 interface},label={lst:fa12-interface},numbers=left]
 (address :from, (address :to, nat :value)) %transfer
@@ -832,10 +832,48 @@ As illustrated in Listing \ref{lst:fa12-interface}, the \lstinline/transfer/ ent
 The fundamental property that this entrypoint should satisfy is the decrement of the allowance of the sender's account by the \lstinline/value/ that has been sent.
 
 \subsubsection{approve}
+The crucial property to ensure the correctness of the approve entrypoint is that changing the allowance value from a non-zero value to another non-zero value is forbidden to prevent a corresponding attack vector \ref{}. The basic idea of this attack is that when a non-zero value update is allowed, the \lstinline/spender/ can attempt to spend the entire allowance before the new amount is updated and then spend again with the new value, resulting in a larger amount than actually allowed. This means the contract call must fail when both the parameter \lstinline/value/ is non-zero and the allowance of \lstinline/spender/ is also non-zero. We verify this property by generating the fail condition, and the result is that the non-zero value update is recorded as a fail condition, as shown in Listing \ref{}. This indicates that the implementation ensure the non-zero value update prevention.
+
+
+The other property is that in case the update is allowed, then the updated value needs to be recorded correctly in the storage. This property can be divided into two subproperties, which can be checked separately. The first property is that when the parameter \lstinline/value/ is zero, then the corresponding allowance value of the \lstinline/spender/ from the owner (which is \SENDER\ in this call) should be zero. This subproperty is specified as shown in Listing \ref{}. The second property is that when \lstinline/value/ is non-zero, requiring the allowance of the \lstinline/spender/ to be zero, then the \lstinline/value/ should be recorded in the storage after the call. To check this property, we specify the property as the pre and post conditions, as illustrated in Listing \ref{}.
 
 \subsubsection{getAllowance, getBalance and  getTotalSupply}
-These entrypoints are view entrypoints, and their results, as natural numbers, are sent back to specific addresses, which are smart contracts with entrypoints that have a parameter type of \lstinline/nat/. The property is that there should be no modification in the ledger when these entrypoints are called, and the correct information is sent to the users.
+These entrypoints are view entrypoints. View entrypoints are functions that retrieve information from the storage but don't make any changes to the smart contract state. As Listing \ref{lst:fa12-interface}, the results of these entrypoints are natural numbers, which are sent back to specific addresses, which are smart contracts with entrypoints that have a parameter type of \lstinline/nat/. The implementation of a view entrypoint must return the \lstinline/TRANSFER_TOKENS/ operation targeting the contract passed as an argument with precise information, namely the amount of tokens \lstinline/spender/ is allowed to spend from the \lstinline/owner/ for the \lstinline/getAllowance/ entrypoint, the balance of the owner \lstinline/owner/ for the \lstinline/getBalance/ entrypoint, and the total supply for the \lstinline/getTotalSupply/ entrypoint. Additionally, the transaction must transfer to the callback contract with an amount equal to \AMOUNT. In other words, all the tez passed to a view entrypoint are forwarded to the callback contract. Another important property is that there should be no modification in the ledger when these entrypoints are called.
 
+Let us now demonstrate how to verify the \lstinline/getBalance/ entrypoint, as shown in Listing \ref{lst:specification-get-balance} while two other entrypoints \lstinline/getAllowance/ and \lstinline/getTotalSupply/ entrypoints could be similarly specified. There are two cases to consider: (1) when the \lstinline/owner/ is in the \lstinline/ledger/ big map and (2) when it is not. For the former case, lines 5-8 specify that \lstinline/owner/ is in the \lstinline/ledger/ big map, as the \lstinline/Get_big_map/ function returns a value \lstinline/Some value/ of the \TOPTION\ type, and this \lstinline/value/ is a pair of a natural number \lstinline/k/ and a map \lstinline/m/. The post condition guarantees that the storage remains unchanged, as specified in lines 10-13, and the call returns a \lstinline/TRANSFER_TOKENS/ operation with the \lstinline/k/ number and \lstinline/Amount/ to the passed address \lstinline/c/. The precondition in lines 16-17 specifies the latter case when the \lstinline/owner/ does not exist in the big map \lstinline/ledger/; in this case, the number \lstinline/0/ should be sent, and again, the storage should remain unchanged.
+
+\begin{lstlisting}[float,captionpos=b,caption={Specification for the \lstinline/getBalance/ entrypoint},label={lst:specification-get-balance},numbers=left]
+Input := Pair (Pair (owner: address) (c: contract nat))
+  (Pair (ledger: big_map address (pair nat (map address nat))) 
+         (Pair (admin: address) 
+               (Pair (paused: bool) (total_supply: nat))))
+Pre-condition :=  Get_big_map (owner, ledger) = 
+  Some value: option (pair nat (map address nat)) |
+  value  = Pair (k: nat) (m: (map address nat))
+Post-condition := post_ledger = ledger |
+  post_admin = admin |
+  post_paused = paused |
+  post_total_supply = total_supply |
+  post_Balance = Balance | 
+  Transfer_token (k, Amount, c) ;
+
+Pre-condition :=  Get_big_map (owner, ledger) = 
+  None option (pair nat (map address nat)) 
+Post-condition := post_ledger = ledger |
+  post_admin = admin |
+  post_paused = paused |
+  post_total_supply = total_supply |
+  post_Balance = Balance | 
+  Transfer_token (0, Amount, c) ;
+\end{lstlisting}
+\subsubsection{Other entrypoints}
+The contract provides five additional entrypoints: \lstinline/mint/ to mint you own, \lstinline/burn/ to burn existing tokens, \lstinline/setAdministrator/ and \lstinline/getAdministrator/ to set up or retrieve the administrator of the smart contract, and \lstinline/setPause/ to pause the contract. To generate fail conditions, we detect that \lstinline/transfer/ or \lstinline/approve/ calls fail if the contract is in a paused state. Users or dapps should be aware of this when interacting with the smart contract.
+
+The \lstinline/mint/ and \lstinline/burn/ entrypoints affect the total supply, so they should be recorded consistently with the amount mined or burned. an important property is that only the admin is allowed to call these entrypoints. The same for the \lstinline/setPause/ entrypoint is that only the admin is allowed to set the pause value.
+
+The administrator plays a crucial role in this contract. Therefore, for the \lstinline/setAdministrator/ entrypoint, it needs to guarantee that only the current administrator can call this entrypoint, and the new administrator must match the address passed through the parameter. Another property to ensure is that, except for this entrypoint call, any other smart contract call to this contract should not change the administrator.
+
+All of the above-mentioned properties are specified and verified in our model, and the results show that these properties are guaranteed. This confidence assures us of the correctness of the smart contract code.
 \subsection{Kolibri Oracle Contract}
 \section {Conclusion}
 \section {Appendix}
