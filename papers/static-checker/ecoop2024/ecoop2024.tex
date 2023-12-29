@@ -767,6 +767,8 @@ A Michelson contract can fail due to a programmer-induced condition caused by th
 
 The static checker provides a feature to generate all fail conditions implemented in a smart contract code. The tool searches for all failwith states, resulting from an execution terminated by the \FAILWITH\ instruction, from the final state space, collects the path conditions and the recorded message. The result returned to users includes the fail condition together with the message. For example, for the specification in Listing \ref{lst:add-contract-specification}, the fail condition is recorded as \lstinline/(x < y): 'Unexpected Pair'/. 
 
+The ability to generate fail conditions is a potent feature of our static checker, particularly in verifying access control properties across various smart contracts. Specifically, in numerous smart contract configurations, certain entrypoints are designated for invocation only by authorized entities, often exemplified by the contract owner. Consequently, these entrypoints must result in failure if the callers lack the necessary authorization. This crucial access control property is verified by examining the fail conditions of a smart contract, ensuring that unauthorized callers trigger the intended failures in the system.
+
 For the auction contract, there are several fail conditions. For the entrypoint \lstinline/bid/, the fail condition is as shown in Listing \ref{lst:fail-condition-auction-contract-bid} and for the \lstinline/close/ entrypoint, it is recorded in Listing \ref{lst:fail-condition-auction-contract-close}. For the \lstinline/bid/ entrypoint, there are three fail conditions. First is if the auction is closed, and then if it is not, the contract checks if the amount is greater than the balance. If not, the call fails as well. The last fail happens when the auction is open, the amount is greater than the balance, but the highest bidder's address is invalid. Note that there are several addresses that are valid as Michelson addresses but are not associated with any real account on the Tezos blockchain, or the parameter's type is not correct, while the transfer can only succeed if it is the given parameter and the address is associated with an account with the correct parameter on the Tezos blockchain. Bidding returns the previous highest bid as part of the transaction where the highest bidder is stored as a value of type address. However, to receive a token transfer, this address must be cast (by the Michelson implementation of the contract) to an implicit contract of Michelson type (\TCONTRACT\ \TUNIT). This cast is unavoidable, as a value of contract type cannot be stored. However, the cast may fail, and its failure leads to an error condition that is reported with a \FAILWITH\ instruction in this implementation. In our framework, this cast fail case is shown in the fail condition, but in the user preconditions, it assumes that they are successfully casted. The \lstinline/close/ entrypoint has similar fail conditions when the auction is closed or the owner's address is uncastable. But the other fail condition is when the auction is open, but the sender who calls this entrypoint is not the owner of the contract, which was stored in the contract owner part.
 
 \begin{lstlisting}[float,captionpos=b,caption={Fail condition for Auction contract bid entrypoint },label={lst:fail-condition-auction-contract-bid},numbers=left]
@@ -936,26 +938,90 @@ The oracle offers various entrypoints to interact with the smart contract, inclu
 
 \begin{lstlisting}[float,captionpos=b,caption={Kolibri oracle contract},label={lst:kolibri-oracle-contract},numbers=left]
 parameter
-  ( or
-    ( or
-      ( unit %default )
-      ( contract %getXtzUsdRate nat ) )
-    ( or
-      ( pair %getXtzUsdRate_callback string 
-      ( pair timestamp nat ) )
-      ( or
-        ( address %setGovernorContract )
-        ( nat %setMaxDataDelaySec ) ) ) ) ;
+ (or
+   (or
+     (unit %default )
+     (contract nat %getXtzUsdRate ))
+   (or
+     (pair string (pair timestamp nat) %getXtzUsdRate_callback)
+     (or
+       (address %setGovernorContract)
+       (nat %setMaxDataDelaySec)))) ;
 storage
-  ( pair
-    ( pair ( option %clientCallback address ) 
-          ( address %governorContractAddress ) )
-    ( pair ( address %harbingerContractAddress ) 
-          ( pair ( nat %maxDataDelaySec ) ( int %state ) ) ) ) ;
+ (pair
+   (pair (option %clientCallback address) 
+         (address %governorContractAddress))
+   (pair (address %harbingerContractAddress) 
+         (pair (nat %maxDataDelaySec) (int %state)))) ;
 \end{lstlisting}
 
+Another critical access control property pertains to the resettable nature of \lstinline/governorContractAddress/ and \lstinline/maxDataDelaySec/. While these parameters are designed to be reset, such actions should exclusively be carried out by the governor. Maintaining this restriction is paramount to prevent loss of control over the contract in the event of unauthorized resets. In practical terms, the entrypoints \lstinline/setGovernorContract/ and \lstinline/setMaxDataDelaySec/ must only be invocable by the governor. Any attempts by unauthorized callers to make these calls should result in failure to ensure the integrity of access control and prevent potential misuse of these critical parameters.
 
+The Kolibri oracle contract maintains a straightforward state machine comprising two states: (1) \lstinline/IDLE/ and (2) \lstinline/WAITING_FOR_HARBINGER/. From the \lstinline/IDLE/ state, the oracle can exclusively transition to the \lstinline/WAITING_FOR_HARBINGER/ state. The \lstinline/getXtzUsdPrice/ entrypoint is permissible only when the oracle is in the \lstinline/IDLE/ state, and invoking this entrypoint transitions the oracle to the \lstinline/WAITING_FOR_HARBINGER/ state. Notably, in the \lstinline/IDLE/ state, the value of \lstinline/clientCallback/ is always set to none. Conversely, from the \lstinline/WAITING_FOR_HARBINGER/ state, the oracle can only transition back to the \lstinline/IDLE/ state. The \lstinline/getXtzUsdPrice_callback/ entrypoint is allowable solely when the oracle is in the \lstinline/WAITING_FOR_HARBINGER/ state, and invoking this entrypoint results in the oracle transitioning to the \lstinline/IDLE/ state. In the \lstinline/WAITING_FOR_HARBINGER/ state, the value of \lstinline/clientCallback/ is always set to some.
 
+Several properties must be verified to ensure the correct functioning of the state machine. The initial property states that \lstinline/getXtzUsdPrice/ can only be invoked when in the \lstinline/IDLE/ state, while conversely, \lstinline/getXtzUsdPrice_callback/ can only be invoked when in the \lstinline/WAITING_FOR_HARBINGER/ state. The validation of this property involves examining the fail conditions of these two entrypoints.
+
+The subsequent property dictates that if \lstinline/getXtzUsdPrice/ is successfully executed, the state must transition to \lstinline/WAITING_FOR_HARBINGER/, and the parameters passed along with the call need to be stored in the \lstinline/clientCallback/ attribute of the storage. This property can be detailed as shown in Listing \ref{lst:kolibri-contract-specification}.
+
+The following property asserts that if \lstinline/getXtzUsdPrice_callback/ is successful, the state should revert to \lstinline/IDLE/, and there must be a transaction transferring the data to the client at the \lstinline/clientCallback/ attribute. This property is specified in Listing \ref{lst:kolibri-contract-specification}.
+
+The final property concerns the entrypoint relation between \lstinline/getXtzUsdPrice/ and \lstinline/getXtzUsdPrice_callback/ as depicted in Figure \ref{fig:kolibri-oracle-emtrypoint-relations}. From the \lstinline/getXtzUsdPrice/ entrypoint, the contract can only be called with \lstinline/getXtzUsdPrice_callback/ and then reverted. Invoking the \lstinline/getXtzUsdPrice/ entrypoint after another call or invoking the \lstinline/getXtzUsdPrice_callback/ entrypoint again is not allowed. This entrypoint relation property is specified as an entrypoint relation in Listing \ref{}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{kolibri}
+    \caption{Kolibri oracle emtrypoint relations}
+    \label{fig:kolibri-oracle-emtrypoint-relations}
+\end{figure}
+
+\begin{lstlisting}[float,captionpos=b,caption={Kolibri oracle contract specification},label={lst:kolibri-contract-specification},numbers=left]
+mcontract Auction = spec 
+  storage := (Pair (Pair (client: option address) 
+     (governor: address))
+     (Pair (harbinger: address) 
+           (Pair (maxDelay: nat) (state: int))))
+  entrypoint %getXtzUsdRate
+    code := {...}
+    parameter := (c : contract nat) 
+    pre-condition := (Amount = 0) | (state = 0)
+    post-condition := (state = 1) | 
+       (client = Some Sender) ;
+  entrypoint %getXtzUsdRate_callback
+    code := {...}
+    parameter := Pair (s: string) 
+       (Pair (t: timestamp) (n: nat))
+    pre-condition :=  state = 1 |
+       Sender = harbinger  |
+       s = 'XTZ-USD' |
+       Now - t <= 30 |
+       client = Some a |
+       get_contract (nat, a) = Some c    
+    post-condition := state = 0 |
+       post_client = None |
+       transfer(n, 0, c) ;
+  entrypoint %setGovernorContract
+    code := {...}
+    parameter := (gover : address) 
+    pre-condition :=  (Sender = governor)                  
+    post-condition := (governor = gover) |
+       (post_maxDelay = maxDelay) |
+       (post_harbinger = harbinger) ;
+  entrypoint %setMaxDataDelaySec
+    code := {...}
+    parameter := (delay: nat)
+    pre-condition := (Sender = governor)             
+    post-condition := (maxDelay = delay) |
+       (post_client = client) |
+       (post_harbinger = harbinger) ;
+  (%getXtzUsdRate -> %getXtzUsdRate_callback) with
+     (Sender = harbinger)
+     && (s = 'XTZ-USD') 
+     && (Now - t <= 1800)  | 
+  (%getXtzUsdRate_callback  -> %getXtzUsdRate) with 
+    (Amount = 0) 
+  not (%getXtzUsdRate -> %getXtzUsdRate) |
+  not (%getXtzUsdRate_callback -> %getXtzUsdRate_callback)
+\end{lstlisting}
 \section {Conclusion}
 \section {Appendix}
 \end{document}
