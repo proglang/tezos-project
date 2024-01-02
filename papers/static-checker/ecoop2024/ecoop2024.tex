@@ -183,9 +183,9 @@ The smart contract program takes a stack as input, consisting of a single pair w
    &\Mid\ \NEVER \\
    &\Mid\ \TRUE \\
    &\Mid\ \FALSE \\
-   &\Mid\ \PAIR\ \text{t1 t2}\\
+   &\Mid\ \PAIR\ \text{t1 t2} \\
    &\Mid\ \LEFT\ \text{t}\\
-   &\Mid\ \RIGHT\ \text{t}\\ 
+   &\Mid\ \RIGHT\ \text{t}\\
    &\Mid\ \SOME\ \text{t}\\
    &\Mid\ \NONE \\
    &\Mid\ \text{\{t ; ... \}}\\
@@ -631,6 +631,46 @@ To achieve this, our framework employs an SMT solver, specifically Z3, for prope
 
 One of the main challenges with formal verification is that it is often the requirement for users to express the system in a specialized specification language. This poses two problems: it demands expertise in formal verification from the specifier and introduces a gap between the actual code and its specification. In our framework, this gap is eliminated as the exact Michelson code used for verification precisely corresponds to the actual code.  Users are not obligated to possess formal verification expertise. 
 
+\begin{figure}[]
+\begin{align*}
+\textbf{c} & ::= 
+    \text{Balance}
+   \Mid \text{post\_Balance}  
+   \Mid \text{Amount} 
+   \Mid \text{Sender} 
+   \Mid \text{Source} 
+   \Mid \text{Now} 
+   \Mid \text{Level} \\
+   &\Mid \text{Chain\_id} 
+   \Mid \text{Self\_address} 
+   \Mid \text{Total\_voting\_power} 
+   \Mid \text{Voting\_power} \\
+\textbf{e} & :: =  \textbf{i} \Mid  \textbf{s}  \Mid  \textbf{b} \Mid \textbf{c} \Mid (\text{x} : \text{T}) \\
+&\Mid \text{Unit}  \Mid \text{Never}  \Mid \text{True}  \Mid \text{False} \\
+&\Mid \text{Pair } \textbf{e } \textbf{e}  \Mid \text{Left } \textbf{e}  \Mid \text{Right } \textbf{e}  \Mid \text{Some } \textbf{e} \text{: T} \Mid \text{None T}  \\
+& \Mid \textbf{e} \text{ + } \textbf{e}\Mid \textbf{e} \text{ - } \textbf{e}  \Mid \textbf{e} \text{ * } \textbf{e} \Mid \textbf{e} \text{ \/ } \textbf{e} \Mid \textbf{e} \text{ \% } \textbf{e} \Mid \textbf{e} \text{ rem } \textbf{e} \\
+& \Mid \textbf{e} \text{ and } \textbf{e}\Mid \textbf{e} \text{ or } \textbf{e}  \Mid \textbf{e} \text{ nor } \textbf{e} \Mid  \text{ not } \textbf{e} \Mid \textbf{e} \text{ imply } \textbf{e} \\
+& \Mid \text{transfer\_token} (\textbf{e}, \textbf{e}, \textbf{e}) 
+ \Mid \text{get\_map} (\textbf{e}, \textbf{e}) 
+ \Mid \text{get\_big\_map} (\textbf{e}, \textbf{e}) \\
+& \Mid \text{get\_contract} (\textbf{e}, \textbf{e})  
+ \Mid \text{abs} (\textbf{e})  
+ \Mid \text{len} (\textbf{e})
+ \Mid \text{size} (\textbf{e})
+\Mid \textbf{e} \text{$\wedge$} \textbf{e}  \\
+\textbf{p} & :: = \textbf{e} \text{ = } \textbf{e} 
+\Mid \textbf{e} \text{ != } \textbf{e}
+\Mid \textbf{e} \text{ > } \textbf{e}
+\Mid \textbf{e} \text{ >= } \textbf{e}
+\Mid \textbf{e} \text{ < } \textbf{e}
+\Mid \textbf{e} \text{ <= } \textbf{e} \\
+&\Mid \text{forall} (\textbf{e}, \textbf{p})
+\Mid \text{exsit} (\textbf{e}, \textbf{p})
+\end{align*}
+\caption{Syntax of predicates, p}
+\label{fig:syntax-predicates}
+\end{figure}
+
 The Michelson code, readily available on the Tezos blockchain, remains consistent across various high-level language platforms like LIGO, SmartPy, and Liquidity, all of which offer functions to compile programs into Michelson. This approach eliminates the need for users to be formal verification experts. The essential Michelson knowledge revolves around understanding data types and their usage when interacting with a smart contract on the Tezos blockchain, whether as parameters or in storage.
 
 
@@ -642,7 +682,7 @@ output := t'
 pre-condition := cd
 post-condition := cd'
 \end{lstlisting}
-Listing \ref{lst:smart-contract-property-specification} shows the syntax of our property specification language. Here, \KMCONTRACT, \KWITH, \KCODE, \KINPUT, \KOUTPUT, \KPRECONDI, and \KPOSTCONDI\ are keywords. The \KNAME\ is replaced by the contract name. In the input and output fields, the input and output patterns are specified. Since Michelson operates on a stack, we assume that the stack has only one element, as specified in the input pattern. Similarly, the output stack is assumed to be a stack with only one element, which is specified in the output field. Our syntax allows to specify incomplete and complete smart contract code. For the complete smart contrat code, as we have mentioned before, the output should be a pair consisting of an operation list and a storage.In our syntax, for verification purposes, we exclude the operation list, and the output is solely represented by the pattern of the value in the storage after the execution concludes. In fact, for a complete smart contract code, in some cases, the output pattern can be omitted, given that the input pattern must be a pair of parameters and storage. This implies that the storage pattern is part of the input pattern. In such cases, the prefix 'post' is used before the variables in the input term to indicate the corresponding storage value after the execution.  The input and output patterns represent Michelson terms, which can be either concrete values or symbolic values, including variables. When a variable appears for the first time, it needs to be accompanied by its corresponding type declaration. However, subsequent mentions can omit the type declaration. Formally, the pre and post-condition instances are formulas in first-order logic, and they can be handled by an SMT solver, namely the Z3 solver in our framework. The detail of the language grammar is described in in Figure \ref{}. Formulas that are used in assertions or added to solvers are terms of Boolean sort. Otherwise, terms of Boolean and non-Boolean sort may be mixed in any combination where sorts match up. Universal and existential quantifiers bind variables to the scope of the quantified formula.
+Listing \ref{lst:smart-contract-property-specification} shows the syntax of our property specification language. Here, \KMCONTRACT, \KWITH, \KCODE, \KINPUT, \KOUTPUT, \KPRECONDI, and \KPOSTCONDI\ are keywords. The \KNAME\ is replaced by the contract name. In the input and output fields, the input and output patterns are specified. Since Michelson operates on a stack, we assume that the stack has only one element, as specified in the input pattern. Similarly, the output stack is assumed to be a stack with only one element, which is specified in the output field. Our syntax allows to specify incomplete and complete smart contract code. For the complete smart contrat code, as we have mentioned before, the output should be a pair consisting of an operation list and a storage.In our syntax, for verification purposes, we exclude the operation list, and the output is solely represented by the pattern of the value in the storage after the execution concludes. In fact, for a complete smart contract code, in some cases, the output pattern can be omitted, given that the input pattern must be a pair of parameters and storage. This implies that the storage pattern is part of the input pattern. In such cases, the prefix 'post' is used before the variables in the input term to indicate the corresponding storage value after the execution.  The input and output patterns represent Michelson terms, which can be either concrete values or symbolic values, including variables. When a variable appears for the first time, it needs to be accompanied by its corresponding type declaration. However, subsequent mentions can omit the type declaration. Formally, the pre and post-condition instances are formulas in first-order logic, and they can be handled by an SMT solver, namely the Z3 solver in our framework. The specification language is constituted of predicates defined using the syntax defined as in Figure \ref{fig:syntax-predicates}. Formulas that are used in assertions or added to solvers are terms of Boolean sort. Otherwise, terms of Boolean and non-Boolean sort may be mixed in any combination where sorts match up. Universal and existential quantifiers bind variables to the scope of the quantified formula.
 \begin{lstlisting}[float,captionpos=b,caption={The specification of Add contracr},label={lst:add-contract-specification},numbers=left]
 mcontract Add = spec
 code := {UNPAIR; COMPARE; GE; 
@@ -655,7 +695,7 @@ post-condition := (z >= 8)
 Let's consider the  example of the property specification for the contract named Add as in Listing \ref{lst:add-contract-specification}. Here, the program takes as input a stack with only one element, which is a pair of two integers, symbolically specified in the Input field. It then unpairs the input pair to obtain two elements as two integers \lstinline/x/ and \lstinline/y/.  It then proceeds to destructure the input pair, yielding two integers. Subsequently, the program performs a comparison between these two integers. If  \lstinline/x/ is greater than or equal to \lstinline/y/, the program constructs a new stack with a solitary element at the top representing the sum of  \lstinline/x/ and \lstinline/y/, designated as \lstinline/z/. Otherwise, the execution terminates with an error message containing the content 'Unexpected pair.' The specification continues by defining pre and post conditions, where the precondition states the assumption that the integer  \lstinline/x/ is greater than or equal to 5 and \lstinline/y/ is greater than or equal to 3. Here, the symbol  \lstinline/|/ is the conjuration. The postcondition asserts that the result sum \lstinline/z/ is greater than or equal to 8. 
 
 A smart contract may offer various functions for users to interact. Therefore, our language is designed to allow users to specify different functions, referred to as entrypoints, in Michelson. This design enables us to specify and verify all functions within a smart contract. Furthermore, this design allows us to describe and verify relationships between functions.  The syntax is as follows: 
-\begin{lstlisting}[float,captionpos=b,caption={Multiple entrypoint specification syntax},label={lst:safer-contract-module},numbers=left][h]
+\begin{lstlisting}[float,captionpos=b,caption={Multiple entrypoint specification syntax},label={lst:multiple-entrypoint-specification},numbers=left][h]
 mcontract Name = spec
    entrypoint %a 
       code := {c1}
@@ -675,6 +715,24 @@ mcontract Name = spec
 \end{lstlisting}
 where the entrypoint name is written after the \lstinline/%/ symbol and is followed by a property specification for the entrypoint. At the end of the specification is the entrypoint relation specification, which we will explain next.
 
+\begin{lstlisting}[float,captionpos=b,caption={Multiple entrypoint specification syntax},label={lst:multiple-entrypoint-specification},numbers=left][h]
+mcontract Name = spec
+   storage := s
+   entrypoint %a 
+      code := {c1}
+      parameter := t1
+      pre-condition := cd1
+      post-condition := cd1'
+   entrypoint %b 
+      code := {c2}
+      parameter := t2
+      pre-condition := cd2
+      post-condition := cd2'
+   entrypoint %c 
+      ...
+   < entrypoint relations>
+\end{lstlisting}
+
 To illustrate this, let's consider the  auction smart contract serving the auction events. The contract has two entrypoints, bid and close, which serve as functions for bidding and closing the contract, respectively. The smart contract storage on the blockchain is a pair containing the first element as a boolean value that indicates whether the contract is still open for bidding or already closed. The second element is another nested pair, where the first element  stores the highest bidder's address, and the second element is the contract owner's address. The current highest bid is reflected in the balance of the contract.
 
 Closing the contract transfers the balance to the owner and is restricted to the owner. Both closing and bidding operations fail if the auction is already closed. If bidding is open and the amount of tokens accompanying the bid exceeds the current highest bid, the current bidder replaces the previous highest bidder, and the previous highest bidder is reimbursed. Otherwise, bidding fails.
@@ -683,41 +741,34 @@ Upon deployment, the owner deposits an initial balance to indicate the minimum b
 
 \begin{lstlisting}[float,captionpos=b,caption={Auction contract specification},label={lst:auction-contract-specification},numbers=left]
 mcontract Auction = spec 
+  storage := Pair (auction_open: bool) 
+                     Pair (highest_bidder: address)
+                          (contract_owner: address))
   entrypoint %bid
     code := {...}
-    input := Pair Unit (Pair (auction_open: bool) 
-                             (Pair (highest_bidder: address)
-                                   (contract_owner: address)))
-    output :=   Pair (post_auction_open: bool) 
-                     Pair (post_highest_bidder: address)
-                          (post_contract_owner: address))
-    pre-condition := auction_open |
-             Amount > Balance
-    post-condition := post_highest_bidder = Sender |
-             Post_Balance = Amount |
-             Transfer_token (Unit, Balance, highest_bidder) |
-             post_contract_owner = contract_owner ;
+    parameter := Unit 
+    pre-condition := auction_open 
+       && Amount > Balance
+    post-condition := post_highest_bidder = Sender 
+       && post_Balance = Amount 
+       && transfer_token (Unit, Balance, highest_bidder) 
+       && post_contract_owner = contract_owner ;
   entrypoint %close
     code := {...}
-    input := Pair Unit (Pair (auction_open: bool) 
-                             (Pair (highest_bidder: address)
-                                   (contract_owner: address)))
-    output :=   Pair (post_auction_open: bool) 
-                     Pair (post_highest_bidder: address)
-                          (post_contract_owner: address))
-    pre-condition := auction_open |
-           Sender = contract_owner                
-    post-condition := not post_auction_open |
-          Post_Balance = 0 |
-          Transfer_token (Unit, Balance, contract_owner) ;
+    parameter := Unit
+    pre-condition := auction_open 
+       && Sender = contract_owner                
+    post-condition := not post_auction_open 
+       && post_Balance = 0 
+       && transfer_token (Unit, Balance, contract_owner) ;
     (%create -> %bid) with (auction_open = true)  
-                      && (Amount > Balance) | 
-    (%create  -> %close) with (auction_open = true) 
-                      && (Sender = contract_owner) |
-    (%bid -> %bid) with (Amount > Balance)  | 
-    (%bid -> %close) with (Sender = contract_owner)  | 
-    not (%close -> %bid) |
-    not (%close -> %close)
+       && (Amount > Balance) 
+    | (%create  -> %close) with (auction_open = true) 
+       && (Sender = contract_owner)
+    | (%bid -> %bid) with (Amount > Balance)  
+    | (%bid -> %close) with (Sender = contract_owner)  
+    | not (%close -> %bid) 
+    | not (%close -> %close)
 \end{lstlisting}
 
 There are several properies that we want to grantuee in this contract. Lets take look at the specification for the auction contract in Listing \ref{lst:auction-contract-specification}. Here, we omit the Michelson code  of the smart contract due to its length. For the  \lstinline/bid/ entrypoint, the input stack is  the one with only one element, which is a pair consitting the parameter and the current storage. Here, the parameter is \lstinline/Unit/ of type \lstinline/unit/. The current storage represnted symbolicly as a nested pair, where the first element is the auction-open variable of type bool and the second element is an other pair consiting the highest-bidder of type address as the first element and the contract-owner variable of also type address as the second. 
@@ -792,7 +843,7 @@ get_contract (Unit, contract_owner) = None: 'Invalid address'
 In this implementation of the auction contract, the failures are recorded as expected. The contract is designed to fail when the auction is closed, the bid is not greater than the old highest bid, or the caller is not the contract owner when attempting to close the contract as transferring the contract balance to their account as a part of the action.
 
 \subsubsection{Property check}
-The static checker enables users to verify smart contract properties by providing pre and post condition specifications. A property is specified with the following clause:  \lstinline/pre-condtion : =/ $\mid$ $\Phi_{i}$ \lstinline/ post-condtion : =/   $\mid$ $\Psi_{j}$. This specification asserts that if all preconditions $\Phi_{i}$ hold before smart contract execution, then all $\Psi_{j}$ must become true after the execution. To verify this property, we explore all the paths $\Pi$ with the path condition $\Theta$ such that ($\bigwedge \Phi_{i}$ $\land$ $\Theta$) is satisfiable. We then check that for every path $\Pi$, $\neg$ ($\bigwedge \Phi_{i} \rightarrow \bigwedge \Psi_{j}$) is unsatisfiable in the context given by the input for the entry point and its corresponding final state and path condition.
+The static checker enables users to verify smart contract properties by providing pre and post condition specifications. A property is specified with the following clause:  \lstinline/pre-condtion := &&/ $\Phi_{i}$ \lstinline/post-condtion := &&/ $\Psi_{j}$. This specification asserts that if all preconditions $\Phi_{i}$ hold before smart contract execution, then all $\Psi_{j}$ must become true after the execution. To verify this property, we explore all the paths $\Pi$ with the path condition $\Theta$ such that ($\bigwedge \Phi_{i}$ $\land$ $\Theta$) is satisfiable. We then check that for every path $\Pi$, $\neg$ ($\bigwedge \Phi_{i} \rightarrow \bigwedge \Psi_{j}$) is unsatisfiable in the context given by the input for the entry point and its corresponding final state and path condition.
 
 Consider the specification of the Add contract in Listing \ref{lst:add-contract-specification}. In this context, the two variables \lstinline/x/ and \lstinline/y/ are integers. The results of the symbolic execution are either a failwith state with the path condition as the predicate stating that the variable \lstinline/x/ is less than \lstinline/y/, or a state in which the final stack has only one element, which is a symbolic variable \lstinline/sbvar/ of type integer, with the path condition stating that the variable \lstinline/x/ is greater than or equal to \lstinline/y/ and the symbolic variable \lstinline/sbvar/ is equal to the sum of \lstinline/x/ and \lstinline/y/. For this specification, the failwith branch is discarded because the precondition is not satisfy with tha path condition, and then \lstinline/z/ is matched to the symbolic variable \lstinline/sbvar/ in the other branch. In this example, the checker then verifies that given the with the context asserting that (\lstinline/x/ >= \lstinline/y/) $\land$ (\lstinline/z/ = \lstinline/x/ + \lstinline/y/), $\neg$ ((\lstinline/x/ >= 5) $\land$ (\lstinline/y/ > 3) $\rightarrow$ (\lstinline/z/ >= 8)) is unsatisfiable. 
 
@@ -829,9 +880,43 @@ The implementation consists of approximately 1000 instructions. It contains all 
 
 
 \subsubsection{transfer}
-As illustrated in Listing \ref{lst:fa12-interface}, the \lstinline/transfer/ entrypoint credits the account associated with the address provided in the \lstinline/to/ parameter, while debiting the account corresponding to the \lstinline/from/ parameter with the specified \lstinline/value/ amount. The FA 1.2 standard mandates that this call must fail under the following two conditions: (1) In the event of insufficient balance, this entrypoint MUST fail with the error \lstinline/NotEnoughBalance/, indicating insufficient funds in the sender's account to execute the transfer. The error MUST contain a \lstinline/pair (nat :value) (nat :present)/ pair, where \lstinline/value/ is the requested amount of tokens, and \lstinline/present/ is the available amount. (2) If the sender's account has no permission to withdraw the \lstinline/value/ amount of funds, the call will fail with the \lstinline/NotEnoughAllowance/ error, which also contains the same pair message as the first failure scenario. To verify these requirements, we utilize the failwith condition feature of the tool and examine the returned results, as outlined in Listing \ref{}.  
-
-The fundamental property that this entrypoint should satisfy is the decrement of the allowance of the sender's account by the \lstinline/value/ that has been sent.
+As illustrated in Listing \ref{lst:fa12-interface}, the \lstinline/transfer/ entrypoint credits the account associated with the address provided in the \lstinline/to/ parameter, while debiting the account corresponding to the \lstinline/from/ parameter with the specified \lstinline/value/ amount. The FA 1.2 standard mandates that this call must fail under the following two conditions: (1) In the event of insufficient balance, this entrypoint MUST fail with the error \lstinline/NotEnoughBalance/, indicating insufficient funds in the sender's account to execute the transfer. (2) If the sender's account has no permission to withdraw the \lstinline/value/ amount of funds, the call will fail with the \lstinline/NotEnoughAllowance/ error, which also contains the same pair message as the first failure scenario. To verify these requirements, we utilize the failwith condition feature of the tool and examine the returned results, as outlined in Listing \ref{lst:transfer-udstz-contract}.  
+\begin{lstlisting}[float,captionpos=b,caption={Fail conditions for the \lstinline/transfer/ entrypoint},label={lst:transfer-udstz-contract},numbers=left]
+1. paused: 'TokenOperationsArePaused'
+2. not paused &&
+   get_big_map (from, ledger) = None : 'NotEnoughBalance'
+3. not paused &&
+   get_big_map (from, ledger) = Some sbvar &&
+   sbvar = Pair sbvar1 sbvar2 &&
+   sbvar1 < value : 'NotEnoughBalance'
+4. not paused &&
+   get_big_map (from, ledger) = Some sbvar &&
+   sbvar = Pair sbvar1 sbvar2 &&
+   get_map (Sender, sbvar2) = Some sbvar3 &&
+   sbvar3 < value: 'NotEnoughAllowance'
+\end{lstlisting}
+The fundamental property that this entrypoint should satisfy is the decrement of the allowance of the sender's account by the \lstinline/value/ that has been sent as Listing \ref{lst:specification-transfer}.
+\begin{lstlisting}[float,captionpos=b,caption={Specification for the \lstinline/transfer/ entrypoint},label={lst:specification-transfer},numbers=left]
+mcontract UDStz = spec 
+   storage :=  Pair (ledger: big_map address 
+      (pair nat (map address nat))) 
+      (Pair (admin: address) 
+              (Pair (paused: bool) (total_supply: nat)))
+   entrpoint %transfer
+      parameter := Pair (from: address)
+         (Pair (to: address) (value: nat))
+      pre-condition := not paused 
+        && get_big_map (from, ledger) = 
+        && Some (v: option (pair nat (map address nat))) 
+        && (v = Pair (n1: nat) (m: map address nat))
+        && get_map (Sender, m) = Some (n2: nat) 
+        && (n1 >= value) && (n2 >= value)
+      post-condition := get_big_map (from, post_ledger) = 
+        && Some (post_v: option (pair nat (map address nat))) 
+        && post_v = Pair (post_n1: nat) (post_m: map address nat) 
+        && get_map (Sender, post_m) = Some (post_n2: nat) 
+        && (post_n1 = n1 - value) | (post_n2 = n2 - value)
+\end{lstlisting}
 
 \subsubsection{approve}
 The crucial property to ensure the correctness of the approve entrypoint is that changing the allowance value from a non-zero value to another non-zero value is forbidden to prevent a corresponding attack vector \ref{}. The basic idea of this attack is that when a non-zero value update is allowed, the \lstinline/spender/ can attempt to spend the entire allowance before the new amount is updated and then spend again with the new value, resulting in a larger amount than actually allowed. This means the contract call must fail when both the parameter \lstinline/value/ is non-zero and the allowance of \lstinline/spender/ is also non-zero. We verify this property by generating the fail condition, and the result is that the non-zero value update is recorded as a fail condition, as shown in Listing \ref{lst:approve-udstz-contract}. This indicates that the implementation ensure the non-zero value update prevention.
@@ -847,35 +932,31 @@ The crucial property to ensure the correctness of the approve entrypoint is that
 The other property is that in case the update is allowed, then the updated value needs to be recorded correctly in the storage. This property can be divided into two subproperties, which can be checked separately. The first property is that when the parameter \lstinline/value/ is zero, then the corresponding allowance value of the \lstinline/spender/ from the owner (which is \SENDER\ in this call) should be zero. This subproperty is specified as shown in Listing \ref{lst:specification-approve}. The second property is that when \lstinline/value/ is non-zero, requiring the allowance of the \lstinline/spender/ to be zero, then the \lstinline/value/ should be recorded in the storage after the call. To check this property, we specify the property as the pre and post conditions, as illustrated in Listing \ref{}.
 
 \begin{lstlisting}[float,captionpos=b,caption={Specification for the \lstinline/approve/ entrypoint},label={lst:specification-approve},numbers=left]
-Input := Pair (Pair (owner: address) (c: contract nat))
-  (Pair (ledger: big_map address (pair nat (map address nat))) 
-         (Pair (admin: address) 
-               (Pair (paused: bool) (total_supply: nat))))
-Pre-condition := not paused |
-   get_big_map (Sender, ledger) = 
-   Some (v: option (pair nat (map address nat))) | 
-   v = Pair (n1: nat) (m: map address nat) |
-   get_map (spender, m) = Some (n2: nat) |
-   not (n2 = 0) |
-   (value = 0)
-Post-condition := get_big_map (Sender, post_ledger) = 
-   Some (post_v: option (pair nat (map address nat))) | 
-   post_v = Pair (post_n1: nat) (post_m: map address nat) |
-   get_map (spender, post_m) = Some (post_n2: nat) |
-   (post_n2 = 0) ;
+entrpoint %approve
+   parameter := Pair (spender: address) (value: nat)
+   pre-condition := not paused 
+      && get_big_map (Sender, ledger) = 
+        Some (v: option (pair nat (map address nat))) 
+      && v = Pair (n1: nat) (m: map address nat) 
+      && get_map (spender, m) = Some (n2: nat) 
+      && not (n2 = 0) | (value = 0)
+   post-condition := get_big_map (Sender, post_ledger) = 
+        Some (post_v: option (pair nat (map address nat))) 
+      && post_v = Pair (post_n1: nat) (post_m: map address nat) 
+      && get_map (spender, post_m) = Some (post_n2: nat) 
+      && (post_n2 = 0) ;
 
-Pre-condition := not paused |
-   get_big_map (Sender, ledger) = 
-   Some (v: option (pair nat (map address nat))) | 
-   v = Pair (n1: nat) (m: map address nat) |
-   get_map (spender, m) = Some (n2: nat) |
-   (n2 = 0) |
-   not (value = 0)
-Post-condition := get_big_map (Sender, post_ledger) = 
-   Some (post_v: option (pair nat (map address nat))) | 
-   post_v = Pair (post_n1: nat) (post_m: map address nat) |
-   get_map (spender, post_m) = Some (post_n2: nat) |
-   (post_n2 = value) ;
+   pre-condition := not paused 
+      && get_big_map (Sender, ledger) = 
+        Some (v: option (pair nat (map address nat))) 
+      && v = Pair (n1: nat) (m: map address nat) 
+      && get_map (spender, m) = Some (n2: nat) 
+      && (n2 = 0) | not (value = 0)
+   post-condition := get_big_map (Sender, post_ledger) = 
+        Some (post_v: option (pair nat (map address nat))) 
+      && post_v = Pair (post_n1: nat) (post_m: map address nat) 
+      && get_map (spender, post_m) = Some (post_n2: nat) 
+      && (post_n2 = value) ;
 \end{lstlisting}
 
 \subsubsection{getAllowance, getBalance and  getTotalSupply}
@@ -884,28 +965,26 @@ These entrypoints are view entrypoints. View entrypoints are functions that retr
 Let us now demonstrate how to verify the \lstinline/getBalance/ entrypoint, as shown in Listing \ref{lst:specification-get-balance} while two other entrypoints \lstinline/getAllowance/ and \lstinline/getTotalSupply/ entrypoints could be similarly specified. There are two cases to consider: (1) when the \lstinline/owner/ is in the \lstinline/ledger/ big map and (2) when it is not. For the former case, lines 5-8 specify that \lstinline/owner/ is in the \lstinline/ledger/ big map, as the \lstinline/Get_big_map/ function returns a value \lstinline/Some value/ of the \TOPTION\ type, and this \lstinline/value/ is a pair of a natural number \lstinline/k/ and a map \lstinline/m/. The post condition guarantees that the storage remains unchanged, as specified in lines 10-13, and the call returns a \lstinline/TRANSFER_TOKENS/ operation with the \lstinline/k/ number and \lstinline/Amount/ to the passed address \lstinline/c/. The precondition in lines 16-17 specifies the latter case when the \lstinline/owner/ does not exist in the big map \lstinline/ledger/; in this case, the number \lstinline/0/ should be sent, and again, the storage should remain unchanged.
 
 \begin{lstlisting}[float,captionpos=b,caption={Specification for the \lstinline/getBalance/ entrypoint},label={lst:specification-get-balance},numbers=left]
-Input := Pair (Pair (owner: address) (c: contract nat))
-  (Pair (ledger: big_map address (pair nat (map address nat))) 
-         (Pair (admin: address) 
-               (Pair (paused: bool) (total_supply: nat))))
-Pre-condition :=  get_big_map (owner, ledger) = 
-  Some v: option (pair nat (map address nat)) |
-  v  = Pair (k: nat) (m: (map address nat))
-Post-condition := post_ledger = ledger |
-  post_admin = admin |
-  post_paused = paused |
-  post_total_supply = total_supply |
-  post_Balance = Balance | 
-  transfer_token (k, Amount, c) ;
+entrypoint %getBalance
+   parameter := Pair (owner: address) (c: contract nat)
+   pre-condition :=  get_big_map (owner, ledger) = 
+        Some v: option (pair nat (map address nat)) 
+      && v  = Pair (k: nat) (m: (map address nat))
+   post-condition := post_ledger = ledger 
+      && post_admin = admin 
+      && post_paused = paused 
+      && post_total_supply = total_supply 
+      && post_Balance = Balance 
+      && transfer_token (k, Amount, c) ;
 
-Pre-condition :=  get_big_map (owner, ledger) = 
-  None option (pair nat (map address nat)) 
-Post-condition := post_ledger = ledger |
-  post_admin = admin |
-  post_paused = paused |
-  post_total_supply = total_supply |
-  post_Balance = Balance | 
-  transfer_token (0, Amount, c) ;
+   pre-condition :=  get_big_map (owner, ledger) = 
+        None option (pair nat (map address nat)) 
+   post-condition := post_ledger = ledger 
+      && post_admin = admin 
+      && post_paused = paused 
+      && post_total_supply = total_supply 
+      && post_Balance = Balance 
+      && transfer_token (0, Amount, c) ;
 \end{lstlisting}
 \subsubsection{Other entrypoints}
 The contract provides five additional entrypoints: \lstinline/mint/ to mint you own, \lstinline/burn/ to burn existing tokens, \lstinline/setAdministrator/ and \lstinline/getAdministrator/ to set up or retrieve the administrator of the smart contract, and \lstinline/setPause/ to pause the contract. To generate fail conditions, we detect that \lstinline/transfer/ or \lstinline/approve/ calls fail if the contract is in a paused state. Users or dapps should be aware of this when interacting with the smart contract.
@@ -984,43 +1063,43 @@ mcontract Auction = spec
     code := {...}
     parameter := (c : contract nat) 
     pre-condition := (Amount = 0) | (state = 0)
-    post-condition := (state = 1) | 
-       (client = Some Sender) ;
+    post-condition := (state = 1) 
+       && (client = Some Sender) ;
   entrypoint %getXtzUsdRate_callback
     code := {...}
     parameter := Pair (s: string) 
        (Pair (t: timestamp) (n: nat))
-    pre-condition :=  state = 1 |
-       Sender = harbinger  |
-       s = 'XTZ-USD' |
-       Now - t <= 30 |
-       client = Some a |
-       get_contract (nat, a) = Some c    
-    post-condition := state = 0 |
-       post_client = None |
-       transfer(n, 0, c) ;
+    pre-condition :=  state = 1 
+       && Sender = harbinger  
+       && s = 'XTZ-USD' 
+       && Now - t <= 30 
+       && client = Some a 
+       && get_contract (nat, a) = Some c    
+    post-condition := state = 0 
+       && post_client = None 
+       && transfer(n, 0, c) ;
   entrypoint %setGovernorContract
     code := {...}
     parameter := (gover : address) 
     pre-condition :=  (Sender = governor)                  
-    post-condition := (governor = gover) |
-       (post_maxDelay = maxDelay) |
-       (post_harbinger = harbinger) ;
+    post-condition := (governor = gover) 
+       && (post_maxDelay = maxDelay) 
+       && (post_harbinger = harbinger) ;
   entrypoint %setMaxDataDelaySec
     code := {...}
     parameter := (delay: nat)
     pre-condition := (Sender = governor)             
-    post-condition := (maxDelay = delay) |
-       (post_client = client) |
-       (post_harbinger = harbinger) ;
+    post-condition := (maxDelay = delay) 
+       && (post_client = client) 
+       && (post_harbinger = harbinger) ;
   (%getXtzUsdRate -> %getXtzUsdRate_callback) with
      (Sender = harbinger)
      && (s = 'XTZ-USD') 
-     && (Now - t <= 1800)  | 
-  (%getXtzUsdRate_callback  -> %getXtzUsdRate) with 
+     && (Now - t <= 1800)  
+  | (%getXtzUsdRate_callback  -> %getXtzUsdRate) with 
     (Amount = 0) 
-  not (%getXtzUsdRate -> %getXtzUsdRate) |
-  not (%getXtzUsdRate_callback -> %getXtzUsdRate_callback)
+  | not (%getXtzUsdRate -> %getXtzUsdRate) 
+  | not (%getXtzUsdRate_callback -> %getXtzUsdRate_callback)
 \end{lstlisting}
 \section {Conclusion}
 \section {Appendix}
