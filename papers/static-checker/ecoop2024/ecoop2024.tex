@@ -1,5 +1,7 @@
+\documentclass[a4paper,USenglish,cleveref, autoref, thm-restate]{lipics-v2021}
 
-\documentclass[a4paper,UKenglish,cleveref, autoref, thm-restate]{lipics-v2021}
+%% final papers: 25 pages
+
 %This is a template for producing LIPIcs articles. 
 %See lipics-v2021-authors-guidelines.pdf for further information.
 %for A4 paper format use option "a4paper", for US-letter use option "letterpaper"
@@ -12,7 +14,7 @@
 %for enabling a two-column layout for the author/affilation part (only applicable for > 6 authors), use "authorcolumns"
 %for producing a PDF according the PDF/A standard, add "pdfa"
 
-%\pdfoutput=1 %uncomment to ensure pdflatex processing (mandatatory e.g. to submit to arXiv)
+\pdfoutput=1 %uncomment to ensure pdflatex processing (mandatatory e.g. to submit to arXiv)
 %\hideLIPIcs  %uncomment to remove references to LIPIcs series (logo, DOI, ...), e.g. when preparing a pre-final version to be uploaded to arXiv or another public repository
 
 %\graphicspath{{./graphics/}}%helpful if your graphic files are in another directory
@@ -50,15 +52,17 @@
 
 \bibliographystyle{plainurl}% the mandatory bibstyle
 
-\title{Formal Verification Framework Based on Symbolic Execution for Smart Contract} %TODO Please add
+\title{A Formal Verification Framework for Smart Contracts Based on Symbolic Execution} %TODO Please add
 
 %\titlerunning{Dummy short title} %TODO optional, please use if title is longer than one line
 
-\author{Thi Thu Ha Doan}{University of Freiburg, Germany}{doanha@informatik.uni-freiburg.de}{https://orcid.org/0000−0001−7524−4497}{(Optional) author-specific funding acknowledgements}%TODO mandatory, please use full name; only 1 author per \author macro; first two parameters are mandatory, other parameters can be empty. Please provide at least the name of the affiliation and the country. The full address is optional. Use additional curly braces to indicate the correct name splitting when the last name consists of multiple name parts.
+\author{Thi Thu Ha Doan}{University of Freiburg,
+  Germany}{doanha@informatik.uni-freiburg.de}{https://orcid.org/0000−0001−7524−4497}{Supported
+by the Tezos Foundation, grant COOC }%TODO mandatory, please use full name; only 1 author per \author macro; first two parameters are mandatory, other parameters can be empty. Please provide at least the name of the affiliation and the country. The full address is optional. Use additional curly braces to indicate the correct name splitting when the last name consists of multiple name parts.
 
-\author{Peter Thiemann}{University of Freiburg, Germany}{thiemann@informatik.uni-freiburg.de}{https://orcid.org/0000−0002−9000−1239}{[funding]}
+\author{Peter Thiemann}{University of Freiburg, Germany}{thiemann@informatik.uni-freiburg.de}{https://orcid.org/0000−0002−9000−1239}{}
 
-\authorrunning{T.T.Ha Doan and P.Thiemann} %TODO mandatory. First: Use abbreviated first/middle names. Second (only in severe cases): Use first author plus 'et al.'
+\authorrunning{T.T.Ha Doan and P. Thiemann} %TODO mandatory. First: Use abbreviated first/middle names. Second (only in severe cases): Use first author plus 'et al.'
 
 \Copyright{T.T.Ha Doan and Peter Thiemann} %TODO mandatory, please use full first names. LIPIcs license is "CC-BY";  http://creativecommons.org/licenses/by/3.0/
 
@@ -66,9 +70,9 @@
 
 \keywords{Smart Contract, Blockchain, Formal Verification, Symbolic Execution} %TODO mandatory; please add comma-separated list of keywords
 
-\category{} %optional, e.g. invited paper
+%\category{} %optional, e.g. invited paper
 
-\relatedversion{} %optional, e.g. full version hosted on arXiv, HAL, or other respository/website
+%\relatedversion{} %optional, e.g. full version hosted on arXiv, HAL, or other respository/website
 %\relatedversiondetails[linktext={opt. text shown instead of the URL}, cite=DBLP:books/mk/GrayR93]{Classification (e.g. Full Version, Extended Version, Previous Version}{URL to related version} %linktext and cite are optional
 
 %\supplement{}%optional, e.g. related research data, source code, ... hosted on a repository like zenodo, figshare, GitHub, ...
@@ -76,7 +80,7 @@
 
 %\funding{(Optional) general funding statement \dots}%optional, to capture a funding statement, which applies to all authors. Please enter author specific funding statements as fifth argument of the \author macro.
 
-\acknowledgements{I want to thank \dots}%optional
+%\acknowledgements{I want to thank \dots}%optional
 
 %\nolinenumbers %uncomment to disable line numbering
 
@@ -102,13 +106,437 @@
 
 %TODO mandatory: add short abstract of the document
 \begin{abstract}
-In the context of blockchain technology, the immutability of smart contracts once implemented underscores the critical need to ensure their accuracy. Even in cases where smart contract implementations are not overly extensive and have undergone testing before deployment, the blockchain community has identified significant vulnerabilities in their design. In addition, the relatively new nature of smart contract languages has led to unforeseen errors due to a lack of familiarity with their intricacies. To overcome these challenges, formal verification emerges as a key solution to guarantee the correctness of smart contracts. In response to this need, we have developed a formal verification tool for smart contracts, particularly those written in Michelson. This tool uses symbolic execution to simulate the implementation of the smart contract language, helping to detect subtle errors that are difficult for smart contract developers to detect. In addition, our tool includes a domain-specific language that allows users to precisely specify contract properties. By interacting with an SMT solver, it can handle a wide range of properties. In particular, it streamlines the process of reviewing requirements, uncovering hidden errors, and validating user-defined properties. In summary, our research highlights the need for robust verification of smart contracts. We present a purpose-built tool that utilizes symbolic execution and a domain-specific language to improve the correctness of smart contracts and provide a comprehensive solution to mitigate potential pitfalls in blockchain-based applications.
+Formal verification is a requirement for all but the simplest smart
+contracts on the blockchain. We developed XXX, a tool that is geared towards contracts
+implemented in Michelson, the smart contract language of the Tezos
+blockchain. It relies on symbolic execution and an SMT solver to
+derive verification conditions that can be checked against the user's
+specification. Specifications are written in a domain-specific
+language tailored to Michelson's execution model.
+
+We report the foundations of the design and implementation of XXX and
+conduct NNN case studies that demonstrate the expressiveness of our tool.
 \end{abstract}
+
 \section{Introduction}
 \label{sec:introduction}
-Symbolic execution techniques encounter challenges related to state explosion, particularly when applied to large systems. Fortunately, the constraints of storing and running smart contracts on a blockchain platform impose size limitations, making them manageable for symbolic execution.
 
-In this work, we present the design of a domain-specific language for specifying smart contract properties and demonstrate the integration of symbolic execution with an SMT solver for formal verification of these properties.
+Once a smart contract is published on a blockchain, it cannot be
+changed any more. Unfortunately, there are plenty of
+cases~\cite{examples-for-broken-smart-contracts} where the blockchain 
+community identified vulnerabilities in smart contracts despite
+extensive testing before deployment.
+In addition, the novel execution model of smart contract
+languages has led to unforeseen errors due to a lack of familiarity
+with their intricacies. These observations along with the contract's
+immutability underscore the need to ensure its correctness before deployment. 
+
+Formal verification can guarantee the correctness of smart contracts.
+To this end we have developed XXX, a formal
+verification tool for smart contracts on the Tezos blockchain, written in
+Michelson, although our design is widely applicable. XXX relies on
+symbolic execution backed by an SMT solver to simulate the
+implementation of the smart contract language, helping to detect 
+subtle errors. In addition, XXX comes with a domain-specific language that
+allows users to precisely specify contract properties.
+% By interacting with an SMT solver, it can handle a wide range of properties.
+It streamlines the process of reviewing requirements,
+uncovering hidden errors, and validating user-defined properties.
+XXX provides a comprehensive solution to
+mitigate potential pitfalls in blockchain-based applications. 
+
+In this work, we present the design of a domain-specific language for
+specifying smart contract properties and demonstrate the integration
+of symbolic execution for Michelson with an SMT solver for automatic
+formal verification of these properties.
+
+\begin{lstlisting}[float=tp,captionpos=b,caption={Auction contract specification (excerpt)},label={lst:auction-fragment}]
+mcontract Auction = spec 
+  storage := Pair (auction_open: bool) 
+                     Pair (highest_bidder: address)
+                          (contract_owner: address))
+  entrypoint %bid
+    code := {...}
+    parameter := Unit 
+    pre-condition := auction_open 
+       && Amount > Balance
+    post-condition := post_highest_bidder = Sender 
+       && post_Balance = Amount 
+       && transfer_token (Unit, Balance, highest_bidder) 
+       && post_contract_owner = contract_owner ;
+\end{lstlisting}
+As an example, Listing~\ref{lst:auction-fragment} contains an excerpt
+of the specification of an auction contract. The \texttt{storage}
+phrase describes the internal state (storage) of the contract
+consisting of three values named \lstinline|auction_open|,
+\lstinline|highest_bidder|, and \lstinline|contract_owner|.
+The actual specification consists of a precondition and a
+postcondition with the usual partial correctness semantics. The
+postcondition refers to components of the final storage by prefixing
+\lstinline|post_| to their name. The variables \lstinline|Balance|,
+\lstinline|Amount|, and \lstinline|Sender| correspond to the values
+returned by the like-named Michelson instructions that return the
+current balance of the contract, the amount transferred with the call,
+and the address of the caller (sender).
+
+Our symbolic interpreter calculates a postcondition predicate from the specified
+precondition. The SMT solver Z3 \cite{Z3} checks that this predicate
+implies the specified postcondition.
+
+Our contributions are as follows.
+\begin{enumerate}
+\item Design and implementation of the smart contract specification
+  language XXX.
+\item Design and implementation of a symbolic interpreter for a
+  significant subset of Michelson.
+\item Two case studies where we apply XXX to verify real life smart
+  contracts deployed on the Tezos blockchain:
+  \begin{itemize}
+  \item USDtz, an implementation of the FA~1.2 standard for financial
+    applications;
+  \item the Kolibri oracle contract that injects currency exchange
+    rates from an external system.
+  \end{itemize}
+\end{enumerate}
+
+\section{Michelson}
+\label{sec:background}
+
+Michelson is a stack-based language.
+A Michelson program specifies the type of its storage, the type of its single
+parameter, and a list of instructions for the underlying stack machine.
+A program starts on a stack with one element which contains a pair of
+the current storage value (taken from the blockchain) and the parameter value, as specified by the
+contract invocation.
+When it finishes, the stack must contain a single element with a pair
+of the final storage value (to be saved on the blockchain) and a list
+of instructions.
+These instructions may be token transfers or contract invocations,
+among other possibilities.
+
+Besides the standard datatypes (e.g., numbers, lists, pairs, sums)
+with the expected operations,
+Michelson supports a number of types and operations specific to blockchain applications (e.g.,
+\texttt{mutez} for tokens, \texttt{address} for blockchain addresses).
+
+Here is a simple example of a Michelson program:
+
+TO BE COMPLETED
+
+\pt{Introduce entrypoints}
+
+\pt{I don't think the next paragraph is strictly needed}
+Michelson, as a stack-based language, may pose a challenge for
+developers less familiar with it compared to more mainstream languages
+like Python, Java, or C. To address this, several high-level languages
+such as LIGO, SmartPy, and Liquidity have been created. These
+languages provide a more readable syntax, resembling popular
+programming languages, allowing developers to write Tezos smart
+contracts more comfortably. These high-level contracts are then
+compiled down to Michelson. 
+
+
+\section {A Domain Specific Language For Smart Contract Property Specification}
+\label{sec:domain-specific-language}
+
+% For Tezos users who may lack expertise in Michelson, there is a desire
+% to verify smart contract code before interaction.
+Our framework contains a domain-specific language (DSL) that
+facilitates the specification of smart contract properties in a
+mathematical and readable format.
+The DSL is designed to allow users to write formulas that align with
+the capabilities of the underlying SMT solver (Z3).
+The goal is to create a language
+that is accessible, easily understandable even for users who are
+not Michelson experts, and guarantees formulas that the solver can handle effectively.
+
+% This empowers users to write formulas, facilitating property verification in a more user-friendly manner.
+
+% To achieve this, our framework employs an SMT solver, specifically Z3,
+% for property verification.
+
+One of the main challenges with formal verification is that users are
+often required to express  system properties in a specialized
+specification language. This requirement poses two problems: it
+demands expertise in formal verification from the specifier and
+introduces a gap between the actual code and its specification. In our
+framework, users are not obliged to possess formal verification
+expertise. A basic understanding of Michelson data types and their
+usage when interacting with a smart contract on the Tezos blockchain
+is sufficient.
+
+\begin{figure}[tp]
+\begin{align*}
+\textbf{c} & ::= 
+    \text{Balance}
+   \Mid \text{post\_Balance}
+   \Mid \text{Amount}
+   \Mid \text{Sender}
+   \Mid \text{Source} 
+   \Mid \text{Now}
+   \Mid \text{Level} \\
+   &\Mid \text{Chain\_id}
+   \Mid \text{Self\_address}
+   \Mid \text{Total\_voting\_power}
+   \Mid \text{Voting\_power} \\
+\textbf{e} & :: =  \textbf{i} \Mid  \textbf{s}  \Mid  \textbf{b} \Mid \textbf{c} \Mid (\text{x} : \text{T}) \\
+&\Mid \text{Unit}  \Mid \text{Never}  \Mid \text{True}  \Mid \text{False} \\
+&\Mid \text{Pair } \textbf{e } \textbf{e}  \Mid \text{Left } \textbf{e}  \Mid \text{Right } \textbf{e}  \Mid \text{Some } \textbf{e} \text{: T} \Mid \text{None T}  \\
+& \Mid \textbf{e} \text{ + } \textbf{e}\Mid \textbf{e} \text{ - } \textbf{e}  \Mid \textbf{e} \text{ * } \textbf{e} \Mid \textbf{e} \text{ \/ } \textbf{e} \Mid \textbf{e} \text{ \% } \textbf{e} \Mid \textbf{e} \text{ rem } \textbf{e} \\
+& \Mid \text{transfer\_token} (\textbf{e}, \textbf{e}, \textbf{e}) 
+ \Mid \text{get\_map} (\textbf{e}, \textbf{e}) 
+ \Mid \text{get\_big\_map} (\textbf{e}, \textbf{e}) \\
+& \Mid \text{get\_contract} (\textbf{e}, \textbf{e})  
+ \Mid \text{abs} (\textbf{e})  
+ \Mid \text{len} (\textbf{e})
+ \Mid \text{size} (\textbf{e})
+\Mid \textbf{e} \text{$\wedge$} \textbf{e}  \\
+\textbf{p} & :: = \textbf{e} \text{ = } \textbf{e} 
+\Mid \textbf{e} \text{ != } \textbf{e}
+\Mid \textbf{e} \text{ > } \textbf{e}
+\Mid \textbf{e} \text{ >= } \textbf{e}
+\Mid \textbf{e} \text{ < } \textbf{e}
+\Mid \textbf{e} \text{ <= } \textbf{e} \\
+&\Mid \text{forall} (\textbf{e}, \textbf{p})
+                                            \Mid \text{exist} (\textbf{e}, \textbf{p})
+                                            \Mid \textbf{p} \text{ and } \textbf{p}\Mid \textbf{p} \text{ or } \textbf{p}  \Mid \textbf{p} \text{ nor } \textbf{p} \Mid  \text{ not } \textbf{p} \Mid \textbf{p} \text{ imply } \textbf{p} \\
+\end{align*}
+\caption{Syntax of predicates, p}
+\label{fig:syntax-predicates}
+\end{figure}
+
+\begin{lstlisting}[float,captionpos=b,caption={Smart contract property specification},label={lst:smart-contract-property-specification},numbers=left]
+mcontract Name = spec
+  code := {...}
+  input := t
+  output := t'
+  pre-condition := cd
+  post-condition := cd'
+\end{lstlisting}
+Listing \ref{lst:smart-contract-property-specification} shows the
+syntax of our property specification language. Here, \KMCONTRACT,
+\KWITH, \KCODE, \KINPUT, \KOUTPUT, \KPRECONDI, and \KPOSTCONDI\ are
+keywords. The \KNAME\ is replaced by the contract name. In the input
+and output fields, the input and output patterns are specified. Since
+Michelson operates on a stack, we assume that the stack has only one
+element, as specified in the input pattern. Similarly, the output
+stack is assumed to be a stack with only one element, which is
+specified in the output field. Thus, the syntax allows us to specify
+incomplete contracts, too. For a complete smart contract, the output
+should be a pair consisting of an operation list and a storage.
+
+For verification purposes we elide the operation list and represent
+the output solely by the pattern of the value in the storage after the
+execution concludes. In some cases, the output pattern can be omitted
+for a complete contract, given that the input pattern must be a pair
+of parameters and storage. Hence the storage pattern is part of the
+input pattern. In such cases, the prefix \lstinline/post_/ is used
+before the variables from the input term to indicate the corresponding
+storage value after the execution.
+
+The input and output patterns represent Michelson terms, which can be
+either concrete values or symbolic values, including variables. When a
+variable appears for the first time, it needs to be accompanied by its
+corresponding type declaration. Subsequent mentions can omit the type
+declaration.  Formally, the pre- and postcondition instances are
+formulas in first-order logic that can be handled by an SMT solver (in
+our case, Z3). The specification language is constituted of predicates
+defined using the syntax defined in Figure
+\ref{fig:syntax-predicates}. Formulas that are used in assertions or
+added to solvers are terms of sort Boolean. Otherwise, terms of
+Boolean and non-Boolean sort may be mixed in any combination where
+sorts match up. Universal and existential quantifiers bind variables
+to the scope of the quantified formula. 
+\begin{lstlisting}[float,captionpos=b,caption={Specification of Add contract},label={lst:add-contract-specification},numbers=left]
+mcontract Add = spec
+  code := {UNPAIR; COMPARE; GE; 
+          IF {ADD}{PUSH string 'Unexpected Pair'; FAILWITH}}
+  input := Pair (x : int) (y : int)
+  output := (z : int)
+  pre-condition := (x >= 5) | (y > 3)
+  post-condition := (z >= 8)
+\end{lstlisting}
+
+Let us consider the contract \texttt{Add}  in Listing
+\ref{lst:add-contract-specification} as an   example of a property
+specification.  Here, the program takes as input a stack with only one
+element, which is a pair of two integers, symbolically specified in
+the \lstinline|input| field. The program unpairs the input pair to
+obtain two elements as two integers \lstinline/x/ and \lstinline/y/.
+Next, the program performs a comparison between
+these two integers. If \lstinline/x/ is greater than or equal to
+\lstinline/y/, the program constructs a new stack with a solitary
+element at the top representing the sum of  \lstinline/x/ and
+\lstinline/y/, designated as \lstinline/z/ by the \lstinline|output| directive. Otherwise, the execution
+terminates with an error message containing the content
+\lstinline|'Unexpected pair'|. The specification continues by defining
+pre- and postconditions, where the precondition states the assumption
+that the integer \lstinline/x/ is greater than or equal to 5 and \lstinline/y/
+is greater than or equal to 3. The symbol  \lstinline/|/ stands for
+logical disjunction. The postcondition asserts that the result
+\lstinline/z/ is greater than or equal to 8.
+
+In XXX, we can specify several entrypoints at the same
+time. This design enables us to specify and verify all entrypoints
+at once and also to describe and verify relationships between
+entrypoints.  The syntax is shown in Listing~\ref {lst:multiple-entrypoint-specification},
+\begin{lstlisting}[float,captionpos=b,caption={Multiple entrypoint specification syntax},label={lst:multiple-entrypoint-specification},numbers=left][h]
+mcontract Name = spec
+   entrypoint %a 
+      code := {c1}
+      input := t1
+      output := t1'
+      pre-condition := cd1
+      post-condition := cd1'
+   entrypoint %b 
+      code := {c2}
+      input := t2
+      output := t2'
+      pre-condition := cd2
+      post-condition := cd2'
+   entrypoint %c 
+      ...
+   <entrypoint relations>
+\end{lstlisting}
+where the entrypoint name is written after the \lstinline/%/ symbol
+and is followed by a property specification for the entrypoint. The
+specification finishes with specifying entrypoint relations,
+which we explain next. 
+
+\pt{can we put the source code of the contract somewhere, e.g. in an appendix?}
+To illustrate entrypoint relations, let us consider a smart contract
+that models an online auction. The contract has two entrypoints,
+\lstinline|%bid| and \lstinline|%close|, which serve as functions for
+bidding and closing the contract, respectively.  The smart contract
+storage is a pair containing as its first element a boolean value
+\lstinline|auction_open| that indicates whether the contract is still
+open for bidding or already closed. The second element is another
+nested pair, where the first element stores the highest bidder's
+address, and the second element is the contract owner's address. The
+current highest bid is reflected in the balance of the contract. 
+
+Closing the contract transfers the balance to the owner and is
+restricted to the owner. Both closing and bidding operations fail if
+the auction is already closed. If bidding is open and the amount of
+tokens accompanying the bid exceeds the current highest bid, the
+current bidder replaces the previous highest bidder, and the previous
+highest bidder is reimbursed. Otherwise, bidding fails. 
+
+Upon deployment, the owner deposits an initial balance to indicate the minimum bid. The contract is supposed to be deployed with the storage value  \lstinline/Pair True (Pair owner owner)/, indicating that bidding is allowed, and the contract owner is currently the highest bidder.
+
+\begin{lstlisting}[float=tp,captionpos=b,caption={Auction contract specification},label={lst:auction-contract-specification},numbers=left]
+mcontract Auction = spec 
+  storage := Pair (auction_open: bool) 
+                     Pair (highest_bidder: address)
+                          (contract_owner: address))
+  entrypoint %bid
+    code := {...}
+    parameter := Unit 
+    pre-condition := auction_open 
+       && Amount > Balance
+    post-condition := post_highest_bidder = Sender 
+       && post_Balance = Amount 
+       && transfer_token (Unit, Balance, highest_bidder) 
+       && post_contract_owner = contract_owner ;
+
+  entrypoint %close
+    code := {...}
+    parameter := Unit
+    pre-condition := auction_open 
+       && Sender = contract_owner                
+    post-condition := not post_auction_open 
+       && post_Balance = 0 
+       && transfer_token (Unit, Balance, contract_owner) ;
+
+    (%create -> %bid) with (auction_open = true)  
+       && (Amount > Balance) 
+    | (%create  -> %close) with (auction_open = true) 
+       && (Sender = contract_owner)
+    | (%bid -> %bid) with (Amount > Balance)  
+    | (%bid -> %close) with (Sender = contract_owner)  
+    | not (%close -> %bid) 
+    | not (%close -> %close)
+\end{lstlisting}
+
+There are several properties that we want to guarantee for this
+contract. Let us have a look at the specification for the auction
+contract in Listing \ref{lst:auction-contract-specification}. We omit
+the Michelson code of the smart contract due to its length.  For the
+\lstinline/%bid/ entrypoint, the input stack has only one element,
+which is a pair consisting of the parameter and the current
+storage. The parameter is \lstinline/Unit/ of type \lstinline/unit/.
+The current storage is represented as a nested pair with the
+structure described by the \lstinline|storage| phrase. 
+The output term should maintain the required pattern of the storage,
+but the values may be changed and these changes are recorded in
+different symbolic variables. In this specification, we add the prefix
+\lstinline/post_/ to the variable names to refer to the storage
+returned by the program. The output pattern could be safely removed in
+this example because the tool automatically generates an output
+pattern corresponding the one specified here.
+
+Here is the first property that we want to check: if a user calls the
+\lstinline/%bid/ entrypoint, when the contract is still open for
+bidding and the bid (i.e., the amount transferred with the call) is
+higher than the current bid (as specified in the
+\lstinline/pre-condition/ field from line 10 to line 11 in Listing
+\ref{lst:auction-contract-specification}), then the bid should
+succeed.  In this case, the highest bidder has to be updated to the
+sender (line 12 in the \lstinline/post-condition/ field), which is the
+address of the caller, and the balance of the contract should be the
+amount sent along with the call (line 13). Moreover, the previous
+highest bidder should receive their bid, which means the auction
+contract should transfer the \lstinline/Balance/ to the previous
+bidder, \lstinline/highest_bidder/ (line 14). 
+The predicate \lstinline/Transfer_token (data, amount, address)/
+represents a smart contract call with three arguments: the data sent
+along with the call, the amount of tokesn, and the address of the
+receiver.  When the call is just a token transfer, the data field has
+the value \lstinline/Unit/ of type \lstinline/unit/, indicating that
+this is just a token transfer with no additional data. Another
+important property is that the auction owner's address should not be
+changed. That is, after calling the \lstinline/bid/ entrypoint, the
+\lstinline/contract_owner/ should remain the same as before (line
+15). The last property guarantees that when the contract owner (line
+25) closes the open contract (line 24), the contract is first closed
+(line 26), and then money (\lstinline/Balance/) should be sent to the
+owner. Hence, the final auction balance is zero (lines 28 and 29).
+
+For a smart contract on the blockchain, the order of smart contract
+calls can be crucial. We specify ordering constraints among calls with
+an entrypoint relation. An entrypoint relation can be specified as
+\lstinline/%a with cd -> %b/, which starts with the name
+\lstinline/%a/ of the entrypoint and is followed by the keyword
+\lstinline/with/ in case conditions are specified as predicates. The
+following symbol \lstinline/->/ indicates that from the entrypoint
+that satisfies the condition \lstinline/cd/, it is possible  to call
+the entrypoint \lstinline/%b/. One smart contract specification can
+contain several entrypoint relations concatenated by
+\lstinline/|/. There is a special entrypoint named \lstinline/create/
+that indicates the contract state after deployment. 
+
+Let us return to the auction contract. It is important to guarantee
+that contract deployment sets the  \lstinline/auction_open/ flag to
+\TRUE, indicating that the contract is open for bidding, i.e., users
+should be able to bid on the contract or the contract owner should be
+able to close it (lines 29-31). Furthermore, the bid call can happen
+successfully after another if the new bid is higher than the previous
+one (line 33). The  \lstinline/%close/ entrypoint can be called
+anytime if the caller is the contract owner (line 34). However, it
+should not be possible to call the  \lstinline/%bid/ entrypoint after
+the auction is closed (line 35), and, of course, it cannot be closed
+again if it is already closed (line 36). This sequence  illustrates
+the life cycle of the auction contract, which is depicted in Figure
+\ref{fig:auction-life-cycle}.
+
+\begin{figure}[tp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{auction-life-cycle}
+    \caption{Auction contract life cycle}
+    \label{fig:auction-life-cycle}
+\end{figure}
+
+
 \section{Symbolic Execution Model}
 \label{sec:symbolic-execution-model}
 \subsection{System Model}
@@ -621,175 +1049,9 @@ A Michelson program can fail, employing a designated opcode. The \FAILWITH\ inst
   {
   }{[(\FAILWITH; \INSTRUCTION), (\StackOne,  \TY) \STACKCONCAT \STACK,  \PREDICATE] \StateTrans [\EMPTYSTACK, (\FAIL\ (\StackOne), \TFAILWITH) \STACKCONCAT\EMPTYSTACK, \PREDICATE]}
 \end{mathpar}
-\section {Domain Specific Language For Smart Contract Property Specification}
-\label{sec:domain-specific-language}
-Michelson, as a stack-based language, may pose a challenge for developers less familiar with it compared to more mainstream languages like Python, Java, or C. To address this, several high-level languages such as LIGO, SmartPy, and Liquidity have been created. These languages provide a more readable syntax, resembling popular programming languages, allowing developers to write Tezos smart contracts more comfortably. These high-level contracts are then compiled down to Michelson.
-
-For Tezos users who may lack expertise in Michelson, there is a desire to verify smart contract code before interaction. Our framework addresses this by introducing a domain-specific language (DSL) that facilitates the specification of smart contract properties in a mathematical and readable format. The goal is to create a language that is accessible and easily understandable, even for users who are not Michelson experts.
-
-To achieve this, our framework employs an SMT solver, specifically Z3, for property verification. The DSL is designed to allow users to express formulas that align with the capabilities of the SMT solver (Z3). This empowers users to write formulas that the solver can effectively handle, facilitating property verification in a more user-friendly manner.
-
-One of the main challenges with formal verification is that it is often the requirement for users to express the system in a specialized specification language. This poses two problems: it demands expertise in formal verification from the specifier and introduces a gap between the actual code and its specification. In our framework, this gap is eliminated as the exact Michelson code used for verification precisely corresponds to the actual code.  Users are not obligated to possess formal verification expertise. 
-
-\begin{figure}[]
-\begin{align*}
-\textbf{c} & ::= 
-    \text{Balance}
-   \Mid \text{post\_Balance}  
-   \Mid \text{Amount} 
-   \Mid \text{Sender} 
-   \Mid \text{Source} 
-   \Mid \text{Now} 
-   \Mid \text{Level} \\
-   &\Mid \text{Chain\_id} 
-   \Mid \text{Self\_address} 
-   \Mid \text{Total\_voting\_power} 
-   \Mid \text{Voting\_power} \\
-\textbf{e} & :: =  \textbf{i} \Mid  \textbf{s}  \Mid  \textbf{b} \Mid \textbf{c} \Mid (\text{x} : \text{T}) \\
-&\Mid \text{Unit}  \Mid \text{Never}  \Mid \text{True}  \Mid \text{False} \\
-&\Mid \text{Pair } \textbf{e } \textbf{e}  \Mid \text{Left } \textbf{e}  \Mid \text{Right } \textbf{e}  \Mid \text{Some } \textbf{e} \text{: T} \Mid \text{None T}  \\
-& \Mid \textbf{e} \text{ + } \textbf{e}\Mid \textbf{e} \text{ - } \textbf{e}  \Mid \textbf{e} \text{ * } \textbf{e} \Mid \textbf{e} \text{ \/ } \textbf{e} \Mid \textbf{e} \text{ \% } \textbf{e} \Mid \textbf{e} \text{ rem } \textbf{e} \\
-& \Mid \textbf{e} \text{ and } \textbf{e}\Mid \textbf{e} \text{ or } \textbf{e}  \Mid \textbf{e} \text{ nor } \textbf{e} \Mid  \text{ not } \textbf{e} \Mid \textbf{e} \text{ imply } \textbf{e} \\
-& \Mid \text{transfer\_token} (\textbf{e}, \textbf{e}, \textbf{e}) 
- \Mid \text{get\_map} (\textbf{e}, \textbf{e}) 
- \Mid \text{get\_big\_map} (\textbf{e}, \textbf{e}) \\
-& \Mid \text{get\_contract} (\textbf{e}, \textbf{e})  
- \Mid \text{abs} (\textbf{e})  
- \Mid \text{len} (\textbf{e})
- \Mid \text{size} (\textbf{e})
-\Mid \textbf{e} \text{$\wedge$} \textbf{e}  \\
-\textbf{p} & :: = \textbf{e} \text{ = } \textbf{e} 
-\Mid \textbf{e} \text{ != } \textbf{e}
-\Mid \textbf{e} \text{ > } \textbf{e}
-\Mid \textbf{e} \text{ >= } \textbf{e}
-\Mid \textbf{e} \text{ < } \textbf{e}
-\Mid \textbf{e} \text{ <= } \textbf{e} \\
-&\Mid \text{forall} (\textbf{e}, \textbf{p})
-\Mid \text{exsit} (\textbf{e}, \textbf{p})
-\end{align*}
-\caption{Syntax of predicates, p}
-\label{fig:syntax-predicates}
-\end{figure}
-
-The Michelson code, readily available on the Tezos blockchain, remains consistent across various high-level language platforms like LIGO, SmartPy, and Liquidity, all of which offer functions to compile programs into Michelson. This approach eliminates the need for users to be formal verification experts. The essential Michelson knowledge revolves around understanding data types and their usage when interacting with a smart contract on the Tezos blockchain, whether as parameters or in storage.
-
-
-\begin{lstlisting}[float,captionpos=b,caption={Smart contract property specification},label={lst:smart-contract-property-specification},numbers=left]
-mcontract Name = spec
-code := {c}
-input := t
-output := t'
-pre-condition := cd
-post-condition := cd'
-\end{lstlisting}
-Listing \ref{lst:smart-contract-property-specification} shows the syntax of our property specification language. Here, \KMCONTRACT, \KWITH, \KCODE, \KINPUT, \KOUTPUT, \KPRECONDI, and \KPOSTCONDI\ are keywords. The \KNAME\ is replaced by the contract name. In the input and output fields, the input and output patterns are specified. Since Michelson operates on a stack, we assume that the stack has only one element, as specified in the input pattern. Similarly, the output stack is assumed to be a stack with only one element, which is specified in the output field. Our syntax allows to specify incomplete and complete smart contract code. For the complete smart contrat code, as we have mentioned before, the output should be a pair consisting of an operation list and a storage.In our syntax, for verification purposes, we exclude the operation list, and the output is solely represented by the pattern of the value in the storage after the execution concludes. In fact, for a complete smart contract code, in some cases, the output pattern can be omitted, given that the input pattern must be a pair of parameters and storage. This implies that the storage pattern is part of the input pattern. In such cases, the prefix 'post' is used before the variables in the input term to indicate the corresponding storage value after the execution.  The input and output patterns represent Michelson terms, which can be either concrete values or symbolic values, including variables. When a variable appears for the first time, it needs to be accompanied by its corresponding type declaration. However, subsequent mentions can omit the type declaration. Formally, the pre and post-condition instances are formulas in first-order logic, and they can be handled by an SMT solver, namely the Z3 solver in our framework. The specification language is constituted of predicates defined using the syntax defined as in Figure \ref{fig:syntax-predicates}. Formulas that are used in assertions or added to solvers are terms of Boolean sort. Otherwise, terms of Boolean and non-Boolean sort may be mixed in any combination where sorts match up. Universal and existential quantifiers bind variables to the scope of the quantified formula.
-\begin{lstlisting}[float,captionpos=b,caption={The specification of Add contracr},label={lst:add-contract-specification},numbers=left]
-mcontract Add = spec
-code := {UNPAIR; COMPARE; GE; 
-        IF {ADD}{PUSH string 'Unexpected Pair'; FAILWITH}}
-input := Pair (x : int) (y : int)
-output := (z : int)
-pre-condition := (x >= 5) | (y > 3)
-post-condition := (z >= 8)
-\end{lstlisting}
-Let's consider the  example of the property specification for the contract named Add as in Listing \ref{lst:add-contract-specification}. Here, the program takes as input a stack with only one element, which is a pair of two integers, symbolically specified in the Input field. It then unpairs the input pair to obtain two elements as two integers \lstinline/x/ and \lstinline/y/.  It then proceeds to destructure the input pair, yielding two integers. Subsequently, the program performs a comparison between these two integers. If  \lstinline/x/ is greater than or equal to \lstinline/y/, the program constructs a new stack with a solitary element at the top representing the sum of  \lstinline/x/ and \lstinline/y/, designated as \lstinline/z/. Otherwise, the execution terminates with an error message containing the content 'Unexpected pair.' The specification continues by defining pre and post conditions, where the precondition states the assumption that the integer  \lstinline/x/ is greater than or equal to 5 and \lstinline/y/ is greater than or equal to 3. Here, the symbol  \lstinline/|/ is the conjuration. The postcondition asserts that the result sum \lstinline/z/ is greater than or equal to 8. 
-
-A smart contract may offer various functions for users to interact. Therefore, our language is designed to allow users to specify different functions, referred to as entrypoints, in Michelson. This design enables us to specify and verify all functions within a smart contract. Furthermore, this design allows us to describe and verify relationships between functions.  The syntax is as follows: 
-\begin{lstlisting}[float,captionpos=b,caption={Multiple entrypoint specification syntax},label={lst:multiple-entrypoint-specification},numbers=left][h]
-mcontract Name = spec
-   entrypoint %a 
-      code := {c1}
-      input := t1
-      output := t1'
-      pre-condition := cd1
-      post-condition := cd1'
-   entrypoint %b 
-      code := {c2}
-      input := t2
-      output := t2'
-      pre-condition := cd2
-      post-condition := cd2'
-   entrypoint %c 
-      ...
-   < entrypoint relations>
-\end{lstlisting}
-where the entrypoint name is written after the \lstinline/%/ symbol and is followed by a property specification for the entrypoint. At the end of the specification is the entrypoint relation specification, which we will explain next.
-
-\begin{lstlisting}[float,captionpos=b,caption={Multiple entrypoint specification syntax},label={lst:multiple-entrypoint-specification},numbers=left][h]
-mcontract Name = spec
-   storage := s
-   entrypoint %a 
-      code := {c1}
-      parameter := t1
-      pre-condition := cd1
-      post-condition := cd1'
-   entrypoint %b 
-      code := {c2}
-      parameter := t2
-      pre-condition := cd2
-      post-condition := cd2'
-   entrypoint %c 
-      ...
-   < entrypoint relations>
-\end{lstlisting}
-
-To illustrate this, let's consider the  auction smart contract serving the auction events. The contract has two entrypoints, bid and close, which serve as functions for bidding and closing the contract, respectively. The smart contract storage on the blockchain is a pair containing the first element as a boolean value that indicates whether the contract is still open for bidding or already closed. The second element is another nested pair, where the first element  stores the highest bidder's address, and the second element is the contract owner's address. The current highest bid is reflected in the balance of the contract.
-
-Closing the contract transfers the balance to the owner and is restricted to the owner. Both closing and bidding operations fail if the auction is already closed. If bidding is open and the amount of tokens accompanying the bid exceeds the current highest bid, the current bidder replaces the previous highest bidder, and the previous highest bidder is reimbursed. Otherwise, bidding fails.
-
-Upon deployment, the owner deposits an initial balance to indicate the minimum bid. The contract is supposed to be deployed with the storage value  \lstinline/Pair True (Pair owner owner)/, indicating that bidding is allowed, and the contract owner is currently the highest bidder.
-
-\begin{lstlisting}[float,captionpos=b,caption={Auction contract specification},label={lst:auction-contract-specification},numbers=left]
-mcontract Auction = spec 
-  storage := Pair (auction_open: bool) 
-                     Pair (highest_bidder: address)
-                          (contract_owner: address))
-  entrypoint %bid
-    code := {...}
-    parameter := Unit 
-    pre-condition := auction_open 
-       && Amount > Balance
-    post-condition := post_highest_bidder = Sender 
-       && post_Balance = Amount 
-       && transfer_token (Unit, Balance, highest_bidder) 
-       && post_contract_owner = contract_owner ;
-  entrypoint %close
-    code := {...}
-    parameter := Unit
-    pre-condition := auction_open 
-       && Sender = contract_owner                
-    post-condition := not post_auction_open 
-       && post_Balance = 0 
-       && transfer_token (Unit, Balance, contract_owner) ;
-    (%create -> %bid) with (auction_open = true)  
-       && (Amount > Balance) 
-    | (%create  -> %close) with (auction_open = true) 
-       && (Sender = contract_owner)
-    | (%bid -> %bid) with (Amount > Balance)  
-    | (%bid -> %close) with (Sender = contract_owner)  
-    | not (%close -> %bid) 
-    | not (%close -> %close)
-\end{lstlisting}
-
-There are several properies that we want to grantuee in this contract. Lets take look at the specification for the auction contract in Listing \ref{lst:auction-contract-specification}. Here, we omit the Michelson code  of the smart contract due to its length. For the  \lstinline/bid/ entrypoint, the input stack is  the one with only one element, which is a pair consitting the parameter and the current storage. Here, the parameter is \lstinline/Unit/ of type \lstinline/unit/. The current storage represnted symbolicly as a nested pair, where the first element is the auction-open variable of type bool and the second element is an other pair consiting the highest-bidder of type address as the first element and the contract-owner variable of also type address as the second. 
-
-There are several properties that we want to guarantee in this contract. Let's take a look at the specification for the auction contract. For the \lstinline/bid/ entrypoint, the input stack is the one with only one element, which is a pair consisting of the parameter and the current storage. Here, the parameter is \lstinline/Unit/ of type \lstinline/unit/. The current storage is represented symbolically as a nested pair, where the first element is the \lstinline/auction_open/ variable of type \lstinline/bool/, and the second element is another pair consisting of the \lstinline/highest_bidder/ of type \lstinline/address/ as the first element and the \lstinline/contract_owner/ variable, also of type \lstinline/address/, as the second element. The output term should maintain the required pattern of the storage, where the values may be changed, and these changes are recorded in other symbolic variables. In this specification, we add the prefix \lstinline/post/ to the old variable names to represent the new variables corresponding to the old ones.Note that the output pattern here could be safely removed, and the tool will automatically generate the output pattern to match the one specified here.
-
-The first property that we want to check is that if a user sends a bid to the contract by calling the \lstinline/bid/ entrypoint, such that the contract is still open for bidding and the bid is higher than the current bid (as specified in the  \lstinline/pre-condition/ field from line 10 to line 11 in Listing \ref{lst:auction-contract-specification}), then the bid should succeed. This means the highest bidder has to be updated to the sender (line 12 in the \lstinline/post-condition/ field), which is the address of the user, and the balance of the contract should be the amount sent along with the call (line 13). Moreover, the old highest bidder should receive their bid, which means the auction contract should transfer the \lstinline/Balance/ to the previous bidder, \lstinline/highest_bidder/ (line 14).
- \lstinline/ Transfer_token (data, amount, address)/ is a predicate that represents a smart contract call with three arguments: the data sent along with the call, the amount, and the address of the receiver. When the call is just a token transfer, the data field has the value \lstinline/Unit/ of type \lstinline/unit/, indicating that this is just a token transfer with no additional data. Another important property is that the auction owner's address should not be changed. This means that after calling the \lstinline/bid/ entrypoint, the \lstinline/contract_owner/ should remain the same as before calling the entrypoint (line 15). The last property guarantees that when the contract owner (line 25) closes the open contract (line 24), the contract is first closed (line 26), and then money (\lstinline/Balance/) should be sent to the owner. This means the auction balance is now zero (lines 28 and 29).
-
-For a smart contract on the blockchain, the order of smart contract calls can be crucial. Here, we refer to it as entrypoint relation. An entrypoint relation can be specified as \lstinline/%a with cd -> %b/, where it includes the name \lstinline/a/ of the entrypoint followed by the symbol \lstinline/%/ and is followed by the keyword \lstinline/with/ in case conditions are specified as predicates. Next is the symbol \lstinline/->/, implying that from the entrypoint a that satisfies the condition \lstinline/cd/, it leads to the entrypoint \lstinline/b/. One smart contract specification can contain several entrypoint relations concatenated by the conjunction \lstinline/|/. There is a special entrypoint named \lstinline/create/ that indicates the contract state after deployment.
-
-Let's return to the auction contract. It is important to guarantee that after contract deployment with the  \lstinline/auction_open/ set to \TRUE, indicating that the contract is open for bidding, users should be able to bid on the contract or the contract owner should be able to close it (lines 29-31). Furthermore, the bid call can happen successfully after another if the new bid is higher than the previous one (line 33). The  \lstinline/close/ entrypoint could also be called after a bid call if the caller is the contract owner (line 34). However, it should not be possible to call the  \lstinline/bid/ entrypoint to bid on the contract after it is closed (line 35), and, of course, it cannot be closed again if it is already closed (line 36). This sequence could illustrate the life cycle of the auction contract, which is depicted in Figure \ref{fig:auction-life-cycle}.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.8\textwidth]{auction-life-cycle}
-    \caption{Auction contract life cycle}
-    \label{fig:auction-life-cycle}
-\end{figure}
 
 \section {Static Checker}
+\label{sec:static-checker-we}
 We verify the contract through symbolic execution against its specifications in the contract module. Symbolic execution involves calculating a symbolic stack at each transition from one Michelson instruction to the next. The symbolic interpreter is fully typed and rejects ill-typed Michelson programs, provided the ill-typed part is reachable from the default entry point. The initial stack is derived from the input pattern for each the entry point. To maintain symbolic values as concrete as possible, some instructions may be deemed unreachable or only reachable under specific conditions. This process yields, for each entry point, a set of final symbolic stacks accompanied by a path condition indicating when this final state is reachable. A state is discarded from the final state space if the path condition is not satisfied, indicating that the path is unreachable. Additionally, for each \FAILWITH\ instruction, we obtain a symbolic value for the reported message and a path condition indicating the reachability of this instruction. We employ the SMT solver Z3  to assess the feasibility of a path condition and to check smart contract properies specifying by pre and post conditions. 
 
 The architecture of the static checker is illustrated in Figure \ref{}. The system comprises three phases. The first phase involves user specification, where users provide the Michelson code of the contract and define the properties that the smart contract should satisfy. Subsequently, the code, along with the input pattern, is input to the interpreter to achieve symbolic execution. The path conditions are then fed into a Z3 converter, which transforms these symbolic terms into Z3 formulas. Concurrently, the property specification, specifically pre and post conditions, also undergoes conversion to Z3 formulas in the intermediate phase. The results of the symbolic execution and Z3 formulas are then input into the static checker, which verifies whether these properties hold for the smart contract implementation. This constitutes the verification phase.
@@ -1102,5 +1364,23 @@ mcontract Auction = spec
   | not (%getXtzUsdRate_callback -> %getXtzUsdRate_callback)
 \end{lstlisting}
 \section {Conclusion}
-\section {Appendix}
+\label{sec:concl-sect-append}
+
+Symbolic execution is well known to suffer from challenges related to
+state explosion, particularly when applied to large
+systems. Fortunately, the constraints of storing and running smart
+contracts on a blockchain platform impose size limitations, making
+them manageable for symbolic execution. 
+
+In future work, we want to extend XXX in two directions. 
+First, we want to address the interaction of several entrypoints by
+extending the specification language to state allowed sequences of
+contract invocations. 
+
+Second, a Michelson returns a list of instructions, which may contain
+further contract invocations. Dealing with this kind of contracts
+requires an extension to the symbolic interpreter so that a sequence
+of contract invocations can be processed in one run.
+
+\bibliography{}
 \end{document}
