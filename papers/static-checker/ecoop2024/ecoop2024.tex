@@ -229,12 +229,12 @@ Listing~\ref {lst:simple-program-add} contains a simple example of a Michelson p
 parameter int;
 storage   int;
 code  { 
-(*                 pair int int :: [] *)
-  DUP; UNPAIR;
-(*   int :: int :: pair int int :: [] *)
-  COMPARE; GE; 
-(*         bool :: pair int int :: [] *)
-  IF {UNPAIR; ADD}{PUSH string 'Unexpected Pair'; FAILWITH}
+(*               pair int int :: [] *)
+   DUP; UNPAIR;
+(* int :: int :: pair int int :: [] *)
+   COMPARE; GE; 
+(*       bool :: pair int int :: [] *)
+   IF {UNPAIR; ADD}{PUSH string 'Unexpected Pair'; FAILWITH}
       }
 \end{lstlisting}
 \atha{Explain the example program}
@@ -306,7 +306,7 @@ is sufficient.
  \Mid \text{len} (\textbf{e})
  \Mid \text{size} (\textbf{e})
 \Mid \textbf{e} \text{$\wedge$} \textbf{e}  \\
-\textbf{p} & :: = \textbf{e} \text{ = } \textbf{e} 
+\textbf{p} & :: = \textbf{e} \text{ = } \textbf{e}
 \Mid \textbf{e} \text{ != } \textbf{e}
 \Mid \textbf{e} \text{ > } \textbf{e}
 \Mid \textbf{e} \text{ >= } \textbf{e}
