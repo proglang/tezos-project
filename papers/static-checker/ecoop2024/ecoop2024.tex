@@ -202,14 +202,16 @@ Our contributions are as follows.
 
 \section{Michelson}
 \label{sec:background}
+\lstset{language=michelson}
 
 Michelson is a stack-based, statically typed functional programming language.
 A Michelson program is given by the type $S$ of its storage, the type $P$ of its single
 parameter, and a typed list of instructions for the underlying stack machine.
 A program starts on a stack with one element which contains a pair of
-the current storage value (taken from the blockchain) and the parameter value, as specified by the
+the current storage value (taken from the blockchain) and the
+parameter value as specified by the
 contract invocation.
-When it finishes, the stack must contain a single element with a pair
+When the program finishes, the stack must contain a single element with a pair
 of the final storage value (to be saved on the blockchain) and a list
 of operations.
 These operations are syntactic commands like token transfers or
@@ -221,26 +223,54 @@ Besides the standard datatypes (e.g., numbers, lists, pairs, sums, functions)
 with the expected operations,
 Michelson supports a number of types and operations specific to blockchain applications (e.g.,
 \texttt{mutez} for tokens, \texttt{address} for blockchain
-addresses). The type system in simple in the sense that it does not
+addresses). The type system is simple in the sense that it does not
 support quantification over types.
 
-Listing~\ref {lst:simple-program-add} contains a simple example of a Michelson program.
-\begin{lstlisting}[float=tp,captionpos=b,caption={A simple Michelson program},label={lst:simple-program-add},language=michelson]
+Listing~\ref {lst:simple-program-add} contains a short example of a Michelson program.
+\begin{lstlisting}[float=tp,captionpos=b,caption={A Michelson program},label={lst:simple-program-add}]
 parameter int;
 storage   int;
-code  { 
+code { 
 (*               pair int int :: [] *)
    DUP; UNPAIR;
 (* int :: int :: pair int int :: [] *)
    COMPARE; GE; 
 (*       bool :: pair int int :: [] *)
-   IF {UNPAIR; ADD}{PUSH string 'Unexpected Pair'; FAILWITH}
-      }
+   IF {UNPAIR; ADD} {PUSH string 'Unexpected Pair'; FAILWITH};
+(*                        int :: [] *)
+   NIL operation; PAIR
+}
 \end{lstlisting}
-\atha{Explain the example program}
-\atha{Explain some important instructions for reference later on:
-  AMOUNT, BALANCE, FAILWITH, \dots}
-\atha{Introduce entrypoints}
+This program first duplicates its input (\lstinline|DUP|), decomposes
+the pair $P\times S$ into its components (\lstinline|UNPAIR|),
+compares the two value on top of the stack (\lstinline|COMPARE|), and
+transforms the result into a boolean (\lstinline|GE|). The
+\lstinline|IF| instruction pops the boolean and either executes the
+first (for true) or second (for false) list of instructions. By now
+only the initial pair is on the stack. In the true branch,
+\lstinline|UNPAIR| decomposes, and then \lstinline|ADD| adds the
+components. In the false branch, the \lstinline|PUSH| instruction pushes
+a string message on the stack. The \lstinline|FAILWITH| instruction
+abort the contract execution: tokens are consumed, but the storage and
+the balance of the contract remain unchanged.
+
+We emerge from the conditional with just the result of the addition on
+the stack. The \lstinline|NIL| instruction pushes an empty list and
+\lstinline|PAIR| creates the requires pair of type $O^* \times S$.
+
+Each Tezos contract maintains a balance of tokens, which can be
+accessed from Michelson using the \lstinline|BALANCE|
+instruction. Contract invocations (aka token transfers) also come with
+tokens besides their data arguments. The \lstinline|AMOUNT|
+instruction pushes the number of tokens received on the stack. They
+are already included in the current balance of the contract. During the
+execution of a Michelson contract, these values are fixed. 
+
+A contract may have several entrypoints. Entrypoints are encoded by
+using a sum type (call ``or type'' in Michelson). Each (nested) alternative in a sum can be
+given a name, which is used as the name for an entrypoint. A call to
+an entrypoint automatically adds the required \lstinline|LEFT| and
+\lstinline|RIGHT| constructors to the parameter.
 
 \atha{Add citations/references to the high-level languages.}
 While contracts may be implemented directly in Michelson, it can also
@@ -250,7 +280,7 @@ languages provide a more readable syntax, resembling popular
 programming languages, allowing developers to write Tezos smart
 contracts more comfortably. Our tools are applicable to all of them
 because they compile to Michelson.
-
+\lstset{language=Caml}
 
 \section {A Domain Specific Language For Smart Contract Property Specification}
 \label{sec:domain-specific-language}
