@@ -956,12 +956,12 @@ This adherence guarantees interoperability and compatibility across
 different platforms. A token standard defines a set of rules and an
 interface that smart contracts must follow to ensure compatibility
 with decentralized exchanges, wallets, and other tools within the
-ecosystem. For example, ERC-20 \cite{erc} is a token standard used in Ethereum.  
+ecosystem. For example, ERC-20 \cite{erc} is a token standard used in Ethereum \cite{eth-whitepaper}.  
 
 
 The Tezos blockchain has its own set of standards known as Financial
-Applications (FA). Two notable standards are: (1) FA 1.2 \cite{fatzip}, designed for
-fungible tokens, and (2) FA 2 \cite{fatzips}, a more versatile standard accommodating
+Applications (FA). Two notable standards are: (1) FA 1.2 \cite{fa}, designed for
+fungible tokens, and (2) FA 2 \cite{fas}, a more versatile standard accommodating
 both fungible and non-fungible tokens (NFTs). The standard outlines a
 smart contract that functions as a ledger, associating identities with
 balances. This ledger is designed to facilitate token transfer
@@ -976,10 +976,10 @@ balance (checking the balance of a user), and current supply (checking
 the total supply of tokens across all addresses), where
 \lstinline/view a r = pair a (contract r)/ implies an view entrypoint.
 A view is an entrypoint that takes an
-argument of type \lstinline/a/ and a callback that results in a value
+argument of type \lstinline/a/ and a contract to callback that receives in a value
 of type \lstinline/r/. The callback in this case will be another
 contract address. Further elaboration on the details of FA 1.2 can be
-found in \cite{usdtz}, and we will delve into
+found in \cite{fatzip}, and we will delve into
 these functions in subsequent 
 sections.
 
@@ -1056,24 +1056,24 @@ outlined in Listing~\ref{lst:transfer-udstz-contract}\footnote{There may be some
 The fundamental property that this entrypoint should satisfy is the decrement of the allowance of the sender's account by the \lstinline/value/ that has been sent as Listing \ref{lst:specification-transfer}.
 \begin{lstlisting}[float,captionpos=b,caption={Specification of the \lstinline/transfer/ entrypoint},label={lst:specification-transfer},numbers=left]
 mcontract usdtz = spec 
-   storage :=  Pair (ledger: big_map address 
-      (pair nat (map address nat))) 
-      (Pair (admin: address) 
-            (Pair (paused: bool) (total_supply: nat)))
-   entrypoint %transfer
-      parameter := Pair (from: address)
+ storage :=  Pair (ledger: big_map address 
+  (pair nat (map address nat))) 
+  (Pair (admin: address) 
+          (Pair (paused: bool) (total_supply: nat)))
+ entrypoint %transfer
+   parameter := Pair (from: address)
          (Pair (to: address) (value: nat))
-      pre-condition := not paused 
-        && get_big_map (from, ledger) = 
-           Some (v: pair nat (map address nat))
-        && (v = Pair (n: nat) (m: map address nat))
-        && get_map (Sender, m) = Some (k: nat) 
-        && (n >= value) && (k >= value)
-      post-condition := get_big_map (from, post_ledger) = 
-           Some (post_v: option (pair nat (map address nat))) 
-        && post_v = Pair (post_n: nat) (post_m: map address nat) 
-        && get_map (Sender, post_m) = Some (post_k: nat) 
-        && (post_n = n - value) && (post_k = k - value)
+   pre-condition := not (paused  = true)
+     && get_big_map (from, ledger) = 
+       Some (v: pair nat (map address nat))
+     && (v = Pair (n: nat) (m: map address nat))
+     && get_map (Sender, m) = Some (k: nat) 
+     && (n >= value) && (k >= value)
+   post-condition := get_big_map (from, post_ledger) = 
+     Some (post_v:  pair nat (map address nat))
+     && post_v = Pair (post_n: nat) (post_m: map address nat) 
+     && get_map (Sender, post_m) = Some (post_k: nat) 
+     && (post_n = n - value) && (post_k = k - value)
 \end{lstlisting}
 
 \subsubsection{approve}
@@ -1113,10 +1113,10 @@ parameter \lstinline/value/ is zero, then the
 corresponding allowance value of the \lstinline/spender/ from the
 owner (which is \SENDER\ in this call) should be zero. This
 subproperty is specified as shown in
-Listing~\ref{lst:specification-approve}. Property 2: if
-\lstinline/value/ is non-zero and the allowance of the \lstinline/spender/ is zero, then the \lstinline/value/ should be recorded in the storage after the call. We specify this property using pre- and post-conditions, as illustrated in Listing~\ref{lst:---approve---to-be-provided}.
+Listing~\ref{lst:specification-approve-1}. Property 2: if
+\lstinline/value/ is non-zero and the allowance of the \lstinline/spender/ is zero, then the \lstinline/value/ should be recorded in the storage after the call. We specify this property using pre- and post-conditions, as illustrated in Listing~\ref{lst:specification-approve-2}.
 
-\begin{lstlisting}[float=tp,captionpos=b,caption={Specification of the \lstinline/approve/ entrypoint},label={lst:specification-approve},numbers=left]
+\begin{lstlisting}[float=tp,captionpos=b,caption={Specification of the \lstinline/approve/ entrypoint (Property 1)},label={lst:specification-approve-1},numbers=left]
 entrpoint %approve
    parameter := Pair (spender: address) (value: nat)
    pre-condition := not (paused = true)
@@ -1130,7 +1130,8 @@ entrpoint %approve
       && post_v = Pair (post_n: nat) (post_m: map address nat) 
       && get_map (spender, post_m) = Some (post_k: nat) 
       && (post_k = 0) ;
-
+\end{lstlisting}
+\begin{lstlisting}[float=tp,captionpos=b,caption={Specification of the \lstinline/approve/ entrypoint (Property 2)},label={lst:specification-approve-2},numbers=left]
    pre-condition := not (paused = true) 
       && get_big_map (Sender, ledger) = 
         Some (v: option (pair nat (map address nat))) 
@@ -1173,7 +1174,7 @@ other entrypoints \lstinline/getAllowance/ and
 cases to consider: (1) if the \lstinline/owner/ is in the
 \lstinline/ledger/ big map and (2) if it is not. For the former case,
 lines 5-8 specify that \lstinline/owner/ is in the \lstinline/ledger/
-big map, as the \lstinline/Get_big_map/ function returns a value
+big map, as the \lstinline/get_big_map/ function returns a value
 \lstinline/Some value/ of the \TOPTION\ type, and this
 \lstinline/value/ is a pair of a natural number \lstinline/k/ and a
 map \lstinline/m/. The postcondition guarantees that the storage
@@ -1195,7 +1196,7 @@ entrypoint %getBalance
       && post_admin = admin 
       && post_paused = paused 
       && post_total_supply = total_supply 
-      && post_Balance = Balance 
+      && post_Balance = pre_Balance 
       && transfer_token (k, Amount, c) ;
 
    pre-condition :=  get_big_map (owner, ledger) = 
@@ -1204,7 +1205,7 @@ entrypoint %getBalance
       && post_admin = admin 
       && post_paused = paused 
       && post_total_supply = total_supply 
-      && post_Balance = Balance 
+      && post_Balance = pre_Balance 
       && transfer_token (0, Amount, c) ;
 \end{lstlisting}
 \subsubsection{Further entrypoints}
@@ -1278,13 +1279,11 @@ The oracle contract offers various entrypoints, including:
 \begin{lstlisting}[float,captionpos=b,caption={Kolibri oracle contract},label={lst:kolibri-oracle-contract},numbers=left]
 parameter
  (or
-   (or
-     (unit %default)
-     (contract nat %getXtzUsdRate))
+   (or (unit %default) (contract nat %getXtzUsdRate))
    (or
      (pair string (pair timestamp nat) %getXtzUsdRate_callback)
      (or
-       (address %setGovernorContract)
+       (address %setGovernorContract) 
        (nat %setMaxDataDelaySec)))) ;
 storage
  (pair
@@ -1300,9 +1299,9 @@ The Kolibri oracle contract maintains a straightforward state machine comprising
 
 Several properties must be verified to ensure the correct functioning of the state machine. The initial property states that \lstinline/getXtzUsdPrice/ can only be invoked when in the \lstinline/IDLE/ state, while conversely, \lstinline/getXtzUsdPrice_callback/ can only be invoked when in the \lstinline/WAITING_FOR_HARBINGER/ state. The validation of this property involves examining the fail conditions of these two entrypoints.
 
-The subsequent property dictates that if \lstinline/getXtzUsdPrice/ is successfully executed, the state must transition to \lstinline/WAITING_FOR_HARBINGER/, and the parameters passed along with the call need to be stored in the \lstinline/clientCallback/ attribute of the storage. This property can be detailed as shown in Listing \ref{lst:kolibri-contract-specification}.
+The subsequent property dictates that if \lstinline/getXtzUsdPrice/ is successfully executed, the state must transition to \lstinline/WAITING_FOR_HARBINGER/, and the parameters passed along with the call need to be stored in the \lstinline/clientCallback/ attribute of the storage.
 
-The following property asserts that if \lstinline/getXtzUsdPrice_callback/ is successful, the state should revert to \lstinline/IDLE/, and there must be a transaction transferring the data to the client at the \lstinline/clientCallback/ attribute. This property is specified in Listing \ref{lst:kolibri-contract-specification}.
+The following property asserts that if \lstinline/getXtzUsdPrice_callback/ is successful, the state should revert to \lstinline/IDLE/, and there must be a transaction transferring the data to the client at the \lstinline/clientCallback/ attribute. 
 
 The final property concerns the entrypoint relation between
 \lstinline/getXtzUsdPrice/ and \lstinline/getXtzUsdPrice_callback/ as
@@ -1311,10 +1310,9 @@ the \lstinline/getXtzUsdPrice/ entrypoint, the contract can only be
 called with \lstinline/getXtzUsdPrice_callback/ and then
 reverted. Invoking the \lstinline/getXtzUsdPrice/ entrypoint after
 another call or invoking the \lstinline/getXtzUsdPrice_callback/
-entrypoint again is not allowed. This entrypoint relation property is
-specified as an entrypoint relation in
-Listing~\ref{lst:kolibri-oracle-entrypoint-relations-text}. 
+entrypoint again is not allowed. 
 
+The specification of  the contract is showned in Listing \ref{lst:kolibri-contract-specification}. Here, we shortened the names of the variables for the storage.
 \begin{figure}[tp]
     \centering
     \includegraphics[width=0.8\textwidth]{kolibri}
@@ -1370,7 +1368,6 @@ mcontract kolibri = spec
   | not (%getXtzUsdRate -> %getXtzUsdRate) 
   | not (%getXtzUsdRate_callback -> %getXtzUsdRate_callback)
 \end{lstlisting}
-
 When verifying the entrypoint \lstinline/setMaxDataDelaySec/, we noticed an unmatched statement. In \cite{kolibri}, the Kolibri oracle is expected to perform two checks on data returned from Harbinger: (1) was the asset returned "XTZ-USD" and (2) was the asset updated in the last 30 minutes. We ran the fail condition check for both the \lstinline/setMaxDataDelaySec/ and \lstinline/getXtzUsdPrice_callback/ entrypoints as shown in Listing \ref{lst:setXtzUsdPrice_callback} and \ref{lst:setMaxDataDelaySec}. Upon examining the failwith conditions, we detected that there is no failwith if the data is more than 30 minutes (equal to 1800 seconds). We can add the predicate \lstinline/maxDelay <= 1800/ in the post condition of the entrypoint \lstinline/setMaxDataDelaySec/, but then the pre and post condition test fails. This means there is no constraint that the data is less than 30 minutes. This constraint is possibly set up by the governor and specified in the \lstinline/MaxDataDelaySec/ field. However, users calling this contract should be aware that it is possible for the governor to set any value (>=0) as desired. This could lead to providing out-of-date rates.
 \begin{lstlisting}[float=tp,captionpos=b,caption={Failwith condition for the entrypoint setXtzUsdPrice\_callback},label={lst:setXtzUsdPrice_callback},numbers=left]
 1. not (state = 1): 12
@@ -2029,14 +2026,14 @@ Symbolic execution has emerged as a powerful technique for systematically explor
 
 Several approaches use existing formal verification frameworks to ensure the correctness and security of smart contracts. S. Amani et al. \cite{isabelle} proposed the formal verification of Ethereum smart contracts in Isabelle/HOL. Hirai \cite{hirai} formalizes the EVM using Lem, a language to specify semantic definitions. The formal verification of smart contracts is achieved using the Isabelle proof assistant. Bernardo et al. \cite{micho} implemented Mi-Cho-Coq, a formalization of the semantics of Michelson using the Coq proof assistant. They also verified several Michelson contracts.
 
-Several tools for automated verification include solc-verify \cite{solc}, VerX \cite{verx}, and Oyente \cite{oyente}. solc-verify processes smart contracts written in Solidity and discharges verification conditions using modular program analysis and SMT solvers. It operates at the level of the contract source code, with properties specified as contract invariants and function pre- and post-conditions provided as annotations in the code by the developer. This approach offers a scalable, automated, and user-friendly formal verification solution for Solidity smart contracts. The core of solc-verify involves translating Solidity contracts to Boogie IVL (Intermediate Verification Language), a simple language designed for verification. 
+There are exsiting tools for automated verification include solc-verify \cite{solc}, VerX \cite{verx}, and Oyente \cite{oyente}. solc-verify processes smart contracts written in Solidity and discharges verification conditions using modular program analysis and SMT solvers. It operates at the level of the contract source code, with properties specified as contract invariants and function pre- and post-conditions provided as annotations in the code by the developer. This approach offers a scalable, automated, and user-friendly formal verification solution for Solidity smart contracts. The core of solc-verify involves translating Solidity contracts to Boogie IVL (Intermediate Verification Language), a simple language designed for verification. 
 
 While these approaches differ, they share a focus on common bugs (such as reentrancy, overflow or underflow, and frozen funds). Our tool provide an environment where users can reliably specify their own properties and identify contract-specific bugs. Our tool aims to rich specifications to supports manually specified full correctness specifications.
 
 
 Close to our approach are HELMHOLTZ \cite{helmholtz} and iContract \cite{icontract}. Y. Nishida et al. \cite{helmholtz} developed HELMHOLTZ, an automated verification tool for Michelson. While both research efforts aim to build a verification tool for smart contracts written in Michelson, HELMHOLTZ is based on the refinement type system, whereas ours relies on symbolic execution. Both tools use the SMT solver Z3 for property verification. HELMHOLTZ takes, as input, a Michelson program annotated with a user-defined specification expressed in a refinement type; it then typechecks the program against the specification using the refinement type system. Similar to our tool, it discharges verification conditions with the SMT solver Z3. If the code successfully typechecks, then the program is guaranteed to satisfy the specification. Both tools use a language for user specifications, with properties annotated inside the code by the developer. Here, we provide a separate specification language that users don't need to modify within the code. While their specification language is close to ML-like notations, our language supports logic formulas in first-order logic similar to Z3. While HELMHOLTZ conducts example case studies or examines some entry points of real contracts, our tool conducts two real case studies of running blockchain contracts, implementing significant subjects on the blockchain such as token standards and oracles.
 
-iContract targets the Solidity language. It also utilizes pre and post conditions, similar to our tool, to specify user properties. iContract supports contract invariants, loop invariants, and pre-/post conditions. It locally installs the Solidity compiler to compile a user-provided Solidity file into a JSON file containing the typed abstract syntax tree (AST). Then, iContract analyzes the AST to encode contracts into predicates using the Z3 library. They leverage the NatSpec format to define their own specifications.
+iContract targets the Solidity language. It also utilizes pre and post conditions, similar to our tool, to specify user properties. It locally installs the Solidity compiler to compile a user-provided Solidity file into a JSON file containing the typed abstract syntax tree (AST). Then, iContract analyzes the AST to encode contracts into predicates using the Z3 library. They leverage the NatSpec format to define their own specifications.
 
 \section{Conclusion}
 \label{sec:concl-sect-append}
