@@ -94,55 +94,6 @@ T, U &::= \\
 \end{figure}
 
 
-\begin{figure}[h]
-\begin{align*}
-\text{p} &::= \\
-   &\Mid\ \langle \text{atomic formula} \rangle \\
-   &\Mid\ \NEG\ \text{p} \
-   \Mid\ \text{p}\ \CNF\ \text{q} \
-   \Mid\ \text{p}\ \DNF\ \text{q} \\
-\langle \text{atomic formula} \rangle &::= \\ 
-    &\Mid\ \langle \text{butop} \rangle \langle \text{bterm} \rangle\\ 
-   &\Mid\  \langle \text{bterm} \rangle  \langle \text{biop} \rangle \langle \text{bterm} \rangle\\ 
-\langle \text{butop} \rangle &::= \\
-   &\Mid\ \text{not} \\
-\langle \text{biop} \rangle &::= \\
-   &\Mid\ \text{$=$} \
-   \Mid\ \text{$>$} \
-   \Mid\ \text{$<$} \
-   \Mid\ \text{$>=$} \
-   \Mid\ \text{$=<$} \
-   \Mid\ \text{$!=$} \\
-   &\Mid\ \text{and}\ \Mid\ \text{or}\ \Mid\ \text{xor}\\
-\langle \text{bterm} \rangle &::= \\ 
-   &\Mid\ \text{t} \\
-   &\Mid\ \langle \text{unop} \rangle \text{t} \\ 
-   &\Mid\ \text{t}\ \langle \text{binop} \rangle \text{t}\\  
-\langle \text{unop} \rangle &::= \\ 
-   &\Mid\ \text{abs} \\
-   &\Mid\ \text{size} \\
-   &\Mid\ \text{int} \\
-   &\Mid\ \text{contract}  \langle \text{type} \rangle \\
-   &\Mid\ \text{isleft} \\
-   &\Mid\ \text{isnone} \\
-   &\Mid\ \text{neg} \\
-   &\Mid\ \text{blake2b} \\
-   &\Mid\ \text{hash-key} \\
-   &\Mid\ \text{keccak} \\
-   &\Mid\ \text{pairing-check} \\
-   &\Mid\ \text{sha256} \\
-   &\Mid\ \text{sha3} \\
-   &\Mid\ \text{sha512} \\
-   &\Mid\ \text{implicit-account} \\
-   &\Mid\ \text{check-sig} \\
-\langle \text{bitop} \rangle &::= \\ 
-   &\Mid\ \text{+}\ \Mid\ \text{-}\ \Mid\ \text{*}\ \Mid\ \text{/}
-\end{align*}
-\caption{Predicates}
-\label{fig:predicate}
-\end{figure}
-
-
 
 \subsubsection{Basic Instructions}
 
@@ -463,27 +414,24 @@ The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value a
   }
 \end{mathpar}
 
+%\begin{mathpar}
+%\inferrule[CONCAT]
+ % {
+ % }
+ % {[(\CONCAT; \INSTRUCTION), (\StackOne, \TYLIST\ \TSTR) \STACKCONCAT\STACK,  \PREDICATE] \StateTrans 
+%[\INSTRUCTION,  ("",  \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \EMPTYLIST)]}
+%\end{mathpar}
 
-
-
-\begin{mathpar}
-\inferrule[CONCAT]
-  {
-  }
-  {[(\CONCAT; \INSTRUCTION), (\StackOne, \TYLIST\ \TSTR) \STACKCONCAT\STACK,  \PREDICATE] \StateTrans 
-[\INSTRUCTION,  ("",  \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \EMPTYLIST)]}
-\end{mathpar}
-
-\begin{mathpar}
-\inferrule[CONCAT]
-  {
-  [\CONCAT,  (\{\TAIL\}, \TYLIST\ \TSTR) \STACKCONCAT\EMPTYSTACK, Q]
-    \StateTrans^*
-    [\EMPTYSTACK, (\StackTwo,  \TSTR) \STACKCONCAT\EMPTYSTACK, Q']
-  }
-  {[(\CONCAT; \INSTRUCTION),  (\StackOne, \TYLIST\ \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \StateTrans \\
-[\INSTRUCTION, ( \HEAD\ \STRINGCONCAT\ \StackTwo, \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \{\HEAD; \TAIL\}) \Wedge\ Q']}
-\end{mathpar}
+%\begin{mathpar}
+%\inferrule[CONCAT]
+%  {
+%  [\CONCAT,  (\{\TAIL\}, \TYLIST\ \TSTR) \STACKCONCAT\EMPTYSTACK, Q]
+%    \StateTrans^*
+%    [\EMPTYSTACK, (\StackTwo,  \TSTR) \STACKCONCAT\EMPTYSTACK, Q']
+%  }
+%  {[(\CONCAT; \INSTRUCTION),  (\StackOne, \TYLIST\ \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \StateTrans \\
+%[\INSTRUCTION, ( \HEAD\ \STRINGCONCAT\ \StackTwo, \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \{\HEAD; \TAIL\}) \Wedge\ Q']}
+%\end{mathpar}
 
 
 %MEM
@@ -620,9 +568,6 @@ The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value a
 \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1' \Wedge\ Q2' \Wedge\ (\StackOne\ \EQ\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableA\ \EQ\ \ONE)]}
 \end{mathpar}
 
-
-
-\subsubsection{Operation on tickets}
 \subsubsection{FAILWITH}
 a Michelson program can fail, explicitly using a specific opcode
 
@@ -632,21 +577,4 @@ a Michelson program can fail, explicitly using a specific opcode
   {
   }{[(\FAILWITH; \INSTRUCTION), (\StackOne,  \TY) \STACKCONCAT \STACK,  \PREDICATE] \StateTrans [\EMPTYSTACK, failwith (\StackOne) \STACKCONCAT\EMPTYSTACK, \PREDICATE]}
 \end{mathpar}
-\subsection{Dealing with loops}
-\subsubsection{For loop: ITER}
-Semantic
 
-\begin{mathpar}
-  \inferrule{
-  }{
-    \ITER\ \INSTRUCTION\ / \{ \} \STACKCONCAT\ \STACK\ \SRightarrow\  \STACK
-    }
-\end{mathpar}
-
-\begin{mathpar} 
-  \inferrule{\INSTRUCTION\  /  \X\ \STACKCONCAT\ \STACK \SRightarrow\ \STACK'
-  }{
-    \ITER\ \INSTRUCTION\ / \{ \X\ ; \TAIL\ \} \STACKCONCAT\ \STACK\ \SRightarrow\ \ITER\ \INSTRUCTION\ / \{ \TAIL\ \} \STACKCONCAT\ \STACK' 
-    }
-\end{mathpar}
-\subsubsection{While loops: \LOOP\ and \LOOP-LEFT}

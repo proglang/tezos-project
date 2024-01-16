@@ -618,7 +618,7 @@ owner. Hence, the final auction balance is zero (lines 25 and 26).
 For a smart contract on the blockchain, the order of smart contract
 calls can be crucial. We specify ordering constraints among calls with
 an entrypoint relation. An entrypoint relation can be specified as
-\lstinline/%a with cd -> %b/, which starts with the name
+\lstinline/%a -> %b with cd/, which starts with the name
 \lstinline/%a/ of the entrypoint and is followed by the keyword
 \lstinline/with/ in case conditions are specified as predicates. The
 following symbol \lstinline/->/ indicates that from the entrypoint
@@ -644,7 +644,7 @@ the life cycle of the auction contract, which is depicted in Figure
 
 \begin{figure}[tp]
     \centering
-    \includegraphics[width=0.8\textwidth]{auction-life-cycle}
+    \includegraphics[width=1.1\textwidth]{auction-life-cycle}
     \caption{Auction contract life cycle}
     \label{fig:auction-life-cycle}
 \end{figure}
@@ -671,9 +671,8 @@ this instruction. We employ the SMT solver Z3  to assess the
 satisfiability of a path condition and to check smart contract
 properies specified by pre- and post conditions.
 
-The architecture of the static checker is illustrated in
-Figure~\ref{fig:architecture-of-static-checker}. The system comprises
-three phases. The first phase is user specification, where users
+%The architecture of the static checker is illustrated in Figure~\ref{fig:architecture-of-static-checker}. 
+The system comprises three phases. The first phase is user specification, where users
 provide the Michelson code of the contract and define the properties
 that the smart contract should satisfy. Subsequently, the symbolic
 interpreter is run on the code with the provided input term.  The
@@ -761,7 +760,7 @@ just a normal term and its corresponding type as (\Term,
 the form (\PAIR\ \VOPERATIONLIST\ \VSTORAGE, \TPAIR\ (\TOPERATIONLIST)
 \TYS) \STACKCONCAT\ \EMPTYSTACK, where \VSTORAGE\ is the term
 representing the storage and \VOPERATIONLIST\ repesents a operation
-list. Given an output term $ \tau$, the checker scans all the final
+list. Given an output term $ \tau$, the checker scans all the reachable final
 states, which do not contain a failwith stack and checks whether the
 output term matches. In the former case, it matches $ \tau$  with
 the term \Term. In the latter case, it essentially matches with the
@@ -771,7 +770,7 @@ result from the interpreter is also concrete, and then the checker can
 be used to verify if the output aligns with the expectations
 specified in the output field. 
 
-Listing~\ref{lst:add-contract-specification} contains an example of an
+Listing~\ref{lst:sub-contract-specification} contains an example of an
 incomplete smart contract code. The specification states that the
 output of the code must be a stack that contains only one element of
 type \TINT\, symbolically represented as a variable \VZ\ of type
@@ -781,13 +780,13 @@ element of the pair is less than the second element. The failwith
 state contains the message \lstinline|'Unexpected Pair'|, which
 describes the reason for the failure. The second state is a reachable
 state that contains, in the top element, an integer value, which is
-the sum of the two elements of the pair. The output check succeeds for
+the substract of the two elements of the pair. The output check succeeds for
 this example as expected. However, this test could fail if, for
 example, the output term is incorrectly specified as a variable of
 a type that does not match with the actual result. If the input
 term is concrete, for instance, a pair of numbers as in
 \lstinline|Pair 5 3|, then the expected output should be the number
-\lstinline|8|. To check this,  the output term may be specified as
+\lstinline|2|. To check this,  the output term may be specified as
 a concrete value.
 
 The second example in Listing \ref{lst:auction-contract-specification}
@@ -812,7 +811,7 @@ example, the auction contract should not be closed by someone who is
 not the owner of the contract, and the bidding should not succeed if
 the bid is not strictly higher than the current highest bid. Several
 smart contract standards, such as
-\cite{@ha-supply-a-smart-contract-standard}, require the contract to fail
+\cite{erc, fa}, require the contract to fail
 with specific messages under certain conditions. Therefore, it is
 essential to check the fail conditions of a contract.  
 
@@ -822,7 +821,7 @@ failwith states, resulting from an execution terminated by the
 \FAILWITH\ instruction, from the final state space, collects the path
 conditions and the recorded message. The result returned to users
 includes the fail condition together with the message. For example,
-for the specification in Listing \ref{lst:add-contract-specification},
+for the specification in Listing \ref{lst:sub-contract-specification},
 the fail condition is recorded as
 \lstinline/(x < y): 'Unexpected Pair'/.  
 
@@ -859,30 +858,26 @@ contract of Michelson type (\TCONTRACT\ \TUNIT). This cast is
 unavoidable, as a value of contract type cannot be stored.  However,
 the cast may fail for the reasons just discussed, and its failure
 leads to an error condition that is reported with a \FAILWITH\
-instruction in the implementation. In our framework, this cast failure
-shows up  as a fail condition, but the user's preconditions assume
-that casting is successful. The \lstinline/close/ entrypoint has
+instruction in the implementation. The \lstinline/close/ entrypoint has
 similar fail conditions when the auction is closed or the owner's
 address is cannot be cast. The other fail condition occurs when the
 auction is open, but the sender who calls this entrypoint is not the
 owner of the contract, which was stored in the contract owner part.
-\atha{This discussion suggests that the specification is incomplete:
-  it should contain the assertion that the highest bidder as well as
-  the contract owner field are valid and point to a unit contract!}
 
 \begin{lstlisting}[float=tp,captionpos=b,caption={Fail condition for auction contract bid entrypoint },label={lst:fail-condition-auction-contract-bid},numbers=left]
-1. not (auction_open): 'Already closed'
-2. auction_open && (Amount <= Balance - Amount):
+1. not (auction_open = true): 'Already closed'
+2. (auction_open = true) && (Amount <= pre_Balance):
    'Not higher than the current highest bid'
-3. auction_open && not (Amount <= Balance - Amount) && 
+3. (auction_open = true) && (Amount > pre_Balance) && 
    get_contract (unit, highest_bidder) = None:
    'Invalid highest bidder address' 
 \end{lstlisting}
 
 \begin{lstlisting}[float=tp,captionpos=b,caption={Fail condition for auction contract close entrypoint},label={lst:fail-condition-auction-contract-close},numbers=left]
-1. not (auction_open): 'Already closed'
-2. auction_open && Sender != contract_owner): 'Not owner'
-3. auction_open && (Sender = contract_owner) &&
+1. not (auction_open = true): 'Already closed'
+2. (auction_open = true) && (Sender != contract_owner): 
+    'Not the owner'
+3. (auction_open = true) && (Sender = contract_owner) &&
    get_contract (unit, contract_owner) = None:
   'Invalid contract owner address'
 \end{lstlisting}
@@ -907,10 +902,8 @@ successful (i.e., without failure) termination. To verify this
 property, we explore all the paths $\Pi$ 
 with the path condition $\Theta$ such that ($\bigwedge \Phi_{i}$
 $\land$ $\Theta$) is satisfiable. We then check that for every path
-$\Pi$, $\neg$ ($\bigwedge \Phi_{i}$ $\land$ $\Theta$ $\rightarrow \bigwedge \Psi_{j}$) is
-unsatisfiable in the context given by the input for the entry point
+$\Pi$, $\neg$ ($\bigwedge \Phi_{i}$ $\land$ $\Theta$ $\rightarrow \bigwedge \Psi_{j}$) is unsatisfiable in the context given by the input for the entry point
 and its corresponding final state.
-\atha{Don't you have to include $\Theta$ in the check for unsat?}
 
 Consider the specification of the sub contract in Listing
 \ref{lst:sub-contract-specification}. In this context, the two
@@ -926,17 +919,13 @@ the failwith branch is discarded because the precondition is not
 satisfy with the	 path condition, and then \lstinline/z/ is matched to
 the symbolic variable \lstinline/sbvar/ in the other branch. In this
 example, the checker then verifies that $\neg$ ((\lstinline/x/ >= y) $\land$ (\lstinline/z/
-= \lstinline/x/ - \lstinline/y/) $\rightarrow$ (\lstinline/z/ = \lstinline/x/ - \lstinline/y/) $\land$ (\lstinline/z/ >= 0)) is
-unsatisfiable.
-\atha{I don't understand the last sentence/formula. Where does the
-  $z\ge8$ come from?}
+= \lstinline/x/ - \lstinline/y/) $\rightarrow$ (\lstinline/z/ = \lstinline/x/ - \lstinline/y/) $\land$ (\lstinline/z/ >= 0)) is unsatisfiable.
 
 \subsubsection{Life-cycle check}
 \label{sec:life-cycle-check}
-\atha{To be completed}
-An entrypoint relation can be defined as \lstinline/%a with cd -> %b/, indicating that after invoking the entrypoint \lstinline/%a/, it is permissible to call the entrypoint \lstinline/%b/ if the condition \lstinline/cd/ is satisfied. The presence of the keyword \lstinline/not/ at the beginning signals an impossibility. Note that \lstinline/with cd/ may be omitted when no condition is needed.
+An entrypoint relation can be defined as \lstinline/(%a -> %b) with cd/, indicating that after invoking the entrypoint \lstinline/%a/, it is permissible to call the entrypoint \lstinline/%b/ if the condition \lstinline/cd/ is satisfied. The presence of the keyword \lstinline/not/ at the beginning signals an impossibility. Note that \lstinline/with cd/ may be omitted when no condition is needed.
 
-Let $S_a$ represent the set of all reachable states resulting from the execution of the call to the entrypoint \lstinline/%a/. Each $s_{i}$ in $S_a$ is associated with a path condition $\Theta_i$ and is represented as a stack containing a single element—a pair consisting of an operation list ($\VOPERATIONLIST_i$) and the storage $\VSTORAGE_i$. For each $s_{i}$, symbolic execution is performed on the entrypoint \lstinline/%b/ using input as a pair of the parameter and the storage $\VSTORAGE_i$, constrained by $\Theta_i$ and the condition \lstinline/cd/. In the execution state space, a state $s_{j}$ with the path condition $\Theta_j$ is considered reachable if ($\Theta_i$ $\land$ \lstinline/cd/ $\land$ $\Theta_j$) is satisfiable, and $\neg$ ($\Theta_i$ $\land$ \lstinline/cd/ $\rightarrow$ $\Theta_j$) is unsatisfiable. Let $S_b$ denote the set of these reachable states. If $S_b$ is empty or contains only failwith states, then it is impossible to invoke the entrypoint \lstinline/%b/ from the state $s_{i}$. Otherwise, it is considered a success. Let $R$ be the set containing all such states $s_{i}$ in $S_a$ where it is successful to call the entrypoint \lstinline/%b/ with the condition \lstinline/cd/. If $R$ is non-empty, then \lstinline/%a with cd -> %b/ holds. Otherwise, it is false, signifying \lstinline/not (%a with cd -> %b)/.
+Let $S_a$ represent the set of all reachable states resulting from the execution of the call to the entrypoint \lstinline/%a/. Each $s_{i}$ in $S_a$ is associated with a path condition $\Theta_i$ and is represented as a stack containing a single element—a pair consisting of an operation list ($\VOPERATIONLIST_i$) and the storage $\VSTORAGE_i$. For each $s_{i}$, symbolic execution is performed on the entrypoint \lstinline/%b/ using input as a pair of the parameter and the storage $\VSTORAGE_i$, constrained by $\Theta_i$ and the condition \lstinline/cd/. In the execution state space, a state $s_{j}$ with the path condition $\Theta_j$ is considered reachable if ($\Theta_i$ $\land$ \lstinline/cd/ $\land$ $\Theta_j$) is satisfiable, and $\neg$ ($\Theta_i$ $\land$ \lstinline/cd/ $\rightarrow$ $\Theta_j$) is unsatisfiable. Let $S_b$ denote the set of these reachable states. If $S_b$ is empty or contains only failwith states, then it is impossible to invoke the entrypoint \lstinline/%b/ from the state $s_{i}$. Otherwise, it is considered a success. Let $R$ be the set containing all such states $s_{i}$ in $S_a$ where it is successful to call the entrypoint \lstinline/%b/ with the condition \lstinline/cd/. If $R$ is non-empty, then \lstinline/(%a -> %b) with cd/ holds. Otherwise, it is false, signifying \lstinline/not (%a  -> %b) with cd/.
 
 \section{Case Studies}
 \label{sec:case-stud-subs}
@@ -960,7 +949,6 @@ and (2) Non-Fungible Tokens (NFTs), which represent unique digital
 assets, and each unit is distinct. Stablecoins, falling under fungible
 tokens, are designed to maintain a stable value by tracking the value
 of a fiat currency like USD or EUR.
-\atha{add citations!}
 
 While designers can create tokens that behave in any way they want, it
 is advisable to implement tokens that adhere to established standards.
@@ -968,12 +956,12 @@ This adherence guarantees interoperability and compatibility across
 different platforms. A token standard defines a set of rules and an
 interface that smart contracts must follow to ensure compatibility
 with decentralized exchanges, wallets, and other tools within the
-ecosystem. For example, ERC-20 is a token standard used in Ethereum.  
+ecosystem. For example, ERC-20 \cite{erc} is a token standard used in Ethereum.  
 
-\atha{provide references for the standards!}
+
 The Tezos blockchain has its own set of standards known as Financial
-Applications (FA). Two notable standards are: (1) FA 1.2, designed for
-fungible tokens, and (2) FA 2, a more versatile standard accommodating
+Applications (FA). Two notable standards are: (1) FA 1.2 \cite{fatzip}, designed for
+fungible tokens, and (2) FA 2 \cite{fatzips}, a more versatile standard accommodating
 both fungible and non-fungible tokens (NFTs). The standard outlines a
 smart contract that functions as a ledger, associating identities with
 balances. This ledger is designed to facilitate token transfer
@@ -991,12 +979,9 @@ A view is an entrypoint that takes an
 argument of type \lstinline/a/ and a callback that results in a value
 of type \lstinline/r/. The callback in this case will be another
 contract address. Further elaboration on the details of FA 1.2 can be
-found in \cite{financial-applications-1.2}, and we will delve into
+found in \cite{usdtz}, and we will delve into
 these functions in subsequent 
 sections.
-\atha{is that correct: ``callback that results in a value of type r''?
-I would have expected that the callback \textbf{expects} a value of
-type r.}
 
 \begin{lstlisting}[float=tp,captionpos=b,caption={FA 1.2 interface},label={lst:fa12-interface},numbers=left]
 (address :from, (address :to, nat :value))    %transfer
@@ -1006,14 +991,14 @@ type r.}
 (view unit nat)                               %getTotalSupply
 \end{lstlisting}
 
-In this section, we verify USDtz \cite{USDtz-implementation}, an
+In this section, we verify USDtz \cite{usdtzimplemetation}, an
 implementation of the FA 1.2 standard. Our goal is to ensure that the
 implementation aligns with the standard, verifying its
 correctness. USDtz is a stablecoin and one of the first and
 longest-running coins on the Tezos blockchain, launched in September
 2020. The smart contract is located at the address
 \texttt{KT1LN4LPSqTMS7Sd2CJw4bbDGRkMv2t68Fy9}, and the code can be
-found on the Tezos blockchain \cite{USDtz-address}. USDtz adheres to
+found on the Tezos blockchain \cite{tzstatsusdtz}. USDtz adheres to
 the FA token standard, and the initial deployment of the USDtz smart
 contract follows the FA 1.2 standard. 
 The implementation consists of approximately 1000 instructions. It
@@ -1053,16 +1038,16 @@ funds, the call will fail with the \lstinline/NotEnoughAllowance/
 error, which also contains the same pair message as the first failure
 scenario. To verify these requirements, we utilize the failwith
 condition feature of the tool and examine the returned results, as
-outlined in Listing~\ref{lst:transfer-udstz-contract}.
+outlined in Listing~\ref{lst:transfer-udstz-contract}\footnote{There may be some duplicates of the same failwith condition due to the branching of the symbolic interpreter. The results here are shortened. We are working on filtering them in the tool.}.
 \begin{lstlisting}[float,captionpos=b,caption={Fail conditions for the \lstinline/transfer/ entrypoint},label={lst:transfer-udstz-contract},numbers=left]
-1. paused: 'TokenOperationsArePaused'
-2. not paused &&
+1. (paused = true): 'TokenOperationsArePaused'
+2. not (paused = true) &&
    get_big_map (from, ledger) = None : 'NotEnoughBalance'
-3. not paused &&
+3. not (paused = true) &&
    get_big_map (from, ledger) = Some sbvar &&
    sbvar = Pair sbvar1 sbvar2 &&
    sbvar1 < value : 'NotEnoughBalance'
-4. not paused &&
+4. not (paused = true) &&
    get_big_map (from, ledger) = Some sbvar &&
    sbvar = Pair sbvar1 sbvar2 &&
    get_map (Sender, sbvar2) = Some sbvar3 &&
@@ -1080,15 +1065,15 @@ mcontract usdtz = spec
          (Pair (to: address) (value: nat))
       pre-condition := not paused 
         && get_big_map (from, ledger) = 
-           Some (v: option (pair nat (map address nat))) 
-        && (v = Pair (n1: nat) (m: map address nat))
-        && get_map (Sender, m) = Some (n2: nat) 
-        && (n1 >= value) && (n2 >= value)
+           Some (v: pair nat (map address nat))
+        && (v = Pair (n: nat) (m: map address nat))
+        && get_map (Sender, m) = Some (k: nat) 
+        && (n >= value) && (k >= value)
       post-condition := get_big_map (from, post_ledger) = 
            Some (post_v: option (pair nat (map address nat))) 
-        && post_v = Pair (post_n1: nat) (post_m: map address nat) 
-        && get_map (Sender, post_m) = Some (post_n2: nat) 
-        && (post_n1 = n1 - value) && (post_n2 = n2 - value)
+        && post_v = Pair (post_n: nat) (post_m: map address nat) 
+        && get_map (Sender, post_m) = Some (post_k: nat) 
+        && (post_n = n - value) && (post_k = k - value)
 \end{lstlisting}
 
 \subsubsection{approve}
@@ -1113,8 +1098,8 @@ recorded as a fail condition, as shown in
 Listing~\ref{lst:approve-udstz-contract}. This condition indicates
 that the implementation ensures the non-zero value update prevention. 
 \begin{lstlisting}[float=tp,captionpos=b,caption={Fail conditions for the \lstinline/approve/ entrypoint},label={lst:approve-udstz-contract},numbers=left]
-1. paused: 'TokenOperationsArePaused'
-2. not paused &&
+1. (paused = true): 'TokenOperationsArePaused'
+2. not (paused = true) &&
    get_big_map (Sender, ledger) = Some sbvar &&
    sbvar = Pair sbvar1 sbvar2 &&
    get_map (spender, sbvar2) = Some sbvar3 &&
@@ -1134,19 +1119,19 @@ Listing~\ref{lst:specification-approve}. Property 2: if
 \begin{lstlisting}[float=tp,captionpos=b,caption={Specification of the \lstinline/approve/ entrypoint},label={lst:specification-approve},numbers=left]
 entrpoint %approve
    parameter := Pair (spender: address) (value: nat)
-   pre-condition := not paused 
+   pre-condition := not (paused = true)
       && get_big_map (Sender, ledger) = 
-        Some (v: option (pair nat (map address nat))) 
+        Some (v: pair nat (map address nat))
       && v = Pair (n: nat) (m: map address nat) 
       && get_map (spender, m) = Some (k: nat) 
       && not (k = 0) | (value = 0)
    post-condition := get_big_map (Sender, post_ledger) = 
-        Some (post_v: option (pair nat (map address nat))) 
+        Some (post_v:  (pair nat (map address nat))
       && post_v = Pair (post_n: nat) (post_m: map address nat) 
       && get_map (spender, post_m) = Some (post_k: nat) 
       && (post_k = 0) ;
 
-   pre-condition := not paused 
+   pre-condition := not (paused = true) 
       && get_big_map (Sender, ledger) = 
         Some (v: option (pair nat (map address nat))) 
       && v = Pair (n: nat) (m: map address nat) 
@@ -1264,8 +1249,8 @@ an oracle contract by the static checker, using the Kolibri oracle
 contract as an example.
 
 
-The Kolibri oracle contract,  residing at  address
-\texttt{KT1Tj6xknbwjyK5gyfESNR6WESBcP3yX1mmj}, ensures the accuracy of
+The Kolibri oracle contract \cite{kolibri},  residing at  address
+\texttt{KT1Tj6xknbwjyK5gyfESNR6WESBcP3yX1mmj} \cite{tzstatskolibri}, ensures the accuracy of
 external data for the Tezos-based stablecoin Kolibri by leveraging
 the Harbinger Price Feed. The contract initiates calls to a Harbinger
 Normalizer contract, checks the returned values, normalizes them to
@@ -1273,7 +1258,7 @@ suit the Kolibri system, and subsequently relays them to the
 client. The smart contract's parameters and storage details are
 outlined in Listing~\ref{lst:kolibri-oracle-contract}. Key attributes
 stored by the oracle include:
-\atha{Explain what the governor is!\\ How can a parameter have type contract?}
+
 \begin{itemize}
 \item \lstinline/harbingerContractAddress/: the address of the Harbinger Price Feed contract.
  \item    \lstinline/state/: a natural number indicating the current state of the contract: (1) \lstinline/IDLE/ and (2) \lstinline/WAITING_FOR_HARBINGER/.
@@ -1356,7 +1341,7 @@ mcontract kolibri = spec
     pre-condition :=  state = 1 
        && Sender = harbinger  
        && s = 'XTZ-USD' 
-       && Now - t <= 30 
+       && Now - t <= maxDelay 
        && client = Some a 
        && get_contract (nat, a) = Some c    
     post-condition := state = 0 
@@ -1379,14 +1364,35 @@ mcontract kolibri = spec
   (%getXtzUsdRate -> %getXtzUsdRate_callback) with
      (Sender = harbinger)
      and (s = 'XTZ-USD') 
-     and (Now - t <= 1800)  
+     and (Now - t <= maxDelay)  
   | (%getXtzUsdRate_callback  -> %getXtzUsdRate) with 
     (Amount = 0) 
   | not (%getXtzUsdRate -> %getXtzUsdRate) 
   | not (%getXtzUsdRate_callback -> %getXtzUsdRate_callback)
 \end{lstlisting}
 
+When verifying the entrypoint \lstinline/setMaxDataDelaySec/, we noticed an unmatched statement. In \cite{kolibri}, the Kolibri oracle is expected to perform two checks on data returned from Harbinger: (1) was the asset returned "XTZ-USD" and (2) was the asset updated in the last 30 minutes. We ran the fail condition check for both the \lstinline/setMaxDataDelaySec/ and \lstinline/getXtzUsdPrice_callback/ entrypoints as shown in Listing \ref{lst:setXtzUsdPrice_callback} and \ref{lst:setMaxDataDelaySec}. Upon examining the failwith conditions, we detected that there is no failwith if the data is more than 30 minutes (equal to 1800 seconds). We can add the predicate \lstinline/maxDelay <= 1800/ in the post condition of the entrypoint \lstinline/setMaxDataDelaySec/, but then the pre and post condition test fails. This means there is no constraint that the data is less than 30 minutes. This constraint is possibly set up by the governor and specified in the \lstinline/MaxDataDelaySec/ field. However, users calling this contract should be aware that it is possible for the governor to set any value (>=0) as desired. This could lead to providing out-of-date rates.
+\begin{lstlisting}[float=tp,captionpos=b,caption={Failwith condition for the entrypoint setXtzUsdPrice\_callback},label={lst:setXtzUsdPrice_callback},numbers=left]
+1. not (state = 1): 12
+2. (state = 1) && not (Sender = harbinger): 3
+3. (state = 1) &&  (Sender = harbinger) 
+&& not ('XTZUSD' = s): 14
+4. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
+&& (Now - t >= 0) && (Now - t >= maxDelay): 17
+5. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
+&& (Now - t >= 0) && (Now - t < maxDelay) 
+&& (client = Some sbvar) 
+&& get_contract (Nat, sbvar) = None: Unit
+6. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
+&& (Now - t >= 0) && (Now - t < maxDelay) 
+&& (client = None): Unit
+7. (state = 1) &&  (Sender = harbinger) && Not (Now - t >= 0) 
+&& not ('XTZUSD' = s): Unit
+\end{lstlisting}
 
+\begin{lstlisting}[float=tp,captionpos=b,caption={Failwith condition for the entrypoint setMaxDataDelaySec},label={lst:setMaxDataDelaySec},numbers=left]
+not (Sender = governor): 4
+\end{lstlisting}
 \section{Symbolic Execution Model}
 \label{sec:symbolic-execution-model}
 
@@ -1541,15 +1547,15 @@ Multi-step instructions involve the execution of a sub-sequence of instructions 
   \inferrule[\EXEC]
   {
     [\INSTRUCTIONONE, (\StackOne, \TYF) \STACKCONCAT \EMPTYSTACK, 
-    \Q]
+    \PREDICATE]
     \StateTrans^*
-    [ \EMPTYSTACK, (\StackOne', \TYS) \STACKCONCAT \Q']
+    [ \EMPTYSTACK, (\StackOne', \TYS) \STACKCONCAT \PREDICATE']
   }{
      [(\EXEC; \INSTRUCTION),   (\{\INSTRUCTIONONE\}, \TYF\ \rightarrow\ \TYS) \STACKCONCAT
-    (\StackOne, \TYF) \STACKCONCAT \STACK, \PREDICATE \wedge \Q] 
+    (\StackOne, \TYF) \STACKCONCAT \STACK, \PREDICATE] 
     \StateTrans \
     [ \INSTRUCTION, (\StackOne', \TYS) \STACKCONCAT \STACK,
-    \PREDICATE \wedge \Q']}
+    \PREDICATE]}
 \end{mathpar}
  
 The \DIP\ \N\ instruction skips over the first \N\ elements of a
@@ -1561,12 +1567,12 @@ execution.
 \begin{mathpar}
 \inferrule[\DIP\ \N]
   { 
-     \FLEN(\A) \EQ\ \N \\ [\INSTRUCTIONONE,  \B, \Q]
+     \FLEN(\A) \EQ\ \N \\ [\INSTRUCTIONONE,  \B, \PREDICATE]
     \StateTrans^*
-    [\EMPTYSTACK,  \B_1, \Q']
+    [\EMPTYSTACK,  \B_1, \PREDICATE']
   }
-  {[(\DIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \A\ \At\ \B, \PREDICATE \wedge \Q] \StateTrans 
-[\INSTRUCTION, \A\ \At\ \B_1, \PREDICATE \wedge \Q']}
+  {[(\DIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \A\ \At\ \B, \PREDICATE] \StateTrans 
+[\INSTRUCTION, \A\ \At\ \B_1, \PREDICATE]}
 \end{mathpar}
 \subsubsection{Blockchain Instructions}
  Blockchain instructions make implicit use of data from the current
@@ -2053,49 +2059,5 @@ of contract invocations can be processed in one run.
 
 
 \bibliography{ecoop2024}
+\include{appendix}
 \end{document}
-\begin{figure}[tp]
-\begin{align*}
-T, U &::= \\
-   &\Mid\ \langle \text{comparable type}\rangle \\
-   &\Mid\ \text{option}\ \langle\text{type}\rangle \\
-   &\Mid\ \text{list}\ \langle\text{type}\rangle \\
-   &\Mid\ \text{set}\ \langle\text{comparable type}\rangle \\
-   &\Mid\ \text{operation} \\
-   &\Mid\ \text{contract}\ \langle\text{type}\rangle \\
-   &\Mid\ \text{ticket}\ \langle\text{comparable type}\rangle \\
-   &\Mid\ \text{pair}\ \langle\text{type}\rangle \langle\text{type}\rangle \\
-   &\Mid\ \text{or}\ \langle\text{type}\rangle \langle\text{type}\rangle \\
-   &\Mid\ \text{lambda}\ \langle\text{type}\rangle \langle\text{type}\rangle \\
-   &\Mid\ \text{map}\ \langle\text{comparable type}\rangle \langle\text{type}\rangle \\
-   &\Mid\ \text{big-map}\ \langle\text{comparable type}\rangle \langle\text{type}\rangle \\
-   &\Mid\ \text{bls12-381-g1} \\
-   &\Mid\ \text{bls12-381-g2} \\
-   &\Mid\ \text{bls12-381-fr} \\
-   &\Mid\ \text{sapling-transaction}\ \langle\text{natural number constant}\rangle \\
-   &\Mid\ \text{sapling-state}\ \langle\text{natural number constant}\rangle \\
-   &\Mid\ \text{chest} \\
-   &\Mid\ \text{chest-key} \\
-\langle\text{comparable type}\rangle ::= \\
-   &\Mid\ \text{unit} \\
-   &\Mid\ \text{never} \\
-   &\Mid\ \text{bool} \\
-   &\Mid\ \text{int}\\
-   &\Mid\ \text{nat}\\
-   &\Mid\ \text{string}\\
-   &\Mid\ \text{chain-id}\\
-   &\Mid\ \text{bytes}\\
-   &\Mid\ \text{mutez}\\
-   &\Mid\ \text{key-hash}\\
-   &\Mid\ \text{key}\\
-   &\Mid\ \text{signature}\\
-   &\Mid\ \text{timestamp}\\
-   &\Mid\ \text{address}\\
-   &\Mid\ \text{tx-rollup-l2-address}\\
-   &\Mid\ \text{option}\ \langle\text{comparable type}\rangle\\
-   &\Mid\ \text{or}\ \langle\text{comparable type}\rangle \langle\text{comparable type}\rangle\\
-   &\Mid\ \text{pair}\ \langle\text{comparable type}\rangle \langle\text{comparable type}\rangle \DOT \\
-\end{align*}
-\caption{Types}
-\label{fig:type}
-\end{figure}
