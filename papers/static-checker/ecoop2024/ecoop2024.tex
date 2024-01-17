@@ -1434,14 +1434,14 @@ mcontract kolibri = spec
     code := {...}
     parameter := (gover : address) 
     pre-condition :=  (Sender = governor)                  
-    post-condition := (governor = gover) 
+    post-condition := (post_governor = gover) 
        && (post_maxDelay = maxDelay) 
        && (post_harbinger = harbinger) ;
   entrypoint %setMaxDataDelaySec
     code := {...}
     parameter := (delay: nat)
     pre-condition := (Sender = governor)             
-    post-condition := (maxDelay = delay) 
+    post-condition := (post_maxDelay = delay) 
        && (post_client = client) 
        && (post_harbinger = harbinger) ;
   (%getXtzUsdRate -> %getXtzUsdRate_callback) with
@@ -1449,6 +1449,8 @@ mcontract kolibri = spec
      && (s = 'XTZ-USD') 
      && (Now - t >= 0)  
      && (Now - t < maxDelay)  
+     && client = Some a 
+     && get_contract (nat, a) = Some c    
   | (%getXtzUsdRate_callback  -> %getXtzUsdRate) with 
     (Amount = 0) 
     && get_contract (pair string (contract pair 
