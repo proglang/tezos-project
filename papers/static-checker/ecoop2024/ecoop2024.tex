@@ -634,18 +634,18 @@ mcontract auction = spec
        && transfer_token (Unit, pre_Balance + Amount, c) 
 
   (%create -> %bid) with (auction_open = true)  
-       and (Amount > pre_Balance) 
-       and get_contract (unit, highest_bidder) = 
+       && (Amount > pre_Balance) 
+       && get_contract (unit, highest_bidder) = 
            Some (c: contract unit)
   | (%create  -> %close) with (auction_open = true) 
-       and (Sender = contract_owner)
-       and get_contract (unit, contract_owner) = 
+       && (Sender = contract_owner)
+       && get_contract (unit, contract_owner) = 
           Some (c: contract unit)
   | (%bid -> %bid) with (Amount > pre_Balance) 
-       and get_contract (unit, highest_bidder) = 
+       && get_contract (unit, highest_bidder) = 
           Some (c: contract unit)
   | (%bid -> %close) with (Sender = contract_owner) 
-       and get_contract (unit, contract_owner) = 
+       && get_contract (unit, contract_owner) = 
             Some (c: contract unit)
   | not (%close -> %bid)
   | not (%close -> %close)
@@ -1445,12 +1445,12 @@ mcontract kolibri = spec
        && (post_harbinger = harbinger) ;
   (%getXtzUsdRate -> %getXtzUsdRate_callback) with
      (Sender = harbinger)
-     and (s = 'XTZ-USD') 
-     and (Now - t >= 0)  
-     and (Now - t < maxDelay)  
+     && (s = 'XTZ-USD') 
+     && (Now - t >= 0)  
+     && (Now - t < maxDelay)  
   | (%getXtzUsdRate_callback  -> %getXtzUsdRate) with 
     (Amount = 0) 
-    and get_contract (pair string (contract pair 
+    && get_contract (pair string (contract pair 
     string (pair timestamp nat)), harbinger) = Some c
   | not (%getXtzUsdRate -> %getXtzUsdRate) 
   | not (%getXtzUsdRate_callback -> %getXtzUsdRate_callback)
