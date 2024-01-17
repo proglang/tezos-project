@@ -778,7 +778,7 @@ the life cycle of the auction contract, which is depicted in Figure
 
 \begin{figure}[tp]
     \centering
-    \includegraphics[width=1.1\textwidth]{auction-life-cycle}
+    \includegraphics[width=0.9\textwidth]{auction}
     \caption{Auction contract life cycle}
     \label{fig:auction-life-cycle}
 \end{figure}
@@ -1078,7 +1078,7 @@ verified within the blockchain network. There are various types of
 tokens, including native tokens (cryptocurrencies) like Bitcoin,
 Ether, Tezos, and others. Additionally, tokens can be created as
 overlays through smart contracts on an existing blockchain. Two common
-categories are: (1) Fungible Tokens (FT), which are interchangeable
+categories are: (1) Fungible Tokens (FTs), which are interchangeable
 and (2) Non-Fungible Tokens (NFTs), which represent unique digital
 assets, and each unit is distinct. Stablecoins, falling under fungible
 tokens, are designed to maintain a stable value by tracking the value
@@ -1312,15 +1312,15 @@ other entrypoints \lstinline/getAllowance/ and
 \lstinline/getTotalSupply/ can be specified similarly.  There are two
 cases to consider: (1) if the \lstinline/owner/ is in the
 \lstinline/ledger/ big map and (2) if it is not. For the former case,
-lines 5-8 specify that \lstinline/owner/ is in the \lstinline/ledger/
+lines 3-5 specify that \lstinline/owner/ is in the \lstinline/ledger/
 big map, as the \lstinline/get_big_map/ function returns a value
 \lstinline/Some value/ of the \TOPTION\ type, and this
 \lstinline/value/ is a pair of a natural number \lstinline/k/ and a
 map \lstinline/m/. The postcondition guarantees that the storage
-remains unchanged, as specified in lines 10-13, and the call returns a
+remains unchanged, as specified in lines 6-11, and the call returns a
 \lstinline/TRANSFER_TOKENS/ operation with the \lstinline/k/ number
 and \lstinline/Amount/ to be passed to address \lstinline/c/. The
-precondition in lines 16-17 specifies the latter case when the
+precondition in lines 13-20 specifies the latter case when the
 \lstinline/owner/ does not exist in the big map \lstinline/ledger/; in
 this case, the number \lstinline/0/ should be sent, and again, the
 storage should remain unchanged. 
@@ -1454,7 +1454,7 @@ entrypoint again is not allowed.
 The specification of  the contract is showned in Listing \ref{lst:kolibri-contract-specification}. Here, we shortened the names of the variables for the storage.
 \begin{figure}[tp]
     \centering
-    \includegraphics[width=0.8\textwidth]{kolibri}
+    \includegraphics[width=0.8\textwidth]{kolibri(1)}
     \caption{Kolibri oracle entrypoint relations}
     \label{fig:kolibri-oracle-emtrypoint-relations}
 \end{figure}
