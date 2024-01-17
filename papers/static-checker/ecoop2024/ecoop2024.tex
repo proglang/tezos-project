@@ -1329,7 +1329,9 @@ mcontract kolibri = spec
   entrypoint %getXtzUsdRate
     code := {...}
     parameter := (c : contract nat) 
-    pre-condition := (Amount = 0) | (state = 0)
+    pre-condition := (Amount = 0) && (state = 0)
+    get_contract (pair string (contract pair 
+    string (pair timestamp nat)), harbinger) = Some c
     post-condition := (state = 1) 
        && (client = Some Sender) ;
   entrypoint %getXtzUsdRate_callback
