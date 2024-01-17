@@ -177,7 +177,7 @@ mcontract auction = spec
        && Amount > pre_Balance 
        && get_contract (unit, highest_bidder) = 
           Some (c: contract unit)
-    post-condition := auction_open
+    post-condition := auction_open = true
        && post_highest_bidder = Sender 
        && post_contract_owner = contract_owner 
        && post_Balance = Amount 
@@ -560,7 +560,7 @@ specification finishes with specifying entrypoint relations,
 which we explain next.  The first option should be used when you want to check the output term, which may not be simply similar to the storage part of the input term. In the second option, the input term is then the pair of the parameter term and the storage term. The output term is similar to the storage term, with all variables added with the prefix \lstinline/post_/.
 
 \begin{lstlisting}[float,captionpos=b,caption={Multiple entrypoint specification syntax (option 1)},label={lst:multiple-entrypoint-specification-1},numbers=left][h]
-mcontract Name = spec
+mcontract name = spec
    entrypoint %a 
       code := {c1}
       input := t1
@@ -573,7 +573,7 @@ mcontract Name = spec
 \end{lstlisting}
 
 \begin{lstlisting}[float,captionpos=b,caption={Multiple entrypoint specification syntax (option 2)},label={lst:multiple-entrypoint-specification-2},numbers=left][h]
-mcontract Name = spec
+mcontract name = spec
    storage := t1
    entrypoint %a 
       code := {c1}
@@ -641,7 +641,7 @@ mcontract auction = spec
        and (Sender = contract_owner)
        and get_contract (unit, contract_owner) = 
           Some (c: contract unit)
-  | (%bid -> %bid) with (Amount > Balance - Amount) 
+  | (%bid -> %bid) with (Amount > pre_Balance) 
        and get_contract (unit, highest_bidder) = 
           Some (c: contract unit)
   | (%bid -> %close) with (Sender = contract_owner) 
@@ -1147,7 +1147,7 @@ mcontract usdtz = spec
    pre-condition := not (paused  = true)
      && get_big_map (from, ledger) = 
        Some (v: pair nat (map address nat))
-     && (v = Pair (n: nat) (m: map address nat))
+     && v = Pair (n: nat) (m: map address nat)
      && get_map (Sender, m) = Some (k: nat) 
      && (n >= value) && (k >= value)
    post-condition := get_big_map (from, post_ledger) = 
@@ -1462,7 +1462,7 @@ When verifying the entrypoint \lstinline/setMaxDataDelaySec/, we noticed an unma
 3. (state = 1) &&  (Sender = harbinger) 
 && not ('XTZUSD' = s): 14
 4. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
-&& (Now - t >= 0) && (Now - t >= maxDelay): 17
+&& (Now - t >= 0) && not (Now - t < maxDelay): 17
 5. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
 && not (Now - t >= 0): Unit
 6. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
