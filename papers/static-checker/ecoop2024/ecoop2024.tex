@@ -173,7 +173,7 @@ mcontract auction = spec
   entrypoint %bid
     code := {...}
     parameter := Unit 
-    pre-condition := auction_open 
+    pre-condition := auction_open = true
        && Amount > pre_Balance 
        && get_contract (unit, highest_bidder) = 
           Some (c: contract unit)
@@ -181,7 +181,7 @@ mcontract auction = spec
        && post_highest_bidder = Sender 
        && post_contract_owner = contract_owner 
        && post_Balance = Amount 
-       && transfer_token (Unit, Old_Balance, c) ;
+       && transfer_token (Unit, pre_Balance, c) ;
 \end{lstlisting}
 As an example, Listing~\ref{lst:auction-fragment} contains an excerpt
 of the specification of an auction contract. The \texttt{storage}
