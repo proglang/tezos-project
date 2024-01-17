@@ -272,6 +272,13 @@ Michelson supports a number of types and operations specific to blockchain appli
 addresses). The type system is simple in the sense that it does not
 support quantification over types. There are no user-defined types.
 
+To invoke a Michelson contract on the Tezos blockchain, the caller has
+to provide tokens for gas and tokens to add to the contract's balance.
+The gas tokens are used account for the cost of running the contract;
+if contract execution runs out of gas, it is aborted before it can
+perform any visible change. The use of the balance is up to the
+discretion of the contract code.
+
 Listing~\ref {lst:simple-program-add} contains a short example of a Michelson program.
 \begin{lstlisting}[float=tp,captionpos=b,caption={A Michelson program},label={lst:simple-program-add}]
 parameter int;
@@ -287,22 +294,51 @@ code {
    NIL operation; PAIR
 }
 \end{lstlisting}
+\begin{lstlisting}[float=tp,captionpos=b,caption={A Michelson program
+with iteration},label={lst:simple-program-iter}]
+parameter list int;
+storage   int;
+code { 
+(*               pair (list int) int :: [] *)
+   UNPAIR;
+(*                   list int :: int :: [] *)
+   ITER {ADD};
+(*                               int :: [] *)
+   NIL operation; PAIR
+}
+\end{lstlisting}
+The code is interspersed with comments that indicate the types of
+values that are currently on the stack.
 This program first duplicates its input (\lstinline|DUP|), decomposes
 the pair $P\times S$ into its components (\lstinline|UNPAIR|),
-compares the two value on top of the stack (\lstinline|COMPARE|), and
+compares the two values on top of the stack (\lstinline|COMPARE|), and
 transforms the result into a boolean (\lstinline|GE|). The
 \lstinline|IF| instruction pops the boolean and either executes the
 first (for true) or second (for false) list of instructions. By now
 only the initial pair is on the stack. In the true branch,
-\lstinline|UNPAIR| decomposes, and then \lstinline|SUB| subtract the two 
-components. In the false branch, the \lstinline|PUSH| instruction pushes
+\lstinline|UNPAIR| decomposes, and then \lstinline|SUB| subtracts the two 
+components. In the false branch, the \lstinline|PUSH| instruction puts
 a string message on the stack. The \lstinline|FAILWITH| instruction
-abort the contract execution: tokens are consumed, but the storage and
-the balance of the contract remain unchanged.
+aborts the contract execution: the tokens provided with the invocation
+are consumed, but the storage and the balance of the contract remain
+unchanged.
 
-We emerge from the conditional with just the result of the addition on
-the stack. The \lstinline|NIL| instruction pushes an empty list and
-\lstinline|PAIR| creates the requires pair of type $O^* \times S$.
+After the conditional the stack contains the result of the
+subtraction. The \lstinline|NIL| instruction pushes an empty list of
+operations and 
+\lstinline|PAIR| creates the required pair of type $O^* \times S$.
+
+Michelson has several instructions that perform
+iteration. Listing~\ref{lst:simple-program-iter} contains an example
+that uses the \lstinline|ITER| instruction to add a list of numbers
+(the parameter) to the storage. Like other looping instructions,
+\lstinline|ITER| takes a list of instructions that comprise the loop
+body (in this case just a single instruction \lstinline|ADD|) and
+expects a list to traverse on top of the stack. Essentially,
+\lstinline|ITER| runs the loop body for each element in the list,
+while allowing full access to the stack: each iteration consumes
+one list element and (potentially) transforms the whole stack
+while maintaining its shape/type. 
 
 Each Tezos contract maintains a balance of tokens, which can be
 accessed from Michelson using the \lstinline|BALANCE|
