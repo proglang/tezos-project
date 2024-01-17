@@ -1409,12 +1409,12 @@ mcontract kolibri = spec
            (Pair (maxDelay: nat) (state: int))))
   entrypoint %getXtzUsdRate
     code := {...}
-    parameter := (c : contract nat) 
+    parameter := (ct : contract nat) 
     pre-condition := (Amount = 0) && (state = 0)
     get_contract (pair string (contract pair 
     string (pair timestamp nat)), harbinger) = Some c
-    post-condition := (state = 1) 
-       && (client = Some Sender) ;
+    post-condition := state = 1
+       && client = Some (b: address) ;
   entrypoint %getXtzUsdRate_callback
     code := {...}
     parameter := Pair (s: string) 
@@ -1445,11 +1445,13 @@ mcontract kolibri = spec
        && (post_harbinger = harbinger) ;
   (%getXtzUsdRate -> %getXtzUsdRate_callback) with
      (Sender = harbinger)
-     && (s = 'XTZ-USD') 
-     && (Now - t >= 0)  
-     && (Now - t < maxDelay)  
+     and (s = 'XTZ-USD') 
+     and (Now - t >= 0)  
+     and (Now - t < maxDelay)  
   | (%getXtzUsdRate_callback  -> %getXtzUsdRate) with 
     (Amount = 0) 
+    and get_contract (pair string (contract pair 
+    string (pair timestamp nat)), harbinger) = Some c
   | not (%getXtzUsdRate -> %getXtzUsdRate) 
   | not (%getXtzUsdRate_callback -> %getXtzUsdRate_callback)
 \end{lstlisting}
