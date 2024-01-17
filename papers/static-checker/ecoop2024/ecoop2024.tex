@@ -947,7 +947,7 @@ owner of the contract, which was stored in the contract owner part.
 
 \begin{lstlisting}[float=tp,captionpos=b,caption={Fail condition for auction contract bid entrypoint },label={lst:fail-condition-auction-contract-bid},numbers=left]
 1. not (auction_open = true): 'Already closed'
-2. (auction_open = true) && (Amount <= pre_Balance):
+2. (auction_open = true) && not (Amount > pre_Balance):
    'Not higher than the current highest bid'
 3. (auction_open = true) && (Amount > pre_Balance) && 
    get_contract (unit, highest_bidder) = None:
@@ -956,7 +956,7 @@ owner of the contract, which was stored in the contract owner part.
 
 \begin{lstlisting}[float=tp,captionpos=b,caption={Fail condition for auction contract close entrypoint},label={lst:fail-condition-auction-contract-close},numbers=left]
 1. not (auction_open = true): 'Already closed'
-2. (auction_open = true) && (Sender != contract_owner): 
+2. (auction_open = true) && not (Sender = contract_owner): 
     'Not the owner'
 3. (auction_open = true) && (Sender = contract_owner) &&
    get_contract (unit, contract_owner) = None:
@@ -1122,17 +1122,18 @@ condition feature of the tool and examine the returned results, as
 outlined in Listing~\ref{lst:transfer-udstz-contract}\footnote{There may be some duplicates of the same failwith condition due to the branching of the symbolic interpreter. The results here are shortened. We are working on filtering them in the tool.}.
 \begin{lstlisting}[float,captionpos=b,caption={Fail conditions for the \lstinline/transfer/ entrypoint},label={lst:transfer-udstz-contract},numbers=left]
 1. (paused = true): 'TokenOperationsArePaused'
-2. not (paused = true) &&
-   get_big_map (from, ledger) = None : 'NotEnoughBalance'
-3. not (paused = true) &&
-   get_big_map (from, ledger) = Some sbvar &&
-   sbvar = Pair sbvar1 sbvar2 &&
-   sbvar1 < value : 'NotEnoughBalance'
-4. not (paused = true) &&
-   get_big_map (from, ledger) = Some sbvar &&
-   sbvar = Pair sbvar1 sbvar2 &&
-   get_map (Sender, sbvar2) = Some sbvar3 &&
-   sbvar3 < value: 'NotEnoughAllowance'
+2. not (paused = true) 
+   && get_big_map (from, ledger) = None : 'NotEnoughBalance'
+3. not (paused = true) 
+   && get_big_map (from, ledger) = Some sbvar 
+   && sbvar = Pair sbvar1 sbvar2 
+   && not (sbvar1 >= value) : 'NotEnoughBalance'
+4. not (paused = true) 
+   && get_big_map (from, ledger) = Some sbvar 
+   && sbvar = Pair sbvar1 sbvar2 
+   && get_map (Sender, sbvar2) = Some sbvar3 
+   && sbvar1 >= value 
+   && not (sbvar3 >= value): 'NotEnoughAllowance'
 \end{lstlisting}
 The fundamental property that this entrypoint should satisfy is the decrement of the allowance of the sender's account by the \lstinline/value/ that has been sent as Listing \ref{lst:specification-transfer}.
 \begin{lstlisting}[float,captionpos=b,caption={Specification of the \lstinline/transfer/ entrypoint},label={lst:specification-transfer},numbers=left]
@@ -1180,12 +1181,12 @@ Listing~\ref{lst:approve-udstz-contract}. This condition indicates
 that the implementation ensures the non-zero value update prevention. 
 \begin{lstlisting}[float=tp,captionpos=b,caption={Fail conditions for the \lstinline/approve/ entrypoint},label={lst:approve-udstz-contract},numbers=left]
 1. (paused = true): 'TokenOperationsArePaused'
-2. not (paused = true) &&
-   get_big_map (Sender, ledger) = Some sbvar &&
-   sbvar = Pair sbvar1 sbvar2 &&
-   get_map (spender, sbvar2) = Some sbvar3 &&
-   not (value = 0) &&
-   not (sbvar3 = 0): 'UnsafeAllowanceChange'
+2. not (paused = true) 
+   && get_big_map (Sender, ledger) = Some sbvar 
+   && sbvar = Pair sbvar1 sbvar2 
+   && get_map (spender, sbvar2) = Some sbvar3 
+   && not (value = 0) 
+   && not (sbvar3 = 0): 'UnsafeAllowanceChange'
 \end{lstlisting}
 If the update is allowed, then the updated value needs to be recorded
 correctly in the storage. This property can be divided into two
