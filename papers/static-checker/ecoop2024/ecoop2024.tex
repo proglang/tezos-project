@@ -501,24 +501,69 @@ mcontract name = spec
 Listing~\ref{lst:smart-contract-property-specification} shows the
 syntax of our property specification language for a simple contract. Here, \KMCONTRACT,
 \KSPEC, \KCODE, \KINPUT, \KOUTPUT, \KPRECONDI, and \KPOSTCONDI\ are
-keywords. The \KNAME\ is replaced by the contract name. In the input
-and output fields, the input and output terms are specified. The input and output terms represent Michelson terms, which can be either concrete values or symbolic values, including variables. The terms are specified using the syntax defined in Fig. \ref{fig:syntax-terms-predicates}. A term \textbf{t} comprises constants of the sort \text{nat} (natural number), \text{int} (integer), \text{string} (string), and \text{b} (bytes) along with their respective types. As a syntactic sugar, the type can be omitted except for the type \text{nat} to distinguish it from integer numbers. It also encompasses all blockchain constants \textbf{c}, such as Amount and Sender. When a variable appears for the first time, it must be accompanied by its corresponding type declaration. Subsequent mentions can omit the type declaration. The language supports essential Michelson types, as shown in Fig. \ref{fig:types}, where \textbf{cpt} denotes comparable types. The types include basic data types such as integer, string, list, set, pair, option and map. Additionally, there are some typical types related to the blockchain, such as \text{mutez} and \text{contract T}, representing types for tokens and smart contracts on the Tezos blockchain, respectively.
+keywords. The \KNAME\ is replaced by the contract name. The \KINPUT{}
+and \KOUTPUT{} fields specify the input and output terms, which are
+patterns on Michelson values that correspond to the top value of the
+initial and final stack. A pattern can be a concrete value or it may
+contain symbolic variables. Fig.~\ref{fig:syntax-terms-predicates}
+contains the grammar of terms: A term \textbf{t} can consist of
+constants of the sort \text{nat} (natural number), \text{int}
+(integer), \text{string} (string), and \text{b} (bytes) along with
+their respective types. The type annotation may be omitted except for
+the type \text{nat} to distinguish it from integer numbers.  It also
+encompasses all blockchain constants \textbf{c}, such as Amount and
+Sender. When a variable appears for the first time, it must be
+accompanied by its corresponding type declaration. Subsequent mentions
+can omit the type declaration. The language supports essential
+Michelson types, as shown in Fig.~\ref{fig:types}, where \textbf{cpt}
+denotes comparable types. Types include basic data types such as
+integer, string, list, set, pair, option, and map. Additionally, there
+are some typical types related to the blockchain, such as \text{mutez}
+and \text{contract T}, representing types for tokens and smart
+contracts with a parameter of type $T$ on the Tezos blockchain. 
 
 Since Michelson operates on a stack, we assume that the stack has only one
 element, as specified in the input term. Similarly, the output
 stack is assumed to be a stack with only one element, which is
 specified in the output field. The syntax allows us to specify both
-incomplete and complete smart contracts\footnote{The tool has been adapted to accommodate incomplete contract codes that take input stacks and produce output stacks with more than one element. This modification is feasible from a technical standpoint, as the current tool can effectively handle such cases.}. For a complete smart contract, the output should be a pair consisting of an operation list and the storage's state after the completion of the code.  For verification purposes we elide the operation list and represent the output solely by the term of the value in the storage after the execution concludes. In some cases, the output term can be omitted for a complete contract, given that the input term must be a pair
+incomplete and complete smart contracts\footnote{The tool can
+  accommodate incomplete contract codes that take input stacks and
+  produce output stacks with more than one element, but this is
+  currently not reflected in the syntax.}. For a complete smart
+contract, the output should be a pair consisting of an operation list
+and the storage's state after the completion of the code.  For
+verification purposes we elide the operation list and represent the
+output solely by the term of the value in the storage after the
+execution concludes. In some cases, the output term can be omitted for
+a complete contract, given that the input term must be a pair 
 of parameters and storage. Hence the storage term is part of the
 input term. In such cases, the prefix \lstinline/post_/ is used
 before the variables from the input term to indicate the corresponding
 storage value after the execution.
 
-Formally, the pre- and postcondition instances are formulas in first-order logic that can be handled by an SMT solver (in our case, Z3). The specification language is constituted of predicates.  The syntax predicates are defined in Figure~\ref{fig:syntax-terms-predicates}. Formulas that are used in assertions or added to solvers are terms of sort Boolean. Otherwise, terms of
+Formally, the pre- and postcondition instances are formulas in
+first-order logic that can be handled by an SMT solver (in our case,
+Z3). The specification language is built from
+predicates. Figure~\ref{fig:syntax-terms-predicates} defines the
+syntax of predicates. Formulas that are used in assertions or added to solvers are terms of sort Boolean. Otherwise, terms of
 Boolean and non-Boolean sort may be mixed in any combination where
-sorts match up. Several functions are defined, such as the function \text{get\_map (e1, e2)} for accessing an element in a map. This function returns \text{None} if there is no key \text{e1} in the map \text{e1}, or the corresponding value of the key otherwise. Another function, \text{get\_contract (e1, e2)}, casts the address \text{e2} to a real contract on the Tezos blockchain. It returns \text{None} if there is no existing contract on the Tezos block chain with an entrypoint of type \text{e1} associated with the address \text{e2}, or it returns the contract otherwise.
+sorts match up. Several functions are predefined, such as the function
+\text{get\_map (e1, e2)} for accessing an element in a map. This
+function returns \text{None} if there is no key \text{e1} in the map
+\text{e1}, or the corresponding value of the key otherwise. Another
+function, \text{get\_contract (e1, e2)}, casts the address \text{e2}
+to a real contract on the Tezos blockchain. It returns \text{None} if
+there is no existing contract on the Tezos block chain with an
+entrypoint of type \text{e1} associated with the address \text{e2}, or
+it returns the contract otherwise.
 
-Some other functions are defined as predicates, such as \text{transfer\_token} (\text{e1}, \text{e2}, \text{e3}). This implies that there is an operation in the operation list, after executing the smart contract code, which indicates the transfer of \text{e2} amount of tokens to the address \text{e3} along with the data \text{e1}\footnote{While some additional functions and both universal and existential quantifiers are implemented, they pose no technical problems and are similar to existing supported functions. However, the conversion to Z3 formulas in the Z3 OCaml library takes some time.}.
+Some other functions are defined as predicates, such as
+\text{transfer\_token} (\text{e1}, \text{e2}, \text{e3}). This
+predicate holds if there is an operation in the operation list, after
+executing the smart contract code, which indicates the transfer of
+\text{e2} amount of tokens to the address \text{e3} along with the
+parameter \text{e1}\footnote{It is straightforward to add further
+  predicates if a mapping to Z3 formulas can be defined.}. 
 
 \begin{lstlisting}[float,captionpos=b,caption={Specification of Sub contract},label={lst:sub-contract-specification},numbers=left]
 mcontract sub = spec
@@ -530,11 +575,13 @@ mcontract sub = spec
   post-condition := (z = x - y) && (z >= 0)
 \end{lstlisting}
 
-Let us consider a fragment code of the contract \texttt{Sub}  in Listing
+Let us consider a code fragment of the contract \texttt{Sub}  in Listing
 \ref{lst:sub-contract-specification} as an example of a property
 specification.  Here, the program takes as input a stack with only one
 element, which is a pair of two integers, symbolically specified in
-the \lstinline|input| field. The program first duplicates the pair. It then unpairs the input pair to obtain two elements as two integers \lstinline/x/ and \lstinline/y/.
+the \lstinline|input| field. The program first duplicates the pair. It
+then unpairs the input pair to obtain two elements as two integers
+\lstinline/x/ and \lstinline/y/. 
 Next, the program performs a comparison between
 these two integers. If \lstinline/x/ is greater than or equal to
 \lstinline/y/, the program constructs a new stack with a solitary
@@ -546,7 +593,10 @@ terminates with an error message containing the content
 The specification continues by defining
 pre- and postconditions, where the precondition states the assumption
 that the integer \lstinline/x/ is greater than or equal to  \lstinline/y/. The postcondition asserts that the result
-\lstinline/z/ is greater than or equal to the substract of \lstinline/x/ and \lstinline/y/, which is greater or equal to zero. The symbol \lstinline/&&/ stands for logical predicate conjunction.
+\lstinline/z/ is greater than or equal to the substract of
+\lstinline/x/ and \lstinline/y/, which is greater or equal to
+zero. The symbol \lstinline/&&/ stands for logical predicate
+conjunction. 
 
 \subsection{More than one entrypoint}
 \label{sec:more-than-one}
@@ -594,7 +644,8 @@ storage is a pair containing as its first element a boolean value
 open for bidding or already closed. The second element is another
 nested pair, where the first element stores the highest bidder's
 address, and the second element is the contract owner's address. The
-current highest bid is reflected in the balance of the contract. 
+current highest bid is reflected in the balance of the contract before
+the next bid is invoked. 
 
 Closing the contract transfers the balance to the owner and is
 restricted to the owner. Both closing and bidding operations fail if
@@ -664,9 +715,10 @@ The output term should maintain the required term of the storage,
 but the values may be changed and these changes are recorded in
 different symbolic variables. In this specification, we add the prefix
 \lstinline/post_/ to the variable names to refer to the storage
-returned by the program. The output term could be safely removed in
-this example because the tool automatically generates an output
-term corresponding the one specified here.
+returned by the program.
+% The output term could be safely removed in
+% this example because the tool automatically generates an output
+% term corresponding the one specified here.
 
 Here is the first property that we want to check: if a user calls the
 \lstinline/%bid/ entrypoint, when the contract is still open for
@@ -713,7 +765,8 @@ Let us return to the auction contract. It is important to guarantee
 that contract deployment sets the  \lstinline/auction_open/ flag to
 \TRUE, indicating that the contract is open for bidding, i.e., users
 should be able to bid on the contract or the contract owner should be
-able to close it (lines 28-35). Furthermore, the bid call can happen
+able to close it (lines 28-35). Otherwise, the owner's original
+deposit is lost. Furthermore, the bid call can happen
 successfully after another if the new bid is higher than the previous
 one (line 36). The  \lstinline/%close/ entrypoint can be called
 anytime if the caller is the contract owner (line 34). However, it
