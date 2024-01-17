@@ -1339,7 +1339,8 @@ mcontract kolibri = spec
     pre-condition :=  state = 1 
        && Sender = harbinger  
        && s = 'XTZ-USD' 
-       && Now - t <= maxDelay 
+       && Now - t < maxDelay 
+       && Now - t >= 0 
        && client = Some a 
        && get_contract (nat, a) = Some c    
     post-condition := state = 0 
@@ -1361,8 +1362,9 @@ mcontract kolibri = spec
        && (post_harbinger = harbinger) ;
   (%getXtzUsdRate -> %getXtzUsdRate_callback) with
      (Sender = harbinger)
-     and (s = 'XTZ-USD') 
-     and (Now - t <= maxDelay)  
+     && (s = 'XTZ-USD') 
+     && (Now - t >= 0)  
+     && (Now - t < maxDelay)  
   | (%getXtzUsdRate_callback  -> %getXtzUsdRate) with 
     (Amount = 0) 
   | not (%getXtzUsdRate -> %getXtzUsdRate) 
@@ -1377,14 +1379,14 @@ When verifying the entrypoint \lstinline/setMaxDataDelaySec/, we noticed an unma
 4. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
 && (Now - t >= 0) && (Now - t >= maxDelay): 17
 5. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
+&& not (Now - t >= 0): Unit
+6. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
 && (Now - t >= 0) && (Now - t < maxDelay) 
 && (client = Some sbvar) 
 && get_contract (Nat, sbvar) = None: Unit
-6. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
+7. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
 && (Now - t >= 0) && (Now - t < maxDelay) 
 && (client = None): Unit
-7. (state = 1) &&  (Sender = harbinger) && Not (Now - t >= 0) 
-&& not ('XTZUSD' = s): Unit
 \end{lstlisting}
 
 \begin{lstlisting}[float=tp,captionpos=b,caption={Failwith condition for the entrypoint setMaxDataDelaySec},label={lst:setMaxDataDelaySec},numbers=left]
