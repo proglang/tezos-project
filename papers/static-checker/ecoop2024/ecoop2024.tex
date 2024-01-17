@@ -1184,6 +1184,10 @@ outlined in Listing~\ref{lst:transfer-udstz-contract}\footnote{There may be some
 4. not (paused = true) 
    && get_big_map (from, ledger) = Some sbvar 
    && sbvar = Pair sbvar1 sbvar2 
+   && get_map (Sender, sbvar2) = None: 'NotEnoughAllowance'
+5. not (paused = true) 
+   && get_big_map (from, ledger) = Some sbvar 
+   && sbvar = Pair sbvar1 sbvar2 
    && get_map (Sender, sbvar2) = Some sbvar3 
    && sbvar1 >= value 
    && not (sbvar3 >= value): 'NotEnoughAllowance'
@@ -1467,7 +1471,7 @@ mcontract kolibri = spec
     pre-condition := (Amount = 0) && (state = 0)
     get_contract (pair string (contract pair 
     string (pair timestamp nat)), harbinger) = Some c
-    post-condition := state = 1
+    post-condition := post_state = 1
        && client = Some (b: address) ;
   entrypoint %getXtzUsdRate_callback
     code := {...}
@@ -1480,21 +1484,21 @@ mcontract kolibri = spec
        && Now - t >= 0 
        && client = Some a 
        && get_contract (nat, a) = Some c    
-    post-condition := state = 0 
+    post-condition := post_state = 0 
        && post_client = None 
        && transfer_token(n, 0, c) ;
   entrypoint %setGovernorContract
     code := {...}
     parameter := (gover : address) 
     pre-condition :=  (Sender = governor)                  
-    post-condition := (governor = gover) 
+    post-condition := (post_governor = gover) 
        && (post_maxDelay = maxDelay) 
        && (post_harbinger = harbinger) ;
   entrypoint %setMaxDataDelaySec
     code := {...}
     parameter := (delay: nat)
     pre-condition := (Sender = governor)             
-    post-condition := (maxDelay = delay) 
+    post-condition := (post_maxDelay = delay) 
        && (post_client = client) 
        && (post_harbinger = harbinger) ;
   (%getXtzUsdRate -> %getXtzUsdRate_callback) with
@@ -1502,6 +1506,8 @@ mcontract kolibri = spec
      && (s = 'XTZ-USD') 
      && (Now - t >= 0)  
      && (Now - t < maxDelay)  
+     && client = Some a 
+     && get_contract (nat, a) = Some c    
   | (%getXtzUsdRate_callback  -> %getXtzUsdRate) with 
     (Amount = 0) 
     && get_contract (pair string (contract pair 
@@ -1522,7 +1528,7 @@ When verifying the entrypoint \lstinline/setMaxDataDelaySec/, we noticed an unma
 6. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
 && (Now - t >= 0) && (Now - t < maxDelay) 
 && (client = Some sbvar) 
-&& get_contract (Nat, sbvar) = None: Unit
+&& get_contract (nat, sbvar) = None: Unit
 7. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
 && (Now - t >= 0) && (Now - t < maxDelay) 
 && (client = None): Unit
