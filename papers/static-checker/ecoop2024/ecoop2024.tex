@@ -1205,7 +1205,7 @@ entrpoint %approve
         Some (v: pair nat (map address nat))
       && v = Pair (n: nat) (m: map address nat) 
       && get_map (spender, m) = Some (k: nat) 
-      && not (k = 0) | (value = 0)
+      && not (k = 0) && (value = 0)
    post-condition := get_big_map (Sender, post_ledger) = 
         Some (post_v:  (pair nat (map address nat))
       && post_v = Pair (post_n: nat) (post_m: map address nat) 
@@ -1218,7 +1218,7 @@ entrpoint %approve
         Some (v: option (pair nat (map address nat))) 
       && v = Pair (n: nat) (m: map address nat) 
       && get_map (spender, m) = Some (k: nat) 
-      && (k = 0) | not (value = 0)
+      && (k = 0) && not (value = 0)
    post-condition := get_big_map (Sender, post_ledger) = 
         Some (post_v: option (pair nat (map address nat))) 
       && post_v = Pair (post_n: nat) (post_m: map address nat) 
