@@ -53,7 +53,7 @@
 
 \bibliographystyle{plainurl}% the mandatory bibstyle
 
-\title{A Formal Verification Framework for Smart Contracts Based on Symbolic Execution} %TODO Please add
+\title{A Formal Verification Framework for Tezos Smart Contracts Based on Symbolic Execution} %TODO Please add
 
 %\titlerunning{Dummy short title} %TODO optional, please use if title is longer than one line
 
@@ -152,7 +152,7 @@ to ensure their correctness prior to deployment.
 Formal verification can guarantee the correctness of smart contracts.
 To this end we have developed SCV, a formal
 verification tool for smart contracts on the Tezos blockchain \cite{tezos-whitepaper}, written in
-Michelson \cite{michelson}, although our design is widely applicable. SCV relies on
+Michelson \cite{michelson}. SCV relies on
 symbolic execution backed by an SMT solver to simulate the
 implementation of the smart contract language, helping to detect 
 subtle errors. In addition, SCV comes with a domain-specific language that
@@ -230,18 +230,19 @@ track of the properties of values in the storage and on the
 stack, so that verifying a program corresponds to typechecking against
 a specification type. Their type checker employs Z3 to discharge proof obligations.
 
-Our contributions are as follows.
+Our contributions are as follows and supported by the upcoming
+artifact submission.
 \begin{enumerate}
 \item Design and implementation of the smart contract specification
   language SCV.
 \item Design and implementation of a symbolic interpreter for a
   significant subset of Michelson.
-\item Two case studies where we apply SCV to verify real life smart
-  contracts deployed on the Tezos blockchain:
+\item Two case studies that verify smart
+  contracts deployed on the Tezos blockchain with SCV:
   \begin{itemize}
   \item USDtz, an implementation of the FA~1.2 standard for financial
     applications;
-  \item the Kolibri oracle contract that injects currency exchange
+  \item Kolibri, an oracle contract that injects currency exchange
     rates from an external system.
   \end{itemize}
 \end{enumerate}
@@ -276,8 +277,7 @@ To invoke a Michelson contract on the Tezos blockchain, the caller has
 to provide tokens for gas and tokens to add to the contract's balance.
 The gas tokens are used account for the cost of running the contract;
 if contract execution runs out of gas, it is aborted before it can
-perform any visible change. The use of the balance is up to the
-discretion of the contract code.
+perform any visible change. Use of the balance is up to the contract code.
 
 Listing~\ref {lst:simple-program-add} contains a short example of a Michelson program.
 \begin{lstlisting}[float=tp,captionpos=b,caption={A Michelson program},label={lst:simple-program-add}]
@@ -362,14 +362,14 @@ contracts more comfortably. Our tools are applicable to all of them
 because they compile to Michelson.
 \lstset{language=Caml}
 
-\section{A Domain Specific Language For Smart Contract Property Specification}
+\section{SCV: A Domain Specific Language For Smart Contract Property Specification}
 \label{sec:domain-specific-language}
 
 % For Tezos users who may lack expertise in Michelson, there is a desire
 % to verify smart contract code before interaction.
-Our framework contains a domain-specific language (DSL) to specify
+Our framework SCV contains a domain-specific language to specify
 mathematical properties of smart contracts.
-The DSL is designed to allow users to write formulas that align with
+SCV is designed to allow users to write formulas that align with
 the capabilities of the underlying SMT solver (Z3).
 The goal is to create a language
 that is accessible and understandable for users who are
@@ -464,7 +464,7 @@ is sufficient.
 & 
  \Mid \text{get\_map} (\textbf{e1}, \textbf{e2}) 
  \Mid \text{get\_big\_map} (\textbf{e1}, \textbf{e2})  \\
- &\Mid \text{get\_contract} (\textbf{e1}, \textbf{e2})   
+ &\Mid \text{get\_contract} (T, \textbf{e})   
  \Mid \text{get\_substring} (\textbf{e1}, \textbf{e2}, \textbf{e3})   \\
 & \Mid \text{abs} (\textbf{e})  
  \Mid \text{to\_int} (\textbf{e})  
@@ -481,9 +481,11 @@ is sufficient.
 & \Mid \text{transfer\_token} (\textbf{e1}, \textbf{e2}, \textbf{e3})  
  \Mid \text{is\_nat} (\textbf{e})  
  \Mid \text{contain} (\textbf{e1}, \textbf{e2}) \\
-& \Mid \textbf{p} \text{ and } \textbf{p}\Mid \textbf{p} \text{ or } \textbf{p}  \Mid \textbf{p} \text{ nor } \textbf{p} \Mid  \text{ not } \textbf{p} \Mid \textbf{p} \text{ => } \textbf{p} \\
+& \Mid \textbf{p} \text{ \&\& } \textbf{p}\Mid \textbf{p} \text{ or } \textbf{p}  
+% \Mid \textbf{p} \text{nor } \textbf{p} 
+\Mid  \text{ not } \textbf{p} \Mid \textbf{p} \text{ => } \textbf{p} \\
 \end{align*}
-\caption{Syntax of terms, t and predicates, p}
+\caption{Syntax of constants, \textbf{c}, terms, \textbf{t}, expressions, \textbf{e}, and predicates, \textbf{p}}
 \label{fig:syntax-terms-predicates}
 \end{figure}
 
@@ -492,8 +494,8 @@ mcontract name = spec
   code := {...}
   input := t
   output := t'
-  pre-condition := cd
-  post-condition := cd'
+  pre-condition := p
+  post-condition := p'
 \end{lstlisting}
 
 \subsection{Simple contracts}
@@ -550,12 +552,12 @@ Boolean and non-Boolean sort may be mixed in any combination where
 sorts match up. Several functions are predefined, such as the function
 \text{get\_map (e1, e2)} for accessing an element in a map. This
 function returns \text{None} if there is no key \text{e1} in the map
-\text{e1}, or the corresponding value of the key otherwise. Another
-function, \text{get\_contract (e1, e2)}, casts the address \text{e2}
-to a real contract on the Tezos blockchain. It returns \text{None} if
-there is no existing contract on the Tezos block chain with an
-entrypoint of type \text{e1} associated with the address \text{e2}, or
-it returns the contract otherwise.
+\text{e1}, or \text{Some(v)} if $v$ is the value mapped by the key. Another
+function, \text{get\_contract (T, e)}, casts the address \text{e}
+to a contract on the Tezos blockchain. It returns \text{None} if
+there is no contract on the Tezos blockchain with an
+entrypoint of type \text{T} associated with the address \text{e}, or
+it returns the contract in the form \text{Some(c)}.
 
 Some other functions are defined as predicates, such as
 \text{transfer\_token} (\text{e1}, \text{e2}, \text{e3}). This
@@ -595,8 +597,7 @@ pre- and postconditions, where the precondition states the assumption
 that the integer \lstinline/x/ is greater than or equal to  \lstinline/y/. The postcondition asserts that the result
 \lstinline/z/ is greater than or equal to the substract of
 \lstinline/x/ and \lstinline/y/, which is greater or equal to
-zero. The symbol \lstinline/&&/ stands for logical predicate
-conjunction. 
+zero. The symbol \lstinline/&&/ stands for conjunction. 
 
 \subsection{More than one entrypoint}
 \label{sec:more-than-one}
@@ -615,8 +616,8 @@ mcontract name = spec
       code := {c1}
       input := t1
       output := t1'
-      pre-condition := cd1
-      post-condition := cd1'
+      pre-condition := p1
+      post-condition := p1'
    entrypoint %b 
       ...
    <entrypoint relations>
@@ -628,8 +629,8 @@ mcontract name = spec
    entrypoint %a 
       code := {c1}
       parameter := t2
-      pre-condition := cd1
-      post-condition := cd1'
+      pre-condition := p1
+      post-condition := p1'
    entrypoint %b 
       ...
    <entrypoint relations>
@@ -751,11 +752,11 @@ owner. Hence, the final auction balance is zero (lines 25 and 26).
 For a smart contract on the blockchain, the order of smart contract
 calls can be crucial. We specify ordering constraints among calls with
 an entrypoint relation. An entrypoint relation can be specified as
-\lstinline/%a -> %b with cd/, which starts with the name
+\lstinline/%a -> %b with p/, which starts with the name
 \lstinline/%a/ of the entrypoint and is followed by the keyword
 \lstinline/with/ in case conditions are specified as predicates. The
 following symbol \lstinline/->/ indicates that from the entrypoint
-that satisfies the condition \lstinline/cd/, it is possible  to call
+that satisfies the condition \lstinline/p/, it is possible  to call
 the entrypoint \lstinline/%b/. One smart contract specification can
 contain several entrypoint relations concatenated by
 \lstinline/|/. There is a special entrypoint named \lstinline/create/
@@ -870,7 +871,7 @@ that contain them. Therefore, we can directly convert the symbolic
 results of loops into formulas in Z3. 
 \subsection{Static checker}
 \label{sec:static-checker}
-The static checker now performs the verification process by employing symbolic execution against the property specification in the DSL. It utilizes the results from the previous phases, including symbolic execution, Z3 formulas representing pre and post conditions, and path conditions. 
+The static checker now performs the verification process by employing symbolic execution against the property specification in SCV. It utilizes the results from the previous phases, including symbolic execution, Z3 formulas representing pre and post conditions, and path conditions. 
 
 We first build the input state from the input term and run the
 symbolic interpreter on the input stack with the provided code to
@@ -1057,9 +1058,9 @@ example, the checker then verifies that $\neg$ ((\lstinline/x/ >= y) $\land$ (\l
 
 \subsubsection{Life-cycle check}
 \label{sec:life-cycle-check}
-An entrypoint relation can be defined as \lstinline/(%a -> %b) with cd/, indicating that after invoking the entrypoint \lstinline/%a/, it is permissible to call the entrypoint \lstinline/%b/ if the condition \lstinline/cd/ is satisfied. The presence of the keyword \lstinline/not/ at the beginning signals an impossibility. Note that \lstinline/with cd/ may be omitted when no condition is needed.
+An entrypoint relation can be defined as \lstinline/(%a -> %b) with p/, indicating that after invoking the entrypoint \lstinline/%a/, it is permissible to call the entrypoint \lstinline/%b/ if the condition \lstinline/p/ is satisfied. The presence of the keyword \lstinline/not/ at the beginning signals an impossibility. Note that \lstinline/with p/ may be omitted when no condition is needed.
 
-Let $S_a$ represent the set of all reachable states resulting from the execution of the call to the entrypoint \lstinline/%a/. Each $s_{i}$ in $S_a$ is associated with a path condition $\Theta_i$ and is represented as a stack containing a single element—a pair consisting of an operation list ($\VOPERATIONLIST_i$) and the storage $\VSTORAGE_i$. For each $s_{i}$, symbolic execution is performed on the entrypoint \lstinline/%b/ using input as a pair of the parameter and the storage $\VSTORAGE_i$, constrained by $\Theta_i$ and the condition \lstinline/cd/. In the execution state space, a state $s_{j}$ with the path condition $\Theta_j$ is considered reachable if ($\Theta_i$ $\land$ \lstinline/cd/ $\land$ $\Theta_j$) is satisfiable, and $\neg$ ($\Theta_i$ $\land$ \lstinline/cd/ $\rightarrow$ $\Theta_j$) is unsatisfiable. Let $S_b$ denote the set of these reachable states. If $S_b$ is empty or contains only failwith states, then it is impossible to invoke the entrypoint \lstinline/%b/ from the state $s_{i}$. Otherwise, it is considered a success. Let $R$ be the set containing all such states $s_{i}$ in $S_a$ where it is successful to call the entrypoint \lstinline/%b/ with the condition \lstinline/cd/. If $R$ is non-empty, then \lstinline/(%a -> %b) with cd/ holds. Otherwise, it is false, signifying \lstinline/not (%a  -> %b) with cd/.
+Let $S_a$ represent the set of all reachable states resulting from the execution of the call to the entrypoint \lstinline/%a/. Each $s_{i}$ in $S_a$ is associated with a path condition $\Theta_i$ and is represented as a stack containing a single element—a pair consisting of an operation list ($\VOPERATIONLIST_i$) and the storage $\VSTORAGE_i$. For each $s_{i}$, symbolic execution is performed on the entrypoint \lstinline/%b/ using input as a pair of the parameter and the storage $\VSTORAGE_i$, constrained by $\Theta_i$ and the condition \lstinline/p/. In the execution state space, a state $s_{j}$ with the path condition $\Theta_j$ is considered reachable if ($\Theta_i$ $\land$ \lstinline/p/ $\land$ $\Theta_j$) is satisfiable, and $\neg$ ($\Theta_i$ $\land$ \lstinline/p/ $\rightarrow$ $\Theta_j$) is unsatisfiable. Let $S_b$ denote the set of these reachable states. If $S_b$ is empty or contains only failwith states, then it is impossible to invoke the entrypoint \lstinline/%b/ from the state $s_{i}$. Otherwise, it is considered a success. Let $R$ be the set containing all such states $s_{i}$ in $S_a$ where it is successful to call the entrypoint \lstinline/%b/ with the condition \lstinline/p/. If $R$ is non-empty, then \lstinline/(%a -> %b) with p/ holds. Otherwise, it is false, signifying \lstinline/not (%a  -> %b) with p/.
 
 \section{Case Studies}
 \label{sec:case-stud-subs}
@@ -1543,7 +1544,10 @@ not (Sender = governor): 4
 We already learned about Michelson, the low-level smart contract
 language for the Tezos blockchain, and its stack-based nature in
 Section~\ref{sec:background}.  Here we consider the changes needed for
-symbolic execution of Michelson programs.
+symbolic execution of Michelson programs. We only discuss symbolic
+execution for some select instructions. The
+appendix~\ref{sec:concl-sect-append} specifies further instructions,
+but may be skipped by the reviewers.
 
 \subsection{System Model}
 \label{sec:system-model}
