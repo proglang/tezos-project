@@ -1,0 +1,235 @@
+ECOOP 2024 Paper #7 Reviews and Comments
+===========================================================================
+Paper #7 A Formal Verification Framework for Tezos Smart Contracts Based on
+Symbolic Execution
+
+
+Review #7A
+===========================================================================
+
+Paper summary
+-------------
+This paper reports on a tool for verification of smart contracts in the Michelson language for the Tezos blockchain. The tool is based on symbolic execution. Section 2 introduces Michelson. Section 3 introduces the specification language SCV (pre/post specs together with a kind of state machine for allowed sequencing of calls on different entry points). Section 4 describes the tool, which translates programs and specs to SMT formulas (specifically supported by Z3), carries out symbolic execution more or less comprehensively, and checks specifications based on the symbolic model computed for each contract. Section 5 describes two case studies (contracts and specs for financial applications) in some detail. Section 6 presents technical details about the symbolic semantics. Section 7 reviews related work.
+
+The concluding section 8 remarks that the relatively small size of smart contracts makes them amenable to symbolic execution in the sense that state explosion is manageable. It also makes clear a significant limitation of the current system, that it does not handle contracts that invoke other contracts, and suggests future extension of the spec language to describe allowed sequences of invocations.
+
+Soundness
+---------
+4. Strong
+
+Justification and comments on soundness
+---------------------------------------
+I hesitated between score of 3 and 4. 
+
+The work is technically strong in the sense that the approach taken makes sense, and the technical details that are presented seem sensible. Moreover the case studies demonstrate that interesting specs can be expressed and successfully verified for some real contracts. 
+
+On the other hand, I miss some validation of the symbolic semantics with respect to some other definition of Michelson semantics. Two related works have formulated parts of the language and there is informal technical documentation. It should be possible to create a test suite to increase confidence that the semantics is accurate. 
+
+I am also a little unsatisfied with what is and is not said about unbounded loops. Sect 6.2.5 makes clear the LOOP instructions admit unbounded and non-terminating computation. So exhaustive symbolic execution is not possible in general, yet the focus is on verification. Do the case studies only involve bounded iteration? Were they in fact exhaustively analyzed? 
+
+I miss some discussion on how much of Michelson is handled. The conclusion mentions a substantial missing feature, i.e., the instruction by which a contract can be called from within another contract invocation. Are there other major features missing? Are there difficulties handling them?
+
+Minor comments
+
+In 6.2, bottom of page 24 gives a rule that updates the system configuration by replacing one of its symbolic states with n of its successors. In words it says this is all of the successors, but the formalism doesn't make that evident.
+
+Significance
+------------
+3. Acceptable
+
+Justification and comments on significance
+------------------------------------------
+Michelson is interesting because it was designed with verification in mind, and in use on the Tezos blockchain manipulating sizeable amounts of money. SCV seems well designed for usability and to leverage Z3 effectively; this is confirmed by successful verification of the two case studies. So the tool may be an important practical contribution.
+
+As a scientific contribution, the paper is lacking. The formal development for symbolic execution is novel in detail, since it's specific to Michelson and (as far as I know) this style of semantics was not previously defined for Michelson. But I miss features that pose interesting challenges, or formulations that are surprising or difficult with respect to prior work on symbolic execution. On the practical side I miss information about time and space used by the tool on examples, especially with interesting loops. 
+
+The case studies provide positive evidence that some interesting properties can be specified, but I miss some assessment of what portion of actual requirements can be specified in SCV; for example, does the lack of quantifiers get in the way? Presumably some requirements would involve properties of token transfers or other operations triggered by contracts, which is beyond current SCV and was not discussed. Section 8 mentions specifying allowed sequences of entry invocations as future work; might one also want liveness properties? 
+
+Another kind of contribution would be findings about flaws. The last paragraph of sect 5 describes a flaw that was found in one contract, but that's all.
+
+I do appreciate that the text does not over-sell. Both the abstract and the list of contributions on page 2 seem accurate.
+
+Presentation
+------------
+3. Acceptable
+
+Justification and comments on presentation
+------------------------------------------
+The presentation is strong in these senses: It is clearly written and well organized. It effectively introduces Michelson and SCV, including the symbolic semantics. The abstract accurately describes the work as reporting on the design and implementation, in particular the semantic foundations. Already reading the abstract I noticed what's weak about the paper: it doesn't highlight difficulties that were overcome in non-obvious ways, or new insights. (Was it all straightforward?) There is substantial discussion of related work (li63-66 and sect 7), in particular other verification tools for Michelson, but little is said concerning advantages or disadvantages even with respect to the automated HELMHOLTZ tool. 
+
+l174ff at this point I was wondering whether contracts can be higher order
+
+Sect 3.1 by the end I was wondering whether an entry can have multiple pre-post behavior clauses; it does eventually clear in the example on p19
+
+Sect 3.3 it was not clear whether a relation %a->%b is meant to say %b can be invoked from within the implementation of %a or subsequent to a successful invocation of %a, or immediately following a successful invocation of %a. It's somewhat clarified in sect 4.3.4.
+
+l336-7 I was puzzled by the notation here but eventually understood that ty2 is the type of stg. 
+
+l400 about values of contract type not being storable, how do we know which types are storable? Fig 1 distinguishes comparable types but not storables.
+
+l431 signals an impossibility - could be phrased more clearly that it means such call cannot succeed.
+
+l550 mint you own 
+
+l601-3 obscure sentence 
+
+l732-4 sentence
+
+misspellings: tokesn
+
+Reviewer expertise
+------------------
+3. Knowledgeable
+
+
+
+Review #7B
+===========================================================================
+
+Paper summary
+-------------
+The paper presents SCV, a formal verification tool based on symbolic execution for smart contracts (SCs) written in Michelson and running on the Tezos blockchain (BC). Moreover, SVT offers a domain-specific language (DSL) to support defining and checking user-specific properties of the contracts.
+
+First, the authors illustrate with an example the specification style supported by the DSL and the way it checks properties (symbolically synthesises from pre-conditions and the source code a post-condition predicate and then checks if it implies the user-declared post-condition). According to the authors, the novelty of their symbolic execution engine is that it targets a functional, stack-based transactional language for the (Tezos) BC and this scenario poses new challenges not addressed before.
+
+In Section 2, the authors briefly present the Michelson language and operational semantics, reviewing the main instructions. The rules of the semantics are not given, nor are pointers for where they can be found.
+
+In Section 3, the focus is the DSL. The syntax is fully defined and illustrated with some small examples. To provide a more comprehensive view of the specification language and the verification capabilities, an elaborate example modelling an auction is presented. The design rationale and the sources of inspiration for the DSL are not provided.
+
+In Section 4, the authors explain how the symbolic execution works and how it interfaces with (the SMT solver) Z3.
+They detail the underlying automatic checks (on paths, for instance, to guarantee reachability) and how the user-defined properties are verified. Formal definitions, again, are not provided.
+
+Section 5 contains two challenging use cases, showing the expressiveness of the DSL and the verification effectiveness of the symbolic execution, that checks successfully the required properties. It does not present negative examples nor show the messages produced by the tool,
+namely in case of errors or when Z3 does not check a property.
+
+The very long Section 6 formally defines the symbolic execution, discussing each rule. No results are stated, neither on the relation defined (like determinism) nor on its relationship with the formal semantics of Michelson.
+
+Section 7 reviews related work, namely verification tools for Solidity (the SCs programming language of the Ethereum BC) and Michelson, but does not talk about DSLs for program specification and verification nor about symbolic execution (even if just for functional code).
+
+Section 8 concludes the paper by making the case for symbolic verification and with a brief presentation of directions for future work.
+
+In appendix, one finds the full syntax of types and all the symbolic semantics rules.
+
+Soundness
+---------
+2. Weak
+
+Justification and comments on soundness
+---------------------------------------
+The symbolic semantics is presented in (even too much) detail (leading to a long paper - 31 pages + 7 of appendices). No soundness arguments, however, are presented. The mandatory result of correctness (and ideally completeness) of this symbolic semantics with respect to the operational one (presented, e.g., in [1] and formalised with the Coq proof assistant in [2]) is not even mentioned.
+
+Moreover, the treatment of unbounded loops needs to be clarified, including its impact on soundness.
+
+[1] https://tezos.gitlab.io/active/michelson.html
+
+[2] https://arxiv.org/pdf/1909.08671.pdf
+
+Significance
+------------
+3. Acceptable
+
+Justification and comments on significance
+------------------------------------------
+On one hand, the tool, should the AEC confirm the presentation made in the paper, is expressive and useful: the two use cases are demanding and the annotated code, although not obvious, is reasonable.
+
+On the other hand, there is however no presentation of any evaluation of the tool. Neither in absolute terms, with execution times or comparing the lines of code with those needed for specification, nor in relative terms, comparing with other tools.
+
+Moreover, the relationship of the symbolic semantics presented with the formal semantics of the language is also not even discussed. It is thus difficult to judge the adequacy of the semantics supporting the verification approach.
+
+Presentation
+------------
+3. Acceptable
+
+Justification and comments on presentation
+------------------------------------------
+The paper is not difficult to follow but very verbose and could benefit from a formal presentation of the definitions (in particular, in Sections 3 and 4). The examples help the reader to grasp the concepts and ideas presented.
+
+There is however a general lack of broader references to (seminal) works on the areas of the paper, like DSLs for specification and verification and on symbolic execution. It is necessary not only to provide context and clarify on which work one builds, but also to explain clearly how the work presented advances beyond the state-of-the-art. The presentation is just descriptive without stressing the real contributions.
+
+An evaluation of the results is not considered, a weak point in the presentation of the qualities of the framework proposed.
+
+Reviewer expertise
+------------------
+3. Knowledgeable
+
+
+
+Review #7C
+===========================================================================
+
+Paper summary
+-------------
+This paper presents SCV, a formal verification tool for Michelson smart contracts for the Tezos blockchain. The tool has a fairly simple first-order logic, domain specific specification language inspired by the “design by contract” verification methodology, i.e. properties are specified as pre- and postconditions on entrypoints into a contract. Some notable features of the specification language are supporting type specifications on an entrypoint’s input and output arguments in two different ways (i.e. input/output or parameter/storage typing), and supporting entrypoint relations that specify and verify state machine behavior of the contract. SCV verifies these specifications using symbolic execution in 4 different ways: 1) checking that the output is of the correct type with respect to its specification, 2) producing a list of failure conditions for inspection, 3) traditionally verifying the pre- and postcondition, and 4) verifying the entrypoint relations for reachability during execution.
+
+SCV is mature enough to support the specification and verification of 2 real-world smart contracts written in Michelson and deployed on the Tezos blockchain. The paper describes these 2 case studies. Both case studies are sufficiently complex in terms of important properties to specify and verify and smart contract code.
+
+Soundness
+---------
+3. Acceptable
+
+Justification and comments on soundness
+---------------------------------------
+The informal and formal descriptions of SCV’s implemented verification methodology are sufficient so that I feel confident in the soundness of the tool. In particular, the formal symbolic execution rules were presented well and appear relatively standard. The description of the case studies is also thorough enough that I am confident that specifications written by the authors correctly specify and verify the properties the paper claims they should be specifying and verifying.
+
+I have some soundness concerns that are keeping my score a bit lower. See the related questions below:
+* I am confident in the correctness of the symbolic execution rules and other checks as they are pretty straightforward, but it is unclear from the writing in Sec. 4 how SCV puts these pieces together to do verification. Can you provide a system diagram and a description of it so I can better understand how the tool is implemented/works?
+* Lns 632-643, is this paragraph referring to a bug found or oversight found in the Kolibri oracle?
+* How are the non-deterministic rules (such as loop) handled in implementation?
+* Do you have a proof of soundness of your verification system?
+
+Significance
+------------
+3. Acceptable
+
+Justification and comments on significance
+------------------------------------------
+I am feeling lukewarm about the significance of the paper. I see some benefits of the work in terms of significance, but also the work seems to be utilizing fairly standard verification approaches for Michelson smart contracts. I didn’t see anything in the paper that signaled the verification/checking methods used in the paper were challenging/not-straightforward when adapted to this domain (for smart contracts in general or for Michelson smart contracts in particular). I also think the specification language is good for users with little formal methods knowledge, but worry that it is being applied to a low-level language that they won’t use.
+
+#### Positives
+* Allowing the state diagram of a smart contract to be represented in the specification language and supporting machine verification of it is novel in a smart contract verification system from what I’ve seen
+* Related to the previous point, I do think the specification language is something that non-formal verification methods can use due to its simplicity and focus on I/O constraints
+* Providing failure conditions from the verification seems particularly useful and I haven’t seen this done before
+* SCV contracts can be used as a compilation target for corresponding ones in LIGO, SmartPy, and Liquidity
+* Tool is mature enough to be used on 2 real-world case studies with sufficient complexity
+
+#### Negatives
+* The verification methods seem to be pretty straightforward and relatively standard applications to verify SCV specified Michelson programs. I don’t see anything particularly novel, interesting, or challenging here.
+* The SCV specification language does abstract over the details of Michaelson programs making it easier to understand what they should be doing, but I don’t think this is a very hard thing to do since Michaelson is a low-level programming language.
+* I don’t really see the practical benefits of this work over HELMHOLTZ. The paper argues that one practical benefit is that users don’t need to modify within the code, but I suspect most non-formal methods users won’t be specifying Michelson code, but specifying higher-level code that will compile down to one of these two tools.
+
+#### Extra paper to discuss in the related work section
+* Bräm, Christian, et al. "Rich specifications for Ethereum smart contract verification." Proceedings of the ACM on Programming Languages 5.OOPSLA (2021): 1-30.
+
+Presentation
+------------
+3. Acceptable
+
+Justification and comments on presentation
+------------------------------------------
+Overall, the presentation is good enough to meet an acceptable standard for ECOOP, but the writing is verbose at times with run-on sentences and the authors make some odd organizational choices at times. A list of some of the writing issues I found is below along with a list of typos found. The paper is also 31 pages long, so when the authors work to get their paper in the 25 pages, they should also consider performing a thorough editing pass to address the current writing issues.
+
+#### Writing Issues/Suggestions
+* The Listing 1 description in the introduction (Lns 42-51) doesn’t really add much to the introduction and is confusing since the Michelson language and additional blockchain/smart contract information haven't been introduced yet
+* Consider moving the discussion in Lns 121-125 to the introduction, as this describes the impact of the work in the paper
+* The static check section (Sec. 4, starting on Ln 267) feels all over the place up to Sec. 4.3.1 (starting on Ln 332). A system diagram and organizing descriptions of components around the diagram would clarify things. Also, in particular, Lns 325-328 should be moved to the interpreter subsection.
+* It is not very clear on a first read that the Output checks are checking that the output term is of the correct type.
+* The definition of the entrypoint relation given in Section 4.3.4 is a far clearer description than the one provided when introducing entrypoint relations previously in the paper.
+* Lns 527-530 is a good example of the run-on sentences/oddly structured sentences with clauses that exist throughout the paper.
+
+#### Typos
+* Ln 90: “The gas tokens are used account for the cost of running the contract;” **to** is missing in “used account”
+* Ln 118: “Entrypoints are encoded by using a sum type (**call** “or type” in Michelson)”
+* Ln 234: “…represented by the variable c of type contract unit on the blockchain **(lines 22-23)**” Should be lines 10-11?
+* Ln 237: “…of the contract should be the amount sent along with the call **(line 14)**” Should be line 15?
+* Ln 241: “…the data sent along with the call, the amount of **tokesn**”
+* Lns 333-334: “the **output term matches.**” Matches what?
+* Ln 425: “…precondition is not satisfy with the path condition…”
+* Ln 474: “…implies **an** view entrypoint.”
+* Ln 550: “…mint to mint **you own tokens**”
+* Ln 554: “…**dapps**…”
+* Ln 795: “Our tool **provide** an environment…”
+* Lns 796-797: “Our tool aims to rich specifications to support manually…”
+
+Reviewer expertise
+------------------
+4. Expert
