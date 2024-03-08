@@ -11,12 +11,13 @@ Our responses focus on the technical questions.
 
     I miss some validation of the symbolic semantics with respect to some other definition of Michelson semantics. Two related works have formulated parts of the language and there is  informal technical documentation. It should be possible to create a test suite to increase  confidence that the semantics is accurate.
 
-The types, symbolic terms, and semantics of the symbolic rules for the instructions adhere to the formal definitions of the Michelson language as outlined in  [1] and [2]. Additionally, we have developed numerous test cases in preparation for implementing the instructions. These tests are aimed at validating the symbolic semantics and providing confidence in their accuracy. This comprehensive test suite will be part of our artifact submission.
+The types, symbolic terms, and semantics of the symbolic rules for the instructions adhere to the formal definitions of the Michelson language as outlined in [1] and [2]. Additionally, we have developed numerous test cases in preparation for implementing the instructions. These tests are aimed at validating the symbolic semantics and providing confidence in their accuracy. This comprehensive test suite will be part of our artifact submission.
 
 * [1] <https://tezos.gitlab.io/active/michelson.html>
 * [2] <https://tezos.gitlab.io/michelson-reference/>
 
-        I am also a little unsatisfied with what is and is not said about unbounded loops. Sect 6.2.5 makes clear the LOOP instructions admit unbounded and non-terminating computation. So exhaustive symbolic execution is not possible in general, yet the focus is on verification. Do the case studies only involve bounded iteration? Were they in fact exhaustively analyzed?
+
+    I am also a little unsatisfied with what is and is not said about unbounded loops. Sect 6.2.5 makes clear the LOOP instructions admit unbounded and non-terminating computation. So exhaustive symbolic execution is not possible in general, yet the focus is on verification. Do the case studies only involve bounded iteration? Were they in fact exhaustively analyzed?
 
 We analyze two scenarios for unbounded loops depending on the input term:
 
@@ -24,7 +25,7 @@ We analyze two scenarios for unbounded loops depending on the input term:
 * For a symbolic value, the stack type is determined before the loop is executed. We abstract the result of the loop as the abstract function result. Initially, we execute the loop to determine the semantic of the function, and then we present the stack result as the function result. Redundant function iterations are eliminated. Additionally, the loop condition is abstracted as a function result. For future improvements, this abstraction helps detect whether the loop is unbounded, such as when the result of the function is always true. In such cases, we can check if (not loop condition) is unsatisfiable. This abstraction enables the tool to detect undefined loops, which we are currently implementing improvements for in the tool.
 
 
-        I miss some discussion on how much of Michelson is handled. The conclusion mentions a substantial missing feature, i.e., the instruction by which a contract can be called from within another contract invocation. Are there other major features missing? Are there difficulties handling them?
+    I miss some discussion on how much of Michelson is handled. The conclusion mentions a substantial missing feature, i.e., the instruction by which a contract can be called from within another contract invocation. Are there other major features missing? Are there difficulties handling them?
 
 We have implemented approximately 85% of the Michelson instructions in our tool. We are confident that most of the major-use instructions are included. The reason for not implementing all instructions is primarily due to time constraints rather than technical limitations. We continuously strive to add as many instructions as possible over time. The remaining instructions that have not been implemented are either used for specific purposes or have been recently added to Michelson, such as the instructions related to tickets (JOIN_TICKETS, READ_TICKET, SPLIT_TICKET, and TICKET) or those related to timelocks (OPEN_CHEST).
 
@@ -61,7 +62,7 @@ The design of the logic part is pretty much determined by legal Z3 formulas, tak
 We'll make sure that this comes across more clearly in the final paper.
  
 
-    the relationship of the symbolic semantics presented with the formal semantics of the language is also not even discussed. It is thus difficult to judge the adequacy of the semantics supporting the verification approach.
+    The relationship of the symbolic semantics presented with the formal semantics of the language is also not even discussed. It is thus difficult to judge the adequacy of the semantics supporting the verification approach.
 
 In separate work (which is currently in submission), we have designed a dynamic logic tailored to Michelson as a formal foundation for the implementation of SCV. This logic encompasses calls between contracts, i.e., it goes beyond the state of the implementation as reported in this paper.
 We have a soundness proof of this logic formalized in the Agda proof assistant.
@@ -77,7 +78,7 @@ We'll also be happy to share the Agda formalization of the proof with the review
     How SCV puts these pieces together to do verification. Can you provide a system diagram and a description of it so I can better understand how the tool is implemented/works?
 
 Unfortunately, we cannot put a diagram in the response (but it will be put in the revised paper).
-Here is a description: The tool comprises four main components. Firstly, a user specification in the DSL provides input terms (storage and parameter) along with the code to the symbolic interpreter, while the output term and the pre- and post-conditions are fed to the static checker. The symbolic interpreter then runs symbolic execution on the code with the provided input. At each step of the symbolic execution, when a branch occurs, the interpreter sends the path condition to the Z3 converter to convert it to Z3 formulas, which are then passed to the Z3 solver to check whether the path conditions are satisfied. The result of the check determines the action taken by the interpreter; if satisfied, the branch is added, otherwise it is abandoned. In our experiments, this branch check significantly reduces the number of execution states, especially for stack-based languages like Michelson, where the programmer may need to perform the same check multiple times.
+Here is a description: The tool comprises four main components (Symbolic interpreter, Z3 converter, Z3 solver and Static checker). Firstly, a user specification in the DSL provides input terms (storage and parameter) along with the code to the symbolic interpreter, while the output term and the pre- and post-conditions are fed to the static checker. The symbolic interpreter then runs symbolic execution on the code with the provided input. At each step of the symbolic execution, when a branch occurs, the interpreter sends the path condition to the Z3 converter to convert it to Z3 formulas, which are then passed to the Z3 solver to check whether the path conditions are satisfied. The result of the check determines the action taken by the interpreter; if satisfied, the branch is added, otherwise it is abandoned. In our experiments, this branch check significantly reduces the number of execution states, especially for stack-based languages like Michelson, where the programmer may need to perform the same check multiple times.
 
 Once the symbolic execution finishes, the results (i.e., all reachable states) are sent to the static checker. Each state contains the post-storage updated after the execution, the list of operations to emit, and the path conditions. The static checker then performs three different functions: output check, property check, and generation of all fail conditions.
 
@@ -104,5 +105,5 @@ Yes. See last comment to review 7B.
 
 The DSL enables users to specify properties with an basic understanding of Michelson data types, which are also present in higher-level languages. There is no need to modify the Michelson code. Therefore, to verify a smart contract written in a higher-level language, the only requirement is a tool that compiles code from a higher-level language to Michelson, which mostly already exists. This leads us to the idea of combining all these steps into a unified tool that allows users to directly verify smart contracts in a higher-level language.
 
-In contrast, Helmholtz requires users to write properties in a refinement type as input, which definitely necessitates formal method experts. Users are required to be Michelson programmers to integrate the property specifications into the code.
+In contrast, Helmholtz requires users to write properties in the form of refinement type as input, which definitely necessitates formal method experts. Users are required to be Michelson programmers to integrate the property specifications into the code.
 
