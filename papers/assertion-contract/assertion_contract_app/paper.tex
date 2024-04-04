@@ -1,0 +1,491 @@
+% APLAS 2021: Regular research papers should not exceed 18 pages in
+% the Springer LNCS format(LaTeX template), including bibliography and
+% figures.
+% Lightweight double-blind: Author names and institutions must be
+% omitted and References to the authors’ own related work should be in
+% the third person 
+%
+\documentclass[runningheads]{llncs}
+\pdfoutput=1
+%\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+%\usepackage{graphicx}
+%\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{mathpartir}
+\usepackage{graphicx}
+%\usepackage{fixme}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{titling}
+
+%\input{macros}
+%\input{setup}
+
+% ------------------- colors -------------------
+\definecolor{darkgreen}{rgb}{0.0, 0.5, 0.0}
+\definecolor{UniBlue}{RGB}{0, 74, 153}
+\definecolor{UniRed}{RGB}{193, 0, 42}
+\definecolor{UniGrey}{RGB}{154, 155, 156}
+\definecolor{cverbbg}{gray}{0.93}
+
+\newcommand{\todo}[1]{\textbf{\textcolor{red}{(TODO: #1)}}}
+
+\begin{document}
+%
+\title{Assertion Contracts}
+%
+%\titlerunning{Abbreviated paper title}
+% If the paper title is too long for the running head, you can set
+% an abbreviated paper title here
+%
+\author{Thi Thu Ha Doan\orcidID{0000-0001-7524-4497}\and Peter Thiemann\orcidID{0000-0002-9000-1239}}
+
+%
+%\authorrunning{Ha Doan, P. Thiemann}
+% First names are abbreviated in the running head.
+% If there are more than two authors, 'et al.' is used.
+%
+%\institute{University of Freiburg, Germany \\ \email{\{doanha,thiemann\}@informatik.uni-freiburg.de}
+%}
+%
+\maketitle              % typeset the header of the contribution
+%
+\begin{abstract}
+In some situations on the blockchain, verifying certain properties of a parameter requires significant gas costs or may even become infeasible due to the gas limits. This study proposed a distributed verification assertion protocol. The core concept involves distributing the negation form of the assertion to validators instead of verifying it on-chain. Validators’ off-chain attempts to find a solution to the negation form and discover a counterexample. When a counterexample is found, it can be submitted to the chain. In addition, we propose a proof-of-work-based incentive mechanism to encourage validators to participate in the distributed verification process. To operationalize these ideas, we suggest a practical model that addresses security concerns. Furthermore, we implemented a prototype of the proposed protocol and conducted a cost analysis to demonstrate the advantages of our method in terms of cryptocurrency, making it practically useful.
+ \keywords{}
+\end{abstract}
+%
+%
+%
+\section{Introduction}
+\label{sec:introduction}
+\section{Primaries}
+\label{sec:primaries}
+
+
+\section{Distributed Assertion Protocol}
+\label{sec:approach}
+We propose a novel method to verifying assertions for smart contracts on the blockchain. Our approach involves distributing the assertion verification process and moving it off chain. Only the verification results are submitted to the blockchain. Throughout this distribution, each validator endeavors to identify a counterexample to the assertion. Consequently, rather than checking the entire assertion, it only requires examining specific points on the chain. We propose a proof-of-work-based incentivization method for validators who discover a counterexample and for a portion of the computational effort, thereby incentivizing participation in the distributed verification process.
+
+\subsection{Distributed assertions verification process}
+In the context of a domain $A$ and a predicate $P$ on $A$, an assertion is formalized using the universal quantifier as follows:
+\begin{gather}
+  \label{eq:1}
+\forall a \in A. P_{a}
+\end{gather}
+
+This formula can be extended to multiple domains as:
+
+\begin{gather}
+\label{eq:2}
+\forall a \in A, \forall b \in B, \dots .P_{a, b, \dots}
+\end{gather} 
+
+The negation of the assertion is represented by the existential quantifier formulas:
+
+\begin{gather}
+\label{eq:3}
+\neg (\forall a \in A. P_{a}) \equiv \exists a \in A. \neg P_{a}
+\end{gather}
+
+And for multiple domains, it is as follows:
+
+\begin{gather}
+\label{eq:4}
+\exists a \in A, \exists b \in B, \dots. \neg P_{a, b, \dots}
+\end{gather}
+
+To verify an assertion, it requires iterating over the domain $A$ within the contract. When the domain $A$ is large or the predicate $P$ is complex to evaluate, it incurs a significant amount of gas to perform the verification process on-chain.  Given the current high gas prices, this could result in substantial costs or even impossible due to gas limits. Our approach aims to alleviate this by distributing the negation of the assertion to validators. Each validator endeavors to find a counterexample of the assertion using this negation.
+
+Specifically, each validator attempts to find a counterexample by identifying $a \in A$ such that the negation formula is satisfied. When a counterexample is found, the validator submits it, which is then verified on the chain. The amount of gas required for the computation to check the counterexample on-chain will likely be significantly less than verifying the assertion directly on the chain.  
+ 
+Considering the example where a parameter $p$ is a prime number, the assertion in predicate logic for the parameter is:
+\begin{gather}\label{eq:3a}
+  (\forall n) (2 \le n \le \sqrt p) \Rightarrow (p \mathbin{\%} n) \ne 0
+\end{gather}
+
+
+\noindent and its negation form is 
+
+\begin{gather}\label{eq:3b}
+  (\exists n) (2 \le n \le \sqrt p) \wedge (p \mathbin{\%} n) = 0
+\end{gather}
+
+\noindent each validator try to genarate  a
+random $n$ in the range $2 \le n \le 
+\sqrt p$ and checking whether $(p \mathbin{\%} n) = 0$. If the remainder is $0$, the validator found a counterexample.
+
+An other example, consider a contract that takes a sorted array of integers.
+\begin{lstlisting}[numbers=none]
+contract Sorted {
+  function find (int[50] a, int v) public {
+    // assume a is sorted
+  }
+}
+\end{lstlisting}
+The explicit assertion would be
+\begin{gather}\label{eq:1}
+  (\forall k) (0\le k <49) \Rightarrow a[k] \le a[k+1]
+\end{gather}
+While we can check this contract in $O(1)$ time, the constant factor is big! So we
+consider its negation.
+\begin{displaymath}
+  (\exists k) (0\le k <49) \wedge a[k] > a[k+1]
+\end{displaymath}
+Each validator attempts to find the number $k$ such that the negation is true for such $k$, then the validator has found a counterexample for the sortedness of the array.
+
+If any of the validators identify a violation of an assertion, the final call to the actual work function is aborted. However, if certain requirements are met, the work function is invoked with the parameter.
+\subsection{Proof-of-work-based incentivization method}
+Finding a counterexample is rewarded, incentivizing validators, but comes at the cost of computing resources. Instances of finding a counterexample may be rare, as callers typically avoid passing invalid parameters into the blockchain. If no counterexample emerges, the verification accuracy depends on the number of wisepoints generated to negate the assertion, with more validators increasing the certainty. Encouraging validators to engage in the verification process even without discovering a counterexample is crucial. Therefore, it is necessary to incentivize this effort. Moreover, it is logical to reward only a portion of the computational effort required. A significant concern arises regarding how to ensure that validators perform the verification computation off-chain to receive the reward, even when no counterexample is foundward.
+
+We propose a proof-of-work-based method to incentivize participants in the distributed verification process. The proposed approach is outlined as follows:
+
+\begin{itemize}
+\item There are two ways to reward validators to encourage their participation: to discover a counterexample, and to provide computational proof that they have executed the program to search for a counterexample, even if none is found.
+\item To prioritize the discovery of counterexamples, the reward for finding a counterexample is set significantly higher than that for providing a computational proof.
+\item The computation of the negation formula is integrated into the computational proof to ensure that the validators cannot produce the proof without executing a negation check.
+\item Because the rewards may be limited in quantity, validators are motivated to swiftly verify the parameters to claim the reward before others do so.
+\end{itemize}
+The next step is to devise a computation proof to incentivize computational effort by utilizing the proof of work concept. Initially, we establish a target hash $t$ that sets the required difficulty level to earn the reward. The objective of the validator is to generate a computation that produces a hash smaller than or equal to the target hash $t$. Seed $s$ was introduced in each verification process. Let $n$ denote the size of domain $A$. Each number $i$ in the range [1, $n$] corresponds to an element in $A$. The seed $s$ is a random number and then reduces modulo $n$ to obtain $i$, which is  associated with an element $a$ in $A$: 
+\begin{gather}\label{}
+i = s \mod n
+\end{gather}
+Consequently, each seed $s$ is linked with an element $a$ in the domain $A$, followed by the evaluation of the negation of the assertion $\neg P_{a}$. After conducting the negation check, either a counterexample is identified, or a hash is computed based on the seed $s$ along with the evaluation of the condition $\neg P_{a}$. This hash is then compared with the target hash to ascertain if it meets the criteria for a reward computation. The outcomes of the verification process include either a counterexample, a reward computation, or a non-reward computation.
+
+During the distributed process, each validator consistently generates a seed $s$ and conducts the negation check until the outcome indicates either a counterexample or a reward computation. Upon achieving either of these outcomes, the validator is able to submit it on-chain to claim their reward. Both the counterexample and the computation proof are represented by the seed used, allowing the on-chain compoment to replicate the process to verify its validity. If the verification is successful, the validators will be entitled to receive their reward.
+ 
+
+%The next question is associte a seed with an elemnt in the domain. Let $n$ be the size of the domain $A$.  We'll consider two cases: (1) when it is straightforward to associate a natural number $i$ to an element of $A$, such as a natural number, integer, or array, and (2) when it is not.
+
+%In the first case, the seed $s$ is a random number. It is then modulated with the size $n$ to obtain $i$, which is then associated with an element $a$ in $A$. 
+
+%\begin{gather}\label{}
+%i = s \mod n
+%\end{gather}
+
+
+
+%In the second case, when it is not straightforward to associate a natural number with an element of the domain, then the seed is limited to the elements of the domain. The concern in this case is that the target $t$ needs to be set up in such a way that there is a guarantee to possibly find a reward computation.
+
+%Let's examine an assertion in smart contract languages such as Solidity and Michelson. An assertion is essentially a predicate logic expressed as a boolean formula computed from relational operators ($=$, $!=$, $>$, $<$, $>=$, $<=$), logical operators ($!$, $\&\&$, $\|$), and expressions. Let $\pi_{P_{a}}$ = {$e_1$, $e_2$, \dots } represent the set of expressions involved in the computation of the predicate $P_a$. The hash of the seed and these expressions ($s$, $\pi_{P_{a}}$) is then computed and compared with the target hash. Since the hash involves $\pi_{P_{a}}$, the validator needs to execute the condition check to find a reward computation.
+
+
+\section{Practical model}
+\subsection{Overview architect}
+Distributed verification of assertions is indeed an intriguing concept, yet it faces the following security risks when proposing an incentive method:
+
+\begin{itemize}
+\item Front-running attacks: The system is vulnerable to front-running attacks, where an attacker closely monitors the mempool to intercept a seed representing a counterexample or a computation proof, subsequently stealing the reward.
+\item Caller exploitation: A caller might exploit the system by running the negation check privately to identify the reward before submitting the parameter on-chain, thereby swiftly claiming the reward ahead of the other validators. 
+\item Denial-of-service (DoS) attacks: The system is susceptible to DoS attacks, where a caller inundates the system with numerous invalid parameters, causing congestion and hindering its operation.
+\item Reward manipulation: A validator may attempt to manipulate the reward system by resubmitting counterexamples or computation proofs multiple times to multiply their rewards.
+\end{itemize}
+
+This section presents a practical model that unifies theoretical principles and addresses the previously mentioned security concerns. The architectural design of this model is depicted in Figure \ref{fig.architect}. The model consists of two main entities: an on-chain assertion contract and off-chain validator contract. In our practical model, three distinct actors play key roles.
+\begin{itemize}
+\item Owner: responsible for deploying and overseeing both on-chain and off-chain contracts.
+\item Callers: engage with on-chain contracts by initiating assertions and interacting with the system.
+\item Validators: tasked with validating parameters and ensuring the integrity of the verification process.
+\end{itemize}
+
+
+\begin{figure}
+\centering
+\includegraphics[scale=.8]{assertion}
+\caption{The architecture of the practical model}
+\label{fig.architect}
+\end{figure}
+
+\subsubsection{On-chain assertion contract}
+While additional functions may exist, the assertion contract must encompass the following two essential functions:
+\begin{itemize}
+\item The \lstinline|submit_parameter| function: Callers utilize this function to submit their parameters for validation. Subsequently, the parameter is distributedly verified by validators.
+\item  The \lstinline|claim_reward| function: This function accepts a parameter and a seed as inputs, yielding a result indicating whether the computation from the seed results in a counterexample, a reward computation, or a non-reward computation.
+\end{itemize}
+
+While a random number alone is sufficient to indicate the associated element $a$ in the domain $A$, to prevent the front-running attack and the caller exploitation attack, we enhance the randomness of the seed by combining a random number with the validator's address and the timestamps indicating when the parameter is submitted on the chain to calculate the seed. This combination adds an extra level of security. For instance, we can convert the validator's address and timestamps to a numerical value and use this number in combination with a random number to compute the seed. This conversion can be achieved using functions such as \lstinline|init256| in Solidity, which transform an Ethereum address into a numerical value. In this system, even if other validators obtain a random number, they are unable to submit it successfully, as their combination with their address will not yield the correct seed that corresponds to a specific element in the domain. Additionally, a caller cannot run the check before submitting the parameter owing to the timestamp constraints. As a result, any attempt to submit manipulated or before-run seeds will fail to produce either a counterexample or reward computation.
+
+\subsubsection{Storage}
+When a parameter is submitted for verification, the following information is stored:
+\begin{itemize}
+\item Parameter: This includes the parameter itself. In cases where storing the parameter on-chain is impractical because of its size, it is recommended to store only its hash. Despite this, the hash remains sufficient for validation.
+%\item Caller Address: This identifies the address of the caller who submitted the parameter. It serves purposes such as tracking submissions, preventing callers from resubmitting parameters, or preventing callers from claiming rewards for their own submitted parameters.
+\item Timestamp: This indicates the approximate time when the parameter was submitted. This information is used to prevent caller exploitation security risks.
+\item Verification Status Records: These records monitor the progress of the parameter's verification. They include details such as whether a counterexample or reward computation is found. Additionally, they contain information regarding the addresses of the validators and random numbers involved in the verification process. In some applications, multiple computational proofs may be allowed, leading to a list of these records. This information is crucial for determining when a work function can be invoked for that parameter, or when it should be discarded. The validators' addresses and random numbers can also be used to prevent reward-manipulation attacks. Indeed, because a validator with the same random number cannot be resubmitted, the random number serves as a unique identifier in the verification process. This uniqueness prevents validators from resubmitting the same computation proof multiple times to manipulate the rewards or disrupt the integrity of the verification process.
+\end{itemize}
+In certain applications, one may delete the records after processing is completed for the parameter, especially if a large number of parameters are submitted to manage storage efficiently.
+
+
+\subsection{Deploying and managing on/off-chain contracts.}
+On/off-chain contracts are provided and managed by their respective owners, who assume a primary role in their design. The owner deploys the assertion contract on the blockchain while storing the validator contract off the blockchain, thereby ensuring its accessibility to the validators. There are two approaches to making these contracts available to validators.
+\begin{itemize}
+\item The owner store the codes on a repository accessible to validators, or upon request, provide them directly to validators.
+\item Alternatively, the owner broadcard the contracts to the network using messaging systems such as Waku in Ethereum. Owners should disseminate contracts to the network after deploying the on-chain assertion contracts. In this scenario, the interested validators are responsible for locally storing off-chain code.
+\end{itemize}
+
+\subsection{Submitting and verifying a parameter.} The primary entities interacting with the on-chain assertion contract are callers and validators. Callers submit parameters on-chain, while validators verify them off-chain. Subsequently, validators claim their findings of counterexamples or reward computations on-chain. 
+\subsubsection{Submitting a parameter} 
+Before a parameter can be utilized in the actual work function/contract, a caller must initially submit it via the submit-parameter function in the on-chain assertion contract. When submit the parameter, the caller may need to send along an amount of deposit stake. This deposit serves as a deterrent, as in the event of an invalid parameter, the deposit may be forfeited to prevent callers from submitting invalid parameters solving the DoS attack security risk. Furthermore, the caller may wish to broadcast their parameter to all validators via a messaging system when submitting it online.
+
+%The work contact can only be invoked by the on-chain validation contract after the parameter has been validated if no counterexample is found. The actual work is then performed with the passed parameter.
+\subsubsection{Off-chain verification}
+
+After a parameter is submitted and stored on-chain, a validator can commence the verification process. To assess the validity of a parameter, each validator independently executes the off-chain validation contract. A validator may attempt to run the off-chain validation contract multiple times with different random seeds in order to find either a counterexample or a computational proof. It's possible that several attempts may be made before the validator receives an award. In cases where no award is obtained, the validator can rerun the code with a different seed. A function called find-seed could be implemented, which in turn calls the claim-reward function to locate a seed.
+
+All events such as parameter submissions, the discovery of a counterexample, or the presentation of computational proofs can be broadcasted to the network using event emission. Validators can monitor these events to stay updated on the verification status in real-time. 
+
+\subsection{Claiming the reward} 
+If validators discover a counterexample or an award computation, they provide the seed, a combination of a random number, the parameter's timestamp and the validator's address, along with the parameter to the on-chain assertion contract. The on-chain assertion contract then executes the same claim-reward function, which should yield the same result as the counterexample or award compuation found by the validator.  If the result is correct, there is an award to the validator and the record of the parameter in the storage is updated accordingly. %When a computational proof is submitted and  certain requirements are met, the work function/contract is invoked.
+
+
+\subsection{Calling a work function}
+A work function can indeed be encapsulated either as a private function in the assertion contract or implemented in another contract. In this process, a caller initiates the submission of a parameter for verification by invoking the submit-parameter function within the on-chain assertion contract. Upon successful verification of the parameter, a work contract can be triggered to execute the designated task, operating under the assumption of the parameter's validity.
+
+The invocation of the work function or contract is carried out by the on-chain validation contract or a caller. This call is subject to specific requirements being met, ensuring that the task is executed only when the verification process has been successfully completed and the parameter is deemed valid. By enforcing strict conditions for the execution of the work function or contract based on the outcome of the verification process, the integrity and reliability of the system can be maintained.
+
+The on-chain validation contract calls the work contract with the current parameter and its related information, which is then matched against the stored information of the corresponding parameter. They must match and satisfy additional conditions, such as a certain amount of time having passed, no counterexample being found, and receiving enough computation proofs. If all conditions are met, the actual work is executed, and the record of the parameter may be deleted from memory to free up storage. If no record is found that matches the input data, the actual work with the input data is not performed.
+
+
+ 
+
+\section{Domain Specification Language for Assertion}
+\section{Converter - Generating an Assertion Contracts} 
+\section{Prototype Implementations}
+\subsection{Sorted array}
+%There are two possible data structures for storing such records: map and array. For example, if we assume that a caller can submit only one parameter at a time, we can use a map that associates the caller's address with the parameter's hash and timestamp.
+%\begin{lstlisting}[numbers=none]
+%   struct Parameter {
+%        bytes32 p_hash;
+%        uint256 timestamp;
+%    }
+% mapping (address => Parameter) public parameters;
+%\end{lstlisting}
+
+Returning to the sorted array example, given an array $a$ and a seed $s$, the verification function, which is used both on-chain and off-chain, can be implemented as follows in Solidity.
+\begin{lstlisting}[numbers=none]
+/* The difficulty is used to determine the computation effort.*/
+uint diff = 100;
+uint target = 2 ** (256 - diff); 
+
+/* The results: 0 = non-reward computation,
+                1 = reward computation, 
+                2 = counterexample 
+*/
+
+function verify_parameter(uint[] memory a, uint s)
+public view returns (uint) {
+  uint n = a.length - 1; 
+  uint i = s % n;
+       
+  bool c = (a[i] > a[i + 1]);
+
+  uint result = 0; /* an non-reward computational */ 
+  if (c)  
+    result = 2; /* a counterexample */
+  else {
+    uint current_hash = 
+    uint (keccak256(abi.encodePacked(s, c, a[i], a[i + 1])));
+    if (current_hash <= target) 
+    result = 1; /* a reward computation */ 
+  }             
+  
+  return result;           
+}
+
+\end{lstlisting}
+
+In the first case, the difficulty (\lstinline|diff|) determines the amount of computation effort needed to find a reward computation. The size of the domain here is denoted as \lstinline|n| which is one size less than the array size. Given the parameter as an array \lstinline|a|, the validator's address  \lstinline|val_addr| and a seed \lstinline|s| as input, the condition \lstinline|c| is the less than or equal comparison of two expressions, which are array elements \lstinline|a[i]| and \lstinline|a[i + 1]|, indicating that the array is not sorted. %So $\pi_{P_{i}}$ = \{\lstinline|a[i]|, \lstinline|a[i + 1]|\}. 
+The condition is checked first to detect the counterexample. If not, the hash is computed to determine if it is less than the target hash. If so, a reward computation is found.
+
+\subsection{Prime numbers.}
+
+\begin{lstlisting}[numbers=none]
+
+    /**
+    * The difficulty for a computational proof
+    */
+    uint diff = 100;
+    uint public target = 2 ** (256 - diff); 
+
+    /**
+    * The result: 0 = non-award, 
+                  1 = proof, 
+                  2 = counterexample
+    */
+
+    function validate(uint a, uint seed) 
+    public view returns (uint) {
+        uint range = a / 2 - 2; 
+        uint r = seed % range + 2;
+        uint cal = a % r;
+        bool p = (cal == 0);
+        
+
+        uint result = 0; // an non-award computational proof 
+        if (p)  
+            result = 2; // a counterexample
+        else 
+            {
+                uint current_hash = 
+                    uint (keccak256(abi.encodePacked(seed, cal)));
+                if (current_hash <= target) 
+                    result = 1; // a computational proof    
+            }
+        return result;           
+    }
+}
+
+\end{lstlisting}
+
+%\paragraph{Sorted arrays.}{ on/off-chain assertion program for sorted arrays}
+%\begin{lstlisting}[numbers=none]
+%pragma solidity >=0.7.0 <0.9.0;
+
+%/**
+% * On/off-chain assertion contract 
+% * to check counterexamples/computational proofs
+% */
+%contract Validator{
+
+ %   /**
+ %    * The difficulty for a computational proof
+ %    */
+ %   uint diff = 1;
+ %   uint public target = 2 ** (256 - diff); 
+ %
+ %   /**
+ %  * The result: 0 = non-award, 1 = proof, 
+ %   2 = counterexample
+ %   */
+ %
+ %   function verify_parameter(uint[] memory a, uint seed)
+ %   public view returns (uint) {
+ %       uint range = a.length - 1; 
+ %      require(range > 0, "invalid range");
+ %       uint n = seed % range;
+ %       
+ %       bool p = (a[n] > a[n + 1]);
+ %
+ %       uint result = 0; // an non-award computational proof 
+ %       
+ %       if (p)  
+ %           result = 2; // a counterexample
+ %       else 
+ %           {
+ %           uint current_hash = 
+ %               uint (keccak256(abi.encodePacked(seed, a[n], a[n + 1])));
+ %           if (current_hash <= target) 
+ %               result = 1; // a computational proof      
+ %       }             
+ %       return result;           
+ %   }
+%}
+
+%\end{lstlisting}
+
+\subsection{Heaps.}
+\begin{lstlisting}[numbers=none]
+    /**
+    * The difficulty for a computational proof
+    */
+    uint diff = 100;
+    uint public target = 2 ** (256 - diff); 
+
+    /**
+    * Check a counterexample/ computational proof
+    * The result from a validator
+    * 0 = non-award, 1 = proof, 
+    2 = counterexample
+    */
+
+    function validate(uint[10] memory a, uint seed) 
+    public view returns (uint) {
+        uint range = a.length; 
+        uint k = seed % range + 1;
+
+        uint cal_1 = a[k];
+        uint cal_2 = a[(k - 1) / 2];
+        
+        bool p = (cal_1 < cal_2);
+
+        uint result = 0; // an non-award computational proof 
+        if (p)  
+            result = 2; // a counterexample
+        else {
+            uint current_hash = 
+                uint (keccak256(abi.encodePacked(seed, cal_1, cal_2)));
+            if (current_hash <= target) 
+                result = 1; // a computational proof      
+        }              
+        return result;           
+    }
+}
+
+\end{lstlisting}
+
+\subsection{Coprime numbers.}
+
+
+\begin{lstlisting}[numbers=none]
+
+
+    /**
+    * The difficulty for a computational proof
+    */
+    uint diff = 100;
+    uint public target = 2 ** (256 - diff); 
+
+    /**
+    * The result: 0 = non-award, 1 = proof, 
+    2 = counterexample
+    */
+
+    function validate(uint a, uint b, uint seed)
+    public view returns (uint) {
+        uint range;
+        if (a >= b) { range = a - 2; }
+        else {range = b - 2;}
+        
+        uint r = seed % range + 2;
+        require(range != 0, "invalid range");
+
+        uint cal_1 = a % r;
+        uint cal_2 = b % r;
+        
+        bool p = (cal_1 == 0) && (cal_2 == 0);
+
+        uint result = 0; // an non-award computational proof 
+        if (p)  
+            result = 2; // a counterexample
+        else {
+            uint current_hash = 
+                uint (keccak256(abi.encodePacked(seed, cal_1, cal_2)));
+            if (current_hash <= target) 
+                result = 1; // a computational proof      
+        }              
+        return result;           
+    }
+}
+
+\end{lstlisting}
+
+
+\section{Cost Analysis}
+\section{Related work}
+\section{Conclusion}
+
+%\newpage
+%\addcontentsline{toc}{chapter}{Appendix}
+%\input{appendix}
+
+
+%Let's examine an assertion in smart contract languages such as Solidity and Michelson. An assertion is essentially a predicate logic expressed as a boolean formula computed from relational operators ($=$, $!=$, $>$, $<$, $>=$, $<=$), logical operators ($!$, $\&\&$, $\|$), and expressions. Let $\pi_{P_{a}}$ = {$e_1$, $e_2$, \dots } represent the set of expressions involved in the computation of the predicate $P_a$. The hash of the seed and these expressions ($s$, $\pi_{P_{a}}$) is then computed and compared with the target hash. Since the hash involves $\pi_{P_{a}}$, the validator needs to execute the condition check to find a reward computation.
+\newpage
+\bibliographystyle{splncs04}
+\bibliography{bio}
+\end{document}
+
+
