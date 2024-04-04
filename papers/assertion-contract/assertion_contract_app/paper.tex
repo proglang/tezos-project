@@ -208,6 +208,8 @@ While additional functions may exist, the assertion contract must encompass the 
 
 While a random number alone is sufficient to indicate the associated element $a$ in the domain $A$, to prevent the front-running attack and the caller exploitation attack, we enhance the randomness of the seed by combining a random number with the validator's address and the timestamps indicating when the parameter is submitted on the chain to calculate the seed. This combination adds an extra level of security. For instance, we can convert the validator's address and timestamps to a numerical value and use this number in combination with a random number to compute the seed. This conversion can be achieved using functions such as \lstinline|init256| in Solidity, which transform an Ethereum address into a numerical value. In this system, even if other validators obtain a random number, they are unable to submit it successfully, as their combination with their address will not yield the correct seed that corresponds to a specific element in the domain. Additionally, a caller cannot run the check before submitting the parameter owing to the timestamp constraints. As a result, any attempt to submit manipulated or before-run seeds will fail to produce either a counterexample or reward computation.
 
+An assertion in smart contract languages, such as Solidity and Michelson, is essentially predicate logic expressed as a Boolean formula computed from relational operators ($=$, $!=$, $>$, $<$, $>=$, $<=$), logical operators ($!$, $\&\&$, $\|$), and expressions. To represent the set of expressions involved in the computation of the predicate $P_a$, let $\pi_{P_{a}}$ = {$e_1$, $e_2$, \dots }. The expressions $\pi_{P_a}$ can be used to compute the hash, which involves the validator executing the condition check to find a reward computation.
+
 \subsubsection{Storage}
 When a parameter is submitted for verification, the following information is stored:
 \begin{itemize}
@@ -297,7 +299,7 @@ public view returns (uint) {
 
 \end{lstlisting}
 
-In the first case, the difficulty (\lstinline|diff|) determines the amount of computation effort needed to find a reward computation. The size of the domain here is denoted as \lstinline|n| which is one size less than the array size. Given the parameter as an array \lstinline|a|, the validator's address  \lstinline|val_addr| and a seed \lstinline|s| as input, the condition \lstinline|c| is the less than or equal comparison of two expressions, which are array elements \lstinline|a[i]| and \lstinline|a[i + 1]|, indicating that the array is not sorted. %So $\pi_{P_{i}}$ = \{\lstinline|a[i]|, \lstinline|a[i + 1]|\}. 
+In the first case, the difficulty (\lstinline|diff|) determines the amount of computation effort needed to find a reward computation. The size of the domain here is denoted as \lstinline|n| which is one size less than the array size. Given the parameter as an array \lstinline|a|, the validator's address  \lstinline|val_addr| and a seed \lstinline|s| as input, the condition \lstinline|c| is the less than or equal comparison of two expressions, which are array elements \lstinline|a[i]| and \lstinline|a[i + 1]|, indicating that the array is not sorted. So $\pi_{P_{i}}$ = \{\lstinline|a[i]|, \lstinline|a[i + 1]|\}. 
 The condition is checked first to detect the counterexample. If not, the hash is computed to determine if it is less than the target hash. If so, a reward computation is found.
 
 \subsection{Prime numbers.}
@@ -340,51 +342,6 @@ The condition is checked first to detect the counterexample. If not, the hash is
 
 \end{lstlisting}
 
-%\paragraph{Sorted arrays.}{ on/off-chain assertion program for sorted arrays}
-%\begin{lstlisting}[numbers=none]
-%pragma solidity >=0.7.0 <0.9.0;
-
-%/**
-% * On/off-chain assertion contract 
-% * to check counterexamples/computational proofs
-% */
-%contract Validator{
-
- %   /**
- %    * The difficulty for a computational proof
- %    */
- %   uint diff = 1;
- %   uint public target = 2 ** (256 - diff); 
- %
- %   /**
- %  * The result: 0 = non-award, 1 = proof, 
- %   2 = counterexample
- %   */
- %
- %   function verify_parameter(uint[] memory a, uint seed)
- %   public view returns (uint) {
- %       uint range = a.length - 1; 
- %      require(range > 0, "invalid range");
- %       uint n = seed % range;
- %       
- %       bool p = (a[n] > a[n + 1]);
- %
- %       uint result = 0; // an non-award computational proof 
- %       
- %       if (p)  
- %           result = 2; // a counterexample
- %       else 
- %           {
- %           uint current_hash = 
- %               uint (keccak256(abi.encodePacked(seed, a[n], a[n + 1])));
- %           if (current_hash <= target) 
- %               result = 1; // a computational proof      
- %       }             
- %       return result;           
- %   }
-%}
-
-%\end{lstlisting}
 
 \subsection{Heaps.}
 \begin{lstlisting}[numbers=none]
