@@ -19,7 +19,6 @@
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{listings}
-\usepackage{titling}
 
 %\input{macros}
 %\input{setup}
@@ -35,7 +34,7 @@
 
 \begin{document}
 %
-\title{Assertion Contracts}
+\title{Parameter Distributed Verification Approach for Blockchain System}
 %
 %\titlerunning{Abbreviated paper title}
 % If the paper title is too long for the running head, you can set
@@ -169,30 +168,34 @@ Another condition that might be tested on an array is the heap condition
 
 \section{Parameter Distributed Verification Approach for Blockchain System}
 \label{sec:approach}
-A blockchain network comprises distributed nodes that collaborate through a consensus algorithm to establish a common state of the network. In this section, we aim to introduce an approach leveraging distributed aspect of blockchain network to address the challenging verification issue within blockchain systems. Specifically, we focus on verifying a substantial parameter, crucial for executing a smart contract call.
-
-Our attention is drawn to the verification problem, which can be articulated as a logical formula presented in conjunction form as follows:
-
-\[ \bigwedge_{i = 1}^{n} P_{i} \]
-
-Verifying the formula centrally becomes resource-intensive, both in terms of time and computer resource when the number $n$ is big or when the predicates $P_{i}$ are complex to compute. 
+A blockchain network comprises distributed nodes that collaborate through a consensus algorithm to establish a common network state. In this section, we introduce an approach that leverages the distributed aspect of blockchain networks to address the challenging verification issues within blockchain systems. Specifically, we focus on verifying a substantial parameter crucial for executing a smart contract call.
 
 
-For instance, the scenario mentioned above can be represented as follows. The verification of whether $p$ is a prime number can be formalized as:
-
-\[ \bigwedge_{i = 2}^{|\sqrt p|} (p \mathbin{\%} i \neq 0) \]
-
-Similarly, ensuring the sorted property for an array of size nn can be expressed as:
-
-\[ \bigwedge_{i = 0}^{n - 2} (a[i] \le a[i+1]) \]
-
-The fundamental concept of our approach is to disjoin this formula and distribute its components to nodes in the network, where each node endeavors to find a counterexample by solving $\neg P_{i}$. 
-
+We focus on the parameter verification problem, which can be expressed as a logical formula presented in conjunction form as follows:
 \begin{displaymath}
-\bigvee_{i = 1}^{n} \neg P_{i}
+\bigwedge_{i \in D_i} P_{i}
 \end{displaymath}
 
-When a counterexample is discovered, the formula is proven to fail. Otherwise, the correctness of the formula depends on the number of predicates  $P_{i}$ that have been checked, but no counterexample is found. 
+where $D_i$  is the domain and $P_i$  is a predicate. This formula can be extended to multiple domains.
+
+\begin{displaymath}
+\bigwedge_{i \in D_i, j \in D_j, \dots}^{} P_{i, j, \dots}
+\end{displaymath}
+Checking the formula centrally can be a very time-consuming and computer resource-intensive task, especially when the number $n$ is large or the predicates $P_i$ are complex to compute. 
+
+For instance, the example mentioned above can be represented as follows. The verification of whether $p$ is a prime number can be formalized as:
+\begin{displaymath}
+ \bigwedge_{i \in [2, |\sqrt p|]} (p \mathbin{\%} i \neq 0)
+\end{displaymath}
+Similarly, ensuring the sorted property for an array of size $n$ can be expressed as:
+\begin{displaymath}
+\bigwedge_{i \in [0, n - 2]} (a[i] \le a[i+1])
+\end{displaymath}
+The fundamental concept of our approach is to disjoin this formula and distribute its components to nodes in the network, where each node attempts to find a counterexample by solving $\neg P_{i}$. 
+\begin{displaymath}
+\bigvee_{i \in D_i} \neg P_{i}
+\end{displaymath}
+When a counterexample is discovered, the formula fails. Otherwise, the correctness of the formula depends on the number of predicates  $P_{i}$ that have been checked, but no counterexample is found. 
 
 To estimate the number of nodes needed to find a counterexample with a given probability $p$, let's assume the number of nodes is $m$. Each node independently has a probability of $p$ to check $P_{i}$. Hence, if we assume that each $P_{i}$ is chosen independently from a uniform distribution, the probability that a node checks $P_{i}$ is 
 \begin{displaymath}
@@ -204,24 +207,47 @@ So, to detect the counterexample, assuming at $P_{i}$ the number of nodes needed
 \end{displaymath}
 
 This inequality indicates that the minimum number of nodes required, $m$, is at least $p$ times the number $n$, to achieve the desired probability $p$ of detecting the counterexample. Indeed, the estimated number of validators plays a crucial role in designing the protocol for the approach. It serves as a fundamental parameter that influences various aspects of the protocol's design.
+\section{Use Cases and Their Formalization}
+\subsection{Number}
+\subsubsection{Prime numbers}
+\subsubsection{Coprime numbers}
+\subsection{List}
+\subsubsection{Sorted list}
+\subsubsection{Heap}
+\subsubsection{Tree}
+\subsection{Set}
+\subsubsection{Disjoint set}
+\subsection{CNF}
+\subsection{Nested Domain}
 \section{Toward the Design of the Protocol}
 \label{sec:design}
-In a blockchain system, a new block is added in each round. During each round, a node is designated as the block proposer, decided based on the consensus algorithm, and suggests a new block to the network. For example, this role is akin to the miner in Bitcoin, the proposer in Ethereum, and the baker in Tezos. Other nodes in the network act as validators, responsible for validating the proposed block. The number of validators varies between different systems; for instance, all full nodes validate in Bitcoin, whereas validators are limited and determined in each round in Ethereum and Tezos.
+In a blockchain system, a new block is added in each round. During each round, a node is designated as the block proposer decided based on the consensus algorithm, and suggests a new block to the network. For example, this role is akin to the miner in Bitcoin, the proposer in Ethereum, and the baker in Tezos. Other nodes in the network act as validators, responsible for validating the proposed block. The number of validators varies between different systems; for instance, all full nodes validate in Bitcoin, whereas validators are limited and determined in each round in Ethereum and Tezos.
 
 In this section, we explore the design of protocol for the proposed approach. Our intention is not to propose a completely new consensus algorithm but to add a parameter distributed verification feature to an existing one. The outline of the design is as follows:
 \paragraph{Entering into the mempool} Let's assume $t$ is a transaction with the parameter $p$ that invokes a function of a smart contract requiring the parameter to be verified before further execution. Like any other normal transaction, $t$ is submitted to a node. The node then checks the transaction, adds it to its local mempool, and broadcasts $t$ to the network via a peer-to-peer gossip network. The transaction then waits in the mempool until it is included in the chain.
-\paragraph{Waiting for the distributed verification process} The transaction $t$ cannot be executed and added to the next block immediately by the block proposer but needs to wait for the distributed verification process. When a proposer processes the transaction $t$, in this case, the proposer can initiate the verification process and advertise the verification problems to other nodes via the peer-to-peer network. This transaction can then be moved to a list of transactions undergoing verification in the mempool, with some initial values for the verification process. For example, the negation formula to advertise to other nodes, along with the initial value of the condition such that the transaction will be processed if this condition is met.
+\paragraph{Waiting for the distributed verification process} The transaction $t$ cannot be executed and added to the next block immediately by the block proposer but needs to wait for the distributed verification process. When a block proposer processes the transaction $t$, in this case, the proposer can initiate the verification process and advertise the verification problems to other nodes via the peer-to-peer network. This transaction can then be moved to a list of transactions undergoing verification in the mempool, with some initial values for the verification process. For example, the negation formula to advertise to other nodes, along with the initial value of the condition such that the transaction will be processed if this condition is met.
 \paragraph{Receiving a counterexample} Each validator node attempts to find a counterexample. When a counterexample is found, it is advertised to the network. Other nodes, upon receiving the counterexample, verify it. Subsequently, the transaction is removed from the list of transactions undergoing verification in the mempool. 
 \paragraph{Executing the validated transaction} If certain conditions are met and no counterexample is recored, the transaction could be included by the next block proposer.
-\paragraph{Incentivizing the participants}  In the context of standard transactions, both block proposers and validators have incentives to include transactions into new blocks and validate all transactions within the proposed block. In our distributed verification protocol, we similarly necessitate an incentive mechanism to motivate nodes to engage in the distributed verification process. Specifically, the block proposer, responsible for initiating the verification process, and the one who include the transaction into a new block will receive a fee. Furthermore, our protocol introduces incentives for discovering counterexamples, ensuring that validators who identify such instances are duly rewarded.
+\paragraph{Incentivizing the participants}  In the context of standard transactions, both block proposers and validators have incentives to include transactions into new blocks and validate all transactions within the proposed block. A part of these incentives is paid by the system and the other is paid by transaction fee. In our distributed verification protocol, we similarly necessitate an incentive mechanism to motivate nodes to engage in the distributed verification process. Specifically, the block proposers, the one who is responsible for initiating the verification process, and the one who includes the transaction $t$ into a new block will receive a fee. Furthermore, our protocol introduces incentives for discovering counterexamples, ensuring that validators who identify such instances are duly rewarded.
 
-Moreover, it may be rare that invalid parameters are submitted, there's a possibility that a validator may not receive any incentives, potentially leading them to ignore such transactions. Hence, it becomes necessary to incentivize a portion of the computing power. This entails rewarding validators who can demonstrate that they have conducted the verification process without discovering any counterexamples. However, it's prudent to incentivize only a fraction of the computational effort, rather than all of it, to prevent excessive burden on individual nodes. Otherwise, the process could become more resource-intensive than merely checking the parameters at a single node. To address this concern, we propose a proof-of-work-based incentive algorithm, which is elaborated upon in the subsequent section of this paper.
+Moreover, it may be rare that invalid parameters are submitted, there's a possibility that a validator may not receive any incentives, potentially leading them to ignore such transactions. Hence, it becomes necessary to incentivize a portion of the computing power. This entails rewarding validators who can demonstrate that they have conducted the verification process without discovering any counterexamples. However, it's prudent to incentivize only a fraction of the computational effort, rather than all of it, to prevent excessive burden on individual nodes. Otherwise, the process could become more resource-intensive than merely checking the parameters at a single node. To address this concern, we propose a proof-of-work-based incentive algorithm. The proof-of-work-based method incentivizes participants in the distributed verification process. The proposed approach is outlined as follows:
+
+\begin{itemize}
+\item There are two ways to reward validators to encourage their participation: to discover a counterexample and to provide computational proof that they have executed the program to search for a counterexample, even if none is found.
+\item To prioritize the discovery of counterexamples, the reward for finding a counterexample is set significantly higher than that for providing computational proof.
+\item The computation of the negation formula is integrated into the computational proof to ensure that the validators cannot produce the proof without executing a negation check.
+\end{itemize}
+
+The next step is to devise a computation proof to incentivize computational effort by utilizing the proof of work concept. Initially, we establish a target hash $t$ that sets the required difficulty level to earn the reward. The objective of the validator is to generate a computation that produces a hash smaller than or equal to the target hash $t$. 
+
+During the distributed process, each validator conducts the negation check at the random $P_i$. After conducting the negation check, either a counterexample is identified, or a hash is computed based on the evaluation of the condition $\neg P_{i}$. This hash is then compared with the target hash to ascertain if it meets the criteria for a reward computation. The outcomes of the verification process include either a counterexample, a reward computation, or a non-reward computation. Upon achieving either a counterexample or a reward computation, the validator can advertise it to the p2p network and claim their reward. Both the counterexample and the computation proof are easily to be replicated and verified by other nodes. If the verification is successful, the validators will be entitled to receive their reward.
 
 \paragraph{Setting up the execution condition}  After undergoing the verification process, a transaction is included in the new block if it satisfies predefined conditions. These conditions serve as assurances of the correctness of the parameters. 
 
-As mentioned earlier, to achieve a certain probability of verification, a minimum number of checks by validators is required. In some systems, there is a large number of validators in each round, while in others, such as Tezos blockchain, there is a fixed number, for instance, 32 validators. In scenarios where the number of validators is limited, a single validator may conduct multiple checks with one parameter. Hence, due to on the certain consensus mechanism, various methods may exist to calculate the condition.
+As mentioned earlier, to achieve a certain probability of verification, a minimum number of checks by validators is required. In some systems, there is a large number of validators in each round, while in others, such as the Tezos blockchain, there is a fixed number, for instance, 32 validators. In scenarios where the number of validators is limited, a single validator may conduct multiple checks with one parameter or the system could allow any full nodes to participate in the distributed verification process. Hence, due to the certain consensus mechanism, various methods may exist to calculate the condition.
 
-Based on a specific parameter, the block proposer, who initiates the verification process, determines the condition. It could be time-based, where a transaction may need to wait in a undergoing verification list for a specified duration, synchronized with the number of rounds elapsed, or it could be based on the number of computation proofs received. For the latter case, we present two methods to estimate it in the proof-of-work-based incentive system.
+Based on a specific parameter, the block proposer, who initiates the verification process, determines the condition. It could be time-based, where a transaction may need to wait in a undergoing verification list for a specified duration, synchronized with the number of rounds elapsed, or it could be based on the number of computation proofs received. For the latter case,  the difficulty for the target hash could be used in the way to estimes the number of validators who check the parameter until the transaction is included.
+
 \paragraph{Pre-paying and penalties} The smart contract caller submitting the transaction must include sufficient funds to cover fines in case a counterexample is discovered. These funds will be returned if no counterexample is found during the verification process.
 
 If a block proposer dishonestly includes a transaction that hasn't undergone the verification process, they will incur a penalty similar to including any other invalid transaction.
@@ -229,6 +255,12 @@ If a block proposer dishonestly includes a transaction that hasn't undergone the
 \section{Target Tezos Blockchain}
 \label{sec:tezos}
 
+\todo{disscus and implement}
+
+
+
+\section{Experiment and Cost Analysis}
+\label{sec:cost-analysis}
 \end{document}
 
 
