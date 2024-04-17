@@ -171,7 +171,7 @@ Another condition that might be tested on an array is the heap condition
 A blockchain network comprises distributed nodes that collaborate through a consensus algorithm to establish a common network state. In this section, we introduce an approach that leverages the distributed aspect of blockchain networks to address the challenging verification issues within blockchain systems. Specifically, we focus on verifying a substantial parameter crucial for executing a smart contract call.
 
 
-We focus on the parameter verification problem, which can be expressed as a logical formula presented in conjunction form as follows:
+We narrow our attention down to the parameter verification problem, which can be expressed as a logical formula presented in conjunction form as follows:
 \begin{displaymath}
 \bigwedge_{i \in D_i} P_{i}
 \end{displaymath}
@@ -197,7 +197,7 @@ The fundamental concept of our approach is to disjoin this formula and distribut
 \end{displaymath}
 When a counterexample is discovered, the formula fails. Otherwise, the correctness of the formula depends on the number of predicates  $P_{i}$ that have been checked, but no counterexample is found. 
 
-To estimate the number of nodes needed to find a counterexample with a given probability $p$, let's assume the number of nodes is $m$. Each node independently has a probability of $p$ to check $P_{i}$. Hence, if we assume that each $P_{i}$ is chosen independently from a uniform distribution, the probability that a node checks $P_{i}$ is 
+To estimate the number of nodes needed to find a counterexample with a given probability $p$, let's assume the number of nodes is $m$. Each node independently has a probability of $1/n$ to check $P_{i}$. Hence, if we assume that each $P_{i}$ is chosen independently from a uniform distribution, the probability that a node checks $P_{i}$ is 
 \begin{displaymath}
  m. (\frac{1}{n})
 \end{displaymath}
@@ -254,11 +254,17 @@ If a block proposer dishonestly includes a transaction that hasn't undergone the
 
 \section{Target Tezos Blockchain}
 \label{sec:tezos}
+We implement the protocol for the Tezos blockchain. Embedding the protocol into Tezos smart contracts can be done in two ways: (1) integrating new instructions into Michelson, or (2) introducing a separate syntax for assertion. Opting for the latter idea, we make ensure that it does not impact the existing syntax of the Michelson language. Existing contracts can be seamlessly upgraded to the new protocol by providing an additional specification for assertions.
 
+The system architecture is shows in Fig.\ref{fig.architect} and here is it breakdown: Upon deploying the smart contract, which includes the standard Michelson code and an assertion specification written in a domain-specific language. The assertion undergoes analysis by a transformer to extract the domain $D$ and the negation formula $\neg P_i$. Together with the Michelson code, both the domain and the negation formula are stored. When a block proposer and validator seek a counterexample, a converter transforms the negation formula and domain into a target program for the blockchain, specifically an OCaml program in Tezos. These nodes then execute the program to identify the counterexample.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.65]{assertion-tezos}
+\caption{The architecture}
+\label{fig.architect}
+\end{figure}
 \todo{disscus and implement}
-
-
-
 \section{Experiment and Cost Analysis}
 \label{sec:cost-analysis}
 \end{document}
