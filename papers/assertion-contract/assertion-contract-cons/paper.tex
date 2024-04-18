@@ -222,7 +222,12 @@ This inequality indicates that the minimum number of nodes required, $m$, is at 
 \section{Toward the Design of the Protocol}
 \label{sec:design}
 In a blockchain system, a new block is added in each round. During each round, a node is designated as the block proposer decided based on the consensus algorithm, and suggests a new block to the network. For example, this role is akin to the miner in Bitcoin, the proposer in Ethereum, and the baker in Tezos. Other nodes in the network act as validators, responsible for validating the proposed block. The number of validators varies between different systems; for instance, all full nodes validate in Bitcoin, whereas validators are limited and determined in each round in Ethereum and Tezos.
-
+\begin{figure}
+\centering
+\includegraphics[scale=0.65]{approach}
+\caption{The approach}
+\label{fig.architect}
+\end{figure}
 In this section, we explore the design of protocol for the proposed approach. Our intention is not to propose a completely new consensus algorithm but to add a parameter distributed verification feature to an existing one. The outline of the design is as follows:
 \paragraph{Entering into the mempool} Let's assume $t$ is a transaction with the parameter $p$ that invokes a function of a smart contract requiring the parameter to be verified before further execution. Like any other normal transaction, $t$ is submitted to a node. The node then checks the transaction, adds it to its local mempool, and broadcasts $t$ to the network via a peer-to-peer gossip network. The transaction then waits in the mempool until it is included in the chain.
 \paragraph{Waiting for the distributed verification process} The transaction $t$ cannot be executed and added to the next block immediately by the block proposer but needs to wait for the distributed verification process. When a block proposer processes the transaction $t$, in this case, the proposer can initiate the verification process and advertise the verification problems to other nodes via the peer-to-peer network. This transaction can then be moved to a list of transactions undergoing verification in the mempool, with some initial values for the verification process. For example, the negation formula to advertise to other nodes, along with the initial value of the condition such that the transaction will be processed if this condition is met.
