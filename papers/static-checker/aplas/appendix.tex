@@ -1,0 +1,582 @@
+\section{Formal Definitions}
+\label{sec:formal-definitions}
+\begin{figure} []
+\begin{align*}
+T, U &::= \\
+   &\Mid\ \langle \text{comparable type}\rangle \\
+   &\Mid\ \text{option}\ \langle\text{type}\rangle \\
+   &\Mid\ \text{list}\ \langle\text{type}\rangle \\
+   &\Mid\ \text{set}\ \langle\text{comparable type}\rangle \\
+   &\Mid\ \text{operation} \\
+   &\Mid\ \text{contract}\ \langle\text{type}\rangle \\
+   &\Mid\ \text{ticket}\ \langle\text{comparable type}\rangle \\
+   &\Mid\ \text{pair}\ \langle\text{type}\rangle \langle\text{type}\rangle \\
+   &\Mid\ \text{or}\ \langle\text{type}\rangle \langle\text{type}\rangle \\
+   &\Mid\ \text{lambda}\ \langle\text{type}\rangle \langle\text{type}\rangle \\
+   &\Mid\ \text{map}\ \langle\text{comparable type}\rangle \langle\text{type}\rangle \\
+   &\Mid\ \text{big-map}\ \langle\text{comparable type}\rangle \langle\text{type}\rangle \\
+   &\Mid\ \text{bls12-381-g1} \\
+   &\Mid\ \text{bls12-381-g2} \\
+   &\Mid\ \text{bls12-381-fr} \\
+   &\Mid\ \text{sapling-transaction}\ \langle\text{natural number constant}\rangle \\
+   &\Mid\ \text{sapling-state}\ \langle\text{natural number constant}\rangle \\
+   &\Mid\ \text{chest} \\
+   &\Mid\ \text{chest-key} \\
+\langle\text{comparable type}\rangle ::= \\
+   &\Mid\ \text{unit} \\
+   &\Mid\ \text{never} \\
+   &\Mid\ \text{bool} \\
+   &\Mid\ \text{int}\\
+   &\Mid\ \text{nat}\\
+   &\Mid\ \text{string}\\
+   &\Mid\ \text{chain-id}\\
+   &\Mid\ \text{bytes}\\
+   &\Mid\ \text{mutez}\\
+   &\Mid\ \text{key-hash}\\
+   &\Mid\ \text{key}\\
+   &\Mid\ \text{signature}\\
+   &\Mid\ \text{timestamp}\\
+   &\Mid\ \text{address}\\
+   &\Mid\ \text{tx-rollup-l2-address}\\
+   &\Mid\ \text{option}\ \langle\text{comparable type}\rangle\\
+   &\Mid\ \text{or}\ \langle\text{comparable type}\rangle \langle\text{comparable type}\rangle\\
+   &\Mid\ \text{pair}\ \langle\text{comparable type}\rangle \langle\text{comparable type}\rangle \DOT \\
+\end{align*}
+\caption{Types}
+\label{fig:type}
+\end{figure}
+
+\begin{figure}[h]
+\begin{align*}
+\text{t} &::= \\
+   &\Mid\ \langle \text{variable} \rangle \\
+   &\Mid\ \langle \text{account constant} \rangle \\
+   &\Mid\ \langle \text{int constant} \rangle \\
+   &\Mid\ \langle \text{string constant} \rangle \\
+   &\Mid\ \langle \text{byte sequence constant} \rangle \\
+   &\Mid\ \UNIT \\
+   &\Mid\ \TRUE \\
+   &\Mid\ \FALSE \\
+   &\Mid\ \PAIR\ \text{t1 t2}\\
+   &\Mid\ \LEFT\ \text{t}\\
+   &\Mid\ \RIGHT\ \text{t}\\ 
+   &\Mid\ \SOME\ \text{t}\\
+   &\Mid\ \NONE \\
+   &\Mid\ \text{\{t ; ... \}}\\
+   &\Mid\ \text{\{ Elt t1 t2 ; ... \}}\\
+   &\Mid\ \{ \langle\text{instruction}\rangle; ... \}   \\
+\langle \text{variable} \rangle &::= \\ 
+   &\Mid\ \VAR\\
+\langle \text{account constant} \rangle &::= \\ 
+   &\Mid\ \text{balance} \\
+   &\Mid\ \text{amount} \\
+   &\Mid\ \text{sender} \\
+   &\Mid\ \text{source} \\
+   &\Mid\ \text{now} \\
+   &\Mid\ \text{level} \\
+   &\Mid\ \text{chain-id} \\
+   &\Mid\ \text{self}  \\
+   &\Mid\ \text{self-address}  \\
+   &\Mid\ \text{total-voting-power}  \\
+   &\Mid\ \text{voting-power}  \\
+\langle \text{natural number constant} \rangle &::= \\ 
+   &\Mid\ \text {[0-9]+} \\
+\langle \text{int constant} \rangle &::= \\
+  &\Mid\ \langle \text{natural number constant} \rangle \\
+  &\Mid\ \text{-} \langle \text{natural number constant} \rangle \\
+\langle\text{string constant}\rangle &::= \\
+  &\Mid\ \text{"} \langle \text{string content}\rangle\text{*"} \\
+\langle\text{instruction}\rangle &::= \\
+  &\Mid\ \DROP \\
+  &\Mid\ \DROP \langle\text{natural number constant}\rangle \\
+  &\text{...}
+\end{align*}
+\caption{Terms}
+\label{fig:term}
+\end{figure}
+
+
+
+\subsubsection{Basic Instructions}
+
+\paragraph{Control structures}
+%EXE
+\begin{mathpar}
+  \inferrule[EXEC]
+  {
+    [\INSTRUCTIONONE, (\StackOne, \TYF) \STACKCONCAT \EMPTYSTACK, 
+    Q]
+    \StateTrans^*
+    [ \EMPTYSTACK, (\StackOne', \TYS) \STACKCONCAT Q']
+  }{
+     [(\EXEC; \INSTRUCTION),   (\{\INSTRUCTIONONE\}, \TYF\ \rightarrow\ \TYS) \STACKCONCAT
+    (\StackOne, \TYF) \STACKCONCAT \STACK, \PREDICATE \wedge Q] 
+    \StateTrans \
+    [ \INSTRUCTION, (\StackOne', \TYS) \STACKCONCAT \STACK,
+    \PREDICATE \wedge Q']}
+\end{mathpar}
+
+%APPLY
+\begin{mathpar}
+  \inferrule[APPLY]
+  {
+  }{
+    [(\APPLY; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT(\{\INSTRUCTIONONE\}, \TLAMBDA\ (\TPAIR\ \TYF\  \TYS)\ \TYT) \STACKCONCAT\STACK, \PREDICATE] \StateTrans\\ [\INSTRUCTION, (\{\PUSH\ \TYF\ \StackOne; \IPAIR; \INSTRUCTIONONE\}, \TLAMBDA\ \TYS\ \TYT ) \STACKCONCAT\STACK, \PREDICATE]}
+\end{mathpar}
+
+%LAMBLA
+\begin{mathpar}
+  \inferrule[LAMBDA]
+  {  
+  }{
+    [(\LAMBDA\ \TYF\ \TYS\ \{ \INSTRUCTIONONE \} ; \INSTRUCTION),\STACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, (\{\INSTRUCTIONONE\}, \TLAMBDA\ \TYF\ \rightarrow\ \TYS) \STACKCONCAT\STACK, \PREDICATE]}
+\end{mathpar}
+
+\paragraph{Stack Manipulation}
+%DIG
+\begin{mathpar}
+\inferrule[DIG]
+  {
+   \FLEN(\A) \EQ\ \N
+  }
+  {[(\DIG\ \N ; \INSTRUCTION), \A\ \At\ (\StackOne, \TY) \STACKCONCAT\B, \PREDICATE] \StateTrans 
+[\INSTRUCTION, (\StackOne, \TY) \STACKCONCAT\A\ \At\ \B, \PREDICATE]}
+\end{mathpar}
+
+%DIP
+\begin{mathpar}
+  \inferrule[DIP]
+  {
+    [\INSTRUCTIONONE,  \STACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  \STACK_1, Q']
+  }
+  {[(\DIP\ \INSTRUCTIONONE; \INSTRUCTION), (\StackOne, \TY) \STACKCONCAT
+    \STACK, \PREDICATE \wedge Q]
+    \StateTrans 
+    [\INSTRUCTION, (\StackOne, \TY) \STACKCONCAT\STACK_1,
+    \PREDICATE \wedge Q']
+  }
+\end{mathpar}
+
+%DIP n
+\begin{mathpar}
+\inferrule[DIP n]
+  { 
+     \FLEN(\A) \EQ\ \N \\ [\INSTRUCTIONONE,  \B, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  \B_1, Q']
+  }
+  {[(\DIP\ \N\ \INSTRUCTIONONE; \INSTRUCTION), \A\ \At\ \B, \PREDICATE \wedge Q] \StateTrans 
+[(\INSTRUCTION), \A\ \At\ \B_1, \PREDICATE \wedge Q']}
+\end{mathpar}
+
+%PUSH
+\begin{mathpar}
+  \inferrule[PUSH]
+  {  
+  }{
+    [(\PUSH\ \TY\ \X; \INSTRUCTION),\STACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, (\X, \TY) \STACKCONCAT\STACK, \PREDICATE]}
+\end{mathpar}
+
+
+\paragraph{Arithmetic operations}
+%ADD
+\begin{mathpar}
+\inferrule[ADD]
+  {
+  }
+  {[(\ADD; \INSTRUCTION), (\StackOne, \TNAT) \STACKCONCAT(\StackTwo, \TNAT) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\X, \TNAT) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\X\ \EQ\ \StackOne\ \PLUS\ \StackTwo)]}
+\end{mathpar}
+
+%ABS
+\begin{mathpar}
+\inferrule[ABS]
+  {
+  }
+  {
+    [(\ABS; \INSTRUCTION), (\StackOne, \TINT) \STACKCONCAT \STACK,
+    \PREDICATE]
+    \StateTrans \
+    [\INSTRUCTION, (\X, \TNAT) \STACKCONCAT \STACK,
+    \PREDICATE \wedge (\StackOne \ge 0 \Rightarrow \X =
+    \StackOne) \wedge (\StackOne <0 \Rightarrow \X = -\StackOne)]
+ }
+\end{mathpar}
+
+% COMPARE
+\begin{mathpar}
+\inferrule[COMPARE-nat]
+  {
+  }
+  {
+    [(\COMPARE ; \INSTRUCTION), (\StackOne, \TNAT) \STACKCONCAT (\StackTwo, \TNAT)
+    \STACKCONCAT \STACK, \PREDICATE ]
+    \SystemTrans \\
+    [\INSTRUCTION, (\X, \TINT) \STACKCONCAT \STACK, \PREDICATE
+    \wedge\ (\StackOne > \StackTwo \Leftrightarrow \X = 1)
+    \wedge\ (\StackOne = \StackTwo \Leftrightarrow \X = 0) 
+    \wedge\ (\StackOne < \StackTwo \Leftrightarrow \X = -1)]
+    }
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[COMPARE-some-some]
+  {
+  [\COMPARE,  (\X, \TY) \STACKCONCAT (\Y, \TY) \STACKCONCAT\EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {
+    [(\COMPARE ; \INSTRUCTION), (\StackOne, \TOPTION\ \TY) \STACKCONCAT (\StackTwo, \TOPTION\ \TY)
+    \STACKCONCAT \STACK, \PREDICATE \wedge Q]
+    \SystemTrans \\
+    [\INSTRUCTION, (\VariableA, \TINT) \STACKCONCAT \STACK,  \PREDICATE
+    \wedge (\StackOne\ \EQ\ \SOME\ \X)
+    \wedge (\StackTwo\ \EQ\ \SOME\ \Y)
+    \wedge Q']
+    }
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[COMPARE-some-none]
+  {
+  }
+  {
+    [(\COMPARE ; \INSTRUCTION), (\StackOne, \TOPTION\ \TY) \STACKCONCAT (\StackTwo, \TOPTION\ \TY)
+    \STACKCONCAT \STACK, \PREDICATE]
+    \SystemTrans \\
+    [\INSTRUCTION, (1, \TINT) \STACKCONCAT \STACK,  \PREDICATE
+    \wedge (\StackOne\ \EQ\ \SOME\ \X)
+    \wedge (\StackTwo\ \EQ\ \NONE)
+    ]
+    }
+\end{mathpar}
+
+\paragraph{Boolean operations}
+%XOR
+\begin{mathpar}
+\inferrule[XOR]
+  {
+  }
+  {[(\XOR; \INSTRUCTION), (\StackOne, \TBOOL) \STACKCONCAT(\StackTwo, \TBOOL) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\X, \TBOOL) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\X\ \EQ\ \StackOne\ \FXOR\ \StackTwo)]}
+\end{mathpar}
+
+\paragraph{Crytographic oprerations}
+%HASH-KEY
+\begin{mathpar}
+\inferrule[HASH-KEY]
+  {
+  }
+  {[(\HASHKEY; \INSTRUCTION), (\StackOne, \TBYTE) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\X, \TBYTE) \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\X\ = \FHASHKEY(\StackOne))]}
+\end{mathpar}
+
+%AMOUNT
+\paragraph{Blockchain operations}
+\begin{mathpar}
+\inferrule[AMOUNT]
+  {
+  }
+  {[(\AMOUNT; \INSTRUCTION), \STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\CAMOUNT, \TMUTEZ) \STACKCONCAT\STACK, \PREDICATE}
+\end{mathpar}
+
+%CONTRACT ty
+\begin{mathpar}
+\inferrule[CONTRACT TY - some]
+  {
+  }
+  {[(\CONTRACT\ \TY ; \INSTRUCTION), (\StackOne, \TADDR) \STACKCONCAT\STACK, \PREDICATE] \SystemTrans \
+[\INSTRUCTION, (\SOME\ \X, \TOPTION\ (\TCONTRACT\ \TY)) \STACKCONCAT\STACK, \\ \PREDICATE \Wedge\ (\GETCONTRACTTYPE(\StackOne, \TY) \EQ\ \SOME\ \X)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[CONTRACT TY - none]
+  {
+  }
+  {[(\CONTRACT\ \TY ; \INSTRUCTION), (\StackOne, \TADDR) \STACKCONCAT\STACK, \PREDICATE] \SystemTrans \
+[\INSTRUCTION, \NONE \STACKCONCAT\STACK, \PREDICATE \Wedge\ (\GETCONTRACTTYPE(\StackOne, \TY) = \NONE]}
+\end{mathpar}
+
+\paragraph{Operations on data structures}
+%CAR
+\begin{mathpar}
+\inferrule[\CAR]
+  {
+  }
+  {[(\CAR; \INSTRUCTION), (\StackOne, \TPAIR\ \TYF\ \TYS) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\X, \TYF) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \PAIR\ \X\ \Y)]}
+\end{mathpar}
+
+\subsubsection{Branch Instructions}
+%IF
+
+\begin{mathpar}
+  \inferrule[IF]
+  {  
+  }{
+    \{[(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
+    (\StackOne, \TBOOL) \STACKCONCAT\STACK, \PREDICATE]\} \cup \SYSTEM 
+      \SystemTrans 
+    \{[\INSTRUCTIONONE, \STACK, \PREDICATE\ \Wedge\ \StackOne]\} \cup \{ [\INSTRUCTIONTWO, \STACK, \PREDICATE\ \Wedge\ \NEG\
+   \StackOne]\} \cup  \SYSTEM
+  }
+\end{mathpar}
+
+The \IFLEFT\ \INSTRUCTIONONE\  \INSTRUCTIONTWO\ instruction expects a or value at the top of the stack, it consumes this top element. If the value is Left, it executes the first provided sequence; otherwise, it executes the second sequence.
+%IF-LEFT
+\begin{mathpar}
+  \inferrule[IF-LEFT]
+  {  
+  }{
+    \{[(\IFLEFT\ \INSTRUCTIONONE\ \INSTRUCTIONTWO; \INSTRUCTION),
+    (\StackOne, \TOR\ \TYF\ \TYS) \STACKCONCAT \STACK, \PREDICATE]\}  \cup  \SYSTEM
+    \SystemTrans \\
+    \{[\INSTRUCTIONONE, (\X, \TYF) \STACKCONCAT\STACK,
+    \PREDICATE \wedge (\StackOne\ \EQ\ \LEFT\ \X)]\}  \cup  \{  [\INSTRUCTIONTWO, (\X, \TYS) \STACKCONCAT\STACK, \PREDICATE \wedge (\StackOne\ \EQ\ \RIGHT\ \X))]\} \cup \SYSTEM
+  }
+\end{mathpar}
+%IF_CONS
+\begin{mathpar}
+  \inferrule[IF-CONS-empty]
+  {  
+  }{
+    [(\IFCONS\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans\  [\INSTRUCTIONTWO; \INSTRUCTION, \STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \EMPTYLIST)]}
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule[IF-CONS-nonempty]
+  {  
+  }{
+   [(\IFCONS\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE], \SYSTEM\ \StateTrans\  \\ [\INSTRUCTIONONE, (\HEAD, \TY) \STACKCONCAT(\{ \TAIL \}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQ\ \{\HEAD; \STAIL \})]}
+\end{mathpar}
+
+
+
+%IF_NON
+\begin{mathpar}
+  \inferrule[IF-NONE-none]
+  {  
+  }{
+    [(\IFNONE\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),  (\StackOne, \TOPTION\ \TY) \STACKCONCAT\STACK, \PREDICATE], \SYSTEM\ \StateTrans\   [\INSTRUCTIONONE; \INSTRUCTION, \STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \NONE)]}
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule[IF-NONE-some]
+  {  
+  }{
+    [(\IFNONE\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),   (\StackOne, \TOPTION\ \TY) \STACKCONCAT\STACK, \PREDICATE], \SYSTEM\ \StateTrans\   [\INSTRUCTIONTWO,  (\X, \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ ( \StackOne\ \EQ\ \SOME\ \X)]}
+\end{mathpar}
+
+\subsubsection{Loop Instructions}
+\paragraph{While loops}
+%LOOP
+\begin{mathpar}
+  \inferrule[LOOP-true]
+  {  
+  }{
+    [(\LOOP\ \INSTRUCTIONONE; \INSTRUCTION),  (\StackOne, \TBOOL)
+    \STACKCONCAT\STACK, \PREDICATE]
+    \StateTrans\
+    [(\INSTRUCTIONONE; \LOOP\ \INSTRUCTIONONE; \INSTRUCTION),
+    \STACK, \PREDICATE \wedge \StackOne]
+  }
+
+  \inferrule[LOOP-false]
+  {  
+  }{
+    [(\LOOP\ \INSTRUCTIONONE; \INSTRUCTION),  (\StackOne, \TBOOL) \STACKCONCAT\
+    \STACK, \PREDICATE]
+    \StateTrans\
+   [\INSTRUCTION, \STACK, \PREDICATE \wedge
+   (\NEG\StackOne)]
+   }
+\end{mathpar}
+\paragraph{For loops}
+%%ITER
+\begin{mathpar}
+  \inferrule[ITER-empty]
+  {  
+  }{
+    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans\ [\INSTRUCTION, \STACK,  \PREDICATE\ \Wedge\  (\StackOne\ \EQ\ \EMPTYLIST)]
+  }
+\end{mathpar}
+
+\begin{mathpar}
+  \inferrule[ITER-nonempty]
+  {  [\ITER,  (\HEAD, \TY) \STACKCONCAT\STACK, 
+    Q]
+    \StateTrans^*
+    [ \EMPTYSTACK,  \STACK', Q']
+  }{
+    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE \wedge Q] \StateTrans \\ [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), \{\STAIL\}\ \STACKCONCAT\STACK',  \PREDICATE \wedge Q' \Wedge  ( \StackOne\ \EQ\ \{\HEAD; \STAIL \}) ]
+  }
+\end{mathpar}
+
+%\begin{mathpar}
+%\inferrule[CONCAT]
+ % {
+ % }
+ % {[(\CONCAT; \INSTRUCTION), (\StackOne, \TYLIST\ \TSTR) \STACKCONCAT\STACK,  \PREDICATE] \StateTrans 
+%[\INSTRUCTION,  ("",  \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \EMPTYLIST)]}
+%\end{mathpar}
+
+%\begin{mathpar}
+%\inferrule[CONCAT]
+%  {
+%  [\CONCAT,  (\{\TAIL\}, \TYLIST\ \TSTR) \STACKCONCAT\EMPTYSTACK, Q]
+%    \StateTrans^*
+%    [\EMPTYSTACK, (\StackTwo,  \TSTR) \STACKCONCAT\EMPTYSTACK, Q']
+%  }
+%  {[(\CONCAT; \INSTRUCTION),  (\StackOne, \TYLIST\ \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \StateTrans \\
+%[\INSTRUCTION, ( \HEAD\ \STRINGCONCAT\ \StackTwo, \TSTR) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \{\HEAD; \TAIL\}) \Wedge\ Q']}
+%\end{mathpar}
+
+
+%MEM
+\begin{mathpar}
+\inferrule[MEM-empty]
+  {
+  }
+  {[(\MEM; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT(\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\FALSE, \TBOOL) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackTwo\ \EQ\ \EMPTYSET)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[MEM-nonempty]
+  {
+  [\COMPARE, (\StackOne, \TYF) \STACKCONCAT (\K, \TYF) \STACKCONCAT\EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\VariableB, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {[(\MEM; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT(\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \StateTrans  \
+[\MEM; \INSTRUCTION, \StackOne\ \STACKCONCAT\{\LESS\ \M\ \MORE\} \STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQ\ \{\ELT\ \K\ \V; \LESS\ \M\ \MORE\})  \Wedge\ (\VariableB\ \EQ\ \ONE)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[MEM-nonempty]
+  {
+  [\COMPARE, (\StackOne, \TYF) \STACKCONCAT (\K, \TYF) \STACKCONCAT\EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\VariableB, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {[(\MEM; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT(\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \StateTrans  \\
+[\INSTRUCTION, (\TRUE, \TBOOL) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQ\ \{\ELT\ \K\ \V; \LESS\ \M\ \MORE\}) \Wedge\ (\VariableB\ \EQ\ \ZERO)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[MEM-nonempty]
+  {
+  [\COMPARE, (\StackOne, \TYF) \STACKCONCAT (\K, \TYF) \STACKCONCAT\EMPTYSTACK, Q]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\VariableB, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {[(\MEM; \INSTRUCTION), (\StackOne, \TYF) \STACKCONCAT(\StackTwo, \TYMAP\ \TYF\ \TYS) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \StateTrans  \\
+[\INSTRUCTION, (\FALSE, \TBOOL) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackTwo\ \EQ\ \{\ELT\ \K\ \V; \LESS\ \M\ \MORE\})  \Wedge\ (\VariableB\ \EQ\ \MINUS\ \ONE)]}
+\end{mathpar}
+
+%MAP
+\begin{mathpar}
+\inferrule[MAP-empty]
+  {
+  }
+  {[(\MAP\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \
+[\INSTRUCTION, (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ (\StackOne\ \EQ\ \EMPTYLIST)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[MAP-nonempty]
+  {
+  [\INSTRUCTIONONE, (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q1]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\PHEAD, \TY) \STACKCONCAT\EMPTYSTACK , Q1'] \\  [\MAP\ \INSTRUCTIONONE, (\{\TAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK , Q2]
+    \StateTrans^*
+    [\EMPTYSTACK,  (\{\PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK , Q2']
+  }
+  {[(\MAP\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1 \Wedge\ Q2 ] \StateTrans  \\
+[\INSTRUCTION, (\{\PHEAD; \PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1' \Wedge\ Q2'  \Wedge\ (\StackOne \EQ\ \{\HEAD; \TAIL\})]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[UPDATE-empty-true]
+  {
+  }
+  {[(\UPDATE; \INSTRUCTION), (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE]\ \SystemTrans\  \\ [\INSTRUCTION, (\{\X \}, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\  \Wedge\ (\StackOne\ \EQ\ \EMPTYLIST) \Wedge\ (\VariableB\ \EQ\ \TRUE)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[UPDATE-empty-false]
+  {
+  }
+  {[(\UPDATE; \INSTRUCTION), (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE]\ \SystemTrans\  \\ [\INSTRUCTION, (\EMPTYLIST, \TYLIST\ \TY)\ \STACKCONCAT\STACK, \PREDICATE\  \Wedge\ (\StackOne\ \EQ\ \EMPTYLIST) \Wedge\ (\VariableB\ \EQ\ \FALSE)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[UPDATE-nonempty-true]
+  {
+  [\COMPARE, (\X, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
+    [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {[(\UPDATE; \INSTRUCTION), (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans
+[\INSTRUCTION, (\StackOne, \TYLIST\ \TY)
+\STACKCONCAT\STACK,\\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQ\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQ\ \TRUE) \Wedge\ (\VariableA\ \EQ\ \ZERO)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[UPDATE-nonempty-false]
+  {
+  [\COMPARE, (\X, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
+    [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {[(\UPDATE; \INSTRUCTION), (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans  \\
+[\INSTRUCTION, (\{\TAIL\}, \TYLIST\ \TY)
+\STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQ\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQ\ \FALSE) \Wedge\ (\VariableA\ \EQ\ \ZERO)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[UPDATE-nonempty-true]
+  {
+  [\COMPARE, (\X, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
+    [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {[(\UPDATE; \INSTRUCTION), (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans  \\
+[\INSTRUCTION, (\{\X; \HEAD; \TAIL\}, \TYLIST\ \TY)
+\STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQ\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQ\ \TRUE) \Wedge\ (\VariableA\ \EQ\ \MINUS\ \ONE)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[UPDATE-nonempty-false]
+  {
+  [\COMPARE, (\X, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q] \StateTrans^*
+    [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q']
+  }
+  {[(\UPDATE; \INSTRUCTION), (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q] \SystemTrans\  \\
+[\INSTRUCTION, (\{\HEAD; \TAIL\}, \TYLIST\ \TY)
+\STACKCONCAT\STACK, \\ \PREDICATE\ \Wedge\ Q' \Wedge\ (\StackOne\ \EQ\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableB\ \EQ\ \FALSE) \Wedge\ (\VariableA\ \EQ\ \MINUS\ \ONE)]}
+\end{mathpar}
+
+\begin{mathpar}
+\inferrule[UPDATE-nonempty-1]
+  {
+  [\COMPARE, (\X, \TY) \STACKCONCAT (\HEAD, \TY) \STACKCONCAT\EMPTYSTACK, Q1] \StateTrans^*
+    [\EMPTYSTACK,  (\VariableA, \TINT) \STACKCONCAT\EMPTYSTACK, Q1'] \\
+ [\UPDATE, (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT( \{\TAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK, Q2] \StateTrans^* \\  [\EMPTYSTACK, ( \{\PTAIL\}, \TYLIST\ \TY) \STACKCONCAT\EMPTYSTACK, Q2']
+  }
+  {[(\UPDATE; \INSTRUCTION), (\X, \TY) \STACKCONCAT(\VariableB, \TBOOL) \STACKCONCAT(\StackOne, \TYLIST\ \TY) \STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1 \Wedge\ Q2 ] \SystemTrans\  \\
+[\INSTRUCTION; (\{\HEAD; \PTAIL\}, \TYLIST\ \TY)
+\STACKCONCAT\STACK, \PREDICATE\ \Wedge\ Q1' \Wedge\ Q2' \Wedge\ (\StackOne\ \EQ\ \{\HEAD; \TAIL\}) \Wedge\ (\VariableA\ \EQ\ \ONE)]}
+\end{mathpar}
+
+\subsubsection{FAILWITH}
+a Michelson program can fail, explicitly using a specific opcode
+
+%FAILWITH
+\begin{mathpar}
+  \inferrule[FAILWITH]
+  {
+  }{[(\FAILWITH; \INSTRUCTION), (\StackOne,  \TY) \STACKCONCAT \STACK,  \PREDICATE] \StateTrans [\EMPTYSTACK, failwith (\StackOne) \STACKCONCAT\EMPTYSTACK, \PREDICATE]}
+\end{mathpar}
+
