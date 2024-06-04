@@ -2,17 +2,15 @@
 \usepackage{listings}
 
 \lstdefinelanguage{michelson}{
-%  basicstyle=\ttfamily,
   backgroundcolor=\color{pink!20}, 
   classoffset=0,
   morekeywords={parameter,storage,code},
   keywordstyle=\bfseries, 
-  % predefined types
   classoffset=1,
-  morekeywords={list,nat,int,unit,string,or,pair,option,address,mutez,bool, map, big_map, contract},
+  morekeywords={list,nat,int,unit,string,or,pair,operation,option,address,mutez,bool, map, big_map, contract},
   keywordstyle=\color{blue},
   classoffset=2,
-  morekeywords={ITER,ADD,AMOUNT,BALANCE,CAR,CDR,COMPARE,CONS,DUP,EQ,FAILWITH,GE,IF,IF_LEFT,LE,LEFT,NIL,DROP,PAIR,PUSH,RIGHT,SENDER,SUB,UNPAIR},
+  morekeywords={ITER,ADD,AMOUNT,BALANCE,CAR,PAIR,CDR,COMPARE,CONS,DUP,EQ,FAILWITH,GE,IF,IF_LEFT,LE,LEFT,NIL,DROP,PAIR,PUSH,RIGHT,SENDER,SUB,UNPAIR},
   keywordstyle=\color{magenta},
   sensitive=false,
   morecomment=[l]{\#},
@@ -209,10 +207,10 @@
 \newcommand{\HEADTWO}{\ensuremath{hd_2}}
 \newcommand{\HEADI}{\ensuremath{hd_i}}
 \newcommand{\HEADJMINUS}{\ensuremath{hd_{j-1}}}
-\newcommand{\TAIL}{\ensuremath{$<$ tl $>$}}
+\newcommand{\TAIL}{\ensuremath{<tl>}}
 \newcommand{\NTAIL}{\ensuremath{tl}}
 \newcommand{\PHEAD}{\ensuremath{hd'}}
-\newcommand{\PTAIL}{\ensuremath{$<$ tl' $>$}}
+\newcommand{\PTAIL}{\ensuremath{<tl'>}}
 \newcommand{\VSTRING}{\ensuremath{s}}
 
 

@@ -1,5 +1,334 @@
-\section{Formal Definitions}
-\label{sec:formal-definitions}
+\section{Appendix: SCV Syntax, Specifications, Experimental Results, and Formal Definitions}
+\label{sec:appendix}
+%\subsection{SCV: Syntax}
+\begin{lstlisting}[float=tp,captionpos=b,caption={Smart contract property specification for a simple contract},label={lst:smart-contract-property-specification},numbers=left]
+mcontract name = spec
+  code := {...}
+  input := t
+  output := t'
+  pre-condition := p
+  post-condition := p'
+\end{lstlisting}
+
+\begin{lstlisting}[float,captionpos=b,caption={Multiple entrypoint specification syntax (option 1)},label={lst:multiple-entrypoint-specification-1},numbers=left][h]
+mcontract name = spec
+   entrypoint %a 
+      code := {c1}
+      input := t1
+      output := t1'
+      pre-condition := p1
+      post-condition := p1'
+   entrypoint %b 
+      ...
+   <entrypoint relations>
+\end{lstlisting}
+
+\begin{lstlisting}[float,captionpos=b,caption={Multiple entrypoint specification syntax (option 2)},label={lst:multiple-entrypoint-specification-2},numbers=left][h]
+mcontract name = spec
+   storage := t1
+   entrypoint %a 
+      code := {c1}
+      parameter := t2
+      pre-condition := p1
+      post-condition := p1'
+   entrypoint %b 
+      ...
+   <entrypoint relations>
+\end{lstlisting}
+
+%\subsection{The Auction contract}
+\begin{lstlisting}[float=tp,captionpos=b,caption={Auction contract specification},label={lst:auction-contract-specification},numbers=left]
+mcontract auction = spec 
+  storage := Pair (auction_open: bool) 
+                   Pair (highest_bidder: address)
+                        (contract_owner: address))
+  entrypoint %bid
+    code := {CDR; UNPAIR; DUP; IF {} {PUSH string 'already
+     closed'; FAILWITH}; SWAP; UNPAIR; BALANCE; AMOUNT; 
+     AMOUNT; ADD; COMPARE; GT; IF {} {PUSH string 'not 
+     higher than the current highest bid'; FAILWITH};
+     CONTRACT unit; IF_NONE {PUSH string 'invalid highest 
+     bidder address'; FAILWITH} {}; AMOUNT; BALANCE; SUB; 
+     IF_NONE {FAILWITH} {}; PUSH unit Unit; TRANSFER_TOKENS; 
+     NIL operation; SWAP; CONS; DIP {SWAP; 
+     DIP {SENDER; PAIR}; PAIR}; PAIR}
+    parameter := Unit 
+    pre-condition := auction_open = true
+       && Amount > pre_Balance
+       && get_contract (unit, highest_bidder) = 
+          Some (c: contract unit)
+    post-condition := auction_open = true
+       && post_highest_bidder = Sender 
+       && post_contract_owner = contract_owner 
+       && post_Balance = Amount 
+       && transfer_token (Unit, pre_Balance, c);
+  entrypoint %close
+    code := {CDR; UNPAIR; IF {}{PUSH string 'already closed'; 
+     FAILWITH}; DUP; CDR; DUP; SENDER; COMPARE; EQ;
+     IF {} {PUSH string 'not owner'; FAILWITH};
+     DIP {PUSH bool false; PAIR}; CONTRACT unit; 
+     IF_NONE {PUSH string 'invalid address'; FAILWITH} {} ;
+     BALANCE; PUSH unit Unit; TRANSFER_TOKENS; 
+     NIL operation; SWAP; CONS; PAIR}
+    parameter := Unit
+    pre-condition := auction_open = true
+       && Sender = contract_owner  
+       && get_contract (unit, contract_owner) = 
+          Some (c: contract unit)              
+    post-condition := post_auction_open  = false
+       && post_Balance = 0 
+       && transfer_token (Unit, pre_Balance + Amount, c) 
+  (%create -> %bid) with (auction_open = true)  
+       && (Amount > pre_Balance) 
+       && get_contract (unit, highest_bidder) = 
+           Some (c: contract unit)
+  | (%create  -> %close) with (auction_open = true) 
+       && (Sender = contract_owner)
+       && get_contract (unit, contract_owner) = 
+          Some (c: contract unit)
+  | (%bid -> %bid) with (Amount > pre_Balance) 
+       && get_contract (unit, highest_bidder) = 
+          Some (c: contract unit)
+  | (%bid -> %close) with (Sender = contract_owner) 
+       && get_contract (unit, contract_owner) = 
+            Some (c: contract unit)
+  | not (%close -> %bid)
+  | not (%close -> %close)
+\end{lstlisting}
+
+\begin{lstlisting}[float=tp,captionpos=b,caption={Fail condition for auction contract bid entrypoint},label={lst:fail-condition-auction-contract-bid},numbers=left]
+1. not (auction_open = true): 'Already closed'
+2. (auction_open = true) && not (Amount > pre_Balance):
+   'Not higher than the current highest bid'
+3. (auction_open = true) && (Amount > pre_Balance) && 
+   get_contract (unit, highest_bidder) = None:
+   'Invalid highest bidder address' 
+\end{lstlisting}
+
+\begin{lstlisting}[float=tp,captionpos=b,caption={Fail condition for auction contract close entrypoint},label={lst:fail-condition-auction-contract-close},numbers=left]
+1. not (auction_open = true): 'Already closed'
+2. (auction_open = true) && not (Sender = contract_owner): 
+    'Not the owner'
+3. (auction_open = true) && (Sender = contract_owner) &&
+   get_contract (unit, contract_owner) = None:
+  'Invalid contract owner address'
+\end{lstlisting}
+%\subsection{The USDtz contract}
+\begin{lstlisting}[float=tp,captionpos=b,caption={Storage of the USDtz smart contract},label={lst:storage-udstz-contract}]
+(pair
+  (big_map %ledger
+    (address :user)
+    (pair (nat :balance)
+          (map :approvals (address :spender) (nat :value))))
+  (pair (address %admin)
+        (pair (bool %paused) (nat %totalSupply))))
+\end{lstlisting}
+\begin{lstlisting}[float,captionpos=b,caption={Fail conditions for the \lstinline/transfer/ entrypoint},label={lst:transfer-udstz-contract},numbers=left]
+1. (paused = true): 'TokenOperationsArePaused'
+2. not (paused = true) 
+   && get_big_map (from, ledger) = None : 'NotEnoughBalance'
+3. not (paused = true) 
+   && get_big_map (from, ledger) = Some sbvar 
+   && sbvar = Pair sbvar1 sbvar2 
+   && not (sbvar1 >= value) : 'NotEnoughBalance'
+4. not (paused = true) 
+   && get_big_map (from, ledger) = Some sbvar 
+   && sbvar = Pair sbvar1 sbvar2 
+   && get_map (Sender, sbvar2) = None: 'NotEnoughAllowance'
+5. not (paused = true) 
+   && get_big_map (from, ledger) = Some sbvar 
+   && sbvar = Pair sbvar1 sbvar2 
+   && get_map (Sender, sbvar2) = Some sbvar3 
+   && sbvar1 >= value 
+   && not (sbvar3 >= value): 'NotEnoughAllowance'
+\end{lstlisting}
+
+\begin{lstlisting}[float,captionpos=b,caption={Specification of the \lstinline/transfer/ entrypoint},label={lst:specification-transfer},numbers=left]
+mcontract usdtz = spec 
+ storage :=  Pair (ledger: big_map address 
+  (pair nat (map address nat))) 
+  (Pair (admin: address) 
+          (Pair (paused: bool) (total_supply: nat)))
+ entrypoint %transfer
+   parameter := Pair (from: address)
+         (Pair (to: address) (value: nat))
+   pre-condition := not (paused  = true)
+     && get_big_map (from, ledger) = 
+       Some (v: pair nat (map address nat))
+     && v = Pair (n: nat) (m: map address nat)
+     && get_map (Sender, m) = Some (k: nat) 
+     && (n >= value) && (k >= value)
+   post-condition := get_big_map (from, post_ledger) = 
+     Some (post_v:  pair nat (map address nat))
+     && post_v = Pair (post_n: nat) (post_m: map address nat) 
+     && get_map (Sender, post_m) = Some (post_k: nat) 
+     && (post_n = n - value) && (post_k = k - value)
+\end{lstlisting}
+
+\begin{lstlisting}[float=tp,captionpos=b,caption={Fail conditions for the \lstinline/approve/ entrypoint},label={lst:approve-udstz-contract},numbers=left]
+1. (paused = true): 'TokenOperationsArePaused'
+2. not (paused = true) 
+   && get_big_map (Sender, ledger) = Some sbvar 
+   && sbvar = Pair sbvar1 sbvar2 
+   && get_map (spender, sbvar2) = Some sbvar3 
+   && not (value = 0) 
+   && not (sbvar3 = 0): 'UnsafeAllowanceChange'
+\end{lstlisting}
+\begin{lstlisting}[float=tp,captionpos=b,caption={Specification of the \lstinline/approve/ entrypoint (Property 1)},label={lst:specification-approve-1},numbers=left]
+entrpoint %approve
+   parameter := Pair (spender: address) (value: nat)
+   pre-condition := not (paused = true)
+      && get_big_map (Sender, ledger) = 
+        Some (v: pair nat (map address nat))
+      && v = Pair (n: nat) (m: map address nat) 
+      && get_map (spender, m) = Some (k: nat) 
+      && not (k = 0) && (value = 0)
+   post-condition := get_big_map (Sender, post_ledger) = 
+        Some (post_v:  (pair nat (map address nat))
+      && post_v = Pair (post_n: nat) (post_m: map address nat) 
+      && get_map (spender, post_m) = Some (post_k: nat) 
+      && (post_k = 0) ;
+\end{lstlisting}
+\begin{lstlisting}[float=tp,captionpos=b,caption={Specification of the \lstinline/approve/ entrypoint (Property 2)},label={lst:specification-approve-2},numbers=left]
+   pre-condition := not (paused = true) 
+      && get_big_map (Sender, ledger) = 
+        Some (v: option (pair nat (map address nat))) 
+      && v = Pair (n: nat) (m: map address nat) 
+      && get_map (spender, m) = Some (k: nat) 
+      && (k = 0) && not (value = 0)
+   post-condition := get_big_map (Sender, post_ledger) = 
+        Some (post_v: option (pair nat (map address nat))) 
+      && post_v = Pair (post_n: nat) (post_m: map address nat) 
+      && get_map (spender, post_m) = Some (post_k: nat) 
+      && (post_k = value) ;
+\end{lstlisting}
+\begin{lstlisting}[float=tp,captionpos=b,caption={Specification of the \lstinline/getBalance/ entrypoint},label={lst:specification-get-balance},numbers=left]
+entrypoint %getBalance
+   parameter := Pair (owner: address) (c: contract nat)
+   pre-condition :=  get_big_map (owner, ledger) = 
+        Some v: option (pair nat (map address nat)) 
+      && v  = Pair (k: nat) (m: (map address nat))
+   post-condition := post_ledger = ledger 
+      && post_admin = admin 
+      && post_paused = paused 
+      && post_total_supply = total_supply 
+      && post_Balance = pre_Balance 
+      && transfer_token (k, Amount, c) ;
+
+   pre-condition :=  get_big_map (owner, ledger) = 
+        None option (pair nat (map address nat)) 
+   post-condition := post_ledger = ledger 
+      && post_admin = admin 
+      && post_paused = paused 
+      && post_total_supply = total_supply 
+      && post_Balance = pre_Balance 
+      && transfer_token (0, Amount, c) ;
+\end{lstlisting}
+%\subsection{The Kolibri Oracle contract}
+
+\begin{lstlisting}[float,captionpos=b,caption={Kolibri oracle contract},label={lst:kolibri-oracle-contract},numbers=left]
+parameter
+ (or
+   (or (unit %default) (contract nat %getXtzUsdRate))
+   (or
+     (pair string (pair timestamp nat) %getXtzUsdRate_callback)
+     (or
+       (address %setGovernorContract) 
+       (nat %setMaxDataDelaySec)))) ;
+storage
+ (pair
+   (pair (option %clientCallback address) 
+         (address %governorContractAddress))
+   (pair (address %harbingerContractAddress) 
+         (pair (nat %maxDataDelaySec) (int %state)))) ;
+\end{lstlisting}
+
+\begin{figure}[tp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{kolibri(1)}
+    \caption{Kolibri oracle entrypoint relations}
+    \label{fig:kolibri-oracle-emtrypoint-relations}
+\end{figure}
+\begin{lstlisting}[float=tp,captionpos=b,caption={Kolibri oracle contract specification},label={lst:kolibri-contract-specification},numbers=left]
+mcontract kolibri = spec 
+  storage := (Pair (Pair (client: option address) 
+     (governor: address))
+     (Pair (harbinger: address) 
+           (Pair (maxDelay: nat) (state: int))))
+  entrypoint %getXtzUsdRate
+    code := {...}
+    parameter := (ct : contract nat) 
+    pre-condition := (Amount = 0) && (state = 0)
+    get_contract (pair string (contract pair 
+    string (pair timestamp nat)), harbinger) = Some c
+    post-condition := post_state = 1
+       && client = Some (b: address) ;
+  entrypoint %getXtzUsdRate_callback
+    code := {...}
+    parameter := Pair (s: string) 
+       (Pair (t: timestamp) (n: nat))
+    pre-condition :=  state = 1 
+       && Sender = harbinger  
+       && s = 'XTZ-USD' 
+       && Now - t < maxDelay 
+       && Now - t >= 0 
+       && client = Some a 
+       && get_contract (nat, a) = Some c    
+    post-condition := post_state = 0 
+       && post_client = None 
+       && transfer_token(n, 0, c) ;
+  entrypoint %setGovernorContract
+    code := {...}
+    parameter := (gover : address) 
+    pre-condition :=  (Sender = governor)                  
+    post-condition := (post_governor = gover) 
+       && (post_maxDelay = maxDelay) 
+       && (post_harbinger = harbinger) ;
+  entrypoint %setMaxDataDelaySec
+    code := {...}
+    parameter := (delay: nat)
+    pre-condition := (Sender = governor)             
+    post-condition := (post_maxDelay = delay) 
+       && (post_client = client) 
+       && (post_harbinger = harbinger) ;
+  (%getXtzUsdRate -> %getXtzUsdRate_callback) with
+     (Sender = harbinger)
+     && (s = 'XTZ-USD') 
+     && (Now - t >= 0)  
+     && (Now - t < maxDelay)  
+     && client = Some a 
+     && get_contract (nat, a) = Some c    
+  | (%getXtzUsdRate_callback  -> %getXtzUsdRate) with 
+    (Amount = 0) 
+    && get_contract (pair string (contract pair 
+    string (pair timestamp nat)), harbinger) = Some c
+  | not (%getXtzUsdRate -> %getXtzUsdRate) 
+  | not (%getXtzUsdRate_callback -> %getXtzUsdRate_callback)
+\end{lstlisting}
+\begin{lstlisting}[float=tp,captionpos=b,caption={Failwith condition for the entrypoint setXtzUsdPrice\_callback},label={lst:setXtzUsdPrice_callback},numbers=left]
+1. not (state = 1): 12
+2. (state = 1) && not (Sender = harbinger): 3
+3. (state = 1) &&  (Sender = harbinger) 
+&& not ('XTZUSD' = s): 14
+4. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
+&& (Now - t >= 0) && not (Now - t < maxDelay): 17
+5. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
+&& not (Now - t >= 0): Unit
+6. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
+&& (Now - t >= 0) && (Now - t < maxDelay) 
+&& (client = Some sbvar) 
+&& get_contract (nat, sbvar) = None: Unit
+7. (state = 1) &&  (Sender = harbinger) && ('XTZUSD' = s)
+&& (Now - t >= 0) && (Now - t < maxDelay) 
+&& (client = None): Unit
+\end{lstlisting}
+
+\begin{lstlisting}[float=tp,captionpos=b,caption={Failwith condition for the entrypoint setMaxDataDelaySec},label={lst:setMaxDataDelaySec},numbers=left]
+not (Sender = governor): 4
+\end{lstlisting}
+\newpage
+%\subsection{Formal Definitions}
+%\label{sec:formal-definitions}
 \begin{figure} []
 \begin{align*}
 T, U &::= \\
