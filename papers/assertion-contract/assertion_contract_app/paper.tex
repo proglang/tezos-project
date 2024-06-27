@@ -172,11 +172,101 @@ We propose a proof-of-work-based method to incentivize participants in the distr
 \item Because the rewards may be limited in quantity, validators are motivated to swiftly verify the parameters to claim the reward before others do so.
 \end{itemize}
 \subsubsection{Computation Proof}
-The next step is to devise a computation proof to incentivize computational effort by utilizing the proof of work concept. We use a target hash $t$ that sets the required difficulty level to earn the reward. The objective of the validator is to generate a computation that produces a hash smaller than or equal to the target hash $t$. 
+The next step is to devise a computation proof to incentivize computational effort by utilizing the proof-of-work concept. We introduce a target hash $t$ that sets the required difficulty level to earn the reward. The objective of the validator is to generate a computation that produces a hash smaller than or equal to the target hash $t$.
 
-The key problem is how to reproduce the computation proof off-chain to on-chain. To this end, a seed $s$ is introduced in each verification process. Let $n$ denote the size of domain $A$. Each number $i$ in the range [1, $n$] corresponds to an element in $A$. The seed $s$ then reduces modulo $n$ to obtain $i$, which is  associated with an element $a$ in $A$. 
+A key challenge is reproducing the computation proof off-chain to on-chain. To address this, we introduce a seed $s$ in each verification process. Let $n$ denote the size of domain $A$. Each number $i$ in the range $[1, n]$ corresponds to an element in $A$. The seed $s$ is reduced modulo $n$ to obtain $i$, which is associated with an element $a$ in $A$.
+\paragraph{Estimate the number of seeds:} We first estimate the number of seeds needed to find a counterexample with a given expected probability. 
 
-The sequence of operations can be described by the following steps:
+Let's assume the unsatisfied element is only at the first element $a_0$ in $A$, the size of the domain is $n$, and the number of seeds is $m$. Each seed independently has a probability of $1/n$ to detect the problem and a probability of $\frac{n-1}{n}$ not to detect the problem. Hence, if we assume that each seed associated with an element $a$ in $A$ is chosen independently from a uniform distribution, the probability that no validator checks the element $a_0$ converges to $0$ as the number of seeds approaches infinity:
+
+\[
+  \lim_{m \to \infty} \frac{(n-1)^m}{n^m} = \lim_{m \to \infty} \left( \frac{n-1}{n} \right)^m = 0
+\]
+
+Depending on the expected probability to detect the problem, the number of seeds to generate can be determined. Assume that $p$ is the probability of finding at least one counterexample. To calculate the number of seeds $m$ needed to achieve a given expected probability $p$ of finding a counterexample, we can use the complementary probability. We have:
+\begin{itemize}
+\item The probability of a single seed failing to find a counterexample is $\frac{n-1}{n}$.
+\item The probability of all $m$ seeds failing to find a counterexample is $\left(\frac{n-1}{n}\right)^m$.
+\item Therefore, the probability of at least one of the $m$ seeds finding a counterexample is:
+\[
+p = 1 - \left(\frac{n-1}{n}\right)^m
+\]
+\end{itemize}  
+
+Rearranging to solve for \( m \):
+
+\[
+\left(\frac{n-1}{n}\right)^m = 1 - p
+\]
+
+Taking the natural logarithm on both sides:
+
+\[
+\ln\left(\left(\frac{n-1}{n}\right)^m\right) = \ln(1 - p)
+\]
+
+\[
+m \ln\left(\frac{n-1}{n}\right) = \ln(1 - p)
+\]
+
+Solving for \( m \):
+
+\[
+m = \frac{\ln(1 - p)}{\ln\left(\frac{n-1}{n}\right)}
+\]
+
+%For example, given \( n = 10000 \) and \( p = 0.8 \), the number of seeds \( m \) needed to achieve the desired probability is calculated as follows:
+%\[
+%m = \frac{\ln(1 - 0.8)}{\ln\left(1 - \frac{1}{10000}\right)}
+%\]
+
+%\[
+%m = \frac{\ln(0.2)}{\ln\left(1 - 0.0001\right)}
+%\]
+
+%\[
+%m = \frac{-1.6094}{\ln(0.9999)}
+%\]
+
+%\[
+%m = \frac{-1.6094}{-0.0001}
+%\]
+
+%\[
+%m \approx 16094
+%\]
+
+%Therefore, approximately \( 16094 \) seeds are needed to have an \( 80\% \) chance of finding a counterexample.
+
+\paragraph{Set up the taget hash:}
+The above seed number $m$ can then be used to set up the target hash $t$. The target hash $t$ can be calculated based on a desired difficulty level. In proof-of-work systems, difficulty is typically adjusted to ensure that the average efforts to find a valid hash. The target hash $t$ is often calculated by taking the maximum possible hash value and dividing it by the difficulty level:
+\[
+t = \frac{H_{\text{max}}}{D}
+\]
+
+Where:
+\begin{itemize}
+  \item \( H_{\text{max}} \) is the maximum possible hash value.
+  \item \( D \) is the difficulty level, which can be adjusted based on the expected number of trials.
+\end{itemize}
+
+
+Given the expected number of seeds to generate, 
+the difficulty level $D$ can be adjusted accordingly.  bTypically, $D$ is set to ensure that a valid hash is found approximately once every $m$ trials.
+
+If we want the probality of finding a valid hash to be $\frac{1}{m}$, then:
+\[
+D=m
+\]
+
+For a 256-bit hash, $H_{\text{max}}$ is $2^{256} - 1 $.  using the maximum hash value and the difficulty level, the target hash $t$ is:
+    
+\[
+\frac{2^{256} - 1}{m}
+\]
+
+\paragraph{Find a seed:}
+The sequence of operations to find a seed can be described by the following steps:
 \begin{enumerate}
 \item Generate a random seed $s$: 
 \begin{align}
@@ -197,6 +287,8 @@ i = (s \mod n) + 1
 a=A[i]
 \end{align}
 where $A[i]$ denotes the $i$-th element in $A$.
+\item Perform the negation check $\neg P_{a}$ to detect a counterexample if any.
+
 \item Calculate the hash \( t_s \) corresponding to the seed \( s \):
 \begin{align}
 t_s = \text{hash}(s, \text{eval}(\neg P_{a}))
@@ -204,6 +296,7 @@ t_s = \text{hash}(s, \text{eval}(\neg P_{a}))
 where \(\text{hash}\) is the hash function and \(\text{eval}\) is the function that returns the significant components of the evaluation of the negation \(\neg P_{a}\). 
 
 For example, it returns \(a[i]\) and \(a[i + 1]\) in the evaluation of the negation predicate \(a[i] < a[i+1]\) in the sorted array example.
+\item Compare \( t_s \) to the target hash to determin whether it is a reward computation.
 \end{enumerate}
 
 
@@ -370,8 +463,10 @@ By enforcing strict conditions for the execution of the work function or contrac
 
  
 
-%\section{Domain Specification Language for Assertion}
-%\section{Converter - Generating an Assertion Contracts} 
+\section{Domain Specification Language for Assertion}
+\note{To discuss: if it make sense to design}
+\section{Converter - Generating an Assertion Contracts} 
+\note{To discuss: if it make sense to implement}
 \section{Prototype Implementations}
 \note{TODO}
 \subsection{Sorted array}
