@@ -20,7 +20,8 @@
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{titling}
-
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
 \usepackage{tikz}
 \usepackage{amsmath}
 \usetikzlibrary{shapes.geometric, arrows}
@@ -252,7 +253,7 @@ Where:
 
 
 Given the expected number of seeds to generate, 
-the difficulty level $D$ can be adjusted accordingly.  bTypically, $D$ is set to ensure that a valid hash is found approximately once every $m$ trials.
+the difficulty level $D$ can be adjusted accordingly. Typically, $D$ is set to ensure that a valid hash is found approximately once every $m$ trials.
 
 If we want the probality of finding a valid hash to be $\frac{1}{m}$, then:
 \[
@@ -462,7 +463,236 @@ By enforcing strict conditions for the execution of the work function or contrac
 
 
  
+\section{Cost Analysis}
+This section considers the cost of the distributed verification method and its comparison with on-chain verification method.
 
+\subsection{Transaction Execution Costs}
+Let's first look at the transaction costs in terms of gas. To process and execute a transaction on the blockchain, users must pay costs in the form of gas. The total gas costs can be broken down into five parts:
+
+\begin{enumerate}
+\item Base cost: Fixed costs associated with initiating a transaction. They include basic operations such as:
+\begin{itemize}
+\item Calculating the transaction hash.
+\item Verifying the signature.
+\item Subtracting the balance from the sender.
+\item Adding the balance to the recipient.
+\end{itemize}
+In Ethereum, for example, a simple transfer of ETH from one address to another costs 21,000 gas.
+\item Data cost: Gas cost associated with the size of the data payload of the transaction when a contract with input data is invoked or a new contract is set up. This includes the costs per data byte, with non-zero bytes being more expensive than zero bytes. For Ethereum, for example, these data costs are as follows:
+\begin{itemize}
+    \item 68 gas per byte of non-zero data.
+    \item 4 gas per byte of zero data.
+\end{itemize}
+
+\item Computational cost: The gas consumed to perform individual operations specified in the smart contract code. This includes all computational tasks required to process a transaction or perform contract functions. These include:
+\begin{itemize}
+    \item Arithmetic operations: Basic mathematical operations such as addition, subtraction, multiplication, and division.
+    \item Logical operations: Logical operations such as AND, OR, NOT, etc.
+    \item Control flow operations: Operations that influence the execution flow, such as jumps, conditions, and function calls.
+    \item Cryptographic operations: Hashing functions (e.g., keccak256) and other cryptographic operations.
+    \item Memory operations: Allocation of and access to memory during contract execution.
+\end{itemize}
+
+\item Storage cost: Storage operations are more expensive than computational operations because they involve writing to the blockchain's persistent storage. The costs include:
+\begin{itemize}
+    \item Writing to storage: For example, in Ethereum, it costs 20,000 gas when setting a non-zero value from zero, and 5,000 gas when updating an existing value.
+    \item Reading from storage: On Ethereum, it costs 100 gas per operation.
+\end{itemize}
+
+\item Refund gas: In some cases, certain operations can lead to a gas refund. For example, in Ethereum:
+\begin{itemize}
+    \item Self-destructing contracts: Calling SELFDESTRUCT on a contract returns a portion of the gas.
+    \item SSTORE with zero: Setting a storage value to zero can refund gas if it was previously a non-zero value.
+\end{itemize}
+
+\end{enumerate}
+
+In conclusion, the total gas cost of a transaction (also called the execution cost) includes the base cost, data cost, computational cost, and storage cost.
+\subsection{Comparative Analysis of On-Chain and Offline Methods}
+Let's break down the gas costs to compare on-chain and off-chain verification.
+
+Consider the total gas $G_{on}$ for on-chain verification. Let $G_{parameter}$ denote the intrinsic gas, which includes the base gas and the data cost that primarily depend on the size of the parameter $p$. The total gas includes the intrinsic gas, the gas for storing the parameter (which is optional, depending on the application), the computation gas (which includes $n$ times the gas to check the parameter $G_{check}$, where $G_{check}$ checks the condition at each point of the parameter and $n$ is the size of the parameter), and the gas to perform the actual computation work $G_{run}$.
+
+For our offline distributed verification method, let's assume that the parameter is valid, and now we consider the cost to verify the parameter and perform the actual work. Let $m$ be the number of proofs required to ensure the correctness of the parameter. Thus, the offline method costs the gas for submitting the parameter, the gas to store the parameter (or its hash), $m$ times the gas to submit the seed, check the condition of the parameter point associated with the seed, the gas to compute the hash and compare it with the target hash, and of course the gas to run the computation of the actual work.
+
+
+\subsubsection{On-Chain Verification Method (\( G_{on} \))}
+
+\begin{equation}
+G_{on} = G_{parameter} + [G_{storage}] + n \cdot G_{check} + G_{run}
+\end{equation}
+
+\begin{itemize}
+    \item \( G_{parameter} \): Intrinsic gas, which includes base gas and data cost based on the size of the parameter \( p \).
+    \item \( [G_{storage}] \): Optional gas for storing the parameter. Not all applications require this.
+    \item \( G_{check} \): Gas for checking the condition at each of the \( n \) points of the parameter.
+    \item \( G_{run} \): Gas for performing the actual work (computation).
+\end{itemize}
+
+\subsubsection{Offline Distributed Verification Method (\( G_{off} \))}
+
+\begin{equation}
+G_{off} = G_{parameter} + G_{storage} + m \cdot (G_{seed} + G_{check} + G_{hash}) + G_{run}
+\end{equation}
+
+\begin{itemize}
+    \item \( G_{parameter} \): Intrinsic gas for submitting the parameter.
+    \item \( G_{storage} \): Gas for storing the parameter or its hash.
+    \item \( G_{seed} + G_{check} + G_{hash} \): Gas for each of the \( m \) seeds to:
+    \begin{itemize}
+        \item Submit the seed (\( G_{seed} \)).
+        \item Check the condition of the parameter point associated with the seed (\( G_{check} \)).
+        \item Compute the hash and compare it with the target hash (\( G_{hash} \)).
+    \end{itemize}
+    \item \( G_{run} \): Gas for performing the actual work (computation).
+\end{itemize}
+
+
+\subsubsection{Comparative Analysis}
+
+\paragraph*{Intrinsic Cost}
+\begin{itemize}
+    \item Both methods incur the intrinsic gas cost \( G_{parameter} \).
+\end{itemize}
+
+\paragraph*{Storage Cost}
+\begin{itemize}
+    \item The on-chain method has an optional storage cost \( [G_{storage}] \), while the offline method always includes the storage cost \( G_{storage} \).
+\end{itemize}
+
+\paragraph*{Parameter Checking}
+\begin{itemize}
+    \item In the on-chain method, the parameter check cost is \( n \cdot G_{check} \), where \( n \) is the size of the parameter.
+    \item In the offline method, this cost is \( m \cdot G_{check} \), where \( m \) is the number of seeds. Typically, \( m \) is significantly smaller than \( n \), as seeds represent a subset of checks.
+\end{itemize}
+
+\paragraph*{Additional Costs in the Offline Method}
+\begin{itemize}
+    \item The offline method includes \( m \cdot G_{seed} \) for submitting each seed.
+    \item It also includes \( m \cdot G_{hash} \) for computing and comparing hashes, which the on-chain method does not explicitly incur.
+\end{itemize}
+
+\paragraph*{Computation Costs}
+\begin{itemize}
+    \item Both methods have the same computation cost \( G_{run} \).
+\end{itemize}
+
+\subsubsection*{Comparison}
+
+\begin{itemize}
+    \item \textbf{On-Chain Verification Method (\( G_{on} \))}:
+    \begin{itemize}
+        \item More suited for scenarios where all data and checks must be performed directly on the blockchain.
+        \item Potentially higher cost due to \( n \cdot G_{check} \) if \( n \) (size of the parameter) is large. It gets worse when the check is complicated and the parameter is larger, which means \( G_{check} \) is high and \( n \) is large.
+    \end{itemize}
+    
+    \item \textbf{Offline Distributed Verification Method (\( G_{off} \))}:
+    \begin{itemize}
+        \item More efficient for large datasets since it reduces the number of checks to \( m \) seeds, where \( m \) is usually much smaller than \( n \).
+        \item Incurs additional costs for \( G_{seed} \) and \( G_{hash} \), but these are often outweighed by the savings from reducing the number of checks.
+        \item The most concern is the cost to store the parameter for the verification process. In case the parameter needs to be stored anyway then there is no need to concern, but for the opposite case, this cost needs to be taken into account when estimating the cost of the method. Consider storing its hash instead since the hash could still be enough to verify the parameter, but then the \( G_{seed} \) will be increased.
+    \end{itemize}
+\end{itemize}
+
+Let \( G_{base} \) be the sum of the gas costs for submitting the parameter, storing it, and running it:
+\[
+G_{base} = G_{parameter} + G_{storage} + G_{run}
+\]
+
+Let \( G_{m} \) be the sum of the gas costs to perform \( m \) times the parameter checkpoint:
+\[
+G_{m} = m \cdot (G_{seed} + G_{check} + G_{hash})
+\]
+
+In case the base gas does not contain the storage gas, then the \( G_m \) gas includes it.
+
+Figure \ref{fig:gas_compare} shows the gas consumption for both methods. The red line shows the gas consumed by the on-chain verification method, which increases linearly with the size of the parameter. The blue line shows the gas cost by the offline distributed method. We can see that in the beginning, when the size of the parameter is small, it costs more with the offline method than with the on-chain method, but at one point it will show its benefits.
+
+\begin{figure}
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+        title={Gas Consumption Chart},
+        xlabel={Parameter size},
+        ylabel={Gas},
+        grid=both,
+        major grid style={line width=.2pt,draw=gray!50},
+        minor grid style={line width=.1pt,draw=gray!20},
+        xtick={1,2,3,4,5,6,7,8},
+        xticklabels={1,2,3,,,,n,},
+        ytick={1,2,3,4,5,6,7,8},
+        yticklabels={$G_{base} + G_{check}$,$G_{base} + 2 \cdot G_{check}$, $G_{base} + 3 \cdot G_{check}$,,$G_{base}+ G_m$,,$G_{base} + n \cdot G_{check}$,},
+    ]
+      \addplot[
+        color=red,
+        mark=square,
+        ]
+        coordinates {
+        (1,1)(2,2)(3,3)(4,4)(5,5)(6,6)(7,7)
+        };
+        % Add custom labels as nodes
+      %\node at (axis cs:1,1) [anchor=north] {$(1, m)$};
+      %\node at (axis cs:2,2) [anchor=north] {$(2, g_3)$};
+      %\node at (axis cs:3,3) [anchor=north] {$(3, a)$};
+      %\node at (axis cs:4,4) [anchor=north] {$(4, b)$};
+      %\node at (axis cs:5,5) [anchor=north] {$(5, c)$};
+      
+         \addplot[
+        color=blue,
+        mark=square,
+        ]
+        coordinates {
+        (1,5)(2,5)(3,5)(4,5)(5,5)(6,5)(7,5)
+        };
+    \end{axis}
+  \end{tikzpicture}
+  \caption{Gas Comparison (Storage)}
+  \label{fig:gas_compare}
+\end{figure}
+
+
+%\begin{figure}
+%  \centering
+% \begin{tikzpicture}
+%     \begin{axis}[
+%         title={Simple Line Chart},
+%         xlabel={Parameter size},
+%         ylabel={Gas},
+%         grid=both,
+%         major grid style={line width=.2pt,draw=gray!50},
+%         minor grid style={line width=.1pt,draw=gray!20},
+ %        xtick={1,2,3,4,5,6,7,8},
+%         xticklabels={1,2,3,,,,n,},
+%         ytick={1,2,3,4,5,6,7,8},
+%         yticklabels={$G_{base} + G_{check}$,$G_{base} + 2.G_{check}$, $G_{base} + 3.G_{check}$,,$G_{base}+ G_{storage}+G_m$,,$G_{base} + n.G_{check}$,},
+%     ]
+%       \addplot[
+%         color=red,
+%         mark=square,
+%         ]
+%         coordinates {
+%         (1,1)(2,2)(3,3)(4,4)(5,5)(6,6)(7,7)
+%         };
+        % Add custom labels as nodes
+      %\node at (axis cs:1,1) [anchor=north] {$(1, m)$};
+      %\node at (axis cs:2,2) [anchor=north] {$(2, g_3)$};
+      %\node at (axis cs:3,3) [anchor=north] {$(3, a)$};
+      %\node at (axis cs:4,4) [anchor=north] {$(4, b)$};
+      %\node at (axis cs:5,5) [anchor=north] {$(5, c)$};
+      
+%          \addplot[
+%         color=blue,
+%         mark=square,
+%         ]
+%         coordinates {
+%         (1,5)(2,5)(3,5)(4,5)(5,5)(6,5)(7,5)
+%         };
+%     \end{axis}
+%   \end{tikzpicture}
+%   \caption{Gas comparation (non-storage)}
+%   \label{fig:gas_compare_nonstorage}
+% \end{figure}
+Overall, the offline method (\( G_{off} \)) is generally more cost-effective for large parameters as it reduces the number of on-chain checks from \( n \) to \( m \). However, the exact cost-effectiveness depends on the relative sizes of \( n \) and \( m \), the parameter storing gas, and the specific gas costs of \( G_{seed} \) and \( G_{hash} \).
 \section{Domain Specification Language for Assertion}
 \note{To discuss: if it make sense to design}
 \section{Converter - Generating an Assertion Contracts} 
@@ -644,6 +874,7 @@ The condition is checked first to detect the counterexample. If not, the hash is
 
 
 \section{Cost Analysis}
+
 \section{Related work}
 \section{Conclusion}
 
