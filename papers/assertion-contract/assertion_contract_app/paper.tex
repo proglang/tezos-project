@@ -25,11 +25,14 @@
 \usepackage{tikz}
 \usepackage{amsmath}
 \usetikzlibrary{shapes.geometric, arrows}
+\usepackage{comment}
 
 \tikzstyle{startstop} = [rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black, fill=red!30]
 \tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30]
 \tikzstyle{decision} = [diamond, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=green!30]
 \tikzstyle{arrow} = [thick,->,>=stealth]
+
+
 
 %\input{macros}
 %\input{setup}
@@ -74,21 +77,14 @@ To operationalize these ideas, we suggest a practical model that addresses secur
 %
 \section{Introduction}
 \label{sec:introduction}
+
 \section{Primaries}
 \label{sec:primaries}
 
 
-\section{Distributed Assertion Protocol}
+\section{Distributed Assertions Verification Process}
 \label{sec:approach}
-We propose a novel method for verifying parameter assertions in smart contracts on the blockchain. Our approach distributes the assertion verification process and moves it off-chain, with only the verification results being submitted to the blockchain.
-
-In this distributed process, each validator attempts to identify a counterexample to the assertion. Upon finding one, the validator submits the counterexample on-chain. Consequently, instead of verifying the entire assertion, the on-chain contract only needs to check specific points.
-
-To implement this idea, we propose a proof-of-work-based incentivization method in which validators are rewarded for discovering counterexamples, and some are rewarded for their computational efforts, thus encouraging participation in the distributed verification process.
-
-
-
-\subsection{Distributed assertions verification process}
+\subsection{Assertions verification problem}
 In the context of a domain $A$ and a predicate $P$ on $A$, an assertion is formalized using the universal quantifier as follows:
 \begin{gather}
   \label{eq:1}
@@ -101,6 +97,11 @@ This formula can be extended to multiple domains as:
 \label{eq:2}
 \forall a \in A, \forall b \in B, \dots .P_{a, b, \dots}
 \end{gather} 
+
+To verify these assertions, it requires iterating over the domain $A$ within the contract. When the domain $A$ is large or the predicate $P$ is complex to evaluate, it incurs a significant amount of gas to perform the verification process on-chain.  Given the current high gas prices, this could result in substantial costs or even impossible due to gas limits. 
+
+\subsection{Distributed verification method}
+We propose a novel method for verifying parameter assertions in smart contracts on the blockchain. Our approach distributes the assertion verification process and moves it off-chain, with only the verification results being submitted to the blockchain.
 
 The negation of the assertion is represented by the existential quantifier formulas:
 
@@ -116,11 +117,15 @@ And for multiple domains, it is as follows:
 \exists a \in A, \exists b \in B, \dots. \neg P_{a, b, \dots}
 \end{gather}
 
-To verify these assertions, it requires iterating over the domain $A$ within the contract. When the domain $A$ is large or the predicate $P$ is complex to evaluate, it incurs a significant amount of gas to perform the verification process on-chain.  Given the current high gas prices, this could result in substantial costs or even impossible due to gas limits. 
 
-Our approach aims to alleviate this by distributing the negation of the assertion to validators. Each validator endeavors to find a counterexample of the assertion using this negation. Specifically, each validator attempts to find a counterexample by identifying $a \in A$ such that the negation formula is satisfied $\neg P_{a}$. When a counterexample is found, the validator submits it, which is then re-verified on-chain. 
 
-Since only one specific point is checked on-chain, the amount of gas required for the computation to check the counterexample is likely to be significantly less than verifying the entire assertion directly on-chain.
+Our approach aims to alleviate the expensive gas comsuming by distributing the negation of the assertion to validators. 
+
+Each validator endeavors to find a counterexample of the assertion using this negation. Specifically, each validator attempts to find a counterexample by identifying $a \in A$ such that the negation formula is satisfied $\neg P_{a}$. When a counterexample is found, the validator submits it, which is then re-verified on-chain. 
+
+Consequently, instead of verifying the entire assertion, the on-chain contract only needs to check specific points. Since only one specific point is checked on-chain, the amount of gas required for the computation to check the counterexample is likely to be significantly less than verifying the entire assertion directly on-chain.
+
+%In this distributed process, each validator attempts to identify a counterexample to the assertion. Upon finding one, the validator submits the counterexample on-chain. Consequently, instead of verifying the entire assertion, the on-chain contract only needs to check specific points.
 
 If any of the validators identify a violation of an assertion, the final call to the actual work function is aborted. However, if certain requirements are met, the work function is invoked with the parameter.
  
@@ -136,9 +141,9 @@ Considering the example where a parameter $p$ is a prime number, the assertion i
   (\exists n) (2 \le n \le \sqrt p) \wedge (p \mathbin{\%} n) = 0
 \end{gather}
 
-\noindent each validator try to genarate  a
+Each validator try to find  a
 random $n$ in the range $2 \le n \le 
-\sqrt p$ and checking whether $(p \mathbin{\%} n) = 0$. If the remainder is $0$, the validator found a counterexample.
+\sqrt p$ such that $(p \mathbin{\%} n) = 0$. If the remainder is $0$, the validator found a counterexample.
 
 An other example, consider a contract that takes a sorted array of integers.
 \begin{lstlisting}[numbers=none]
@@ -158,37 +163,47 @@ consider its negation.
   (\exists k) (0\le k <49) \wedge a[k] > a[k+1]
 \end{displaymath}
 Each validator attempts to find the number $k$ such that the negation is true for such $k$, then the validator has found a counterexample for the sortedness of the array.
-\subsection{Proof-of-work-based incentivization method}
+
+
+
+\section{Proof-of-work-based incentivization method}
 Finding a counterexample is rewarded, incentivizing validators, but comes at the cost of computing resources. Instances of finding a counterexample may be rare, as callers typically avoid passing invalid parameters into the blockchain. If no counterexample emerges, the verification accuracy depends on the number of wisepoints generated to negate the assertion, with more validators increasing the certainty. 
 
-Encouraging validators to engage in the verification process even without discovering a counterexample is crucial. Therefore, it is necessary to incentivize this effort. Moreover, it is logical to reward only a portion of the computational effort required. A significant concern arises regarding how to ensure that validators perform the verification computation off-chain to receive the reward, even when no counterexample is foundward.
+Encouraging validators to engage in the verification process even without discovering a counterexample is crucial. Therefore, it is necessary to incentivize this effort. %Moreover, it is logical to reward only a portion of the computational effort required. 
+However, to prioritize the discovery of counterexamples, the reward for finding a counterexample is set significantly higher than that for providing a computational proof.
 
-\subsubsection{Outlines}
-We propose a proof-of-work-based method to incentivize participants in the distributed verification process. The proposed approach is outlined as follows:
+We propose a proof-of-work-based incentivization method in which validators are rewarded for discovering counterexamples, and some are rewarded for their computational efforts, thus encouraging participation in the distributed verification process.
+\subsection{Outlines}
+A significant concern arises regarding how to ensure that validators perform the verification computation off-chain, even when no counterexample is foundward.
 
+We propose a proof-of-work-based method to incentivize participants in the distributed verification process.  The proposed approach is outlined as follows:
 \begin{itemize}
-\item There are two ways to reward validators to encourage their participation: to discover a counterexample, and to provide computational proof that they have executed the program to search for a counterexample, even if none is found.
-\item To prioritize the discovery of counterexamples, the reward for finding a counterexample is set significantly higher than that for providing a computational proof.
+%\item There are two ways to reward validators to encourage their participation: to discover a counterexample, and to provide computational proof that they have executed the program to search for a counterexample, even if none is found.
+\item We utilize the proof-of-work concept by introducing a target hash $t$ that sets the required difficulty level to earn the computation reward. 
+\item The objective of the validator is to find a computation proof that smaller than or equal to the target hash $t$.
 \item The computation of the negation formula is integrated into the computational proof to ensure that the validators cannot produce the proof without executing a negation check.
-\item Because the rewards may be limited in quantity, validators are motivated to swiftly verify the parameters to claim the reward before others do so.
 \end{itemize}
-\subsubsection{Computation Proof}
-The next step is to devise a computation proof to incentivize computational effort by utilizing the proof-of-work concept. We introduce a target hash $t$ that sets the required difficulty level to earn the reward. The objective of the validator is to generate a computation that produces a hash smaller than or equal to the target hash $t$.
+%Because the rewards may be limited in quantity, validators are motivated to swiftly verify the parameters to claim the reward before others do so. 
+\subsection{Computation proof}
+The next question is how to devise a computational proof to incentivize computational effort. The key challenge is how to involve the negation check in the computational proof and how to reproduce the computational proof off-chain to on-chain with a reasonable gas cost. To address this, we introduce a seed $s$ in each verification process.
 
-A key challenge is reproducing the computation proof off-chain to on-chain. To address this, we introduce a seed $s$ in each verification process. Let $n$ denote the size of domain $A$. Each number $i$ in the range $[1, n]$ corresponds to an element in $A$. The seed $s$ is reduced modulo $n$ to obtain $i$, which is associated with an element $a$ in $A$.
+Let \( n \) denote the size of the domain \( A \). Each number \( i \) in the range \([1, n]\) corresponds to an element in \( A \). The seed \( s \) is a random number, and we can reduce it modulo \( n \) to obtain \( i \), which is associated with an element \( a \) in \( A \).
+
 \paragraph{Estimate the number of seeds:} We first estimate the number of seeds needed to find a counterexample with a given expected probability. 
 
-Let's assume the unsatisfied element is only at the first element $a_0$ in $A$, the size of the domain is $n$, and the number of seeds is $m$. Each seed independently has a probability of $1/n$ to detect the problem and a probability of $\frac{n-1}{n}$ not to detect the problem. Hence, if we assume that each seed associated with an element $a$ in $A$ is chosen independently from a uniform distribution, the probability that no validator checks the element $a_0$ converges to $0$ as the number of seeds approaches infinity:
+Let's assume the unsatisfied element is only at the first element $a_0$ in $A$, the size of the domain is $n$, and the number of seeds is $m$. Each seed independently has a probability of $1/n$ to detect the problem and a probability of $\frac{n-1}{n}$ not to detect the problem. Hence, if we assume that each seed associated with an element $a$ in $A$ is chosen independently from a uniform distribution, the probability that no seed checks the element $a_0$ converges to $0$ as the number of seeds approaches infinity:
 
 \[
   \lim_{m \to \infty} \frac{(n-1)^m}{n^m} = \lim_{m \to \infty} \left( \frac{n-1}{n} \right)^m = 0
 \]
 
-Depending on the expected probability to detect the problem, the number of seeds to generate can be determined. Assume that $p$ is the probability of finding at least one counterexample. To calculate the number of seeds $m$ needed to achieve a given expected probability $p$ of finding a counterexample, we can use the complementary probability. We have:
+Depending on the expected probability to detect the problem, the number of seeds to generate can be determined. 
+
+Assume that $p$ is the probability of finding at least one counterexample. The complementary probability is used to calculate the number of seeds $m$ needed to achieve a given expected probability $p$ of finding a counterexample.
 \begin{itemize}
 \item The probability of a single seed failing to find a counterexample is $\frac{n-1}{n}$.
 \item The probability of all $m$ seeds failing to find a counterexample is $\left(\frac{n-1}{n}\right)^m$.
-\item Therefore, the probability of at least one of the $m$ seeds finding a counterexample is:
+\item The probability of at least one of the $m$ seeds finding a counterexample is:
 \[
 p = 1 - \left(\frac{n-1}{n}\right)^m
 \]
@@ -265,7 +280,14 @@ For a 256-bit hash, $H_{\text{max}}$ is $2^{256} - 1 $.  using the maximum hash 
 \[
 \frac{2^{256} - 1}{m}
 \]
+\paragraph{Conduct a computation proof:} The computation of the negation formula is integrated into the computational proof to ensure that the validators cannot produce the proof without executing a negation check.
 
+Lets \(\text{eval}\) be the function that returns the significant components of the evaluation of the negation \(\neg P_{a}\).  For example, it returns \(a[i]\) and \(a[i + 1]\) in the evaluation of the negation predicate \(a[i] < a[i+1]\) in the sorted array example.
+
+Thus, the computation hash includes the seed  \( s \) and \(\text{eval}\). 
+\begin{align}
+t_s = \text{hash}(s, \text{eval}(\neg P_{a}))
+\end{align}
 \paragraph{Find a seed:}
 The sequence of operations to find a seed can be described by the following steps:
 \begin{enumerate}
@@ -290,17 +312,43 @@ a=A[i]
 where $A[i]$ denotes the $i$-th element in $A$.
 \item Perform the negation check $\neg P_{a}$ to detect a counterexample if any.
 
-\item Calculate the hash \( t_s \) corresponding to the seed \( s \):
-\begin{align}
-t_s = \text{hash}(s, \text{eval}(\neg P_{a}))
-\end{align}
-where \(\text{hash}\) is the hash function and \(\text{eval}\) is the function that returns the significant components of the evaluation of the negation \(\neg P_{a}\). 
-
-For example, it returns \(a[i]\) and \(a[i + 1]\) in the evaluation of the negation predicate \(a[i] < a[i+1]\) in the sorted array example.
+\item If no counterexample is found, calculate the hash \( t_s \) corresponding to the seed \( s \).
 \item Compare \( t_s \) to the target hash to determin whether it is a reward computation.
 \end{enumerate}
 
+\begin{comment}
+\begin{tikzpicture}[node distance=2cm]
 
+    % Nodes
+    \node (start) [startstop] {Generate random seed $s$};
+    \node (calc_n) [process, below of=start] {Calculate $n = |A|$};
+    \node (calc_i) [process, below of=calc_n] {Determine $i = (s \mod n) + 1$};
+    \node (find_a) [process, below of=calc_i] {Find $a = A[i]$};
+    \node (neg_check) [process, below of=find_a] {Perform negation check $\neg P_a$};
+    \node (counterexample) [decision, below of=neg_check, yshift=-1cm] {Counterexample found?};
+    \node (calc_hash) [process, below of=counterexample, yshift=-1cm] {Calculate hash $t_s$};
+    \node (compare) [process, below of=calc_hash] {Compare $t_s$ to target hash};
+    \node (non_reward) [startstop, right of=counterexample, xshift=3cm] {No Counterexample};
+    \node (reward) [startstop, right of=compare, xshift=3cm] {Reward Computation};
+    \node (submit) [process, below of=compare, yshift=-1cm] {Submit on-chain to claim reward};
+    \node (submit_counter) [process, below of=counterexample, yshift=-1cm] {Submit on-chain to claim reward};
+
+    % Arrows
+    \draw [arrow] (start) -- (calc_n);
+    \draw [arrow] (calc_n) -- (calc_i);
+    \draw [arrow] (calc_i) -- (find_a);
+    \draw [arrow] (find_a) -- (neg_check);
+    \draw [arrow] (neg_check) -- (counterexample);
+    \draw [arrow] (counterexample) -- node[anchor=east] {Yes} (submit_counter);
+    \draw [arrow] (counterexample) -- node[anchor=south] {No} (calc_hash);
+    \draw [arrow] (calc_hash) -- (compare);
+    \draw [arrow] (compare) -- node[anchor=south] {No} (non_reward);
+    \draw [arrow] (compare) -- node[anchor=south] {Yes} (reward);
+    \draw [arrow] (reward) |- (submit);
+    \draw [arrow] (submit_counter) -| (submit);
+
+\end{tikzpicture}
+\end{comment}
 %Consequently, each seed $s$ is linked with an element $a$ in the domain $A$, followed by the evaluation of the negation of the assertion $\neg P_{a}$. 
 
 After conducting the negation check, either a counterexample is identified, or a hash is computed based on the seed $s$ along with the evaluation of the condition $\neg P_{a}$. This hash is then compared with the target hash to ascertain if it meets the criteria for a reward computation. The outcomes of the verification process include either a counterexample, a reward computation, or a non-reward computation.
@@ -331,7 +379,7 @@ Distributed verification of assertions is indeed an intriguing concept, yet it f
 \item Front-running attacks: The system is vulnerable to front-running attacks, where an attacker closely monitors the mempool to intercept a seed representing a counterexample or a computation proof, subsequently stealing the reward.
 \item Caller exploitation: A caller might exploit the system by running the negation check privately to identify the reward before submitting the parameter on-chain, thereby swiftly claiming the reward ahead of the other validators. 
 \item Denial-of-service (DoS) attacks: The system is susceptible to DoS attacks, where a caller inundates the system with numerous invalid parameters, causing congestion and hindering its operation.
-\item Reward manipulation: A validator may attempt to manipulate the reward system by resubmitting counterexamples or computation proofs multiple times to multiply their rewards.
+%\item Reward manipulation: A validator may attempt to manipulate the reward system by resubmitting counterexamples or computation proofs multiple times to multiply their rewards.
 \end{enumerate}
 \subsection{Overview architect}
 This section presents a practical model that unifies theoretical principles and addresses the previously mentioned security concerns. The architectural design of this model is depicted in Figure \ref{fig.architect}. The model consists of two main entities: an on-chain assertion contract and off-chain validator contract. In our practical model, three distinct actors play key roles.
@@ -420,7 +468,7 @@ The verification status records a counterexample and reward computations found. 
     \item The random number $r$ used in the verification process.
 \end{itemize}
 
-In some applications, multiple computational proofs may be allowed. This record is crucial for determining when a work function can be invoked for a given parameter or when it should be discarded. 
+%In some applications, multiple computational proofs may be allowed. This record is crucial for determining when a work function can be invoked for a given parameter or when it should be discarded. 
 
 In certain applications, one may delete the records after processing is completed for the parameter, especially if a large number of parameters are submitted to manage storage efficiently.
 
@@ -513,7 +561,8 @@ Let's break down the gas costs to compare on-chain and off-chain verification.
 
 Consider the total gas $G_{on}$ for on-chain verification. Let $G_{parameter}$ denote the intrinsic gas, which includes the base gas and the data cost that primarily depend on the size of the parameter $p$. The total gas includes the intrinsic gas, the gas for storing the parameter (which is optional, depending on the application), the computation gas (which includes $n$ times the gas to check the parameter $G_{check}$, where $G_{check}$ checks the condition at each point of the parameter and $n$ is the size of the parameter), and the gas to perform the actual computation work $G_{run}$.
 
-For our offline distributed verification method, let's assume that the parameter is valid, and now we consider the cost to verify the parameter and perform the actual work. Let $m$ be the number of proofs required to ensure the correctness of the parameter. Thus, the offline method costs the gas for submitting the parameter, the gas to store the parameter (or its hash), $m$ times the gas to submit the seed, check the condition of the parameter point associated with the seed, the gas to compute the hash and compare it with the target hash, and of course the gas to run the computation of the actual work.
+For our offline distributed verification method, let's assume that the parameter is valid, and now we consider the cost to verify the parameter and perform the actual work. %Let $m$ be the number of proofs required to ensure the correctness of the parameter. 
+Thus, the offline method costs the gas for submitting the parameter, the gas to store the parameter (or its hash), the gas to submit the seed, check the condition of the parameter point associated with the seed, the gas to compute the hash and compare it with the target hash, and of course the gas to run the computation of the actual work.
 
 
 \subsubsection{On-Chain Verification Method (\( G_{on} \))}
@@ -532,13 +581,13 @@ G_{on} = G_{parameter} + [G_{storage}] + n \cdot G_{check} + G_{run}
 \subsubsection{Offline Distributed Verification Method (\( G_{off} \))}
 
 \begin{equation}
-G_{off} = G_{parameter} + G_{storage} + m \cdot (G_{seed} + G_{check} + G_{hash}) + G_{run}
+G_{off} = G_{parameter} + G_{storage} +   (G_{seed} + G_{check} + G_{hash}) + G_{run}
 \end{equation}
 
 \begin{itemize}
     \item \( G_{parameter} \): Intrinsic gas for submitting the parameter.
     \item \( G_{storage} \): Gas for storing the parameter or its hash.
-    \item \( G_{seed} + G_{check} + G_{hash} \): Gas for each of the \( m \) seeds to:
+    \item \( G_{seed} + G_{check} + G_{hash} \): Gas for 
     \begin{itemize}
         \item Submit the seed (\( G_{seed} \)).
         \item Check the condition of the parameter point associated with the seed (\( G_{check} \)).
@@ -563,13 +612,13 @@ G_{off} = G_{parameter} + G_{storage} + m \cdot (G_{seed} + G_{check} + G_{hash}
 \paragraph*{Parameter Checking}
 \begin{itemize}
     \item In the on-chain method, the parameter check cost is \( n \cdot G_{check} \), where \( n \) is the size of the parameter.
-    \item In the offline method, this cost is \( m \cdot G_{check} \), where \( m \) is the number of seeds. Typically, \( m \) is significantly smaller than \( n \), as seeds represent a subset of checks.
+    \item In the offline method, this cost is \( G_{check} \).
 \end{itemize}
 
 \paragraph*{Additional Costs in the Offline Method}
 \begin{itemize}
-    \item The offline method includes \( m \cdot G_{seed} \) for submitting each seed.
-    \item It also includes \( m \cdot G_{hash} \) for computing and comparing hashes, which the on-chain method does not explicitly incur.
+    \item The offline method includes \(  G_{seed} \) for submitting each seed.
+    \item It also includes \(  G_{hash} \) for computing and comparing hashes, which the on-chain method does not explicitly incur.
 \end{itemize}
 
 \paragraph*{Computation Costs}
@@ -599,12 +648,12 @@ Let \( G_{base} \) be the sum of the gas costs for submitting the parameter, sto
 G_{base} = G_{parameter} + G_{storage} + G_{run}
 \]
 
-Let \( G_{m} \) be the sum of the gas costs to perform \( m \) times the parameter checkpoint:
+Since the centralize verification process only costs in term of gas and the distrbiuted process uses the proof of work incentive, we converts the reward in term of gas. Lets $G_{reward}$ be the gas, which is price for finding the proof. Let \( G_{proof} \) be the sum of the gas costs to perform and reward the  computation proof. 
 \[
-G_{m} = m \cdot (G_{seed} + G_{check} + G_{hash})
+G_{proof} = G_{seed} + G_{check} + G_{hash} + G_{reward} 
 \]
 
-In case the base gas does not contain the storage gas, then the \( G_m \) gas includes it.
+In case the base gas does not contain the storage gas, then the \( G_{proof} \) gas includes it.
 
 Figure \ref{fig:gas_compare} shows the gas consumption for both methods. The red line shows the gas consumed by the on-chain verification method, which increases linearly with the size of the parameter. The blue line shows the gas cost by the offline distributed method. We can see that in the beginning, when the size of the parameter is small, it costs more with the offline method than with the on-chain method, but at one point it will show its benefits.
 
@@ -621,7 +670,7 @@ Figure \ref{fig:gas_compare} shows the gas consumption for both methods. The red
         xtick={1,2,3,4,5,6,7,8},
         xticklabels={1,2,3,,,,n,},
         ytick={1,2,3,4,5,6,7,8},
-        yticklabels={$G_{base} + G_{check}$,$G_{base} + 2 \cdot G_{check}$, $G_{base} + 3 \cdot G_{check}$,,$G_{base}+ G_m$,,$G_{base} + n \cdot G_{check}$,},
+        yticklabels={$G_{base} + G_{check}$,$G_{base} + 2 \cdot G_{check}$, $G_{base} + 3 \cdot G_{check}$,,$G_{base}+ G_{proof}$,,$G_{base} + n \cdot G_{check}$,},
     ]
       \addplot[
         color=red,
@@ -692,7 +741,7 @@ Figure \ref{fig:gas_compare} shows the gas consumption for both methods. The red
 %   \caption{Gas comparation (non-storage)}
 %   \label{fig:gas_compare_nonstorage}
 % \end{figure}
-Overall, the offline method (\( G_{off} \)) is generally more cost-effective for large parameters as it reduces the number of on-chain checks from \( n \) to \( m \). However, the exact cost-effectiveness depends on the relative sizes of \( n \) and \( m \), the parameter storing gas, and the specific gas costs of \( G_{seed} \) and \( G_{hash} \).
+Overall, the offline method (\( G_{off} \)) is generally more cost-effective for large parameters as it reduces the number of on-chain checks from \( n \) to 1. However, the exact cost-effectiveness depends on the relative sizes of \( n \), the parameter storing gas, and the specific gas costs of \( G_{seed} \), \( G_{hash} \) and \( G_{reward} \).
 \section{Domain Specification Language for Assertion}
 \note{To discuss: if it make sense to design}
 \section{Converter - Generating an Assertion Contracts} 
