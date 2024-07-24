@@ -67,9 +67,9 @@
 \maketitle              % typeset the header of the contribution
 %
 \begin{abstract}
-In certain blockchain scenarios, verifying properties of a parameter requires significant gas costs or may even be infeasible due to gas limits. This study proposes a distributed assertion verification protocol to address this issue. The core idea is to distribute the negation of the assertion to validators, who then attempt to find a counterexample off-chain. If a counterexample is found, it can be submitted on-chain. Additionally, a proof-of-work-based incentive mechanism is proposed to encourage validators to participate in the distributed verification process.
+In certain blockchain scenarios, verifying properties of a parameter requires significant gas costs or may even be infeasible due to gas limits. This study proposes a distributed verification protocol to address this issue. The core idea is to distribute the negation of the assertion of a property to validators, who then attempt to find a counterexample off-chain. If a counterexample is found, it can be submitted and verified on-chain. Additionally, a proof-of-work-based incentive mechanism is proposed to encourage validators to participate in the distributed verification process.
 
-To operationalize these ideas, we suggest a practical model that addresses security concerns. We also implemented a prototype of the proposed protocol and conducted a cost analysis to demonstrate the advantages of our method in terms of cryptocurrency, proving its practical utility
+To operationalize these ideas, we suggest a practical model that addresses potential security concerns. We  implemented a prototype of the proposed protocol and conducted a cost analysis to demonstrate the advantages of our method in terms of cryptocurrency, proving its practical utility.
  \keywords{}
 \end{abstract}
 %
@@ -82,9 +82,10 @@ To operationalize these ideas, we suggest a practical model that addresses secur
 \label{sec:primaries}
 
 
-\section{Distributed Assertions Verification Process}
-\label{sec:approach}
+\section{Assertions Verification On-chain}
+\label{sec:assertion-verification-onchain}
 \subsection{Assertions verification problem}
+
 In the context of a domain $A$ and a predicate $P$ on $A$, an assertion is formalized using the universal quantifier as follows:
 \begin{gather}
   \label{eq:1}
@@ -98,8 +99,13 @@ This formula can be extended to multiple domains as:
 \forall a \in A, \forall b \in B, \dots .P_{a, b, \dots}
 \end{gather} 
 
-To verify these assertions, it requires iterating over the domain $A$ within the contract. When the domain $A$ is large or the predicate $P$ is complex to evaluate, it incurs a significant amount of gas to perform the verification process on-chain.  Given the current high gas prices, this could result in substantial costs or even impossible due to gas limits. 
 
+
+To verify these assertions, it requires iterating over the domain $A$ within the contract. When the domain $A$ is large or the predicate $P$ is complex to evaluate, it incurs a significant amount of gas to perform the verification process on-chain.  Given the current high gas prices, this could result in substantial costs or even impossible due to gas limits. 
+\subsection{Use Cases}
+
+\section{Distributed Assertions Verification}
+\label{sec:distributed-assertion-verification}
 \subsection{Distributed verification method}
 We propose a novel method for verifying parameter assertions in smart contracts on the blockchain. Our approach distributes the assertion verification process and moves it off-chain, with only the verification results being submitted to the blockchain.
 
@@ -127,7 +133,7 @@ Consequently, instead of verifying the entire assertion, the on-chain contract o
 
 %In this distributed process, each validator attempts to identify a counterexample to the assertion. Upon finding one, the validator submits the counterexample on-chain. Consequently, instead of verifying the entire assertion, the on-chain contract only needs to check specific points.
 
-If any of the validators identify a violation of an assertion, the final call to the actual work function is aborted. However, if certain requirements are met, the work function is invoked with the parameter.
+%If any of the validators identify a violation of an assertion, the final call to the actual work function is aborted. However, if certain requirements are met, the work function is invoked with the parameter.
  
 Considering the example where a parameter $p$ is a prime number, the assertion in predicate logic for the parameter is:
 \begin{gather}\label{eq:3a}
@@ -166,30 +172,32 @@ Each validator attempts to find the number $k$ such that the negation is true fo
 
 
 
-\section{Proof-of-work-based incentivization method}
+\subsection{Proof-of-work-based incentivization}
 Finding a counterexample is rewarded, incentivizing validators, but comes at the cost of computing resources. Instances of finding a counterexample may be rare, as callers typically avoid passing invalid parameters into the blockchain. If no counterexample emerges, the verification accuracy depends on the number of wisepoints generated to negate the assertion, with more validators increasing the certainty. 
 
 Encouraging validators to engage in the verification process even without discovering a counterexample is crucial. Therefore, it is necessary to incentivize this effort. %Moreover, it is logical to reward only a portion of the computational effort required. 
-However, to prioritize the discovery of counterexamples, the reward for finding a counterexample is set significantly higher than that for providing a computational proof.
+%However, to prioritize the discovery of counterexamples, the reward for finding a counterexample is set significantly higher than that for providing a computational proof.
 
 We propose a proof-of-work-based incentivization method in which validators are rewarded for discovering counterexamples, and some are rewarded for their computational efforts, thus encouraging participation in the distributed verification process.
-\subsection{Outlines}
-A significant concern arises regarding how to ensure that validators perform the verification computation off-chain, even when no counterexample is foundward.
+\subsubsection{Outlines}
+%We propose a proof-of-work-based method to incentivize participants in the distributed verification process. 
+A significant concern arises regarding how to recheck the counterexample and how to ensure that validators perform the verification computation off-chain in case no counterexample is found.
 
-We propose a proof-of-work-based method to incentivize participants in the distributed verification process.  The proposed approach is outlined as follows:
+The proposed proof-of-work-based incentivization method is outlined as follows:
 \begin{itemize}
-%\item There are two ways to reward validators to encourage their participation: to discover a counterexample, and to provide computational proof that they have executed the program to search for a counterexample, even if none is found.
-\item We utilize the proof-of-work concept by introducing a target hash $t$ that sets the required difficulty level to earn the computation reward. 
-\item The objective of the validator is to find a computation proof that smaller than or equal to the target hash $t$.
-\item The computation of the negation formula is integrated into the computational proof to ensure that the validators cannot produce the proof without executing a negation check.
+    \item The counterexample is submitted in the form of the indication of the element where the assertion is invalid.
+    \item To prioritize the discovery of counterexamples, the reward for finding a counterexample is set significantly higher than that for providing a computational proof.
+    \item We utilize the proof-of-work concept by introducing a target hash $t$ that sets the required difficulty level to earn the computation reward.
+    \item The objective of the validator is to find a counterexample or a computation proof that is smaller than or equal to the target hash $t$.
+    \item The computation of the negation formula is integrated into the computational proof to ensure that the validators cannot produce the proof without executing a negation check.
 \end{itemize}
 %Because the rewards may be limited in quantity, validators are motivated to swiftly verify the parameters to claim the reward before others do so. 
-\subsection{Computation proof}
+\subsubsection{Computation proof}
 The next question is how to devise a computational proof to incentivize computational effort. The key challenge is how to involve the negation check in the computational proof and how to reproduce the computational proof off-chain to on-chain with a reasonable gas cost. To address this, we introduce a seed $s$ in each verification process.
 
 Let \( n \) denote the size of the domain \( A \). Each number \( i \) in the range \([1, n]\) corresponds to an element in \( A \). The seed \( s \) is a random number, and we can reduce it modulo \( n \) to obtain \( i \), which is associated with an element \( a \) in \( A \).
 
-\paragraph{Estimate the number of seeds:} We first estimate the number of seeds needed to find a counterexample with a given expected probability. 
+\paragraph{Estimate the number of seeds:} We first estimate the number of seeds needed to find a counterexample with a given expected probability, assuming the worst case where only one validator participates.
 
 Let's assume the unsatisfied element is only at the first element $a_0$ in $A$, the size of the domain is $n$, and the number of seeds is $m$. Each seed independently has a probability of $1/n$ to detect the problem and a probability of $\frac{n-1}{n}$ not to detect the problem. Hence, if we assume that each seed associated with an element $a$ in $A$ is chosen independently from a uniform distribution, the probability that no seed checks the element $a_0$ converges to $0$ as the number of seeds approaches infinity:
 
@@ -462,7 +470,7 @@ When a parameter is submitted for verification, the following information should
 \item Verification Status Records: the records are to monitor the progress of the parameter's verification.
 \end{itemize}
 
-The verification status records a counterexample and reward computations found. For that, it should include the following details:
+In some applications, multiple computational proofs may be allowed. This record is crucial for determining when a work function can be invoked for a given parameter or when it should be discarded. The verification status records a counterexample and reward computations found. For that, it should include the following details:
 \begin{itemize}
     \item The addresses of the validators.
     \item The random number $r$ used in the verification process.
