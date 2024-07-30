@@ -1,0 +1,145 @@
+APLAS2024 Paper #18 Reviews and Comments
+===========================================================================
+Paper #18 A Formal Verification Framework for Tezos Smart Contracts Based
+on Symbolic Execution
+
+
+Review #18A
+===========================================================================
+
+Overall merit
+-------------
+3. Weak accept
+
+Reviewer expertise
+------------------
+2. Some familiarity
+
+Paper summary
+-------------
+The authors of the submission present a verification tool for Tezos smart contracts. The tool takes a Michelson code with user specifications, then checks whether the code satisfies the specifications and generates fail conditions.
+They implemented a symbolic execution model and a symbolic interpreter of Michelson programs for verification. Their system eliminates unnecessary states during symbolic execution using an SMT solver. This enables the system to verify properties of smart contracts with a large number of instructions.
+
+Comments for authors
+--------------------
+The submission is well-written and easy to follow, even though I am not very familiar with Tezos. The authors clearly explain the motivation and the design of their system.
+The authors conducted verification on some real-world, large smart contracts, which has not been done by an existing work, HELMHOLTZ.
+However, it is unclear to me how they deal with loops. 6.2 briefly explains how they handle the stack when iterating over a symbolic list, but there is no mention of path conditions. For programs with loops, there should be many cases in which verification does not succeed, so I think this part should be discussed in more detail.
+Also, the authors do not mention the limitations of their tool. As a non-expert of Tezos, I cannot tell if the case study on USDtz and Kolibri Oracle contract is enough to show the tool's effectiveness.
+Overall, I recommend the acceptance of this submission but weakly.
+
+Minor comments:
+
+- I could not find the Michelson codes of the USDtz and Kolibri Oracle contract, which are evaluated on the submission, on the internet. They seem to be embedded in the authors' code, but I just want to make sure that they are the actual implementations.
+
+- In the first paragraph of 4.1 (p9): "... do not contain a failwith STACK" -> I think you mean "failwith STATE".
+
+- The first rule on p16: I'm not sure but is [ITER, (hd,ty)::S,P] really correct? Maybe [I1, (hd,ty)::S,P]?
+
+- In the second paragraph of p16: "a function, sat f, -> "say f". Also, "fold" is not well typeset.
+
+
+
+Review #18B
+===========================================================================
+
+Overall merit
+-------------
+4. Accept
+
+Reviewer expertise
+------------------
+3. Knowledgeable
+
+Paper summary
+-------------
+This paper presents a symbolic execution-based verification framework for smart contracts compiled to run on the Michelson stack-based virtual machine.  This is a substantial project, so the paper necessarily summarises the working of the system, omitting many details.  For the most part, this gives enough information to be useful.  Therefore, I recommend acceptance of the paper.  However, some aspects of the project need more thorough coverage.
+
+Comments for authors
+--------------------
+I understand that the page limit greatly limits what you can cover, but I believe that, after covering the domain and the language, you need to discuss symbolic execution.  In particular, the concept of symbolic variables does not appear until page 10, and it is not explained there.  Nowhere did I see an explanation of how users specify which variables are symbolic and which are concrete.
+
+It would help to have an end-to-end example of usage of the tool, beginning with a simple smart contract implemented in some comfortable language, compiling it to Michelson, specifying the verification conditions (do users have to copy and paste the compiled Michelson code into their specification?), running the tool, and interpreting the results.
+
+On Page 4, you introduce the concept of "incomplete smart contracts", but without much explanation.  This needs to be clarified.
+
+Some of your rules use a long arrow with a superscript asterisk and subscript S, but this is not introduced or explained.
+
+Some of your notation in Section 6 is a bit confusing.  You use arrows for both function types and transitions, and the difference between the arrows is a bit subtle.  Perhaps you could use a double arrow for transitions to make the rules easier to read.  Perhaps I missed an earlier discussion, but I was surprised to see types being dynamically manipulated in the rules.  That should have been explained.
+
+You mention IF-LEFT and LOOP-LEFT, but never explain how they differ from IF and LOOP.  If you're not going to discuss them, it'd be better to just leave them out.
+
+On page 16, why do you write tl but not hd in angle brackets?  This is just left as a mystery.
+
+You talk about mitigating state explosion, but nowhere present any benchmark results to confirm that.  I'd like to see some information about performance.  Do you do anything besides eliminating states with an unsatisfiable path condition?
+
+Most grammar in the paper fine, but there are a number of jarring exceptions.   For example, in a few places, you talk about the "substract" or "subtract" of `x` and `y`.  On page 14, you write of data being more than 30 minutes or less than 30 minutes, when you mean "minutes old".  The whole paper could use a proper proofreading.
+
+The numbering of listings is a bit odd:  they're all called 1.something, regardless of which section they appear in.  Why not just give them natural numbers, as you do the figures?
+
+
+
+Review #18C
+===========================================================================
+
+Overall merit
+-------------
+2. Weak reject
+
+Reviewer expertise
+------------------
+2. Some familiarity
+
+Paper summary
+-------------
+The paper introduces SCV, a verifier tool for the programming language Michelson for smart contracts in the Tezon blockchain. SCV is based on symbolic execution, which estimates the reachable states of a given smart contract in Michelson. The estimated reachable states are then used to check: 1) if the smart contract produces an expected output (output check); 2) when the smart contract fails (fail condition generation); 3) if the state after executing the smart contract satisfies a given post-condition provided that the initial state satisfies a given pre-condition (property check); and 4) if an entry point can be invoked safely after finishing the invocation of another entry point (life-cycle check). The paper also examines the usefulness of SCV via two examples: USDtz and Kolibri contracts.
+
+Comments for authors
+--------------------
+I find the following strengths (S1-S3) and weaknesses (W1-W5) in the paper.
+
++ (S1) The paper provides a new verifier tool SCV, which utilizes symbolic execution to estimate reachable states and an SMT solver to check the desired properties hold under the reachable states. The experiment found in the paper demonstrates the scalability and practicality of SCV through the two practical examples.
+
++ (S2) SCV supports a variety of verification problems: output check, property check, fail condition generation, and life-cycle check. The first two are for verifying what happens if an expected input is given, and the third is for an unexpected input. The lift-cycle check is specific to smart contract verification because smart contracts may have several entry points and which entry point is invoked in which order is decided according to the life-cycle of a smart contract.
+
++ (S3) The implementation of SCV seems to be developed with a good combination
+  of the existing techniques (symbolic execution and an SMT-solver).
+
+- (W1) The paper claims that SCV addresses the problem of state explosion, but I cannot find how it is addressed (and how novel it is) in the paper.
+- (W2) There is no discussion about the soundness and completeness of SVC. (For example, is (relative) completeness lost?)
+
+- (W3) I am concerned about whether the lift-cycle check can verify sequential invocations of an unbounded number of entry points. For example, assume one wants to verify that the sequential invocation `%a -> %a -> %a -> ... -> %a` of an entry point `a` behaves correctly, but the specification only contains the entry point relation `%a -> %a`. Then, SVC estimates reachable states R1 in executing `%a` with the initial parameter `v0` and storage `stg0` described in the entire specification (as in Listing 1.3). Because each state in R1 is associated with the storage `stg1` in a reachable final state, symbolic execution is conducted for the second invocation of `%a` with the parameter `v0` and storage `stg1` and estimates reachable states R2. The verification finishes here since the specification only focuses on `%a -> %a`. However, the third invocation of `%a` should be done under some storage `stg2` in R2. Because `stg2` may not be contained in R1, it should not be guaranteed that the third invocation of `%a` behaves correctly. If one is interested only in a sequential invocation `%a -> %a -> ... -> %a` of a _bounded_ number of `a`, then it seems possible to verify it by giving the entry point relation `%a -> %a -> %a -> ... -> %a` in the specification. However, if one is interested in sequential invocations of an _unbounded_ number of `a`, it seems we have no means to require its verification in the specification. Because it should be unknown in general how many times entry points are invoked (e.g., how many times `%bid` is invoked in Fig 3 should not be known before deploying the auction contract), I suspect this might be a critical issue.
+
+- (W4) The comparison with the previous work seems insufficient. Specifically, the paper says "iContract [21] utilizes symbolic execution and pre- and post-conditions to specify user properties, but it targets the Solidity language" (page 17), but I think, if the difference is only the target language (Michelson versus Solidity) and there are no significant differences between them, the paper's contribution is weak.
+
+- (W5) The writing and presentation could be improved. Specifically, certain terminologies seem to be used without explanation (see below for details).
+
+Overall, I think the paper may be valuable as a tool paper, but several concerns need to be addressed for acceptance.
+
+Detailed comments:
+
+- p4, Figure 1: What values have the type operation? It would be helpful to give some example(s).
+- p4, "a complete smart contract": What are complete and incomplete contracts? How different are they?
+- p4, "converts the address e to a contract": It would be helpful to briefly explain (or point to a document that explains) the terminologies of smart contracts, such as balance, address, and amount.
+- p5, "there are two options of the syntax": It is confusing for me which is the first and which is the second. Please consider clarifying it.
+- p5, "The first option [is] similar"
+- p6, "Both closing and bidding operations fail": I think the role of `not (%close -> %bid)` and `not (%close -> %bid)` would be made clearer if the paper says "Both closing and bidding operations _must_ fail."
+- p7, "%a -> %b with p ... The following symbol -> indicates that from the entry point that satisfies the condition p, it is possible to call the entrypoint %b":
+  I do not think this description is correct. After reading Section 4.4, it seems that `%a -> %b with p` means "after invoking `%a`, then `%b` can be called if `p` holds."
+- p8, "The static checker then performs ... generation of all fail conditions."
+  I think this is the first place where fail condition generation occurs. So please explain what it is.
+- p9, Section 4.1: I am unsure what the output check does. What do you mean by "match" here? The output term matches with what? What do you mean by "the former case"? This section includes many things that confuse me.
+- p10, "a state $s_j$ with the path condition $\Theta_j$ is considered reachable if $\Theta_i \wedge p \wedge \Theta_j$ is satisfiable, and $\neg (\Theta_i \wedge p \rightarrow \Theta_j)$ is unsatisfiable.":
+  Why $\Theta_i \wedge p \wedge \Theta_j$ is considered here? I suspect the initial state should be satisfiable, but then $\Theta_i \wedge p$, not $\Theta_i \wedge p \wedge \Theta_j$, should be satisfiable because $\Theta_j$ is the post state.
+- p11, Listing 1.5: I am unsure how to read this interface.
+  - Does the interface "(address: name, (address: to, nat: value))" mean it is a pair of an address named "name" and a pair of an address named "to" and a natural number named "value"?
+  - What is the `view` function? Some explanation is found in the main text, but I cannot find its formal meaning.
+
+- p14, Section 6: Placing this section before the section for case studies helps me because I would like to understand the entire framework before seeing the case studies.
+- p14, "We address the changes required": Changes from what? What is considered before the changes?
+- p15: Please consider giving examples of one-step instructions.
+- p16: I'm confused by the presented rule for ITER. What do the instructions ITER I1 and ITER (which appears in the premise) mean? How is the case of the empty list addressed?
+- p16, "How do we deal with ITER if the list is a symbolic value?"  It is not clear what problem it considers. Is not s1 in the rule for ITER symbolic?
+- p16, "sat" --> "say"
+- p16, "S' = fold f S0 l": What and how is this definition unfolded?
+- p16, "MAP {I1} / l :: S -> (map f l) :: S": I cannot parse nor interpret this part.
