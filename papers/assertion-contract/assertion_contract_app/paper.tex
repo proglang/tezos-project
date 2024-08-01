@@ -26,6 +26,8 @@
 \usepackage{amsmath}
 \usetikzlibrary{shapes.geometric, arrows}
 \usepackage{comment}
+\usepackage{array}
+\usepackage{booktabs}
 
 \tikzstyle{startstop} = [rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black, fill=red!30]
 \tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30]
@@ -239,29 +241,6 @@ Solving for \( m \):
 \[
 m = \frac{\ln(1 - p)}{\ln\left(\frac{n-1}{n}\right)}
 \]
-
-%For example, given \( n = 10000 \) and \( p = 0.8 \), the number of seeds \( m \) needed to achieve the desired probability is calculated as follows:
-%\[
-%m = \frac{\ln(1 - 0.8)}{\ln\left(1 - \frac{1}{10000}\right)}
-%\]
-
-%\[
-%m = \frac{\ln(0.2)}{\ln\left(1 - 0.0001\right)}
-%\]
-
-%\[
-%m = \frac{-1.6094}{\ln(0.9999)}
-%\]
-
-%\[
-%m = \frac{-1.6094}{-0.0001}
-%\]
-
-%\[
-%m \approx 16094
-%\]
-
-%Therefore, approximately \( 16094 \) seeds are needed to have an \( 80\% \) chance of finding a counterexample.
 
 \paragraph{Set up the taget hash:}
 The above number of seed $m$ can then be used to set up the target hash $t$. The target hash $t$ can be calculated based on a desired difficulty level. In proof-of-work systems, difficulty is typically adjusted to ensure that the average efforts to find a valid hash. The target hash $t$ is often calculated by taking the maximum possible hash value and dividing it by the difficulty level:
@@ -643,7 +622,7 @@ G_{proof} = G_{seed} + G_{check} + G_{hash} + G_{reward}
 
 In case the base gas does not contain the storage gas, then the \( G_{proof} \) gas includes it.
 
-Figure \ref{fig:gas_compare} shows the gas consumption for both methods. The red line shows the gas consumed by the on-chain verification method, which increases linearly with the size of the parameter. The blue line shows the gas cost by the offline distributed method. We can see that in the beginning, when the size of the parameter is small, it costs more with the offline method than with the on-chain method, but at one point it will show its benefits.
+Figure \ref{fig:gas_compare} shows the gas consumption for both methods assuming that $G_{base}$ remains unchanged regardless of the parameter size. The red line shows the gas consumed by the on-chain verification method, which increases linearly with the size of the parameter. The blue line shows the gas cost by the offline distributed method. We can see that in the beginning, when the size of the parameter is small, it costs more with the offline method than with the on-chain method, but at one point it will show its benefits.
 
 \begin{figure}
   \centering
@@ -753,7 +732,91 @@ Overall, the offline method (\( G_{off} \)) is generally more cost-effective for
 \section{Converter - Generating an Assertion Contracts} 
 \note{To discuss: if it make sense to implement}
 \section{Prototype Implementations}
-\note{TODO}
+\subsection{Decentralize Selling Flatform}
+\subsubsection{On-chain verification}
+\subsubsection{Off-chain distributed verification}
+\subsubsection{Gas comperation}
+\begin{table}[h]
+\centering
+\caption{Gas Consumption Comparison}
+\begin{tabular}{c|>{\centering\arraybackslash}p{3cm}|>{\centering\arraybackslash}p{3cm}|c}
+\toprule
+Parameter Size & Line 1 Gas Consumption & Line 2 Gas Consumption & Difference \\
+\midrule
+05  &  504225   &  578196   &  -73971   \\
+10  &  903555   &  908838   &  -5283   \\
+20  &  1842037  &  1804283  &  37754  \\
+30  &  2797283  &  2733927  &  63356  \\
+50  &  4708543  &  4593215  &  115328 \\
+70  &  6714839  &  6545213  &  169626 \\
+100 &  9581470  &  9333977  &  247493 \\
+120 &  11492538 &  11193157 &  299381 \\
+150 &  14359469 &  13981933 &  377536 \\
+170 &  16270716 &  15841101 &  429615 \\
+200 &  19137934 &  18629877 &  508057 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{tikzpicture}
+\begin{axis}[
+    title={Gas Consumption Comparison},
+    xlabel={Parameter Size},
+    ylabel={Gas Consumption},
+    legend pos=north west,
+    grid=major,
+    width=10cm,
+    height=6cm
+]
+
+% Line 1 data
+\addplot[
+    color=blue,
+    mark=*,
+    ]
+    coordinates {
+    (5, 504225) (10, 903555) (20, 1842037) (30, 2797283) (50, 4708543) (70, 6714839) (100, 9581470) (120, 11492538) (150, 14359469) (170, 16270716) (200, 19137934)
+    };
+    \addlegendentry{Centralize}
+
+% Line 2 data
+\addplot[
+    color=red,
+    mark=square*,
+    ]
+    coordinates {
+    (5, 578196) (10, 908838) (20, 1804283) (30, 2733927) (50, 4593215) (70, 6545213) (100, 9333977) (120, 11193157) (150, 13981933) (170, 15841101) (200, 18629877)
+    };
+    \addlegendentry{Decentralize}
+
+\end{axis}
+\end{tikzpicture}
+
+
+\begin{tikzpicture}
+\begin{axis}[
+    title={Difference in Gas Consumption},
+    xlabel={Parameter Size},
+    ylabel={Difference in Gas Consumption},
+    legend pos=north west,
+    grid=major,
+    width=10cm,
+    height=6cm
+]
+
+% Difference data
+\addplot[
+    color=green,
+    mark=square*,
+    ]
+    coordinates {
+    (5, -73971) (10, -5283) (20, 37754) (30, 63356) (50, 115328) (70, 169626) (100, 247493) (120, 299381) (150, 377536) (170, 429615) (200, 508057)
+    };
+    \addlegendentry{Difference}
+
+\end{axis}
+\end{tikzpicture}
+
 \subsection{Sorted array}
 %There are two possible data structures for storing such records: map and array. For example, if we assume that a caller can submit only one parameter at a time, we can use a map that associates the caller's address with the parameter's hash and timestamp.
 %\begin{lstlisting}[numbers=none]
