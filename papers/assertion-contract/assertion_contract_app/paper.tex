@@ -28,7 +28,7 @@
 \usepackage{comment}
 \usepackage{array}
 \usepackage{booktabs}
-
+\usepackage{hyperref}
 \tikzstyle{startstop} = [rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black, fill=red!30]
 \tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30]
 \tikzstyle{decision} = [diamond, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=blue!30]
@@ -167,7 +167,7 @@ And for multiple domains, it is as follows:
 \label{eq:4}
 \neg \left( \bigwedge_{a \in A} \bigwedge_{b \in B} \dots P(a, b, \dots) \right) \equiv \exists a \in A, \exists b \in B, \dots . \neg P(a, b, \dots)
 \end{gather}
-Each validator endeavors to find a counterexample of the assertion using this negation. Specifically, each validator attempts to find a counterexample by identifying $a \in A$ such that the negation formula is satisfied $\neg P(a)$. When a counterexample is found, the validator submits it, which is then re-verified on-chain. 
+Validators endeavor to find counterexamples of the assertion using this negation. Specifically, each validator attempts to find a counterexample by identifying $a \in A$ such that the negation formula is satisfied $\neg P(a)$. When a counterexample is found, the validator submits it, which is then re-verified on-chain. 
 
 The assertions are checked off-chain, and only the results of these checks (whether any assertion was violated) are submitted to the blockchain. This reduces the computational load on the blockchain while ensuring the integrity of the contract.
 
@@ -200,7 +200,7 @@ The next question is how to devise a computational proof to incentivize computat
 
 Let \( n \) denote the size of the domain \( A \). Each number \( i \) in the range \([1, n]\) corresponds to an element in \( A \). The seed \( s \) is a random number, and we can reduce it modulo \( n \) to obtain \( i \), which is associated with an element \( a \) in \( A \).
 
-\paragraph{Estimate the number of seeds:} We first estimate the number of seeds needed to find a counterexample with a given expected probability, assuming the worst case where only one validator participates.
+\paragraph{Estimate the number of seeds:} We first estimate the number of seeds needed to find a counterexample with a given expected probability. %, assuming the worst case where only one validator participates.
 
 Let's assume the unsatisfied element is only at the first element $a_0$ in $A$, and the number of seeds is $m$. Each seed independently has a probability of $1/n$ to detect the problem and a probability of $\frac{n-1}{n}$ not to detect the problem. Hence, if we assume that each seed associated with an element $a$ in $A$ is chosen independently from a uniform distribution, the probability that no seed checks the element $a_0$ converges to $0$ as the number of seeds approaches infinity:
 
@@ -276,19 +276,25 @@ Thus, the computation hash includes the seed  \( s \) and \(\text{eval}\).
 \begin{align}
 t_s = \text{hash}(s, \text{eval}(\neg P(a)))
 \end{align}
-\paragraph{Find a seed:}
-The sequence of operations to find a seed can be described by the following steps:
-\begin{enumerate}
-\item Generate a random seed $s$: 
+\paragraph{On-chain re-verification:}
+Given a submitted seed $s$: 
 \begin{align}
 s \in \mathbb{N} 
 \end{align}
 where $s$ is a random natural number.
+
+The on-chain contract will recompute to determine whether the submitted seed produces a counterexample, qualifies for a computation reward, or does not qualify for a reward. The rechecking process is as follows:
+\begin{enumerate}
 \item Calculate $n$ as the size of the domain $A$: 
 \begin{align}
 n = |A|
 \end{align}
 where $\mid A \mid$ denotes the number of elements in the domain $A$.
+%\item Generate a random seed $s$: 
+%\begin{align}
+%s \in \mathbb{N} 
+%\end{align}
+%where $s$ is a random natural number.
 \item Determine $i \in [1, n]$ using the modulo operation:
 \begin{align}
 i = (s \mod n) + 1
@@ -303,7 +309,11 @@ where $A[i]$ denotes the $i$-th element in $A$.
 \item If no counterexample is found, calculate the hash \( t_s \) corresponding to the seed \( s \).
 \item Compare \( t_s \) to the target hash to determin whether it is a reward computation.
 \end{enumerate}
+\paragraph{Find a seed:}
+The sequence of operations to find a seed can be described in Fig. \ref{fig:find_seed}.
 
+\begin{figure}
+    \centering
 \begin{tikzpicture}[node distance=2cm]
 
     % Nodes
@@ -332,6 +342,9 @@ where $A[i]$ denotes the $i$-th element in $A$.
 
 
 \end{tikzpicture}
+\caption{Finding a reward seed.}
+\label{fig:find_seed}
+\end{figure}
 
 %Consequently, each seed $s$ is linked with an element $a$ in the domain $A$, followed by the evaluation of the negation of the assertion $\neg P_{a}$. 
 
@@ -381,6 +394,26 @@ This section presents a practical model that unifies theoretical principles and 
 \caption{The architecture of the practical model}
 \label{fig.architect}
 \end{figure}
+\subsubsection{On-chain assertion contract.}
+While additional functions may exist, the assertion contract must encompass the following two essential functions:
+\begin{itemize}
+\item The \lstinline|submit_parameter| function: Callers utilize this function to submit their parameters for validation. Subsequently, the parameter is distributedly verified by validators.
+\item  The \lstinline|claim_reward| function: This function accepts a parameter and a seed as inputs, yielding a result indicating whether the computation from the seed results in a counterexample, a reward computation, or a non-reward computation.
+\end{itemize}
+\subsubsection{Off-chain assertion contract.}
+Since the off-chain contract runs off-chain, it can be implemented according to the validator's preferences. However, the crucial point is that the off-chain contract must use the exact same \lstinline|claim_reward| function when attempting to find a counterexample or a computation proof. Additionally, it should support a function that assists the validator in finding a seed to earn a reward.
+\subsubsection{Storage.}
+When a parameter is submitted for verification, the following information should be stored:
+\begin{itemize}
+\item Parameter: this includes the parameter itself. In cases where storing the parameter on-chain is impractical because of its size, it could be possible to store only its hash. Despite this, the hash remains sufficient for validation.
+%\item Caller Address: This identifies the address of the caller who submitted the parameter. It serves purposes such as tracking submissions, preventing callers from resubmitting parameters, or preventing callers from claiming rewards for their own submitted parameters.
+\item Timestamp: this indicates the approximate time when the parameter was submitted. This information is used to prevent caller exploitation security risks as explained above.
+\end{itemize}
+
+In some applications, multiple computational proofs may be allowed. There are a record to monitor the progress of the parameter's verification. This record is crucial for determining when a work function can be invoked for a given parameter or when it should be discarded. The verification status records a counterexample and reward computations found. For that, it should include the following details of the addresses of the validators and the random number $r$ used in the verification process.
+
+
+
 \subsubsection{Calculate seed.}
 While a random number alone is sufficient to indicate the associated element $a$ in the domain $A$, to prevent the front-running attack and the caller exploitation attack, we enhance the randomness of the seed by combining a random number with the validator's address and the timestamps indicating when the parameter is submitted on the chain to calculate the seed. In deeds, the validator's address and timestamps are converted to numerical values and use these numbers in combination with a random number to compute the seed. This combination adds an extra level of security. 
 \begin{enumerate}
@@ -430,23 +463,6 @@ where:
     \item $\pi_{P_{a}}$ is the set of expressions used in the computation of the predicate $P_a$.
     \item \text{hash} is the hash function that computes the hash based on the seed and the set of expressions $\pi_{P_{a}}$.
 \end{itemize}
-\subsubsection{On-chain assertion contract.}
-While additional functions may exist, the assertion contract must encompass the following two essential functions:
-\begin{itemize}
-\item The \lstinline|submit_parameter| function: Callers utilize this function to submit their parameters for validation. Subsequently, the parameter is distributedly verified by validators.
-\item  The \lstinline|claim_reward| function: This function accepts a parameter and a seed as inputs, yielding a result indicating whether the computation from the seed results in a counterexample, a reward computation, or a non-reward computation.
-\end{itemize}
-\subsubsection{Off-chain assertion contract.}
-Since the off-chain contract runs off-chain, it can be implemented according to the validator's preferences. However, the crucial point is that the off-chain contract must use the exact same \lstinline|claim_reward| function when attempting to find a counterexample or a computation proof. Additionally, it should support a function that assists the validator in finding a seed to earn a reward.
-\subsubsection{Storage.}
-When a parameter is submitted for verification, the following information should be stored:
-\begin{itemize}
-\item Parameter: this includes the parameter itself. In cases where storing the parameter on-chain is impractical because of its size, it could be possible to store only its hash. Despite this, the hash remains sufficient for validation.
-%\item Caller Address: This identifies the address of the caller who submitted the parameter. It serves purposes such as tracking submissions, preventing callers from resubmitting parameters, or preventing callers from claiming rewards for their own submitted parameters.
-\item Timestamp: this indicates the approximate time when the parameter was submitted. This information is used to prevent caller exploitation security risks as explained above.
-\end{itemize}
-
-In some applications, multiple computational proofs may be allowed. There are a record to monitor the progress of the parameter's verification. This record is crucial for determining when a work function can be invoked for a given parameter or when it should be discarded. The verification status records a counterexample and reward computations found. For that, it should include the following details of the addresses of the validators and the random number $r$ used in the verification process.
 
 %In some applications, multiple computational proofs may be allowed. This record is crucial for determining when a work function can be invoked for a given parameter or when it should be discarded. 
 
@@ -727,21 +743,214 @@ Figure \ref{fig:gas_compare} shows the gas consumption for both methods assuming
 \end{itemize}
 
 Overall, the offline method (\( G_{off} \)) is generally more cost-effective for large parameters as it reduces the number of on-chain checks. However, the exact cost-effectiveness depends on the relative sizes of \( n \), the parameter storing gas, and the specific gas costs of \( G_{seed} \), \( G_{hash} \) and \( G_{reward} \).
-\section{Domain Specification Language for Assertion}
-\note{To discuss: if it make sense to design}
-\section{Converter - Generating an Assertion Contracts} 
-\note{To discuss: if it make sense to implement}
+%\section{Domain Specification Language for Assertion}
+%\note{To discuss: if it make sense to design}
+%\section{Converter - Generating an Assertion Contracts} 
+%\note{To discuss: if it make sense to implement}
 \section{Prototype Implementations}
 \subsection{Decentralize Selling Flatform}
+The Decentralized Selling Platform contract is a decentralized application that allows users to create their own selling platforms, list items for sale, and facilitate transactions between buyers and sellers.
+
+The \texttt{DecentralizedSellingPlatform} contract provides a structured way for users to manage and trade items in a decentralized manner. Sellers can create platforms, list items, and set prices, while buyers can purchase items directly from these platforms. %The use of custom errors and events helps in efficient gas usage and provides transparency and traceability for transactions and updates within the platform.
+
+Each seller owns a selling flatform, which includes a list of items. Each item includes:
+\begin{itemize}
+    \item \texttt{name}: The name of the item.
+    \item \texttt{forSale}: A boolean indicating whether the item is available for sale.
+    \item \texttt{price}: The price of the item in wei.
+    \item \texttt{owner}: The address of the item's owner.
+\end{itemize}
+
+\texttt{sellingPlatform} maps each seller's address to an array of their items.
+
+The contract contains the following main functions for selling and buying items from a flatform:
+
+\begin{itemize}
+ \item \texttt{createSellingPlatform(Item[] memory \_items)}:
+Allows users to create a selling platform if they pay the minimum fee and the items are sorted.
+
+ \item \texttt{buyItem(address \_sellerAddress, string memory \_name)}:
+Allows users to buy an item if it is for sale and they pay the required price. Transfers ownership and funds appropriately.
+
+ \item \texttt{addNewItem(Item calldata \_item)}:
+Allows sellers to add a new item to their platform, ensuring it doesn't already exist and is inserted in the correct order.
+
+ \item \texttt{setForSale(address \_sellerAddress, string memory \_name, bool \_forSale)}:
+Allows item owners to update the for sale status of their items.
+ \item \texttt{setPrice(address \_sellerAddress, string memory \_name, uint \_price)}:
+Allows item owners to update the price of their items.
+\item \texttt{listSellingItems(address sellerAddress)}:
+Lists all items from a seller's platform.
+\end{itemize}
+
+The most important assertion of the contract is that the list of items have to be sorted by the item name when a seller want to create their selling flatform. All of other function workd with the assumiion that the list is sorted. So if the list is not sorted all these functions are failed on operating.´
 \subsubsection{On-chain verification}
+We first implement the contract with the on-chain verification. Then we need to define a function to check if a list of item is sorted by their name. 
+
+Namely, the function \texttt{isSorted(Item[] memory \_items)} checks if an array of items is sorted by name. This function basicly iter over the list to check if all the elents is at the plates.
+
+\begin{lstlisting}[numbers=none]
+   function isSorted(Item[] memory _items) internal pure returns (bool) {
+        for (uint256 i = 1; i < _items.length; i++) {
+            if (compareStrings(_items[i - 1].name, _items[i].name) == 1) {
+                return false;
+            }
+        }
+        return true;
+    }
+\end{lstlisting}
+
+The function \texttt{createSellingPlatform(Item[] memory \_items)}  then calls this function to grantee that the list is sorted before create the flatform.
+\begin{lstlisting}[numbers=none]
+
+     if (!isSorted(_items)) revert ListItemIsNotSorted();
+\end{lstlisting}    
+ Below is a detailed description of its functionality and components:
+
+\paragraph{Data Structures}
+\begin{itemize}
+\item Item Structure
+
+
+\item sellingPlatform maps each seller's address to an array of their items.
+\begin{itemize}
+    \item Maps each seller's address to an array of their items.
+\end{itemize}
+\end{itemize}
+\paragraph{Errors}
+
+The contract defines several custom errors to handle specific conditions efficiently, reducing gas usage compared to using \texttt{require} with error strings:
+\begin{itemize}
+    \item \texttt{ListItemIsNotSorted}: The list of items is not sorted by name.
+    \item \texttt{NotItemOwner}: Thrown when the caller is not the owner of the item.
+    \item \texttt{NotForSale}: The item is not for sale.
+    \item \texttt{InsufficientAmount}: The sent amount is less than the item's price.
+    \item \texttt{NotExistingItem}: The item does not exist.
+    \item \texttt{ItemAlreadyExists}: The item already exists.
+    \item \texttt{InvalidItemData}: The item data is invalid.
+    \item \texttt{NotEnoughFee}: The amount is less than the minimum fee.
+\end{itemize}
+
+\paragraph{Events}
+
+The contract defines several events to log important actions:
+\begin{itemize}
+    \item \texttt{ItemAdded}: A new item is added.
+    \item \texttt{ItemBought}: An item is bought.
+    \item \texttt{ItemForSaleUpdated}: An item's for sale status is updated.
+    \item \texttt{ItemPriceUpdated}: An item's price is updated.
+\end{itemize}
+
+\paragraph{State Variables}
+
+\begin{itemize}
+    \item \texttt{minimum\_fee}: The minimum fee required to create a selling platform.
+    \item \texttt{owner}: The address of the contract owner.
+\end{itemize}
+
+\paragraph{Constructor}
+
+Initializes the contract, setting the owner and the initial minimum fee.
+
+\paragraph{Modifiers}
+
+\begin{itemize}
+    \item \texttt{onlyOwner}: Ensures that only the contract owner can execute certain functions.
+\end{itemize}
+
+\paragraph{Functions}
+
+\begin{itemize}
+ \item \texttt{setFee(uint256 \_minimum\_fee)}: Allows the owner to set the minimum fee for creating a selling platform.
+
+ \item \texttt{compareStrings(string memory a, string memory b)}:
+Compares two strings lexicographically.
+
+ \item  \texttt{isSorted(Item[] memory \_items)}:
+Checks if an array of items is sorted by name.
+
+ \item \texttt{createSellingPlatform(Item[] memory \_items)}:
+Allows users to create a selling platform if they pay the minimum fee and the items are sorted.
+
+ \item \texttt{buyItem(address \_sellerAddress, string memory \_name)}:
+Allows users to buy an item if it is for sale and they pay the required price. Transfers ownership and funds appropriately.
+
+ \item \texttt{addNewItem(Item calldata \_item)}:
+Allows sellers to add a new item to their platform, ensuring it doesn't already exist and is inserted in the correct order.
+
+ \item \texttt{setForSale(address \_sellerAddress, string memory \_name, bool \_forSale)}:
+Allows item owners to update the for sale status of their items.
+ \item \texttt{setPrice(address \_sellerAddress, string memory \_name, uint \_price)}:
+Allows item owners to update the price of their items.
+\item \texttt{listSellingItems(address sellerAddress)}:
+Lists all items from a seller's platform.
+\end{itemize}
+
+
+
 \subsubsection{Off-chain distributed verification}
+\subsection{DecentralizedSellingPlatform Smart Contract}
+
+The Solidity smart contract, \texttt{DecentralizedSellingPlatform}, extends an imported \texttt{SellingPlatform} contract. It facilitates decentralized item trading with various features such as adding, buying, and listing items, as well as parameter submission for distributed verification. Below is an overview of its components and functionality:
+
+\subsubsection{State Variables}
+\begin{itemize}
+    \item \texttt{HASH\_MAX}: A constant representing the maximum possible value for a 256-bit integer.
+    \item \texttt{probability}, \texttt{minimumDeposit}, \texttt{rewardPrice}, \texttt{counterexamplePrice}: Variables related to the verification and reward mechanism.
+    \item \texttt{owner}: The address of the contract owner.
+\end{itemize}
+
+\subsubsection{Constructor}
+Initializes the contract by setting the owner to the deployer and setting default values for probability and minimum deposit.
+
+\subsubsection{Modifiers}
+\begin{itemize}
+    \item \texttt{onlyOwner}: Ensures that only the contract owner can execute certain functions.
+    \item \texttt{onlyVerified}: Ensures the caller is verified.
+    \item \texttt{notVerified}: Ensures the caller is not verified.
+\end{itemize}
+
+\subsubsection{Custom Errors}
+Various custom errors like \texttt{NotItemOwner}, \texttt{NotForSale}, \texttt{InsufficientAmount}, etc., to handle specific failure cases.
+
+\subsubsection{Events}
+\begin{itemize}
+    \item \texttt{ParameterSubmitted}, \texttt{ItemAdded}, \texttt{ItemBought}, \texttt{ItemForSaleUpdated}, \texttt{ItemPriceUpdated}, \texttt{ProofVerified}: These events are emitted during corresponding actions within the contract.
+\end{itemize}
+
+\subsubsection{Core Functions}
+\begin{itemize}
+    \item \texttt{setProbability}: Allows the owner to set the probability value.
+    \item \texttt{setFee}: Allows the owner to set the minimum deposit, reward price, and counterexample price.
+    \item \texttt{calculateTargetHash}, \texttt{calculateM}, \texttt{ln}: Internal functions to calculate target hashes and other related computations for verification.
+    \item \texttt{submitParameter}: Allows sellers to submit their items for verification, ensuring a deposit is made.
+    \item \texttt{claimReward}: Allows validators to claim rewards if they find a proof or counterexample during verification.
+    \item \texttt{buyItem}: Allows a verified buyer to purchase an item from a seller.
+    \item \texttt{addNewItem}: Allows verified sellers to add new items to their selling platform.
+    \item \texttt{setForSale}: Allows item owners to set the sale status of their items.
+    \item \texttt{setPrice}: Allows item owners to set the price of their items.
+    \item \texttt{listSellingItems}: Returns the list of items a seller has listed for sale.
+\end{itemize}
+
+\subsubsection{Verification Process}
+\begin{itemize}
+    \item \texttt{submitParameter}: Sellers submit items for verification.
+    \item \texttt{claimReward}: Validators can claim rewards based on the verification result. If a counterexample is found, the seller's platform is reset and the validator is rewarded. If the proof is valid, the seller's platform is marked as verified.
+\end{itemize}
+
+\subsubsection{Error Handling}
+Various custom errors ensure specific and clear error messages are thrown for different failure cases, enhancing the contract's robustness.
+
+\subsubsection{Summary}
+The \texttt{DecentralizedSellingPlatform} contract provides a comprehensive framework for decentralized item trading with built-in verification and reward mechanisms, ensuring secure and fair transactions between sellers and buyers.
+
 \subsubsection{Gas comperation}
 \begin{table}[h]
 \centering
 \caption{Gas Consumption Comparison}
 \begin{tabular}{c|>{\centering\arraybackslash}p{3cm}|>{\centering\arraybackslash}p{3cm}|c}
 \toprule
-Parameter Size & Line 1 Gas Consumption & Line 2 Gas Consumption & Difference \\
+Parameter Size & On-chain & Off-chain & Gas save \\
 \midrule
 05  &  504225   &  578196   &  -73971   \\
 10  &  903555   &  908838   &  -5283   \\
@@ -777,7 +986,7 @@ Parameter Size & Line 1 Gas Consumption & Line 2 Gas Consumption & Difference \\
     coordinates {
     (5, 504225) (10, 903555) (20, 1842037) (30, 2797283) (50, 4708543) (70, 6714839) (100, 9581470) (120, 11492538) (150, 14359469) (170, 16270716) (200, 19137934)
     };
-    \addlegendentry{Centralize}
+    \addlegendentry{On-chain}
 
 % Line 2 data
 \addplot[
@@ -787,7 +996,7 @@ Parameter Size & Line 1 Gas Consumption & Line 2 Gas Consumption & Difference \\
     coordinates {
     (5, 578196) (10, 908838) (20, 1804283) (30, 2733927) (50, 4593215) (70, 6545213) (100, 9333977) (120, 11193157) (150, 13981933) (170, 15841101) (200, 18629877)
     };
-    \addlegendentry{Decentralize}
+    \addlegendentry{Off-chain}
 
 \end{axis}
 \end{tikzpicture}
@@ -795,9 +1004,9 @@ Parameter Size & Line 1 Gas Consumption & Line 2 Gas Consumption & Difference \\
 
 \begin{tikzpicture}
 \begin{axis}[
-    title={Difference in Gas Consumption},
+    title={Amount of Gas Save for off-chain to on-chain },
     xlabel={Parameter Size},
-    ylabel={Difference in Gas Consumption},
+    ylabel={Gas Save},
     legend pos=north west,
     grid=major,
     width=10cm,
@@ -812,11 +1021,11 @@ Parameter Size & Line 1 Gas Consumption & Line 2 Gas Consumption & Difference \\
     coordinates {
     (5, -73971) (10, -5283) (20, 37754) (30, 63356) (50, 115328) (70, 169626) (100, 247493) (120, 299381) (150, 377536) (170, 429615) (200, 508057)
     };
-    \addlegendentry{Difference}
+    \addlegendentry{Off-chain}
 
 \end{axis}
 \end{tikzpicture}
-
+\begin{comment}
 \subsection{Sorted array}
 %There are two possible data structures for storing such records: map and array. For example, if we assume that a caller can submit only one parameter at a time, we can use a map that associates the caller's address with the parameter's hash and timestamp.
 %\begin{lstlisting}[numbers=none]
@@ -992,19 +1201,476 @@ The condition is checked first to detect the counterexample. If not, the hash is
 
 
 \section{Cost Analysis}
+\end{comment}
 
 \section{Related work}
 \section{Conclusion}
+\section{Appendix}
+\begin{lstlisting}[numbers=none]
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.8;
 
+contract DecentralizedSellingPlatform {
+    // Structure to represent an item
+    struct Item {
+        string name;
+        bool forSale;
+        uint256 price;
+        address payable owner;
+    }
+
+    // Mapping to keep track of selling platforms for each seller
+    mapping(address => Item[]) public sellingPlatform;
+
+    // Error declarations
+    error ListItemIsNotSorted(); // When the item list is not sorted by item name
+    error NotItemOwner(); // When the caller is not the owner of the item
+    error NotForSale(); // When the item is not for sale
+    error InsufficientAmount(); // When the sent amount is less than the item price
+    error NotExistingItem(); // When the item does not exist
+    error ItemAlreadyExists(); // When the item already exists
+    error InvalidItemData(); // When the item data is invalid
+    error NotEnoughFee(); // When the deposit is less than expected
+
+    // Event declarations
+    event ItemAdded(address indexed seller, string name, uint256 price);
+    event ItemBought(address indexed buyer, address indexed seller, string name, uint256 price);
+    event ItemForSaleUpdated(address indexed seller, string name, bool forSale);
+    event ItemPriceUpdated(address indexed seller, string name, uint256 price);
+
+    uint256 public minimum_fee;
+    address public owner;
+
+    // Constructor to set the contract owner and initial minimum fee
+    constructor(uint256 _minimum_fee) {
+        owner = msg.sender;
+        minimum_fee = _minimum_fee;
+    }
+
+    // Modifier to restrict access to owner-only functions
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Caller is not the owner");
+        _;
+    }
+
+    // Function to set the minimum fee for creating a selling platform
+    function setFee(uint256 _minimum_fee) public onlyOwner {
+        minimum_fee = _minimum_fee;
+    }
+
+    // Function to compare two strings lexicographically
+    function compareStrings(string memory a, string memory b) internal pure returns (int) {
+        bytes memory bytesA = bytes(a);
+        bytes memory bytesB = bytes(b);
+        uint minLength = bytesA.length;
+        if (bytesB.length < minLength) {
+            minLength = bytesB.length;
+        }
+
+        for (uint i = 0; i < minLength; i++) {
+            if (bytesA[i] < bytesB[i]) {
+                return -1;
+            } else if (bytesA[i] > bytesB[i]) {
+                return 1;
+            }
+        }
+
+        if (bytesA.length < bytesB.length) {
+            return -1;
+        } else if (bytesA.length > bytesB.length) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+    // Internal function to check if an array of items is sorted by item name
+    function isSorted(Item[] memory _items) internal pure returns (bool) {
+        for (uint256 i = 1; i < _items.length; i++) {
+            if (compareStrings(_items[i - 1].name, _items[i].name) == 1) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Function to create a selling platform with a list of items
+    function createSellingPlatform(Item[] memory _items) public payable {
+        if (msg.value < minimum_fee) revert NotEnoughFee();
+        if (!isSorted(_items)) revert ListItemIsNotSorted();
+        for (uint i = 0; i < _items.length; i++) {
+            sellingPlatform[msg.sender].push(_items[i]);
+        }
+    }
+
+    // Function to buy an item from a seller's platform using the item name
+    function buyItem(address _sellerAddress, string memory _name) public payable {
+        Item[] storage items = sellingPlatform[_sellerAddress];
+        for (uint256 i = 0; i < items.length; i++) {
+            if (compareStrings(items[i].name, _name) == 0) {
+                if (!items[i].forSale) revert NotForSale();
+                if (msg.value < items[i].price) revert InsufficientAmount();
+                address payable oldOwner = items[i].owner;
+                items[i].owner = payable(msg.sender);
+                items[i].forSale = false;
+                oldOwner.transfer(msg.value);
+                emit ItemBought(msg.sender, _sellerAddress, _name, items[i].price);
+                return;
+            }
+        }
+        revert NotExistingItem();
+    }
+
+    // Function to add a new item to the seller's platform
+    function addNewItem(Item calldata _item) public {
+        if (bytes(_item.name).length <= 0 || _item.price < 0) {revert InvalidItemData();}
+        Item[] storage items = sellingPlatform[msg.sender];
+        uint256 i = 0;
+
+        // Find the correct insertion point
+        while (i < items.length && compareStrings(_item.name, items[i].name) > 0) {
+            i++;
+        }
+
+        // Ensure the item doesn't already exist
+        if (i < items.length && compareStrings(_item.name, items[i].name) == 0) {
+            revert ItemAlreadyExists();
+        }
+
+        // Shift items to the right to make space for the new item
+        items.push();
+        for (uint256 j = items.length - 1; j > i; j--) {
+            items[j] = items[j - 1];
+        }
+
+        // Insert the new item
+        items[i] = _item;
+        emit ItemAdded(msg.sender, _item.name, _item.price);
+    }
+
+    // Function to set the for sale status of an item by the item owner
+    function setForSale(address _sellerAddress, string memory _name, bool _forSale) public {
+        Item[] storage items = sellingPlatform[_sellerAddress];
+        uint256 i = 0;
+        while (i < items.length && compareStrings(_name, items[i].name) > 0) {
+            i++;
+        }
+        if (i >= items.length || compareStrings(_name, items[i].name) != 0) revert NotExistingItem();
+        if (items[i].owner != msg.sender) revert NotItemOwner();
+        items[i].forSale = _forSale;
+        emit ItemForSaleUpdated(_sellerAddress, _name, _forSale);
+    }
+
+    // Function to set the price of an item by the item owner
+    function setPrice(address _sellerAddress, string memory _name, uint _price) public {
+        Item[] storage items = sellingPlatform[_sellerAddress];
+        uint256 i = 0;
+        while (i < items.length && compareStrings(_name, items[i].name) > 0) {
+            i++;
+        }
+        if (i >= items.length || compareStrings(_name, items[i].name) != 0) revert NotExistingItem();
+        if (items[i].owner != msg.sender) revert NotItemOwner();
+        items[i].price = _price;
+        emit ItemPriceUpdated(_sellerAddress, _name, _price);
+    }
+
+    // Function to list all items from a seller's platform
+    function listSellingItems(address sellerAddress) public view returns (Item[] memory) {
+        return sellingPlatform[sellerAddress];
+    }
+}
+
+\end{lstlisting}
+
+\begin{lstlisting}[numbers=none]
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.8;
+
+contract SellingPlatform {
+  
+    // Structure to represent an item
+    struct Item {
+        string name;
+        bool forSale;
+        uint256 price;
+        address payable owner;
+    }
+
+    // Structure to represent a parameter, including a list of items, a timestamp, and a verification status
+    struct Parameter {
+        Item[] items;
+        uint timestamp;
+        bool verified;
+    }
+
+    // Mapping to store the selling platform data for each address
+    mapping(address => Parameter) public sellingPlatform;
+
+    enum ProofResult {NonReward, Reward, Counterexample}
+
+    // Function to compare two strings lexicographically
+    function compareStrings(string memory a, string memory b) public pure returns (int) {
+        bytes memory bytesA = bytes(a);
+        bytes memory bytesB = bytes(b);
+        uint minLength = bytesA.length;
+        if (bytesB.length < minLength) {
+            minLength = bytesB.length;
+        }
+
+        for (uint i = 0; i < minLength; i++) {
+            if (bytesA[i] < bytesB[i]) {
+                return -1;
+            } else if (bytesA[i] > bytesB[i]) {
+                return 1;
+            }
+        }
+
+        if (bytesA.length < bytesB.length) {
+            return -1;
+        } else if (bytesA.length > bytesB.length) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+    // Function to verify a proof and return a status code
+    // Returns:
+    // 0 if it is a non-reward computational proof,
+    // 1 if it is a reward computation proof,
+    // 2 if it is a counterexample.
+    function verify_proof(
+        Item[] memory _items,
+        uint _seed,
+        address _validator,
+        uint _timestamp,
+        uint _target
+    ) internal pure returns (ProofResult) {
+        uint n = _items.length - 1; 
+        uint addrToNumber = uint160(_validator);
+        uint i = (_seed + addrToNumber + _timestamp) % n;
+
+        int c = compareStrings(_items[i].name, _items[i + 1].name);
+        if (c == 0)  {
+            return ProofResult.Counterexample;
+        } else {
+            uint current_hash = uint(
+                keccak256(abi.encodePacked(_seed, _validator, _timestamp, _items[i].name, _items[i + 1].name))
+            );
+            if (current_hash <= _target) {
+                return ProofResult.Reward;
+            }
+        }
+        return ProofResult.NonReward;        
+    }   
+}
+
+\end{lstlisting}
+
+\begin{lstlisting}[numbers=none]
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.8;
+
+import "./SellingPlatform.sol";
+
+contract DecentralizedSellingPlatform is SellingPlatform {
+    // Custom errors
+    error NotItemOwner(); // When the caller is not the owner of the item
+    error NotForSale(); // When the item is not for sale
+    error InsufficientAmount(); // When the sent amount is less than the item price
+    error NotExistingItem(); // When the item does not exist
+    error ItemAlreadyExists(); // When the item already exists
+    error InvalidItemData(); // When the item data is invalid
+    error NotEnoughDeposit(); // When the deposit is less than expected
+    error AlreadyVerified(); // When the parameter is already verified
+    error NotVerified(); // When the parameter has not yet been verified
+    error NotOwner(); // When the sender is not the owner of the contract
+    error InvalidProbability(); // When a probability is invalid
+    error NotReasonableFee(); //When the fee is set up not reasonale
+    // Event declarations
+    event ParameterSubmitted(address indexed seller, uint timestamp);
+    event ItemAdded(address indexed seller, string name, uint256 price);
+    event ItemBought(address indexed buyer, address indexed seller, string name, uint256 price);
+    event ItemForSaleUpdated(address indexed seller, string name, bool forSale);
+    event ItemPriceUpdated(address indexed seller, string name, uint256 price);
+    event ProofVerified(address indexed seller, ProofResult result);
+
+    uint256 constant HASH_MAX = type(uint256).max; // 2^256 - 1
+    uint256 public probability;
+    uint256 public minimumDeposit;
+    uint256 public rewardPrice;
+    uint256 public counterexamplePrice;
+    address public owner;
+
+    constructor() {
+        owner = msg.sender;
+        probability = 80;
+        minimumDeposit = 400 gwei;
+        rewardPrice = 100 gwei;
+        counterexamplePrice = 200 gwei;
+    }
+    // Only owner
+    modifier onlyOwner {
+        if (msg.sender != owner) { revert NotOwner(); }
+        _;
+    }
+    // Only verified
+    modifier onlyVerified(address _sellerAddress) {
+        if (!sellingPlatform[_sellerAddress].verified) { revert NotVerified(); }
+        _;
+    }
+    // Only not verified
+    modifier notVerified(address _sellerAddress) {
+        if (sellingPlatform[_sellerAddress].verified) { revert AlreadyVerified(); }
+        _;
+    }
+    // Function for the owner to set up the probability
+    function setProbability(uint256 _probability) public onlyOwner {
+        if (_probability > 100) revert InvalidProbability(); 
+        probability = _probability;
+    }
+    // Function for the owner to set up the minimum deposit
+    function setFee(uint256 _minimumDeposit, uint256 _rewardPrice, uint256 _counterexamplePrice) public onlyOwner {
+        if (_minimumDeposit < _rewardPrice + _counterexamplePrice) revert NotReasonableFee();
+        minimumDeposit = _minimumDeposit;
+        rewardPrice = _rewardPrice;
+        counterexamplePrice = _counterexamplePrice;
+    }
+    // Function to calculate the target hash
+    function calculateTargetHash(uint256 n, uint256 pNumerator, uint256 pDenominator)
+        internal
+        pure
+        returns (uint256)
+    {
+        uint256 p = (pNumerator * 1e18) / pDenominator;
+        uint256 m = calculateM(n, p);
+        return HASH_MAX / m;
+    }
+    // Function to calculate the number of seeds required
+    function calculateM(uint256 n, uint256 p) internal pure returns (uint256) {
+        uint256 ln1MinusP = ln(1e18 - p);
+        uint256 lnNMinus1DivN = ln((n - 1) * 1e18 / n);
+        uint256 m = (ln1MinusP * 1e18) / lnNMinus1DivN;
+        return m / 1e18; // Adjust for precision
+    }
+    // Function to calculate ln
+    function ln(uint256 x) internal pure returns (uint256) {
+        uint256 y = x;
+        uint256 result = 0;
+        while (y > 1e18) {
+            y >>= 1;
+            result += 693147180000000000; // ln(2) * 1e18
+        }
+        return result;
+    }
+    // Function for sellers to submit their parameters, which is a list of items for distributed verification process
+    function submitParameter(Item[] calldata _items) public payable {
+        if (msg.value < minimumDeposit) revert NotEnoughDeposit();
+        Item[] storage items = sellingPlatform[msg.sender].items;
+        for (uint i = 0; i < _items.length; i++) {
+            items.push(_items[i]);
+        }
+        sellingPlatform[msg.sender].timestamp = block.timestamp;
+        sellingPlatform[msg.sender].verified = false;
+        emit ParameterSubmitted(msg.sender, block.timestamp);
+    }
+    // Function for validators to claim their rewards when they find a computation proof or a counterexample
+    function claimReward(address _sellerAddress, uint _seed) public notVerified(_sellerAddress) {
+        Item[] memory items = sellingPlatform[msg.sender].items;
+        uint target = calculateTargetHash(items.length, probability, 100);
+        ProofResult result = verify_proof(items, _seed, msg.sender, sellingPlatform[_sellerAddress].timestamp, target);
+
+        if (result == ProofResult.Counterexample) {
+            emit ProofVerified(_sellerAddress, result);
+            delete sellingPlatform[_sellerAddress];
+            payable(msg.sender).transfer(counterexamplePrice);
+        } else if (result == ProofResult.Reward) {
+            emit ProofVerified(_sellerAddress, result);
+            sellingPlatform[_sellerAddress].verified = true;
+            payable(msg.sender).transfer(rewardPrice);
+        }
+    }
+    // Function to buy an item from a seller's platform using the item name
+    function buyItem(address _sellerAddress, string memory _name) public payable onlyVerified(_sellerAddress) {
+        Item[] storage items = sellingPlatform[_sellerAddress].items;
+        for (uint256 i = 0; i < items.length; i++) {
+            if (compareStrings(items[i].name, _name) == 0) {
+                if (!items[i].forSale) revert NotForSale();
+                if (msg.value < items[i].price) revert InsufficientAmount();
+                address payable oldOwner = items[i].owner;
+                items[i].owner = payable(msg.sender);
+                items[i].forSale = false; // Mark item as not for sale after purchase
+                oldOwner.transfer(msg.value);
+                emit ItemBought(msg.sender, _sellerAddress, _name, items[i].price);
+                return;
+            }
+        }
+        revert NotExistingItem();
+    }
+    // Function for the seller to add a new item to the seller's platform
+    function addNewItem(Item calldata _item) public onlyVerified(msg.sender) {
+        if (bytes(_item.name).length <= 0 || _item.price < 0) {revert InvalidItemData();}
+        Item[] storage items = sellingPlatform[msg.sender].items;
+        uint256 i = 0;
+
+        while (i < items.length && compareStrings(_item.name, items[i].name) > 0) {
+            i++;
+        }
+
+        if (i < items.length && compareStrings(_item.name, items[i].name) == 0) {
+            revert ItemAlreadyExists();
+        }
+
+        items.push();
+        for (uint256 j = items.length - 1; j > i; j--) {
+            items[j] = items[j - 1];
+        }
+
+        items[i] = _item;
+        emit ItemAdded(msg.sender, _item.name, _item.price);
+    }
+    // Function for the owner of the item to set the for sale status of an item by the item owner
+    function setForSale(address _sellerAddress, string memory _name, bool _forSale) public onlyVerified(_sellerAddress) {
+        Item[] storage items = sellingPlatform[_sellerAddress].items;
+        uint256 i = 0;
+        while (i < items.length && compareStrings(_name, items[i].name) > 0) {
+            i++;
+        }
+        if (i >= items.length || compareStrings(_name, items[i].name) != 0) revert NotExistingItem();
+        if (items[i].owner != msg.sender) revert NotItemOwner();
+        items[i].forSale = _forSale;
+        emit ItemForSaleUpdated(_sellerAddress, _name, _forSale);
+    }
+    // Function for the owner of an item to set the price of an item by the item owner
+    function setPrice(address _sellerAddress, string memory _name, uint _price) public onlyVerified(_sellerAddress) {
+        Item[] storage items = sellingPlatform[_sellerAddress].items;
+        uint256 i = 0;
+        while (i < items.length && compareStrings(_name, items[i].name) > 0) {
+            i++;
+        }
+        if (i >= items.length || compareStrings(_name, items[i].name) != 0) revert NotExistingItem();
+        if (items[i].owner != msg.sender) revert NotItemOwner();
+        items[i].price = _price;
+        emit ItemPriceUpdated(_sellerAddress, _name, _price);
+    }
+    // Function to reveal the list of items from a seller's platform
+    function listSellingItems(address sellerAddress) public view returns (Item[] memory) {
+        return sellingPlatform[sellerAddress].items;
+    }
+}
+
+\end{lstlisting}
 %\newpage
 %\addcontentsline{toc}{chapter}{Appendix}
 %\input{appendix}
 
 
 %Let's examine an assertion in smart contract languages such as Solidity and Michelson. An assertion is essentially a predicate logic expressed as a boolean formula computed from relational operators ($=$, $!=$, $>$, $<$, $>=$, $<=$), logical operators ($!$, $\&\&$, $\|$), and expressions. Let $\pi_{P_{a}}$ = {$e_1$, $e_2$, \dots } represent the set of expressions involved in the computation of the predicate $P_a$. The hash of the seed and these expressions ($s$, $\pi_{P_{a}}$) is then computed and compared with the target hash. Since the hash involves $\pi_{P_{a}}$, the validator needs to execute the condition check to find a reward computation.
+
 \newpage
 \bibliographystyle{splncs04}
 \bibliography{bio}
+
 \end{document}
 
 
