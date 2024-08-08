@@ -104,7 +104,7 @@ contract Sorted {
 }
 \end{lstlisting}
 The explicit assertion would be
-\begin{gather}\label{eq:1}
+\begin{gather}\label{eq:1a}
   (\forall k) (0\le k <49) \Rightarrow a[k] \le a[k+1]
 \end{gather}
 While we can check this contract in $O(1)$ time, the constant factor is big! So we
@@ -123,7 +123,7 @@ Each validator attempts to find the number $k$ such that the negation is true fo
 
 In the context of a domain $A$ and a predicate $P$ on $A$, an assertion is formalized using the universal quantifier as follows:
 \begin{gather}
-  \label{eq:1}
+  \label{eq:1b}
 \forall a \in A. P_{a}
 \end{gather}
 
@@ -151,54 +151,67 @@ When the domain $A$ is large or the predicate $P$ is complex to evaluate, it inc
 
 \section{Distributed Assertions Verification}
 \label{sec:distributed-assertion-verification}
-\subsection{Distributed Verification Approach}
+\subsection{Off-chain Distributed Verification Approach}
 We propose a novel approach for verifying parameter assertions in smart contracts on the blockchain. Our approach distributes the assertion verification process and moves it off-chain, with only the verification results being submitted to the blockchain.
 
-The negation of the assertion is represented by the existential quantifier formulas:
+Assertions are checked off-chain, and only the results of these checks (indicating whether any assertion was violated) are submitted and re-verified to the blockchain. This reduces the computational load on the blockchain while ensuring the integrity of the contract.
+
+The outline of our approach is as follows:
+\begin{enumerate}
+\item Determinte the negation fomular of an assertion: The negation of the assertion \ref{eq:3} is represented by the existential quantifier formulas:
 
 \begin{gather}
-\label{eq:3}
+\label{eq:5}
 \neg \left( \bigwedge_{a \in A} P(a) \right) \equiv \exists a \in A. \neg P(a)
 \end{gather}
 
-And for multiple domains, it is as follows:
+And for multiple domains \ref{eq:4}, it is as follows:
 
 \begin{gather}
-\label{eq:4}
+\label{eq:6}
 \neg \left( \bigwedge_{a \in A} \bigwedge_{b \in B} \dots P(a, b, \dots) \right) \equiv \exists a \in A, \exists b \in B, \dots . \neg P(a, b, \dots)
 \end{gather}
-Validators endeavor to find counterexamples of the assertion using this negation. Specifically, each validator attempts to find a counterexample by identifying $a \in A$ such that the negation formula is satisfied $\neg P(a)$. When a counterexample is found, the validator submits it, which is then re-verified on-chain. 
-
-The assertions are checked off-chain, and only the results of these checks (whether any assertion was violated) are submitted to the blockchain. This reduces the computational load on the blockchain while ensuring the integrity of the contract.
+\item Off-chain verification: Validators endeavor to find counterexamples of the assertion using this negation off-chain. Specifically, each validator attempts to find a counterexample by identifying $a \in A$ such that the negation formula is satisfied $\neg P(a)$. 
+\item On-chain re-verification: When a counterexample is found, the validator submits it, which is then re-verified on-chain. 
+\end{enumerate}
 
 Our approach aims to alleviate the expensive gas comsuming. Instead of verifying the entire assertion, the on-chain contract only needs to check specific points. Since only some specific points are checked on-chain, the amount of gas required for the computation to check the counterexample is likely to be significantly less than verifying the entire assertion directly on-chain.
-
- 
-
-
-
-
-\subsection{Proof-of-work-based Incentivization}
+\subsection{Proof-of-Work-Based Incentivization Mechanism}
 Finding a counterexample is rewarded, incentivizing validators but at the cost of computing resources. Instances of finding a counterexample may be rare, as callers typically avoid passing invalid parameters into the blockchain. If no counterexample emerges, the verification accuracy depends on the number of attempts to negate the assertion, with more validators increasing the certainty. Therefore, it is crucial to encourage validators to engage in the verification process even without discovering a counterexample. %It is necessary to incentivize this effort. %Moreover, it is logical to reward only a portion of the computational effort required. 
 %However, to prioritize the discovery of counterexamples, the reward for finding a counterexample is set significantly higher than that for providing a computational proof.
 
-We propose a proof-of-work-based incentivization method where validators are rewarded for discovering counterexamples, and others are rewarded for their computational efforts. This approach encourages participation in the distributed verification process, ensuring thorough validation even without the discovery of counterexamples.
+We propose a proof-of-work-based incentivization mechanism where validators are rewarded for discovering counterexamples, and others are rewarded for their computational efforts. This approach encourages participation in the distributed verification process, ensuring thorough validation even without the discovery of counterexamples.
 
-A significant concern arises regarding how to recheck the counterexample and ensure that validators perform the verification computation off-chain if no counterexample is found.
+A significant concern arises regarding how to recheck the counterexample and a computation efforts on-chain and ensure that validators perform the verification computation off-chain if no counterexample is found.
 \subsubsection{Outlines}
-Our proposed proof-of-work-based incentivization method is outlined as follows:
+Our proposed proof-of-work-based incentivization mechanism is outlined as follows:
 \begin{itemize}
 \item The counterexample is submitted in the form of the indication of the element where the assertion is invalid.
 \item To prioritize the discovery of counterexamples, the reward for finding a counterexample is set significantly higher than that for providing a computational proof.
 \item We utilize the proof-of-work concept by introducing a target hash \( t \) that sets the required difficulty level to earn the computation reward.
 \item The objective of the validator is to find a counterexample or a computation proof that is smaller than or equal to the target hash \( t \).
-\item The computation of the negation formula is integrated into the computational proof to ensure that the validators cannot produce the proof without executing a negation check.
+\item The computation of the negation formula is integrated into a computational proof to ensure that the validators cannot produce the proof without executing a negation check.
 \end{itemize}
 %Because the rewards may be limited in quantity, validators are motivated to swiftly verify the parameters to claim the reward before others do so. 
 \subsubsection{Reward computation}
 The next question is how to devise a computational proof to incentivize computational effort. The key challenge is how to involve the negation check in the computational proof and how to reproduce the computational proof off-chain to on-chain with a reasonable gas cost. To address this, we introduce a seed $s$ in each verification process.
 
-Let \( n \) denote the size of the domain \( A \). Each number \( i \) in the range \([1, n]\) corresponds to an element in \( A \). The seed \( s \) is a random number, and we can reduce it modulo \( n \) to obtain \( i \), which is associated with an element \( a \) in \( A \).
+Let \( n \) denote the size of the domain \( A \). 
+\begin{align}
+n = |A|
+\end{align}
+where $\mid A \mid$ denotes the number of elements in the domain $A$.
+
+Each number \( i \) in the range \([1, n]\) corresponds to an element in \( A \). 
+\begin{align}
+a=A[i]
+\end{align}
+where $A[i]$ denotes the $i$-th element in $A$.
+
+The seed \( s \) is a random number, and we can reduce it modulo \( n \) to obtain \( i \), which is associated with an element \( a \) in \( A \).
+\begin{align}
+i = (s \mod n) + 1
+\end{align}
 
 \paragraph{Estimate the number of seeds:} We first estimate the number of seeds needed to find a counterexample with a given expected probability. %, assuming the worst case where only one validator participates.
 
@@ -268,7 +281,7 @@ For a 256-bit hash, $H_{\text{max}}$ is $2^{256} - 1 $.  using the maximum hash 
 \[
 \frac{2^{256} - 1}{m}
 \]
-\paragraph{Conduct a computation proof:} The computation of the negation formula is integrated into a computational proof to ensure that the validators cannot produce the proof without executing a negation check.
+\paragraph{Conduct a computation hash:} The computation of the negation formula is integrated into a computational proof to ensure that the validators cannot produce the proof without executing a negation check.
 
 Lets \(\text{eval}\) be the function that returns the significant components of the evaluation of the negation \(\neg P(a)\).  For example, it returns \(a[i]\) and \(a[i + 1]\) in the evaluation of the negation predicate \(a[i] < a[i+1]\) in the sorted array example.
 
@@ -276,7 +289,7 @@ Thus, the computation hash includes the seed  \( s \) and \(\text{eval}\).
 \begin{align}
 t_s = \text{hash}(s, \text{eval}(\neg P(a)))
 \end{align}
-\paragraph{On-chain re-verification:}
+\subsubsection{On-chain re-verification}
 Given a submitted seed $s$: 
 \begin{align}
 s \in \mathbb{N} 
@@ -285,37 +298,22 @@ where $s$ is a random natural number.
 
 The on-chain contract will recompute to determine whether the submitted seed produces a counterexample, qualifies for a computation reward, or does not qualify for a reward. The rechecking process is as follows:
 \begin{enumerate}
-\item Calculate $n$ as the size of the domain $A$: 
-\begin{align}
-n = |A|
-\end{align}
-where $\mid A \mid$ denotes the number of elements in the domain $A$.
-%\item Generate a random seed $s$: 
-%\begin{align}
-%s \in \mathbb{N} 
-%\end{align}
-%where $s$ is a random natural number.
-\item Determine $i \in [1, n]$ using the modulo operation:
-\begin{align}
-i = (s \mod n) + 1
-\end{align}
-\item Associate \( i \) with the corresponding element $a$ in $A$:
-\begin{align}
-a=A[i]
-\end{align}
-where $A[i]$ denotes the $i$-th element in $A$.
+\item Calculate $n$ as the size of the domain $A$.
+\item Determine the tagert $t$.
+\item Calculate $i \in [1, n]$ based on $s$ using the modulo operation.
+\item Associate \( i \) with the corresponding element $a$ in $A$.
 \item Perform the negation check $\neg P(a)$ to detect a counterexample if any.
-
 \item If no counterexample is found, calculate the hash \( t_s \) corresponding to the seed \( s \).
 \item Compare \( t_s \) to the target hash to determin whether it is a reward computation.
 \end{enumerate}
-\paragraph{Find a seed:}
-The sequence of operations to find a seed can be described in Fig. \ref{fig:find_seed}.
+
+After conducting the negation check, either a counterexample is identified, or a hash is computed based on the seed $s$ along with the evaluation of the condition $\neg P_{a}$. This hash is then compared with the target hash to ascertain if it meets the criteria for a reward computation. The outcomes of the verification process include either a counterexample, a reward computation, or a non-reward computation.
+\subsubsection{Find a seed}
+The sequence of operations to find a seed can be described in Fig. \ref{fig:find_seed}. During the distributed process, each validator may generate a seed $s$ and conducts the negation check until the outcome indicates either a counterexample or a reward computation. Upon achieving either of these outcomes, the validator is able to submit it on-chain to claim their reward. Both the counterexample and the computation proof are represented by the seed used, allowing the on-chain compoment to replicate the process to verify its validity. If the verification is successful, the validators will be entitled to receive their reward.
 
 \begin{figure}
     \centering
 \begin{tikzpicture}[node distance=2cm]
-
     % Nodes
     \node (calc_n) [process] {$n = |A|$};
     \node (start) [startstop, below of=calc_n] {$s$};
@@ -325,8 +323,6 @@ The sequence of operations to find a seed can be described in Fig. \ref{fig:find
     \node (calc_hash) [process, below of=counterexample, yshift=-0.5cm] {$t_s = \text{hash}(s, \text{eval}(\neg P(a)))$};
     \node (compare) [decision, below of=calc_hash, yshift=-0.5cm] {$t_s <= t$};
     \node (submit) [startstop, below of=compare, yshift=-0.5cm] {Submit on-chain};
-
-
     % Arrows
     \draw [arrow] (calc_n) -- (start);
     \draw [arrow] (start) -- (calc_i);
@@ -339,8 +335,6 @@ The sequence of operations to find a seed can be described in Fig. \ref{fig:find
     % Right-angle arrow from counterexample to submit
 	\draw [arrow] (counterexample.east) -| node[pos=0.25, above] {Yes} ([xshift=2cm]submit.east) |- (submit);
 	\draw [arrow] (compare.west) -| node[pos=0.75, left] {No} ([xshift=-2cm]counterexample.west) |- (start);
-
-
 \end{tikzpicture}
 \caption{Finding a reward seed.}
 \label{fig:find_seed}
@@ -348,9 +342,6 @@ The sequence of operations to find a seed can be described in Fig. \ref{fig:find
 
 %Consequently, each seed $s$ is linked with an element $a$ in the domain $A$, followed by the evaluation of the negation of the assertion $\neg P_{a}$. 
 
-After conducting the negation check, either a counterexample is identified, or a hash is computed based on the seed $s$ along with the evaluation of the condition $\neg P_{a}$. This hash is then compared with the target hash to ascertain if it meets the criteria for a reward computation. The outcomes of the verification process include either a counterexample, a reward computation, or a non-reward computation.
-
-During the distributed process, each validator may generate a seed $s$ and conducts the negation check until the outcome indicates either a counterexample or a reward computation. Upon achieving either of these outcomes, the validator is able to submit it on-chain to claim their reward. Both the counterexample and the computation proof are represented by the seed used, allowing the on-chain compoment to replicate the process to verify its validity. If the verification is successful, the validators will be entitled to receive their reward.
  
 
 %The next question is associte a seed with an elemnt in the domain. Let $n$ be the size of the domain $A$.  We'll consider two cases: (1) when it is straightforward to associate a natural number $i$ to an element of $A$, such as a natural number, integer, or array, and (2) when it is not.
