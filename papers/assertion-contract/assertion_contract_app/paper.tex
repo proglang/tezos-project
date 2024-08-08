@@ -23,6 +23,7 @@
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.17}
 \usepackage{tikz}
+\usetikzlibrary{positioning}
 \usepackage{amsmath}
 \usetikzlibrary{shapes.geometric, arrows}
 \usepackage{comment}
@@ -255,6 +256,7 @@ Solving for \( m \):
 m = \frac{\ln(1 - p)}{\ln\left(\frac{n-1}{n}\right)}
 \]
 
+Note that $p$ is the probability obtained when only one validator participates in the verification process. As more validators become involved, the probability of discovering a counterexample increases.
 \paragraph{Set up the taget hash:}
 The above number of seed $m$ can then be used to set up the target hash $t$. The target hash $t$ can be calculated based on a desired difficulty level. In proof-of-work systems, difficulty is typically adjusted to ensure that the average efforts to find a valid hash. The target hash $t$ is often calculated by taking the maximum possible hash value and dividing it by the difficulty level:
 \[
@@ -308,8 +310,12 @@ The on-chain contract will recompute to determine whether the submitted seed pro
 \end{enumerate}
 
 After conducting the negation check, either a counterexample is identified, or a hash is computed based on the seed $s$ along with the evaluation of the condition $\neg P_{a}$. This hash is then compared with the target hash to ascertain if it meets the criteria for a reward computation. The outcomes of the verification process include either a counterexample, a reward computation, or a non-reward computation.
-\subsubsection{Find a seed}
-The sequence of operations to find a seed can be described in Fig. \ref{fig:find_seed}. During the distributed process, each validator may generate a seed $s$ and conducts the negation check until the outcome indicates either a counterexample or a reward computation. Upon achieving either of these outcomes, the validator is able to submit it on-chain to claim their reward. Both the counterexample and the computation proof are represented by the seed used, allowing the on-chain compoment to replicate the process to verify its validity. If the verification is successful, the validators will be entitled to receive their reward.
+\subsubsection{Off-chain verification}
+In order to win a reward, either for discovering a counterexample or providing a computation proof, a validator must run the negation check off-chain. Due to the setup of the target hash, a validator needs to generate approximately $m$ seeds to have a chance of discovering a counterexample or a computation proof, thereby ensuring the validity or revealing the invalidity of a parameter.
+
+The sequence of operations to find a seed can be described in Fig. \ref{fig:find_seed}. During the distributed process, each validator may generate a seed $s$ and conducts the negation check until the outcome indicates either a counterexample or a reward computation. Upon achieving either of these outcomes, the validator is able to submit it on-chain to claim their reward. 
+
+Both the counterexample and the computation proof are represented by the seed used, allowing the on-chain compoment to replicate the process to verify its validity. If the verification is successful, the validators will be entitled to receive their reward.
 
 \begin{figure}
     \centering
@@ -370,38 +376,36 @@ Distributed verification of assertions is indeed an intriguing concept, yet it f
 %\item Reward manipulation: A validator may attempt to manipulate the reward system by resubmitting counterexamples or computation proofs multiple times to multiply their rewards.
 \end{enumerate}
 \subsection{Overview architect}
-This section presents a practical model that unifies theoretical principles and addresses the previously mentioned security concerns. The architectural design of this model is depicted in Figure \ref{fig.architect}. The model consists of two main entities: an on-chain assertion contract and off-chain validator contract. 
-\subsubsection{Three main actors.} In our practical model, three distinct actors play key roles.
+This section presents a practical model that unifies theoretical principles and addresses the previously mentioned security concerns. The architectural design of this model is depicted in Figure \ref{fig.architect}. The model consists of two main entities: the on-chain assertion contract and the off-chain validator program. 
+\paragraph{Main actors.} Three distinct actors play key roles.
 \begin{itemize}
-\item[•] Owner: responsible for deploying and overseeing both on-chain and off-chain contracts.
-\item[•] Callers: engage with on-chain contracts by initiating assertions and interacting with the system.
-\item[•] Validators: tasked with validating parameters and ensuring the integrity of the verification process.
+\item Owner: responsible for deploying and overseeing both on-chain and off-chain components.
+\item Callers: engage with on-chain contracts by initiating assertions and interacting with the system.
+\item Validators: tasked with validating parameters and ensuring the integrity of the verification process.
+\end{itemize}
+\paragraph{On-chain assertion contract.}
+While additional functions may exist, the assertion contract must encompass the following two essential functions:
+\begin{itemize}
+\item The \lstinline|submit_parameter| function: Callers utilize this function to submit their parameters for validation. Subsequently, the parameter is distributedly verified by validators.
+\item  The \lstinline|claim_reward| function: This function accepts a parameter and a seed as inputs, yielding a result indicating whether the computation from the seed results in a counterexample, a reward computation, or a non-reward computation.
+\end{itemize}
+\paragraph{Off-chain assertion contract.}
+Since the off-chain contract runs off-chain, it can be implemented according to the validator's preferences. However, the crucial point is that the off-chain contract must use the exact same \lstinline|claim_reward| function when attempting to find a counterexample or a computation proof. Additionally, it should support a function that assists the validator in finding a seed to earn a reward.
+\paragraph{Storage.}
+When a parameter is submitted for verification, the following information should be stored:
+\begin{itemize}
+\item Parameter: this includes the parameter itself. In cases where storing the parameter on-chain is impractical because of its size, it could be possible to store only its hash. Despite this, the hash remains sufficient for validation.
+\item Timestamp: this indicates the approximate time when the parameter was submitted. This information is used to prevent caller exploitation security risks as explained above.
 \end{itemize}
 
-
+In some applications, multiple computational proofs may be allowed. There are a record to monitor the progress of the parameter's verification. This record is crucial for determining when a work function can be invoked for a given parameter or when it should be discarded. The verification status records a counterexample and reward computations found. For that, it should include the following details of the addresses of the validators and the random number $r$ used in the verification process.
 \begin{figure}
 \centering
 \includegraphics[scale=.8]{assertion}
 \caption{The architecture of the practical model}
 \label{fig.architect}
 \end{figure}
-\subsubsection{On-chain assertion contract.}
-While additional functions may exist, the assertion contract must encompass the following two essential functions:
-\begin{itemize}
-\item The \lstinline|submit_parameter| function: Callers utilize this function to submit their parameters for validation. Subsequently, the parameter is distributedly verified by validators.
-\item  The \lstinline|claim_reward| function: This function accepts a parameter and a seed as inputs, yielding a result indicating whether the computation from the seed results in a counterexample, a reward computation, or a non-reward computation.
-\end{itemize}
-\subsubsection{Off-chain assertion contract.}
-Since the off-chain contract runs off-chain, it can be implemented according to the validator's preferences. However, the crucial point is that the off-chain contract must use the exact same \lstinline|claim_reward| function when attempting to find a counterexample or a computation proof. Additionally, it should support a function that assists the validator in finding a seed to earn a reward.
-\subsubsection{Storage.}
-When a parameter is submitted for verification, the following information should be stored:
-\begin{itemize}
-\item Parameter: this includes the parameter itself. In cases where storing the parameter on-chain is impractical because of its size, it could be possible to store only its hash. Despite this, the hash remains sufficient for validation.
-%\item Caller Address: This identifies the address of the caller who submitted the parameter. It serves purposes such as tracking submissions, preventing callers from resubmitting parameters, or preventing callers from claiming rewards for their own submitted parameters.
-\item Timestamp: this indicates the approximate time when the parameter was submitted. This information is used to prevent caller exploitation security risks as explained above.
-\end{itemize}
 
-In some applications, multiple computational proofs may be allowed. There are a record to monitor the progress of the parameter's verification. This record is crucial for determining when a work function can be invoked for a given parameter or when it should be discarded. The verification status records a counterexample and reward computations found. For that, it should include the following details of the addresses of the validators and the random number $r$ used in the verification process.
 
 
 
