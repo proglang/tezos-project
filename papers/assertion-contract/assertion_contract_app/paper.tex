@@ -152,10 +152,10 @@ When the domain $A$ is large or the predicate $P$ is complex to evaluate, it inc
 
 \section{Distributed Assertions Verification}
 \label{sec:distributed-assertion-verification}
-\subsection{Off-chain Distributed Verification Approach}
-We propose a novel approach for verifying parameter assertions in smart contracts on the blockchain. Our approach distributes the assertion verification process and moves it off-chain, with only the verification results being submitted to the blockchain.
+\subsection{Off-chain Verification Approach}
+We propose a novel approach for verifying parameter assertions in blockchain-based smart contracts. Our approach distributes the assertion verification process and moves it off-chain, with only the verification outcomes being sent to the blockchain.
 
-Assertions are checked off-chain, and only the results of these checks (indicating whether any assertion was violated) are submitted and re-verified to the blockchain. This reduces the computational load on the blockchain while ensuring the integrity of the contract.
+Assertions are validated off-chain, and only the results (specifying whether any assertions were violated) are submitted and re-verified on the blockchain. This approach minimizes the computational burden on the blockchain while maintaining the integrity of the contract.
 
 The outline of our approach is as follows:
 \begin{enumerate}
@@ -172,7 +172,9 @@ And for multiple domains \ref{eq:4}, it is as follows:
 \label{eq:6}
 \neg \left( \bigwedge_{a \in A} \bigwedge_{b \in B} \dots P(a, b, \dots) \right) \equiv \exists a \in A, \exists b \in B, \dots . \neg P(a, b, \dots)
 \end{gather}
-\item Off-chain verification: Validators endeavor to find counterexamples of the assertion using this negation off-chain. Specifically, each validator attempts to find a counterexample by identifying $a \in A$ such that the negation formula is satisfied $\neg P(a)$. 
+\item Off-chain verification: The negation formulas is then distributed to validators. Validators endeavor to find counterexamples of the assertion using this negation off-chain. 
+
+Specifically, each validator attempts to find a counterexample by identifying $a \in A$ such that the negation formula is satisfied $\neg P(a)$. 
 \item On-chain re-verification: When a counterexample is found, the validator submits it, which is then re-verified on-chain. 
 \end{enumerate}
 
@@ -370,35 +372,36 @@ Both the counterexample and the computation proof are represented by the seed us
 Distributed verification of assertions is indeed an intriguing concept, yet it faces the following security risks when proposing an incentive method:
 
 \begin{enumerate}
-\item Front-running attacks: The system is vulnerable to front-running attacks, where an attacker closely monitors the mempool to intercept a seed representing a counterexample or a computation proof, subsequently stealing the reward.
-\item Caller exploitation: A caller might exploit the system by running the negation check privately to identify the reward before submitting the parameter on-chain, thereby swiftly claiming the reward ahead of the other validators. 
 \item Denial-of-service (DoS) attacks: The system is susceptible to DoS attacks, where a caller inundates the system with numerous invalid parameters, causing congestion and hindering its operation.
-%\item Reward manipulation: A validator may attempt to manipulate the reward system by resubmitting counterexamples or computation proofs multiple times to multiply their rewards.
+\item Front-running attacks: The system is vulnerable to front-running attacks, where an attacker closely monitors the mempool to intercept a seed representing a counterexample or a computation proof, subsequently stealing the reward.
+\item Caller exploitation: A caller might exploit the system by running the negation check privately to (1) identify the reward before submitting the parameter on-chain, thereby swiftly claiming the reward ahead of the other validators, (2) fake the compuatation proofs before a counterexample can be found by other validators.
+\item Reward manipulation: For a system that allows multiple rewards. A validator may attempt to manipulate the reward system by resubmitting counterexamples or computation proofs multiple times to multiply their rewards.
 \end{enumerate}
 \subsection{Overview architect}
-This section presents a practical model that unifies theoretical principles and addresses the previously mentioned security concerns. The architectural design of this model is depicted in Figure \ref{fig.architect}. The model consists of two main entities: the on-chain assertion contract and the off-chain validator program. 
-\paragraph{Main actors.} Three distinct actors play key roles.
-\begin{itemize}
-\item Owner: responsible for deploying and overseeing both on-chain and off-chain components.
-\item Callers: engage with on-chain contracts by initiating assertions and interacting with the system.
-\item Validators: tasked with validating parameters and ensuring the integrity of the verification process.
-\end{itemize}
+This section presents a practical model that unifies theoretical principles and addresses the previously mentioned security concerns. The architectural design of this model is depicted in Figure \ref{fig.architect}.  
+%\paragraph{Main actors.} Three distinct actors play key roles.
+%\begin{itemize}
+%\item Owner: responsible for deploying and overseeing both on-chain and off-chain components.
+%\item Callers: engage with on-chain contracts by initiating assertions and interacting with the system.
+%\item Validators: tasked with validating parameters and ensuring the integrity of the verification process.
+%\end{itemize}
+\subsubsection{Main compoments.} The model consists of two main entities: the on-chain assertion contract and the off-chain validator program.
 \paragraph{On-chain assertion contract.}
 While additional functions may exist, the assertion contract must encompass the following two essential functions:
 \begin{itemize}
-\item The \lstinline|submit_parameter| function: Callers utilize this function to submit their parameters for validation. Subsequently, the parameter is distributedly verified by validators.
-\item  The \lstinline|claim_reward| function: This function accepts a parameter and a seed as inputs, yielding a result indicating whether the computation from the seed results in a counterexample, a reward computation, or a non-reward computation.
+\item The \( submit\_parameter \) function: Callers utilize this function to submit their parameters for validation. %Subsequently, the parameter is distributedly verified by validators.
+\item  The \( claim\_reward \) function: This function accepts a seed (or may some others) as inputs, yielding a result indicating whether the computation from the seed results in a counterexample, a reward computation, or a non-reward computation.
 \end{itemize}
-\paragraph{Off-chain assertion contract.}
-Since the off-chain contract runs off-chain, it can be implemented according to the validator's preferences. However, the crucial point is that the off-chain contract must use the exact same \lstinline|claim_reward| function when attempting to find a counterexample or a computation proof. Additionally, it should support a function that assists the validator in finding a seed to earn a reward.
+\paragraph{Off-chain validator program.}
+Since the off-chain program runs off-chain, it can be implemented according to the validator's preferences. However, the crucial point is that the off-chain contract must use the exact same \( claim\_reward \) function when attempting to find a counterexample or a computation proof. Additionally, it should support a function that assists the validator in finding a seed to earn a reward.
 \paragraph{Storage.}
 When a parameter is submitted for verification, the following information should be stored:
 \begin{itemize}
 \item Parameter: this includes the parameter itself. In cases where storing the parameter on-chain is impractical because of its size, it could be possible to store only its hash. Despite this, the hash remains sufficient for validation.
-\item Timestamp: this indicates the approximate time when the parameter was submitted. This information is used to prevent caller exploitation security risks as explained above.
+\item Timestamp: this indicates the approximate time when the parameter was submitted. %This information is used to prevent caller exploitation security risks as explained above.
 \end{itemize}
 
-In some applications, multiple computational proofs may be allowed. There are a record to monitor the progress of the parameter's verification. This record is crucial for determining when a work function can be invoked for a given parameter or when it should be discarded. The verification status records a counterexample and reward computations found. For that, it should include the following details of the addresses of the validators and the random number $r$ used in the verification process.
+%In some applications, multiple computational proofs may be allowed. There are a record to monitor the progress of the parameter's verification. This record is crucial for determining when a work function can be invoked for a given parameter or when it should be discarded. The verification status records a counterexample and reward computations found. For that, it should include the following details of the addresses of the validators and the random number $r$ used in the verification process.
 \begin{figure}
 \centering
 \includegraphics[scale=.8]{assertion}
@@ -406,37 +409,38 @@ In some applications, multiple computational proofs may be allowed. There are a 
 \label{fig.architect}
 \end{figure}
 
-
-
-
-\subsubsection{Calculate seed.}
-While a random number alone is sufficient to indicate the associated element $a$ in the domain $A$, to prevent the front-running attack and the caller exploitation attack, we enhance the randomness of the seed by combining a random number with the validator's address and the timestamps indicating when the parameter is submitted on the chain to calculate the seed. In deeds, the validator's address and timestamps are converted to numerical values and use these numbers in combination with a random number to compute the seed. This combination adds an extra level of security. 
-\begin{enumerate}
-\item 
-Seed calculation: The seed is enhanced by combining a random number with the validator's address and timestamps. Let's denote the random number by $r$, the validator's address by $addr$, and the timestamp by $t$.
-\begin{equation}
-r \in \mathbb{N}, \quad \text{addr} \in \text{Addresses}, \quad t \in \text{Timestamps}
-\end{equation}
-\item Conversion of address and timestamp: The address and timestamp are converted to numerical values using appropriate functions.
-\begin{equation}
-\text{addr\_num} = \text{init256}(\text{addr}) \\
- \quad t_{\text{num}} = \text{convert}(t)
-\end{equation}
-\item Combination to compute the seed: The seed $s$ is computed by combining these numerical values.
-\begin{equation}
-s = \text{hash}(r, \text{addr\_num}, t_{\text{num}})
-\end{equation}
-where \(\text{hash}\) is a hash function that takes the three numerical values and returns a numerical value \( s \).
-\end{enumerate}
-
-\textbf{Security Features}:
+\subsubsection{Deploying and managing on/off-chain contracts.}
+On/off-chain contracts are provided and managed by their respective owners.%, who assume a primary role in their design. 
+The owner deploys the assertion contract on the blockchain while storing the validator program off the blockchain, thereby ensuring its accessibility to the validators. There are two ways to making these contracts available to validators.
 \begin{itemize}
-    \item Front-running attacks: Other validators cannot use the random number $r$ alone because the combination with their address and timestamp will not produce the same seed $s$.
-    \item Caller exploitation: The timestamp constraints prevent the caller from running the check before submitting the parameter.
+\item The owner stores the codes on a repository accessible to validators, or upon request, provide them directly to validators.
+\item The owner broadcards the contracts to the network using messaging systems such as Waku in Ethereum. In this scenario, the interested validators are responsible for locally storing off-chain code.
 \end{itemize}
-%In this system, even if other validators obtain a random number, they are unable to submit it successfully, as their combination with their address will not yield the correct seed that corresponds to a specific element in the domain. Additionally, a caller cannot run the check before submitting the parameter owing to the timestamp constraints. 
-As a result, any attempt to submit manipulated or before-run seeds will fail to produce either a counterexample or reward computation. The address conversion can be achieved using functions such as \lstinline|init256| in Solidity, which transform an Ethereum address into a numerical value. 
+\subsubsection{Submitting a parameter.} %The primary entities interacting with the on-chain assertion contract are callers and validators. Callers submit parameters on-chain, while validators verify them off-chain. Subsequently, validators claim their findings of counterexamples or reward computations on-chain. 
+Before a parameter can be utilized in the actual work function or contract, a caller must initially submit it via the submit-parameter function in the on-chain assertion contract. %When submitting the parameter, the caller need to send a deposit stake in the form of a native token or pay gas fees for storing the parameter. This stake is claimed by a validator who finds a counterexample, either in the form of the native token or as a gas refund from releasing the storage as the invalid parameter is deleted.
+%\textbf{Security Features}: 
+%The deposit serves as a deterrent, as in the event of an invalid parameter, the deposit may be forfeited to prevent callers from submitting such parameters solving the DoS attack security risk. 
 
+Upon the submission of a parameter, an event can be emitted, allowing validators to receive updates by monitoring the blockchain for the parameter submission event. Additionally, the caller may choose to broadcast their parameter to all validators via a messaging system when submitting it online.
+%The work contact can only be invoked by the on-chain validation contract after the parameter has been validated if no counterexample is found. The actual work is then performed with the passed parameter.
+\subsubsection{Off-chain verification}
+After a parameter is submitted and stored on-chain, a validator can commence the verification process. To assess the validity of a parameter, each validator independently executes the off-chain validation program.
+
+A validator may attempt to try multiple times with different random seeds in order to find either a counterexample or a computational proof. %It's possible that several attempts may be made before the validator receives an award.  
+A function called find-seed could be implemented, which in turn calls the claim-reward function to locate a seed.
+
+All events such as parameter submissions, the discovery of a counterexample, or the presentation of computational proofs can be broadcasted to the network using event emission. Validators can monitor these events to stay updated on the verification status in real-time. 
+\subsubsection{Claiming the reward} 
+If validators discover a counterexample or an award computation, they provide the seed%, a combination of a random number, the parameter's timestamp and the validator's address 
+to the on-chain assertion contract. 
+
+The on-chain assertion contract then executes the same claim-reward function, which should yield the same result.  If the result is correct, there is an award to the validator. %and the record of the parameter in the storage is updated accordingly. %When a computational proof is submitted and  certain requirements are met, the work function/contract is invoked.
+
+
+\subsubsection{Calling a work function}
+A work function can indeed be encapsulated either as a private function in the assertion contract or implemented in another contract. In this process, a caller initiates the submission of a parameter for verification by invoking the submit-parameter function within the on-chain assertion contract. Upon successful verification of the parameter, a work contract can be triggered to execute the designated task, operating under the assumption of the parameter's validity.
+
+The invocation of the work function or contract is carried out by the on-chain validation contract or a caller. This call is subject to specific requirements being met, ensuring that the task is executed only when the verification process has been successfully completed and the parameter is deemed valid, such as a certain amount of time having passed, no counterexample being found, and receiving enough computation proofs. If all conditions are met, the actual work is executed, and in some application, the record of the parameter may be deleted from memory to free up storage.
 \subsubsection{The evaluation of the negation predicate.} An assertion in smart contract languages, such as Solidity and Michelson, is essentially predicate logic expressed as a Boolean formula computed from relational operators, logical operators, and expressions. 
 \begin{align}
 \text{Relational operators: } & =, \neq, >, <, \geq, \leq \\
@@ -458,46 +462,87 @@ where:
     \item $\pi_{P_{a}}$ is the set of expressions used in the computation of the predicate $P_a$.
     \item \text{hash} is the hash function that computes the hash based on the seed and the set of expressions $\pi_{P_{a}}$.
 \end{itemize}
+\subsection{Security Features}
+\subsubsection{DoS attacks}
+When submitting the parameter, the caller need to send a deposit stake in the form of a native token. This stake is claimed by a validator who finds a counterexample. This stake returns to the caller when the parameter is verified. 
+
+The deposit serves as a deterrent, as in the event of an invalid parameter, the deposit may be forfeited to prevent callers from submitting such parameters solving the DoS attack security risk. 
+\subsubsection{Front-running attacks}
+While a random number $r$ alone as a seed is sufficient to indicate the associated element $a$ in the domain $A$, to prevent the front-running attack, we enhance the randomness of the seed by combining a random number with the validator's address to calculate the seed. In deeds, the validator's address is converted to numerical values and use these numbers in combination with a random number to compute the seed. 
+
+Let's denote the validator's address by $addr$.
+\begin{equation}
+\quad \text{addr} \in \text{Addresses}
+\end{equation}
+
+The address is converted to numerical values.
+\begin{equation}
+\text{addr\_num} = \text{init256}(\text{addr})
+\end{equation}
+
+
+This combination adds an extra level of security. So even watching the mempool and get the random number, a malicious validators cannot use the same random number $r$  because the combination with their address will not produce the same seed $s$.
+\subsubsection{Caller exploitation attack}
+A caller may run the validator program for their parameters before submitting it on-chain and the quickly submit it right after submitting the parameters to either get the computation reward or prove the valid of their parameters before  counterexamples found by other validators. 
+
+To prevent this security sisk, the block timestamps indicating when the parameter is submitted on the chain is included to calculate the seed. The seed is enhanced by combining a random number with the validator's address and timestamps.
+
+ Let's denote the timestamp by $t$.
+\begin{equation}
+\quad t \in \text{Timestamps}
+\end{equation}
+
+The seed $s$ is computed by combining these numerical values.
+\begin{equation}
+s = \text{hash}(r, \text{addr\_num}, t)
+\end{equation}
+where \(\text{hash}\) is a hash function that takes the three numerical values and returns a numerical value \( s \).
+As a result, any attempt to submit manipulated or before-run seeds will fail to produce either a counterexample or reward computation.
+
+
+Moreover, some application may want to set up a time fame such that a parameter can only valid if this amout of time is passed. This grantee enough time for validators to valide the parameter. Then, the parameter is valid if and only if a certain amount of time having passed, no counterexample being found, and receiving enough computation proofs. 
+\subsubsection{Reward manipulation attack}
+In some applications, multiple computational proofs may be allowed. There are a record to monitor the progress of the parameter's verification. Namely, it includes the following details of the addresses of the validators and the random number $r$ used in the verification process. This record is crucial for preventing reward manipulation attack as a validator can not reclaim a new reward with the same random number. 
+
+The validators' addresses and the random number $r$ play a vital role in preventing reward-manipulation attacks. A validator cannot resubmit with the same $r$. Therefore, this uniqueness prevents validators from submitting the same computation proof or a counterexample multiple times.
+%\subsection{Seed calculation}
+%The validator's address and timestamps are converted to numerical values and use these numbers in combination with a random number to compute the seed. This combination adds an extra level of security. 
+%\begin{enumerate}
+%\item 
+%Seed calculation: The seed is enhanced by combining a random number with the validator's address and timestamps. Let's denote the random number by $r$, the validator's address by $addr$, and the timestamp by $t$.
+%\begin{equation}s
+%r \in \mathbb{N}, \quad \text{addr} \in %\text{Addresses}, \quad t \in \text{Timestamps}
+%\end{equation}
+%\item Conversion of address and timestamp: The address and timestamp are converted to numerical values using appropriate functions.
+%\begin{equation}
+%\text{addr\_num} = \text{init256}(\text{addr}) \\
+% \quad t_{\text{num}} = \text{convert}(t)
+%\end{equation}
+%\item Combination to compute the seed: The seed $s$ is computed by combining these numerical values.
+%\begin{equation}
+%s = \text{hash}(r, \text{addr\_num}, t_{\text{num}})
+%\end{equation}
+%where \(\text{hash}\) is a hash function that takes the three numerical values and returns a numerical value \( s \).
+%\end{enumerate}
+
+%\textbf{Security Features}:
+%\begin{itemize}
+%    \item Front-running attacks: Other validators cannot use the random number $r$ alone because the combination with their address and timestamp will not produce the same seed $s$.
+%    \item Caller exploitation: The timestamp constraints prevent the caller from running the check before submitting the parameter.
+%\end{itemize}
+%In this system, even if other validators obtain a random number, they are unable to submit it successfully, as their combination with their address will not yield the correct seed that corresponds to a specific element in the domain. Additionally, a caller cannot run the check before submitting the parameter owing to the timestamp constraints. 
+ %The address conversion can be achieved using functions such as \lstinline|init256| in Solidity, which transform an Ethereum address into a numerical value. 
+
+
 
 %In some applications, multiple computational proofs may be allowed. This record is crucial for determining when a work function can be invoked for a given parameter or when it should be discarded. 
 
-\textbf{Security Features}:
-The validators' addresses and the random number $r$ play a vital role in preventing reward-manipulation attacks. A validator cannot resubmit with the same $r$. Therefore, this uniqueness prevents validators from submitting the same computation proof or a counterexample multiple times.
+%\textbf{Security Features}:
+%The validators' addresses and the random number $r$ play a vital role in preventing reward-manipulation attacks. A validator cannot resubmit with the same $r$. Therefore, this uniqueness prevents validators from submitting the same computation proof or a counterexample multiple times.
 
 %In certain applications, one may delete the records after processing is completed for the parameter, especially if a large number of parameters are submitted to manage storage efficiently.
-\subsection{Deploying and managing on/off-chain contracts.}
-On/off-chain contracts are provided and managed by their respective owners, who assume a primary role in their design. The owner deploys the assertion contract on the blockchain while storing the validator contract off the blockchain, thereby ensuring its accessibility to the validators.
-
-There are two approaches to making these contracts available to validators.
-\begin{itemize}
-\item The owner store the codes on a repository accessible to validators, or upon request, provide them directly to validators.
-\item Alternatively, the owner broadcard the contracts to the network using messaging systems such as Waku in Ethereum. Owners should disseminate contracts to the network after deploying the on-chain assertion contracts. In this scenario, the interested validators are responsible for locally storing off-chain code.
-\end{itemize}
-
-\subsection{Submitting and verifying a parameter.} The primary entities interacting with the on-chain assertion contract are callers and validators. Callers submit parameters on-chain, while validators verify them off-chain. Subsequently, validators claim their findings of counterexamples or reward computations on-chain. 
-\subsubsection{Submitting a parameter} 
-Before a parameter can be utilized in the actual work function or contract, a caller must initially submit it via the submit-parameter function in the on-chain assertion contract. When submitting the parameter, the caller need to send a deposit stake in the form of a native token or pay gas fees for storing the parameter. This stake is claimed by a validator who finds a counterexample, either in the form of the native token or as a gas refund from releasing the storage as the invalid parameter is deleted.
-
-\textbf{Security Features}: 
-The deposit serves as a deterrent, as in the event of an invalid parameter, the deposit may be forfeited to prevent callers from submitting such parameters solving the DoS attack security risk. 
-
-Upon the submission of a parameter, an event can be emitted, allowing validators to receive updates by monitoring the blockchain for the parameter submission event. Additionally, the caller may choose to broadcast their parameter to all validators via a messaging system when submitting it online.
-
-%The work contact can only be invoked by the on-chain validation contract after the parameter has been validated if no counterexample is found. The actual work is then performed with the passed parameter.
-\subsubsection{Off-chain verification}
-
-After a parameter is submitted and stored on-chain, a validator can commence the verification process. To assess the validity of a parameter, each validator independently executes the off-chain validation contract. A validator may attempt to run the off-chain validation contract multiple times with different random numbers in order to find either a counterexample or a computational proof. It's possible that several attempts may be made before the validator receives an award.  A function called find-seed could be implemented, which in turn calls the claim-reward function to locate a seed.
-
-All events such as parameter submissions, the discovery of a counterexample, or the presentation of computational proofs can be broadcasted to the network using event emission. Validators can monitor these events to stay updated on the verification status in real-time. 
-
-\subsection{Claiming the reward} 
-If validators discover a counterexample or an award computation, they provide the seed, a combination of a random number, the parameter's timestamp and the validator's address to the on-chain assertion contract. The on-chain assertion contract then executes the same claim-reward function, which should yield the same result.  If the result is correct, there is an award to the validator and the record of the parameter in the storage is updated accordingly. %When a computational proof is submitted and  certain requirements are met, the work function/contract is invoked.
 
 
-\subsection{Calling a work function}
-A work function can indeed be encapsulated either as a private function in the assertion contract or implemented in another contract. In this process, a caller initiates the submission of a parameter for verification by invoking the submit-parameter function within the on-chain assertion contract. Upon successful verification of the parameter, a work contract can be triggered to execute the designated task, operating under the assumption of the parameter's validity.
-
-The invocation of the work function or contract is carried out by the on-chain validation contract or a caller. This call is subject to specific requirements being met, ensuring that the task is executed only when the verification process has been successfully completed and the parameter is deemed valid, such as a certain amount of time having passed, no counterexample being found, and receiving enough computation proofs. If all conditions are met, the actual work is executed, and in some application, the record of the parameter may be deleted from memory to free up storage.
 
 %By enforcing strict conditions for the execution of the work function or contract based on the outcome of the verification process, the integrity and reliability of the system can be maintained.
 
