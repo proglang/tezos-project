@@ -1,4 +1,4 @@
-% APLAS 2021: Regular research papers should not exceed 18 pages in
+% APLAS 2024: Regular research papers should not exceed 17 pages in
 % the Springer LNCS format(LaTeX template), including bibliography and
 % figures.
 % Lightweight double-blind: Author names and institutions must be
@@ -7,39 +7,25 @@
 %
 \documentclass[runningheads]{llncs}
 \pdfoutput=1
-%\usepackage[english]{babel}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{amssymb}
-\usepackage{comment}
 \usepackage{graphicx}
-%\usepackage[colorinlistoftodos]{todonotes}
 \usepackage{mathpartir}
-%\usepackage{fixme}
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{listings}
-\usepackage{adjustbox} % For adjusting box sizes
+
 \lstdefinelanguage{michelson}{
-  % basicstyle=\ttfamily,
+  basicstyle=\ttfamily,
   basicstyle=\fontsize{8}{9.6}\selectfont,
   morekeywords={parameter,storage,or,unit,mutez,pair,bool,address}, sensitive=false,
   morecomment=[l]{\#},
   morecomment=[s]{/*}{*/},
   morestring=[b]",
 }
-\lstset{
-  language=Caml,
-  captionpos=b,
-  aboveskip=-\smallskipamount,
-  belowskip=-\smallskipamount,
-  belowcaptionskip=0pt,
-  basicstyle=\fontsize{8}{9.6}\selectfont,
-  morekeywords={val}
-}
 
 \input{macros}
-
 
 \begin{document}
 %
@@ -49,16 +35,15 @@
 % If the paper title is too long for the running head, you can set
 % an abbreviated paper title here
 %
-%\author{Thi Thu Ha Doan\orcidID{0000-0001-7524-4497}\and Peter Thiemann\orcidID{0000-0002-9000-1239}}
-
+\author{Thi Thu Ha Doan\orcidID{0000-0001-7524-4497}\and Peter Thiemann\orcidID{0000-0002-9000-1239}}
 
 %
-%\authorrunning{Ha Doan, P. Thiemann}
+\authorrunning{Ha Doan, P. Thiemann}
 % First names are abbreviated in the running head.
 % If there are more than two authors, 'et al.' is used.
 %
-%\institute{University of Freiburg, Germany \\
-%  \email{\{doanha,thiemann\}@informatik.uni-freiburg.de}}
+\institute{University of Freiburg, Germany \\
+  \email{\{doanha,thiemann\}@informatik.uni-freiburg.de}}
 %
 \maketitle              % typeset the header of the contribution
 %
@@ -92,33 +77,9 @@ Our contributions are as follows.
 Several high-level languages, such as LIGO \cite{ligo}, SmartPy \cite{smartpy}, and Liquidity \cite{liquidity}, provide a more readable syntax resembling popular programming languages. This allows developers to write Tezos smart contracts more comfortably. Our tools are applicable to all these languages because they compile to Michelson.
 \section{Michelson}
 \label{sec:background}
-\lstset{language=michelson}
-\begin{lstlisting}[float=tp,captionpos=b,caption={A Michelson program},label={lst:simple-program-add}]
-parameter int;
-storage   int;
-code {                (* pair int int :: [] *)
-  DUP; UNPAIR;        (* int :: int :: pair int int :: [] *) 
-  COMPARE; GE;        (* bool :: pair int int :: [] *)
-  IF {UNPAIR; SUB} {PUSH string 'Unexpected Pair'; FAILWITH};
-                      (* int :: [] *)
-  NIL operation; PAIR (* pair (list operation) int :: [] *)
-}
-\end{lstlisting}
 Michelson is a stack-based, statically typed functional programming language. A program is defined by the type $S$ of its storage, the type $P$ of its single parameter, and a typed list of instructions for the underlying stack machine. It starts on a stack with one element containing a pair of the current storage value (taken from the blockchain) and the parameter value specified by the contract invocation. When the program finishes, the stack must contain a single element with a pair of the final storage value (to be saved on the blockchain) and a list of operations. These operations are syntactic commands, such as token transfers or contract invocations, among other possibilities. Thus, the program computes a function $P \times S \to O^* \times S$, where $O$ is the type of operations.
 
 Besides the standard datatypes (e.g., numbers, lists, pairs, sums, functions) with the expected operations, Michelson supports a number of types and operations specific to blockchain applications (e.g., \texttt{mutez} for tokens) as shown in Fig.~\ref{fig:types}, where \textbf{cpt} denotes comparable types. The type system does not support quantification over types, and there are no user-defined types.
-
-Listing~\ref{lst:simple-program-add} contains a short example of a Michelson program. The code is interspersed with comments indicating the types of values currently on the stack. This program first duplicates its input (\lstinline|DUP|), decomposes the pair $P \times S$ into its components (\lstinline|UNPAIR|), compares the two values on top of the stack (\lstinline|COMPARE|), and transforms the result into a boolean (\lstinline|GE|). The \lstinline|IF| instruction pops the boolean and either executes the first (for true) or second (for false) list of instructions. At this point, only the initial pair remains on the stack. In the true branch, \lstinline|UNPAIR| decomposes the pair, and \lstinline|SUB| subtracts the two components. In the false branch, the \lstinline|PUSH| instruction puts a string message on the stack. The \lstinline|FAILWITH| instruction aborts the contract execution: the tokens provided with the invocation are consumed, but the storage and balance of the contract remain unchanged. Finally, the \lstinline|NIL| instruction pushes an empty list of operations, and \lstinline|PAIR| creates the required pair of type $O^* \times S$.
-
-A contract may have several entrypoints. Entrypoints are encoded by
-using a sum type (call ``or type'' in Michelson). Each (nested) alternative in a sum can be
-given a name, which is used as the name for an entrypoint. A call to
-an entrypoint automatically adds the required \lstinline|LEFT| and
-\lstinline|RIGHT| constructors to the parameter.
-\lstset{language=Caml}
-\section{SCV: A Domain Specific Language For Smart Contract Property Specification}
-\label{sec:domain-specific-language}
-SCV contains a domain-specific language to specify smart contract properties, aiming to be user-friendly for non-experts and compatible with SMT solvers. 
 \begin{figure}[tp]
 \begin{align*}
 \textbf{cpt} &::= 
@@ -155,19 +116,42 @@ SCV contains a domain-specific language to specify smart contract properties, ai
 \caption{Types}
 \label{fig:types}
 \end{figure}
+
+Listing~\ref{lst:simple-program-add} contains a short example of a Michelson program. The code is interspersed with comments indicating the types of values currently on the stack. This program first duplicates its input (\lstinline|DUP|), decomposes the pair $P \times S$ into its components (\lstinline|UNPAIR|), compares the two values on top of the stack (\lstinline|COMPARE|), and transforms the result into a boolean (\lstinline|GE|). The \lstinline|IF| instruction pops the boolean and either executes the first (for true) or second (for false) list of instructions. At this point, only the initial pair remains on the stack. In the true branch, \lstinline|UNPAIR| decomposes the pair, and \lstinline|SUB| subtracts the two components. In the false branch, the \lstinline|PUSH| instruction puts a string message on the stack. The \lstinline|FAILWITH| instruction aborts the contract execution: the tokens provided with the invocation are consumed, but the storage and balance of the contract remain unchanged. Finally, the \lstinline|NIL| instruction pushes an empty list of operations, and \lstinline|PAIR| creates the required pair of type $O^* \times S$.
+
+A contract may have several entrypoints. Entrypoints are encoded by
+using a sum type (call ``or type'' in Michelson). Each (nested) alternative in a sum can be
+given a name, which is used as the name for an entrypoint. A call to
+an entrypoint automatically adds the required \lstinline|LEFT| and
+\lstinline|RIGHT| constructors to the parameter.
+\lstset{language=michelson}
+\begin{lstlisting}[float,captionpos=b,caption={A Michelson program},label={lst:simple-program-add}]
+parameter int;
+storage   int;
+code {                (* pair int int :: [] *)
+  DUP; UNPAIR;        (* int :: int :: pair int int :: [] *) 
+  COMPARE; GE;        (* bool :: pair int int :: [] *)
+  IF {UNPAIR; SUB} {PUSH string 'Unexpected Pair'; FAILWITH};
+                      (* int :: [] *)
+  NIL operation; PAIR (* pair (list operation) int :: [] *)}
+\end{lstlisting}
+\section{SCV: A Domain Specific Language For Smart Contract Property Specification}
+\label{sec:domain-specific-language}
+SCV contains a domain-specific language to specify smart contract properties, aiming to be user-friendly for non-experts and compatible with SMT solvers. 
 \subsection{Basic syntax}
 \label{sec:basic-syntax}
 Listing~\ref{lst:sub-contract-specification} shows the specification of the \texttt{sub} contract in the SCV language. Here, \KMCONTRACT, \KSPEC, \KCODE, \KINPUT, \KOUTPUT, \KPRECONDI, and \KPOSTCONDI\ are keywords. The \KINPUT{} and \KOUTPUT{} fields specify the input and output patterns, which are terms on Michelson values.
 
 Figure~\ref{fig:syntax-terms-predicates} contains the syntax of terms: A term \textbf{t} can consist of constants of the sort \text{nat} (natural number), \text{int} (integer), \text{string} (string), and \text{b} (bytes) along with their respective types. The type annotation may be omitted except for the type \text{nat} to distinguish it from integers. It also encompasses all blockchain constants \textbf{c}. When a variable appears for the first time, it must be accompanied by its type declaration. Subsequent mentions can omit the type declaration.
 
-Since Michelson operates on a stack, we assume that the input stack and the output stack each have only one element, as specified in the input term and the output term, respectively. The syntax allows us to specify both incomplete and complete smart contracts. For a complete smart contract, the output should be a pair consisting of an operation list and the storage's state after the completion of the code. For verification purposes, we elide the operation list and represent the output solely by the term of the value in the storage after execution concludes. %Michelson code, whether composed by users, obtained from the Tezos blockchain, or compiled from higher-level languages, can be seamlessly used within our framework.
+Since Michelson operates on a stack, we assume that the input stack and the output stack each have only one element, as specified in the input term and the output term, respectively. The syntax allows us to specify either a fragment of Michelson code or a complete program. For a complete Michelson program, the output should be a pair consisting of an operation list and the state of the storage after code execution,  as described in Section \ref{sec:background}. For verification purposes, we elide the operation list and represent the output solely by the term of the value in the storage after execution concludes. 
 
-The pre- and post-condition instances are formulas in first-order logic that can be handled by an SMT solver (specifically, Z3 in our case). The specification language is constructed from predicates. Formulas used in assertions or added to solvers are terms of Boolean type. Non-Boolean terms may also be used, and they can be mixed in any combination where types match appropriately.
+The pre and postcondition instances are formulas in first-order logic that can be handled by an SMT solver (specifically, Z3 in our case). The specification language is constructed from predicates. Formulas used in assertions or added to solvers are terms of Boolean type. Non-Boolean terms may also be used, and they can be mixed in any combination where types match appropriately.
 
 Several predefined functions include \text{get\_map(e1, e2)}, which accesses an element in a map. If there is no key \text{e1} in the map \text{e2}, the function returns \text{None}; otherwise, it returns \text{Some(v)} where $v$ is the mapped value. Another function, \text{get\_contract(T, e)}, converts the address \text{e} to a contract on the Tezos blockchain. If no contract with an entrypoint of type \text{T} is associated with the address \text{e}, it returns \text{None}; otherwise, it returns the contract as \text{Some(c)}.
 
 Certain functions are defined as predicates, such as \text{transfer\_token(e1, e2, e3)}. This predicate holds true if, after executing the smart contract code, there is an operation in the operation list indicating the transfer of \text{e2} tokens to address \text{e3} along with parameter \text{e1}\footnote{Additional predicates can be straightforwardly added if a mapping to Z3 formulas is defined.}.
+%\lstset{language=michelson}
 \begin{lstlisting}[float,captionpos=b,caption={Specification of  the \lstinline/sub/ contract},label={lst:sub-contract-specification},numbers=left]
 mcontract sub = spec
   code := {DUP; UNPAIR; COMPARE; GE; IF {UNPAIR; SUB} 
@@ -183,7 +167,7 @@ element, which is a pair of two integer variables \lstinline/x/ and \lstinline/y
 The specification continues by defining the output term as a variable \lstinline/z/ of interger, and 
 pre and postconditions, where the precondition states the assumption
 that the integer \lstinline/x/ is greater than or equal to  \lstinline/y/. The postcondition asserts that the result
-\lstinline/z/ is equal to the substract of
+\lstinline/z/ is equal to the subtract of
 \lstinline/x/ and \lstinline/y/, which is greater or equal to
 zero. The symbol \lstinline/&&/ stands for conjunction. 
 \begin{figure}[tp]
@@ -253,15 +237,14 @@ zero. The symbol \lstinline/&&/ stands for conjunction.
 \subsection{Multiple entrypoints}
 \label{sec:multiple-entrypoint}
 The design of SCV enables us to verify all entrypoints
-at once and to describe relationships between entrypoints. The entrypoint name is written after the \lstinline/%/ symbol and is followed by a property specification for the entrypoint.  The specification finishes with specifying entrypoint relations, which we explain next. For a smart contract, the input term includes the storage term before, and the output term represents the storage after the execution. Thus, there are two options of the syntax. The first option similar to the basic syntax with the entrypoint specific.  
+at once and to describe relationships between entrypoints. The entrypoint name is written after the \lstinline/%/ symbol and is followed by a property specification for the entrypoint.  The specification finishes with specifying entrypoint relations, which we explain next. For a smart contract, the input term includes the storage term before, and the output term represents the storage after the execution. Thus, there are two options of the syntax. The first option is similar to the basic syntax with the entrypoint specific.  
 In the second option, the input term is then the pair of the parameter term and the storage term. The prefix \lstinline/post_/ is used before the variables from the storage term to indicate the corresponding storage value after the execution.
 
 Let us have a look at the specification for the auction
-contract that models an online auction in Listing \ref{lst:auction-contract-specification1}. The contract has two entry points, \lstinline|%bid| and \lstinline|%close|, which serve as functions for bidding and closing the contract, respectively. The smart contract storage is a pair containing, as its first element, a boolean value \lstinline|open| that indicates whether the contract is still open for bidding or already closed. The second element is another nested pair, where the first element \lstinline|highest| stores the highest bidder's address, and the second element \lstinline|owner| is the contract owner's address. The current highest bid is reflected in the balance of the contract before the next bid is invoked. We omit the Michelson code of the smart contract due to its length.  For the \lstinline/%bid/ entrypoint, the parameter is \lstinline/Unit/ of type \lstinline/unit/.
+contract that models an online auction in Listing \ref{lst:auction-contract-specification1}. The contract has two entry points, \lstinline|%bid| and \lstinline|%close|, which serve as functions for bidding and closing the contract, respectively. The smart contract storage is a pair containing, as its first element, a boolean value \lstinline|open| that indicates whether the contract is still open for bidding or already closed. The second element is another nested pair, where the element \lstinline|highest| stores the highest bidder's address, and the element \lstinline|owner| is the contract owner's address. The current highest bid is reflected in the balance of the contract before the next bid is invoked. We omit the Michelson code of the smart contract due to its length.  For the \lstinline/%bid/ entrypoint, the parameter is \lstinline/Unit/ of type \lstinline/unit/.
 The current storage is described by the \lstinline|storage| phrase. 
 
-Closing the contract transfers the balance to the owner and is restricted to the owner. Both closing and bidding operations fail if the auction is already closed. If bidding is open and the amount of tokens accompanying the bid exceeds the current highest bid, the current bidder replaces the previous highest bidder, and the previous highest bidder is reimbursed. Otherwise, bidding fails. Upon deployment, the owner deposits an initial balance to indicate the minimum bid. The contract should be deployed with the storage value \lstinline|Pair True (Pair owner owner)|, indicating that bidding is allowed, and the contract owner is currently the highest bidder.
-
+Closing the contract transfers the balance to the owner and is restricted to the owner. Both closing and bidding operations must fail if the auction is already closed. If bidding is open and the amount of tokens accompanying the bid exceeds the current highest bid, the current bidder replaces the previous highest bidder, and the previous highest bidder is reimbursed. Otherwise, bidding fails. Upon deployment, the owner deposits an initial balance to indicate the minimum bid. The contract should be deployed with the storage value \lstinline|Pair True (Pair owner owner)|, indicating that bidding is allowed, and the contract owner is currently the highest bidder.
 \begin{lstlisting}[float=tp,captionpos=b,caption={Auction contract specification},label={lst:auction-contract-specification1},numbers=left]
 mcontract auction = spec 
  storage := Pair (open: bool) 
@@ -285,7 +268,6 @@ mcontract auction = spec
  | not (%close -> %bid) | not (%close -> %close)
 \end{lstlisting}
 
-%There are several properties that we want to guarantee for this contract. 
 The first property is that if a user calls the \lstinline|%bid| entrypoint when the contract is still open for bidding and the bid is higher than the current bid (as specified in the \lstinline|pre-condition| field at line 7), and the address of the highest bidder can be cast to a real contract represented by the variable \lstinline|c| of type \lstinline|contract unit| on the blockchain (line 8), then the bid should succeed. In this case, the highest bidder must be updated to the sender, which is the address of the caller (line 9 in the \lstinline|post-condition| field), and the balance of the contract should be the amount sent along with the call (line 10). Moreover, the previous highest bidder should receive their bid back, which means the auction contract should transfer the \lstinline|pre_Balance| to the previous bidder, \lstinline|highest| (line 11). Another property guarantees that the auction owner's address should not be changed after calling the \lstinline/bid/ entrypoint (line 10) and the auction should be still open (line 9). 
 \subsection{Entrypoint relations}
 \label{sec:entrypoint-relations}
@@ -295,10 +277,8 @@ calls can be crucial, we specify ordering constraints among calls with
 \lstinline/%a -> %b with p/, which starts with the name
 \lstinline/%a/ of the entrypoint and is followed by the keyword
 \lstinline/with/ in case conditions are specified as predicates. The
-following symbol \lstinline/->/ indicates that from the entrypoint
-that satisfies the condition \lstinline/p/, it is possible  to call
-the entrypoint \lstinline/%b/. One specification can
-contain several entrypoint relations concatenated by
+following symbol \lstinline/->/ indicates that after invoking the entrypoint \lstinline/%a/, it is possible  to call
+the entrypoint \lstinline/%b/ if the condition \lstinline/p/ holds. One specification can contain several entrypoint relations concatenated by
 \lstinline/|/. There is a special entrypoint named \lstinline/create/
 that indicates the contract state after deployment. 
 
@@ -314,8 +294,7 @@ should be able to bid on the contract or the contract owner should be
 able to close it. Otherwise, the owner's original
 deposit is lost. This sequence  illustrates
 the life cycle of the auction contract, which is depicted in Figure
-\ref{fig:auction-life-cycle}. Other properties related to the \lstinline|%close| entrypoint and the life cycle are omitted here due to page limits. %, but the full specification can be found in the Appendix and is available online at \cite{scv}.
-
+\ref{fig:auction-life-cycle}. Other properties related to the \lstinline|%close| entrypoint and the life cycle are omitted here due to page limits.
 \begin{figure}[tp]
     \centering
     \includegraphics[width=0.9\textwidth]{auction}
@@ -323,6 +302,143 @@ the life cycle of the auction contract, which is depicted in Figure
     \label{fig:auction-life-cycle}
 \end{figure}
 
+\section{Symbolic Execution Model}
+\label{sec:symbolic-execution-model} 
+We already learned about Michelson, the low-level smart contract
+language for the Tezos blockchain, and its stack-based nature in
+Section~\ref{sec:background}.  Here we address the changes needed for symbolic execution of Michelson programs, focusing on a selection of instructions. 
+\subsection{System Model}
+\label{sec:system-model}
+Our symbolic model of a program state consists of a stack where each element is a symbolic value, represented as a pair comprising a Michelson term and its type. Thus, we write a stack as \STACK\ = (\TermOne, \TYF) \STACKCONCAT\ (\TermTwo, \TYS) \STACKCONCAT\ \DOT\ \STACKCONCAT\ \EMPTYSTACK. Here, \ensuremath{[\ ]} represents the empty stack, and \ensuremath{hd :: tl} denotes a stack with \ensuremath{hd} as the top element and \ensuremath{tl} as the remaining stack. Let \INSTRUCTION\ = \InstructionOne; \InstructionTwo; \DOT; \InstructionN\ be a sequence of instructions, and \PREDICATE\ be a path predicate  expressed in conjunctive form, capturing the branching conditions.
+\begin{definition}
+A symbolic execution state is represented by a tuple \STATE\ =
+[\INSTRUCTION, \STACK, \PREDICATE].
+A system configuration, \SYSTEM\ = \{\STATEONE, \STATETWO,
+\DOT, \STATEN \}, is a set of  states.
+\end{definition}
+\subsection{Rules}
+An instruction is defined by rules on a system configuration. There are two kinds of transitions: (1) \StateTrans\ internal transitions of a state, which are non-deterministic, and (2) \SystemTrans\ system transitions, which pick any state and replace it with all distinct states reachable by internal transitions, exploiting the non-determinism of the \StateTrans\ relation.
+
+A state is unreachable if its predicate \PREDICATE\ is  not
+satisfiable. The following rule drops unreachable states.
+\begin{mathpar}
+\inferrule[]
+  { \UNSAT\ \PREDICATE
+  }{
+  \{[\INSTRUCTION, \STACK, \PREDICATE]\} \cup \SYSTEM \SystemTrans \SYSTEM}
+\end{mathpar}
+The symbolic interpreter works as a graph with states as nodes and transitions as edges. This representation simplifies performing multi-step subtransitions needed for some operations.
+
+The semantics of the symbolic rules for the instructions adhere to the formal definitions of the Michelson language as outlined in \cite{michelson,michelson1}. In our model, these instructions are classified based on how we handle them into one-step, multi-step, blockchain, cryptographic, branch, and loop instructions. 
+
+One-step instructions directly modify the system state without branching, have a localized effect, and are modeled with a single rule.
+
+Multi-step instructions involve the execution of a sub-sequence of instructions before returning to the main execution. The rule below models the \EXEC\ instruction, which executes a function specified as a sequence of instructions denoted by \INSTRUCTIONONE\ in the rule. This instruction applies the code of the function to the first element of the stack and then places the result back into the main execution.
+\begin{mathpar}
+  \inferrule[]
+  { [\INSTRUCTIONONE, (\StackOne, \TYF) \STACKCONCAT \EMPTYSTACK, 
+    \PREDICATE]
+    \StateTrans^*
+    [ \EMPTYSTACK, (\StackOne', \TYS) \STACKCONCAT \EMPTYSTACK, \PREDICATE']}{[(\EXEC; \INSTRUCTION),   (\{\INSTRUCTIONONE\}, \TYF\ \rightarrow\ \TYS) \STACKCONCAT
+    (\StackOne, \TYF) \STACKCONCAT \STACK, \PREDICATE] 
+    \StateTrans \
+    [ \INSTRUCTION, (\StackOne', \TYS) \STACKCONCAT \STACK,
+    \PREDICATE']}
+\end{mathpar} 
+Here, $\StateTrans^*$ represents the execution of multiple steps in a sequence of internal transitions.
+
+Blockchain instructions, such as the \AMOUNT\
+ instruction make implicit use of data from the transaction, the block and the current state of the blockchain. As these values are constant during the execution of a contract, we model them as fixed variables. 
+
+Branch instructions, such as \IF\{\INSTRUCTIONONE\}\{\INSTRUCTIONTWO\} consume a value at the top of the stack. If the branch condition
+is True, it executes \INSTRUCTIONONE; otherwise, it executes
+\INSTRUCTIONTWO. 
+\begin{mathpar}
+  \inferrule[]
+  { }{
+    [(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
+    (\StackOne, \TBOOL) \STACKCONCAT\STACK, \PREDICATE]
+    \StateTrans\
+    \{[\INSTRUCTIONONE, \STACK, \PREDICATE\ \Wedge\ \StackOne],   [\INSTRUCTIONTWO, \STACK, \PREDICATE\ \Wedge\ \NEG\
+   \StackOne]\}} 
+\end{mathpar}
+
+The loop instructions, including \LOOP\ check the loop condition by examining the
+top of the stack. These loop instructions may not terminate, just like while-loops. There are further loop instructions, like \ITER\ and
+\MAP, specialized to traverse data structures like lists, sets, and maps. There are also
+some instructions that implicitly require looping like \CONCAT, and
+\SIZE. The latter kinds of loop instructions do always terminate.
+
+Let us first take look at the terminate loops, such as the \ITER\ instruction, which iterates over a
+list. The corresponding typing rule for the \ITER\ instruction is as follows: 
+\begin{mathpar}
+  \inferrule{\JTypeExpr\TEnv{\INSTRUCTION}{\TY \STACKCONCAT \TYA\ \SRightarrow\ \TYA}
+  }{
+      \JTypeExpr\TEnv{\ITER\ \INSTRUCTION}{\TYLIST\ \TY \STACKCONCAT \TYA\ \SRightarrow\ \TYA}
+    }
+\end{mathpar}
+This rule ensures that if the loop body \INSTRUCTION\ has the type \TY\ \STACKCONCAT\ \TYA\ \SRightarrow\ \TYA, then the entire \ITER\ instruction, when applied to a stack with the top element of type \TY\ \TYLIST\ and the rest of the stack of type \TYA, produces a result stack of type \TYA. 
+
+The following rule handles the  \ITER\ loop for  the non-empty list\footnote{\ITER\ can also iterate over sets and maps, but the details are very similar to the list case and hence omitted.}, while the \ITER\ loop terminates when the list is empty.
+\begin{mathpar}
+  \inferrule[]
+  { \HEAD, \STAIL\ \FRESH \\
+    [\INSTRUCTIONONE,  (\HEAD, \TY) \STACKCONCAT\STACK, 
+    \PREDICATE]
+    \StateTrans^*
+    [ \EMPTYSTACK,  \STACK', \PREDICATE']
+  }{
+    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\
+    \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \\
+    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\STAIL, \TYLIST\ \TY)
+    \STACKCONCAT\STACK',  \PREDICATE' \Wedge  (\StackOne\
+    \EQ\ \{\HEAD; \STAIL \}) ] 
+  }
+\end{mathpar}
+It symbolically executes the instructions \INSTRUCTIONONE\ within the
+\ITER\ block with the head of the list (\HEAD) replacing the list. The resulting state transitions to a
+new stack (\STACK') and an updated predicate (\PREDICATE' $\Wedge$
+(\StackOne\ \EQ\ \{\HEAD; \STAIL\})), where \STAIL\ represents the rest of the list. 
+
+If the list is concrete, the instruction terminates as it simply loops over the elements
+of the list. How do we deal with \ITER\ if the list is a symbolic value? One solution could involve running the loop a certain number of times to obtain the symbolic value. However, we can defer that decision by abstracting the result. 
+
+The loop body \INSTRUCTIONONE\ can be considered as a function, say \F,  applied to a stack
+of type \TY\ ::\ \TYA, resulting in a stack of type \TYA. 
+%\begin{mathpar}
+%\Gamma\ \vdash\  \F\ :\ \TY\ ::\ \TYA\ \SRightarrow\ \TYA
+%\end{mathpar}
+If the first element of
+the stack is a list \LIST, and the rest of the stack is \STACKZERO\ =
+\StackOne\  \STACKCONCAT\ \StackTwo\ \STACKCONCAT\ ... \STACKCONCAT\
+\StackN. Assuming the size of the list \LIST\ is $m$, the \ITER\ {\INSTRUCTIONONE} instruction applies the function \F\ to the stack $m$ times, once for each element of the list \LIST. By unfolding the list once as \{\HEAD; \STAIL\}, the result after 
+the first iteration is \STACKONE\ = \StackOneOne\  \STACKCONCAT\
+\StackTwoOne\ \STACKCONCAT\ ... \STACKCONCAT\ \StackNOne = \F\ \HEAD\
+\STACKZERO, and so on. 
+
+We can represent the value of the stack after running the
+instruction \ITER\  as the result of a fold function that applies the
+function \F\ to the list. 
+\begin{mathpar}
+\STACK'\ =  \FOLD\ \F\ \STACKZERO\ \LIST
+\end{mathpar}
+The \FOLD\ function also can be used to express the result of other loop instructions, such as CONCAT and SIZE, symbolically. 
+
+The similar strategy can be employed for the \MAP\ {\INSTRUCTIONONE} instruction.
+\begin{mathpar}
+\MAP\ \{\INSTRUCTIONONE\} \Slash\ \LIST\ :: \STACK
+\end{mathpar}
+The outcome of the \MAP\ \{\INSTRUCTIONONE\} instruction is the result of a map function that applies the function \F\ representing the sequence of instructions \INSTRUCTIONONE\ to the list \LIST. 
+\begin{mathpar}
+(\FMAP\ \F\ \LIST) ::  \STACK
+\end{mathpar}
+
+Finally, we consider a loop instruction that may not terminate, such as \LOOP. 
+When the input to the symbolic execution consists of concrete values, an unbounded loop causes the interpreter to iterate for a significant number of times until it halts with an exception indicating an unfinished loop. This mirrors the behavior observed in the actual execution of smart contracts, where the loop continues until it runs out of gas, terminating the computation with an out-of-gas error.
+
+For a symbolic value, the stack type is determined before the loop is executed. We unfold the symbolic value once, execute the loop to determine the operation function, and then abstract the result of the loop and loop condition as function results. This abstraction helps detect whether the loop is unbounded, such as when the abstract function of the loop condition always results  true. 
+
+In separate work \cite{dynamic-logic}, we have designed a dynamic logic tailored to Michelson as a formal foundation for the implementation of SCV. We have formalized a soundness proof of this logic in the Agda proof assistant.
 \section{Static Checker}
 \label{sec:static-checker-we}
 The architecture of the static checker is illustrated in Figure~\ref{fig:architecture-of-static-checker}. Users write specifications in the SCV language, which are then parsed into an Abstract Syntax Tree (AST) in OCaml. The input term along with the code is passed to the symbolic interpreter, while the output term and the pre and postconditions are fed to the static checker. The symbolic interpreter, which is fully typed and rejects ill-typed programs, then runs symbolic execution on the code with the provided input, where the initial stack is derived from the input term.
@@ -332,13 +448,14 @@ When a branch occurs, the interpreter sends the path condition to the Z3 convert
 Once the symbolic execution finishes, the results (i.e., all reachable states) are sent to the static checker. Each state contains the post-storage updated after execution, the list of operations to emit, and the path conditions. The static checker then performs the following tasks: output check, property check, and generation of all fail conditions.
 
 We utilize the Z3 library in OCaml to construct the Z3 converter. Some adjustments are necessary to convert these terms into Z3 formulas. For instance, since Z3 does not have a natural number type (\TNAT), it is mapped to Z3's integer type with an additional constraint asserting that the value is greater than or equal to zero. Several constants, such as \CAMOUNT\ and \CBALANCE, as well as cryptographic functions are predefined in the environment that applies to any smart contract specifications.
-
 \begin{figure}[tp]
     \centering
     \includegraphics[width=1\textwidth]{scv}
     \caption{The architecture of the static checker}
     \label{fig:architecture-of-static-checker}
 \end{figure}
+
+We have implemented approximately 85\% of the Michelson instructions, including most of the major-use instructions. The remaining instructions were not implemented primarily due to time constraints rather than technical limitations.
 
 Consider the specification of the \lstinline/sub/ contract, the results of
 the symbolic execution are either a failwith state with the path
@@ -347,16 +464,12 @@ final stack has only one element, which is a symbolic variable
 \lstinline/sbvar/ of type integer, with the path condition stating
 that the variable \lstinline/x/ is greater than or equal to
 \lstinline/y/ and  \lstinline/sbvar/ is equal to
-the substract of \lstinline/x/ and \lstinline/y/. 
-
-We have implemented approximately 85\% of the Michelson instructions, including most of the major-use instructions. The remaining instructions were not implemented primarily due to time constraints rather than technical limitations.
-
+the subtract of \lstinline/x/ and \lstinline/y/. 
 \subsection{Output check}
 \label{sec:output-check}
-For an incomplete smart contract, the output term of the symbolic execution has the form of a term \Term\ and its type \TY. For a complete smart contract, it takes the form \PAIR\ \VOPERATIONLIST\ \VSTORAGE, \TPAIR\ (\TOPERATIONLIST) \TYS, where \VSTORAGE\ represents the storage and \VOPERATIONLIST\ represents the operation list. Given an output term specified as $\tau$, the checker scans all reachable final states that do not contain a failwith stack and checks whether the output term matches. In the former case, it matches $\tau$ with the term \Term. In the latter case, it matches with \VSTORAGE. 
+For a fragment of Michelson code, the output term of the symbolic execution has the form of a term \Term\ and its type \TY. For a complete smart contract, it takes the form \PAIR\ \VOPERATIONLIST\ \VSTORAGE, \TPAIR\ (\TOPERATIONLIST) \TYS, where \VSTORAGE\ represents the storage and \VOPERATIONLIST\ represents the operation list. Given an output term specified as $\tau$, the checker scans all reachable final states that do not contain a failwith stack and checks whether $\tau$ matches with the output term. In the former case, it matches $\tau$ with the term \Term. In the latter case, it matches with \VSTORAGE. 
 
 For instance, in the \lstinline|sub| contract, the output check ignores the states where the failwith occurs and verifies whether the output term \lstinline|z| matches with the symbolic output term \lstinline/sbvar/ in the other state. It succeeds for this example as expected. However, this test could fail if, for example, the output term is incorrectly specified as a variable of a type that does not match the actual result.
-
 \subsection{Fail conditions}
 \label{sec:fail-conditions}
 A Michelson contract can fail due to conditions introduced by the programmer, triggered by the \FAILWITH\ instruction along with an error message. Failures play a crucial role in smart contract programming to ensure that certain conditions lead to contract termination, such as unauthorized caller attempts (access control properties) or invalid arguments. Various smart contract standards, including \cite{erc,fa}, mandate specific fail conditions.
@@ -364,10 +477,8 @@ A Michelson contract can fail due to conditions introduced by the programmer, tr
 The static checker includes a feature to generate all fail conditions encountered in a smart contract. This tool identifies all instances where execution terminates due to the \FAILWITH\ instruction, collecting the associated path conditions and error messages. Users receive a comprehensive report detailing each fail condition along with its corresponding message. This capability is particularly powerful for verifying access control properties and other critical aspects across different smart contracts.
 
 For instance, the entrypoint \lstinline|bid| has three fail conditions, as shown in Listing~\ref{lst:fail-condition-auction-contract-bid}: (1) If the auction is closed, (2) if the auction is open but the bid amount is less than or equal to the current balance, and (3) if the auction is open, the bid amount exceeds the balance, but the address of the highest bidder is invalid.
-
-
-
-\begin{lstlisting}[float=tp,captionpos=b,caption={Fail condition for auction contract bid entrypoint },label={lst:fail-condition-auction-contract-bid},numbers=left]
+%\lstset{language=michelson}
+\begin{lstlisting}[float=tp,captionpos=b,caption={Fail condition for auction contract bid entrypoint},label={lst:fail-condition-auction-contract-bid},numbers=left]
 1. not (open = true): 'Already closed'
 2. (open = true) && not (Amount > pre_Balance):
    'Not higher than the current highest bid'
@@ -376,7 +487,6 @@ For instance, the entrypoint \lstinline|bid| has three fail conditions, as shown
 \end{lstlisting}
 \subsection{Property check}
 \label{sec:property-check}
-%The SCV verify smart contract properties by using pre- and post-condition specifications. 
 A property is
 specified with the clause:  \lstinline/pre-condition := &&/
 $\Phi_{i}$ followed by \lstinline/post-condition := &&/ $\Psi_{j}$. This
@@ -391,42 +501,42 @@ and its final state. For example, for the \lstinline/sub/ contract, the failwith
 the symbolic variable \lstinline/sbvar/ in the other branch. In this
 example, the checker then verifies that $\neg$ ((\lstinline/x/ $>=$ y) $\land$ (\lstinline/z/
 = \lstinline/x/ $-$ \lstinline/y/) $\rightarrow$ (\lstinline/z/ $=$ \lstinline/x/ $-$ \lstinline/y/) $\land$ (\lstinline/z/ $>=$ 0)) is unsatisfiable.
-
 \subsection{Life-cycle check}
 \label{sec:life-cycle-check}
-An entrypoint relation can be defined as \lstinline/(%a -> %b) with p/, indicating that after invoking the entrypoint \lstinline/%a/, it is permissible to call the entrypoint \lstinline/%b/ if the condition \lstinline/p/ is satisfied. The presence of the keyword \lstinline/not/ at the beginning signals an impossibility. Note that \lstinline/with p/ may be omitted when no condition is needed.
+An entrypoint relation can be defined as \lstinline/(%a -> %b) with p/, indicating that after invoking the entrypoint \lstinline/%a/, it is permissible to call the entrypoint \lstinline/%b/ if the condition \lstinline/p/ holds. The presence of the keyword \lstinline/not/ at the beginning signals an impossibility. Note that \lstinline/with p/ may be omitted when no condition is needed.
 
 Let $S_a$ represent the set of all reachable states resulting from the execution of the call to the entrypoint \lstinline/%a/. Each $s_{i}$ in $S_a$ is associated with a path condition $\Theta_i$ and is represented as a stack containing a single element—a pair consisting of an operation list ($\VOPERATIONLIST_i$) and the storage $\VSTORAGE_i$. For each $s_{i}$, symbolic execution is performed on the entrypoint \lstinline/%b/ using input as a pair of the parameter and the storage $\VSTORAGE_i$, constrained by $\Theta_i$ and the condition \lstinline/p/. In the execution state space, a state $s_{j}$ with the path condition $\Theta_j$ is considered reachable if ($\Theta_i$ $\land$ \lstinline/p/ $\land$ $\Theta_j$) is satisfiable, and $\neg$ ($\Theta_i$ $\land$ \lstinline/p/ $\rightarrow$ $\Theta_j$) is unsatisfiable. Let $S_b$ denote the set of these reachable states. If $S_b$ is empty or contains only failwith states, then it is impossible to invoke the entrypoint \lstinline/%b/ from the state $s_{i}$. Otherwise, it is considered a success. Let $R$ be the set containing all such states $s_{i}$ in $S_a$ where it is successful to call the entrypoint \lstinline/%b/ with the condition \lstinline/p/. If $R$ is non-empty, then \lstinline/(%a -> %b) with p/ holds. Otherwise, it is false, signifying \lstinline/not (%a  -> %b) with p/.
 \section{Case Studies}
 \label{sec:case-stud-subs}
-
 This section reports two case studies which are taken from the realm of financial applications deployed on the Tezos blockchain. 
-
 \subsection{USDtz}
 \label{sec:usdtz}
 In a blockchain ecosystem, tokens function as digital assets that can be transferred between accounts. These tokens come in various types, which include native tokens (cryptocurrencies) like Bitcoin and Tezos, as well as digital tokens created through smart contracts on an existing blockchain.
 
 It is advisable to implement tokens that adhere to established standards, such as ERC-20 \cite{erc} for Ethereum \cite{eth-whitepaper}, ensuring interoperability and compatibility across different platforms. A token standard specifies a set of rules and an interface that smart contracts must adhere to. The Tezos blockchain has its own set of standards known as Financial Applications (FA) in which FA 1.2 \cite{fa} is designed for fungible tokens.
 \begin{lstlisting}[float=tp,captionpos=b,caption={FA 1.2 interface},label={lst:fa12-interface},numbers=left]
-(address :from, (address :to, nat :value))    %transfer
-(address :spender, nat :value)                %approve
-(view (address :owner, address :spender) nat) %getAllowance
-(view (address :owner) nat)                   %getBalance
-(view unit nat)                               %getTotalSupply
+pair (address:from, pair (address:to, nat:value)) %transfer
+pair (address:spender, nat:value)           %approve
+(view pair (address:owner, address:spender) nat) %getAllowance
+(view (address:owner) nat)                  %getBalance
+(view unit nat)                             %getTotalSupply
 \end{lstlisting}
 
-Any contract aiming to implement the FA 1.2 standard must incorporate the functions specified in Listing~\ref{lst:fa12-interface}. We verify USDtz \cite{usdtzimplemetation,tzstatsusdtz}, an implementation of the FA 1.2 standard. The goal is to ensure that the implementation aligns with the standard, verifying its correctness. USDtz is designed to maintain a stable value by pegging it to a fiat currency like USD or EUR, and it has been operational on the Tezos blockchain for a significant period.
+Any contract aiming to implement the FA 1.2 standard must incorporate the functions specified in Listing~\ref{lst:fa12-interface}, where
+\lstinline/view a r = pair a (contract r)/ implies an view entrypoint.
+A view is an entrypoint that takes an argument of type \lstinline/a/ and a contract to callback that receives in a value of type \lstinline/r/. 
+We verify USDtz \cite{usdtzimplemetation,tzstatsusdtz}, an implementation of the FA 1.2 standard. The goal is to ensure that the implementation aligns with the standard, verifying its correctness. USDtz is designed to maintain a stable value by pegging it to a fiat currency like USD or EUR, and it has been operational on the Tezos blockchain for a significant period.
 
 The implementation consists of approximately 1000 instructions, covering the five required entrypoints for the FA 1.2 standard and four additional ones. The storage contains a ledger (\lstinline/ledger/), which is a substantial map linking user addresses (\lstinline/user/) to a pair consisting of their balance (\lstinline/balance/) and a map (\lstinline/approvals/) associating addresses (\lstinline/spender/) with the amount of tokens (\lstinline/value/) allowed to be transferred from that user's account. It also includes additional information such as the admin address (\lstinline/admin/), total supply (\lstinline/totalSupply/), and the smart contract state (\lstinline/paused/).
 
-
-The \lstinline/transfer/ entrypoint credits the account associated with the address provided in the \lstinline/to/ parameter while debiting the account corresponding to the \lstinline/from/ parameter with the specified \lstinline/value/ amount. According to the FA 1.2 standard, this call must fail under two specific conditions: (1) The entrypoint must fail with the error \lstinline/NotEnoughBalance/ if the sender's account lacks sufficient funds. (2) If the sender's account does not have permission to withdraw the specified \lstinline/value/ amount, the call will fail with the \lstinline/NotEnoughAllowance/ error. To verify these requirements, we utilize the failwith condition feature of our tool and examine the returned results, one of which is outlined in Listing~\ref{lst:transfer-udstz-contract}. The fail condition results confirm these stipulations.
-\begin{lstlisting}[float,captionpos=b,caption={The \lstinline/NotEnoughBalance/ fail condition for the \lstinline/transfer/ entrypoint},label={lst:transfer-udstz-contract},numbers=left]
+The \lstinline/transfer/ entrypoint credits the account associated with the address provided in the \lstinline/to/ parameter while debiting the account corresponding to the \lstinline/from/ parameter with the specified \lstinline/value/ amount. According to the FA 1.2 standard, this call must fail under two specific conditions: (1) The entrypoint must fail with the error \lstinline/NotEnoughBalance/ if the sender's account lacks sufficient funds. (2) If the sender's account does not have permission to withdraw the specified \lstinline/value/ amount, the call will fail with the \lstinline/NotEnoughAllowance/ error. To verify these requirements, we utilize the failwith condition feature of our tool and examine the returned results, one of which is outlined in Listing~\ref{lst:transfer-udstz-contract-z}. The fail condition results confirm these stipulations.
+\begin{lstlisting}[float,captionpos=b,caption={The \lstinline/NotEnoughBalance/ fail condition for the \lstinline/transfer/ entrypoint},label={lst:transfer-udstz-contract-z},numbers=left]
 not (paused = true) 
 && get_big_map (from, ledger) = Some sbvar 
 && sbvar = Pair sbvar1 sbvar2 
 && not (sbvar1 >= value) : 'NotEnoughBalance'
 \end{lstlisting}
+
 Another essential property is ensuring that the allowance of the sender's account is decremented and the receiver's account is incremented by the \lstinline/value/ that has been sent. This specification is verified to ensure compliance with the contract's intended behavior.
 
 The \texttt{approve} entrypoint grants the spender the right to transfer a specified amount from the owner's account. The contract prohibits changing the allowance value from a non-zero value to another non-zero value to prevent a known attack vector \cite{attack-vector}. This attack exploits the ability to spend the entire allowance before an update and then again after, resulting in a larger amount being spent than allowed. Therefore, the contract call must fail if both the parameter \lstinline/value/ and the current allowance of \lstinline/spender/ are non-zero. We verify this critical property by generating fail conditions to check whenever such a non-zero value update results in a fail condition as Listing \ref{lst:approve-udstz-contract-z}.
@@ -438,7 +548,7 @@ not (paused = true)
 && not(value = 0) && not(sbvar3 = 0): 'UnsafeAllowanceChange'
 \end{lstlisting}
 
-When the update is allowed, the updated value must be correctly recorded in the storage. This can be divided into two sub-properties: (1) if the parameter \lstinline/value/ is zero, then the corresponding allowance value of the \lstinline/spender/ from the owner (which is \SENDER\ in this call) should be zero, and (2) if \lstinline/value/ is non-zero and the allowance of the \lstinline/spender/ is zero, then the \lstinline/value/ should be recorded in the storage after the call. We specify these properties using pre- and post-conditions, as illustrated in Listing~\ref{lst:specification-approve-p1} for the first property.
+When the update is allowed, the updated value must be correctly recorded in the storage. This can be divided into two sub-properties: (1) if the parameter \lstinline/value/ is zero, then the corresponding allowance value of the \lstinline/spender/ from the owner (which is \SENDER\ in this call) should be zero, and (2) if \lstinline/value/ is non-zero and the allowance of the \lstinline/spender/ is zero, then the \lstinline/value/ should be recorded in the storage after the call. We specify these properties using pre and postconditions, as illustrated in Listing~\ref{lst:specification-approve-p1} for the first property.
 
 The \lstinline/getAllowance/, \lstinline/getBalance/, and \lstinline/getTotalSupply/ entrypoints are view entrypoints that retrieve information from the storage without altering the state of the smart contract. For a view entrypoint implementation, it's crucial to return the \lstinline/TRANSFER_TOKENS/ operation targeted at the specified contract with accurate details. Another important property is that all Tezos tokens passed to a view entrypoint should be forwarded to the callback contract, and there should be no modifications made to the ledger. This ensures that view entrypoints maintain their non-modifying nature, strictly adhering to the expected behavior in blockchain environments.
 
@@ -458,7 +568,6 @@ entrpoint %approve
   && get_map (spender, post_m) = Some (post_k: nat) 
   && (post_k = 0) ;
 \end{lstlisting}
-
 \subsection{Kolibri Oracle Contract}
 \label{sec:kolibri-oracle-contr}
 The potential of smart contracts is constrained by their inability to access external data sources. To address this limitation, oracles play a pivotal role in providing external data for smart contracts. Since certain essential properties must be satisfied by an oracle contract, including data approvability, this case study illustrates the process of specifying and verifying an oracle contract using SCV, with the Kolibri oracle contract \cite{kolibri} as an example.
@@ -475,10 +584,9 @@ The Kolibri oracle maintains a state machine with two states: (1) \lstinline/IDL
 
 The two subsequent properties dictate that if \lstinline/getXtzUsdPrice/ is successfully executed, the parameters must be stored in the \lstinline/client/ attribute. \\ If \lstinline/getXtzUsdPrice_callback/ is successful, there must be a transaction transferring the data to the client at the \lstinline/client/. These properties are checked by using pre and postconditions. Futhermore, the critical access control property is that the entrypoints \lstinline/setGovernorContract/ and \lstinline/setMaxDelaySec/ must only be invocable by the governor. Any attempts by unauthorized callers to these entrypoints should result in failure.
 
-When verifying the entrypoint \lstinline/setMaxDataDelaySec/, we noticed an unmatched statement. According to \cite{kolibri}, the Kolibri oracle is expected to perform two checks on data returned from Harbinger: (1) confirming the asset returned is 'XTZ-USD' and (2) verifying the asset was updated within the last 30 minutes. We conducted fail condition checks for both the \lstinline/setMaxDelaySec/ and \lstinline/getXtzUsdPrice_callback/ entrypoints, but these conditions were not enforced. Specifically, upon examining the failwith conditions, we detected that there is no failwith if the data is more than 30 minutes (equal to 1800 seconds). 
+When verifying the entrypoint \lstinline/setMaxDataDelaySec/, we noticed an unmatched statement. According to \cite{kolibri}, the Kolibri oracle is expected to perform two checks on data returned from Harbinger: (1) confirming the asset returned is 'XTZ-USD' and (2) verifying the asset was updated within the last 30 minutes. We conducted fail condition checks for both the \lstinline/setMaxDelaySec/ and \lstinline/getXtzUsdPrice_callback/ entrypoints, but these conditions were not enforced. Specifically, upon examining the failwith conditions, we detected that there is no failwith when the data is more than 30 minutes (equal to 1800 seconds). 
 
-We then add the predicate \lstinline/post_maxDelay <= 1800/ in the post condition of the entrypoint \lstinline/setMaxDataDelaySec/ as shown in Listing \ref{lst:setMaxDataDelaySec1}, but then the pre and post condition test fails. This means there is no constraint that the data is less than 30 minutes. This constraint is possibly set up by the governor and specified in the \lstinline/MaxDataDelaySec/ field. However, users calling this contract should be aware that it is possible for the governor to set any value ($>=0$) as desired. This could lead to providing out-of-date rates.
-
+We then add the predicate \lstinline/post_maxDelay <= 1800/ in the postcondition of the entrypoint \lstinline/setMaxDataDelaySec/ as shown in Listing \ref{lst:setMaxDataDelaySec1}, but then the pre and postcondition test fails. This means there is no constraint enforcing that the data must be less than or equal to 30 minutes. This constraint is possibly set up by the governor and specified in the \lstinline/MaxDataDelaySec/ field. However, users calling this contract should be aware that it is possible for the governor to set any value ($>=0$) as desired. This could lead to providing out-of-date rates.
 \begin{lstlisting}[float=tp,captionpos=b,caption={The specification of the \lstinline/setMaxDataDelaySec/ entrypoint},label={lst:setMaxDataDelaySec1},numbers=left]
 entrypoint %setMaxDataDelaySec
  code := {...}
@@ -489,134 +597,9 @@ entrypoint %setMaxDataDelaySec
  && post_maxDelay = delay && post_maxDelay <= 1800
 \end{lstlisting}
 
-The complete specifications and experimental results for the examples and case studies can be found in the appendix~\ref{sec:appendix} or accessed online at \cite{scv}.
-\section{Symbolic Execution Model}
-\label{sec:symbolic-execution-model} 
-We address the changes required for symbolic execution of Michelson programs, focusing on a selection of instructions. The
-appendix~\ref{sec:concl-sect-append} specifies further instructions,
-but may be skipped by the reviewers.
-
-\subsection{System Model}
-\label{sec:system-model}
-Our symbolic model of a program state consists of a stack where each element is a symbolic value, represented as a pair comprising a Michelson term and its type. Thus, we write a stack as \STACK\ = (\TermOne, \TYF) \STACKCONCAT\ (\TermTwo, \TYS) \STACKCONCAT\ \DOT\ \STACKCONCAT\ \EMPTYSTACK. Here, \ensuremath{[\ ]} represents the empty stack, and \ensuremath{hd :: tl} denotes a stack with \ensuremath{hd} as the top element and \ensuremath{tl} as the remaining stack. Let \INSTRUCTION\ = \InstructionOne; \InstructionTwo; \DOT\ \InstructionN\ be a sequence of instructions, and \PREDICATE\ be a path predicate  expressed in conjunctive form, capturing the branching conditions.
-\begin{definition}
-A symbolic execution state is represented by a tuple \STATE\ =
-[\INSTRUCTION, \STACK, \PREDICATE].
-A system configuration, \SYSTEM\ = \{\STATEONE, \STATETWO,
-\DOT, \STATEN \}, is a set of  states.
-\end{definition}
-
-\subsection{Rules}
-An instruction is defined by rules on a system configuration. There are two kinds of transitions: (1) \StateTrans\ internal transitions of a state, which are non-deterministic, and (2) \SystemTrans\ system transitions, which pick any state and replace it with all distinct states reachable by internal transitions, exploiting the non-determinism of the \StateTrans\ relation.
-
-A state is unreachable if its predicate \PREDICATE\ is  not
-satisfiable. The following rule drops unreachable states.
-\begin{mathpar}
-\inferrule[]
-  { \UNSAT\ \PREDICATE
-  }{
-  \{[\INSTRUCTION, \STACK, \PREDICATE]\} \cup \SYSTEM \SystemTrans \SYSTEM}
-\end{mathpar}
-The symbolic interpreter works as a graph with states as nodes and transitions as edges. This representation simplifies performing multi-step subtransitions needed for some operations.
-
-The semantics of the symbolic rules for the instructions adhere to the formal definitions of the Michelson language as outlined in \cite{michelson,michelson1}. In our model, these instructions are classified based on how we handle them into one-step, multi-step, blockchain, cryptographic, branch, and loop instructions. %This categorization reflects how these instructions are handled within our specific model.
-
-%\paragraph{One-step instructions}
-One-step instructions directly modify the system state without branching, have a localized effect, and are modeled with a single rule.
-
-%\paragraph{Multi-step instructions}
-Multi-step instructions involve the execution of a sub-sequence of instructions before returning to the main execution. The rule below models the \EXEC\ instruction, which executes a function specified as a sequence of instructions denoted by \INSTRUCTIONONE\ in the rule. This instruction applies the code of the function to the first element of the stack and then places the result back into the main execution.
-\begin{mathpar}
-  \inferrule[]
-  { [\INSTRUCTIONONE, (\StackOne, \TYF) \STACKCONCAT \EMPTYSTACK, 
-    \PREDICATE]
-    \StateTrans^*
-    [ \EMPTYSTACK, (\StackOne', \TYS) \STACKCONCAT \PREDICATE']}{[(\EXEC; \INSTRUCTION),   (\{\INSTRUCTIONONE\}, \TYF\ \rightarrow\ \TYS) \STACKCONCAT
-    (\StackOne, \TYF) \STACKCONCAT \STACK, \PREDICATE] 
-    \StateTrans \
-    [ \INSTRUCTION, (\StackOne', \TYS) \STACKCONCAT \STACK,
-    \PREDICATE]}
-\end{mathpar}
-%\paragraph{Blockchain instructions}
- 
-Blockchain instructions, such as the \AMOUNT\
- instruction make implicit use of data from the transaction, the block and the current state of the blockchain. As these values are constant during the execution of a contract, we model them as fixed variable. 
-
-%\paragraph{Branch instructions}
-Branch instructions, such as \IF\{\INSTRUCTIONONE\}\{\INSTRUCTIONTWO\} and \IF-LEFT\{\INSTRUCTIONONE\}\{\INSTRUCTIONTWO\} consume a value at the top of the stack. If the branch condition
-is True, it executes \INSTRUCTIONONE; otherwise, it executes
-\INSTRUCTIONTWO. 
-%Other branch instructions, such as IF-LEFT and IF-NONE are handled in the similar way.
-
-\begin{mathpar}
-  \inferrule[]
-  { }{
-    [(\IF\ \INSTRUCTIONONE\  \INSTRUCTIONTWO; \INSTRUCTION),
-    (\StackOne, \TBOOL) \STACKCONCAT\STACK, \PREDICATE]
-    \StateTrans\
-    \{[\INSTRUCTIONONE, \STACK, \PREDICATE\ \Wedge\ \StackOne],   [\INSTRUCTIONTWO, \STACK, \PREDICATE\ \Wedge\ \NEG\
-   \StackOne]\}} 
-\end{mathpar}
-%\paragraph{Loop instructions}
-
-The loop instructions, including
-\LOOP\ and \LOOPLEFT\ check the loop condition by examining the
-top of the stack. These loop instructions may not terminate, just like while-loops. There are further loop instructions, like \ITER\ and
-\MAP, specialized to traverse data structures like lists, sets, and maps. There are also
-some instructions that implicitly require looping like \CONCAT, and
-\SIZE. The latter kinds of loop instructions do always terminate.
-
-Let us first take look at the terminate loops. The following rule handles the  \ITER\ loop for  the non-empty list\footnote{\ITER\ can also iterate over sets and maps, but the details are very similar to the list case and hence omitted.}, while the \ITER\ loop terminates when the list is empty.
-\begin{mathpar}
-  \inferrule[]
-  { \HEAD, \STAIL\ \FRESH \\
-    [\ITER,  (\HEAD, \TY) \STACKCONCAT\STACK, 
-    \PREDICATE]
-    \StateTrans^*
-    [ \EMPTYSTACK,  \STACK', \PREDICATE']
-  }{
-    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\StackOne, \TYLIST\
-    \TY) \STACKCONCAT\STACK, \PREDICATE] \StateTrans \\
-    [(\ITER\ \INSTRUCTIONONE ; \INSTRUCTION), (\STAIL, \TYLIST\ \TY)\
-    \STACKCONCAT\STACK',  \PREDICATE' \Wedge  (\StackOne\
-    \EQ\ \{\HEAD; \STAIL \}) ] 
-  }
-\end{mathpar}
-It symbolically executes the instructions \INSTRUCTIONONE\ within the
-\ITER\ block with the head of the list (\HEAD) replacing the list. The resulting state transitions to a
-new stack (\STACK') and an updated predicate (\PREDICATE' $\Wedge$
-(\StackOne \EQ \{\HEAD;\STAIL\})), where \STAIL\ represents the rest of the list. 
-
-How do we deal with \ITER\ if the list is a symbolic value? One solution could involve running the loop a certain number of times to obtain the symbolic value. However, we can defer that decision by abstracting the result. In fact, the loop body \INSTRUCTIONONE\ can be considered a function applied to a stack
-of type \TY\ \STACKCONCAT\ \TYA,
-resulting in a stack of type \TYA. If the first element of
-the stack is a list of the form \LIST\ = $x_1 \STACKCONCAT x_2 \STACKCONCAT
-\dots x_m \STACKCONCAT  [\ ]$, and the rest of the stack is \STACKZERO\ =
-\StackOne\  \STACKCONCAT\ \StackTwo\ \STACKCONCAT\ ... \STACKCONCAT\
-\StackN. Then the \ITER\ \{\INSTRUCTIONONE\} instruction applies a 
-function, sat \F, represented by \INSTRUCTIONONE\ \M\ times to the stack, once
-with each element $x_i$ of the list \LIST\ on top of the stack. The result after 
-the first iteration is \STACKONE\ = \StackOneOne\  \STACKCONCAT\
-\StackTwoOne\ \STACKCONCAT\ ... \STACKCONCAT\ \StackNOne = \F\ $x_1$
-\STACKZERO, and so on. In conclude, we can represent the result stack as the result of a fold function that applies  \F\ to the list. The \FOLD\ function also can be used to express the result of other loop instructions, such as CONCAT and SIZE, symbolically. 
-\begin{mathpar}
-\STACK'\ =  \FOLD\ \F\ \STACKZERO\ \LIST
-\end{mathpar}
-
-In a similar strategy, symbolically, the result of the \MAP\ {\INSTRUCTIONONE} instruction applied to the list \LIST\ is the result of a map function that applies the function \F\ (representing the sequence of instructions \INSTRUCTIONONE) to the list. 
-\begin{mathpar}
-\MAP\ \{\INSTRUCTIONONE\} \Slash\ \LIST\ :: \STACK\ \SRightarrow\ (\FMAP\ \F\ \LIST) ::  \STACK
-\end{mathpar}
-
-Finally, we consider a loop instruction that may not terminate, such as \LOOP\ and \LOOPLEFT. 
-When the input to the symbolic execution consists of concrete values, an unbounded loop causes the interpreter to iterate for a significant number of times until it halts with an exception indicating an unfinished loop. This mirrors the behavior observed in the actual execution of smart contracts, where the loop continues until it runs out of gas, terminating the computation with an out-of-gas error. For a symbolic value, the stack type is determined before the loop is executed. We abstract the result of the loop  and the loop condition as the abstract function results. 
-This abstraction helps detect whether the loop is unbounded, such as when the abstract function of the loop condition always results  true. 
-
-In separate work (currently under submission), we have designed a dynamic logic tailored to Michelson as a formal foundation for the implementation of SCV. We have formalized a soundness proof of this logic in the Agda proof assistant, which is omitted here due to the page limitation.
+The complete specifications and experimental results for the examples and case studies can be accessed online at \cite{scv}.
 \section{Related Work}
 \label{sec:related-work}
-%Research on the formal verification of blockchain-based applications has experienced rapid growth in the last decade. 
-
 In this section, we discuss some key approaches, particularly those employing symbolic execution in the context of smart contracts. P. Tsankov et al. introduced
 SECURIFY \cite{securify}, a tool that utilizes symbolic execution to
 perform practical security analysis on Ethereum smart contracts. It
@@ -638,13 +621,12 @@ Lem, a language to specify semantic definitions.
 There are exsiting tools for automated verification include solc-verify \cite{solc}, VerX \cite{verx}, and Oyente \cite{oyente}. solc-verify processes smart contracts written in Solidity and discharges verification conditions using modular program analysis and SMT solvers.
 While these approaches differ, they share a focus on common bugs (such as reentrancy, overflow or underflow, and frozen funds). Our tool provide an environment where users can reliably specify their own properties and identify contract-specific bugs. Our tool aims to rich specifications to supports manually specified full correctness specifications.
 
-
-Close to our approach are HELMHOLTZ \cite{helmholtz} and Mi-Cho-Coq \cite{micho}, as discussed in Section \ref{sec:introduction}. In HELMHOLTZ, properties are annotated inside the code by the developer, which requires modifying the code. In contrast, we provide a separate specification language, so users do not need to modify the code. Similar to our tool, iContract \cite{icontract} utilizes symbolic execution and pre and postconditions to specify user properties, but it targets the Solidity language.
-
+Close to our approach are HELMHOLTZ \cite{helmholtz} and Mi-Cho-Coq \cite{micho}, as discussed in Section \ref{sec:introduction}. In HELMHOLTZ, properties are annotated inside the code by the developer, which requires modifying the code. In contrast, we provide a separate specification language, so users do not need to modify the code. Similar to our tool, iContract \cite{icontract} utilizes symbolic execution and pre and postconditions to specify user properties, but the iContract work and our work differ in target language, DSL design, and functionality.
 \section{Conclusion}
 \label{sec:concl-sect-append}
 Symbolic execution is well known to suffer from challenges related to state explosion, particularly when applied to large systems. To address this problem, our tool mitigates state explosion and has been applied to two real case studies of running blockchain contracts, focusing on significant subjects such as token standards and oracles.
 
+Our tool has several limitations. SCV relies on Z3, which may struggle with very large or complex problems, potentially returning \texttt{unknown} if it cannot determine satisfiability. Additionally, the tool does not yet handle gas consumption or support external calls.
 In future work, we want to extend SCV in two directions. 
 First, we want to address the interaction of several entrypoints by
 extending the specification language to state allowed sequences of
@@ -652,12 +634,10 @@ contract invocations.  Second, a Michelson program returns a list of instruction
 further contract invocations. Dealing with this kind of contracts
 requires an extension to the symbolic interpreter so that a sequence
 of contract invocations can be processed in one run.
-
 \newpage
 \bibliographystyle{splncs04}
 \bibliography{bio}
-
-\newpage
-\include{appendix}
+%\newpage
+%\include{appendix}
 \end{document}
 
