@@ -1,0 +1,804 @@
+% This is samplepaper.tex, a sample chapter demonstrating the
+% LLNCS macro package for Springer Computer Science proceedings;
+% Version 2.21 of 2022/01/12
+%
+\documentclass[runningheads]{llncs}
+%
+\usepackage[T1]{fontenc}
+% T1 fonts will be used to generate the final print and online PDFs,
+% so please use T1 fonts in your manuscript whenever possible.
+% Other font encondings may result in incorrect characters.
+%
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{pgfplots}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{tikz}
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following two lines
+% to display URLs in blue roman font according to Springer's eBook style:
+%\usepackage{color}
+%\renewcommand\UrlFont{\color{blue}\rmfamily}
+%\urlstyle{rm}
+%
+\usetikzlibrary{shapes.geometric, arrows}
+\tikzstyle{startstop} = [rectangle, rounded corners, minimum width=3cm, minimum height=0.6cm,text centered, draw=black, fill=red!30]
+\tikzstyle{process} = [rectangle, minimum width=4cm, minimum height=0.8cm, text centered, draw=black, fill=orange!30]
+\tikzstyle{decision} = [diamond, minimum width=3cm, minimum height=0.4cm, text centered, draw=black, fill=blue!30]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+
+\lstdefinelanguage{solidity}{
+  backgroundcolor=\color{pink!20},
+  keywords={contract, function, public, int},
+  keywordstyle=\bfseries\color{blue},
+  commentstyle=\itshape\color{green!40!black},
+  basicstyle=\ttfamily,
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+  sensitive=true
+}
+\begin{document}
+%
+\title{Contribution Title}
+%
+%\titlerunning{Abbreviated paper title}
+% If the paper title is too long for the running head, you can set
+% an abbreviated paper title here
+%
+\author{Thi Thu Ha Doan\orcidID{0000-0001-7524-4497}\and Peter Thiemann\orcidID{0000-0002-9000-1239}}
+%
+\authorrunning{Ha Doan, P. Thiemann}
+% First names are abbreviated in the running head.
+% If there are more than two authors, 'et al.' is used.
+%
+\institute{University of Freiburg, Germany \\
+  \email{\{doanha,thiemann\}@informatik.uni-freiburg.de}}
+%
+\maketitle              % typeset the header of the contribution
+%
+\begin{abstract}
+In certain blockchain scenarios, verifying the properties of parameters may require significant gas costs or be infeasible due to gas limits. This study proposes a distributed verification protocol to address these challenges. The core concept involves offloading the verification process to validators, who attempt to find counterexamples or proofs off-chain. If a counterexample is discovered, it can be submitted for re-verification on-chain. If validated, the parameter is discarded; otherwise, the correctness of the parameter is guaranteed through a proof-of-work incentive mechanism, encouraging validators to participate in the distributed verification process. To implement these ideas, we propose a practical model that also tackles potential security concerns. We developed a prototype of the protocol and conducted a cost analysis, demonstrating its gas efficiency and practical utility.
+\keywords{blockchain, off-chain verification, gas optimization, proof-of-work, distributed verification}
+\end{abstract}
+%
+%
+%
+\section{Introduction}
+\label{sec:introduction}
+\lstset{language=solidity}
+A smart contract is a critical component of blockchain technology, with applications ranging from simple tasks like auctions to more complex systems such as decentralized markets. However, broader adoption of smart contracts faces challenges, with gas costs being among the most significant. Every computation performed by a smart contract on the blockchain incurs a cost, as each unit of computation and storage consumed by an algorithm must be paid for due to the burden it places on the system.
+
+When users (or other contracts) invoke a function in a smart contract, they must provide input data, known as parameters. In many cases, these parameters require verification. For instance, to minimize gas costs, an application might perform some computation off-chain and submit the result as a parameter to a smart contract. Such computations typically assert certain properties of the submitted parameters.
+
+Another scenario involves interactions with external data sources. Since smart contracts cannot directly access off-chain data, blockchain oracles supply this information. When external data becomes available, an oracle invokes a smart contract with the relevant information.
+
+However, while the contract should leverage off-chain computations or external data and assume that the submitted parameters are valid, there is a risk that off-chain computations could be incorrect, submitting invalid parameters, or that oracles could provide faulty data. Therefore, a mechanism is needed to verify these assumptions before the contract begins execution.
+
+Unfortunately, most current applications cannot efficiently verify complex parameters on-chain due to the high gas costs associated with such computations. This limitation restricts many applications that require parameter verification during smart contract execution. The primary goal of this paper is to propose an approach that validates complex parameter assumptions while minimizing gas costs, without sacrificing computational efficiency.
+
+Consider a contract that takes a prime number as a parameter:
+\begin{lstlisting}[numbers=none]
+contract Example {
+  function (int p) public {
+    // assume p is prime
+    ...
+  }
+}
+\end{lstlisting}
+This assumption can be expressed as an explicit assertion in predicate logic:
+\begin{gather*}
+\label{eq1}
+  (\forall n) (2 \leq n \leq \sqrt{p}) \Rightarrow (p \mathbin{\%} n) \ne 0
+\end{gather*}
+Checking the validity of this assumption requires a loop in the contract. The test would take \(O(\sqrt{p})\) time (assuming constant time for computing the remainder) and produce extra cost linear in \(\sqrt{p}\).
+
+Similarly, consider a contract that requires a sorted array of integers as input:
+
+\begin{lstlisting}[numbers=none]
+contract Sorted {
+  function find (int[100] a, int v) public {
+    // assume a is sorted
+  }
+}
+\end{lstlisting}
+The explicit assertion would be:
+\begin{gather*}\label{}
+  (\forall k) (0\leq k <99) \Rightarrow a[k] \leq a[k+1]
+\end{gather*}
+This check can be performed in \(O(1)\) time, but the associated constant factor makes it costly.
+
+However, we could do better by recruiting the validators of the contract for a distributed effort to find a counterexample off-chain. To this end, we consider the negation of these assertions. 
+
+For the prime number example, the negation is:
+\begin{gather*}\label{}
+  (\exists n) (2 \leq n \leq \sqrt{p}) \wedge (p \mathbin{\%} n) = 0
+\end{gather*}
+This assertion can be checked pointwise by having each validator independently choose a random \(n\) fulfilling \(2 \leq n \leq \sqrt{p}\) and checking whether \((p \mathbin{\%} n) = 0\). If the remainder is \(0\), the validator has found a counterexample and submits its veto to the on-chain contract, which then verifies the counterexample. If valid, the contract halts further execution with that parameter. If no counterexample is found, \(p\) is accepted, assuming other validators have checked other points.
+
+For the sorted array example, the negation is:
+\begin{gather*}\label{}
+  (\exists k) (0\leq k <99) \wedge a[k] > a[k+1]
+\end{gather*}
+Again, we can have every validator generate a random number \(k\). If the condition is true for such \(k\), the validator has found a counterexample for the sortedness of the array. Otherwise, the validator relies on others to check different indices.
+
+Instead of looping and checking all points on-chain, only one or some points are checked. The checking process can be performed off-chain with no gas cost, and only the result of the verification process needs to be validated on-chain. By shifting much of the verification off-chain, our propsed approach significantly reduces gas costs, as only counterexample verification occurs on-chain.
+
+This approach substantially reduces on-chain gas costs by moving most of the verification work off-chain. However, it introduces challenges related to incentivizing validators, ensuring the cost-effectiveness of on-chain verifications, and providing correctness guarantees when no counterexamples are found.
+
+To address these challenges, we propose a proof-of-work-based incentive mechanism that encourages validator participation and ensures that parameters meet the desired properties with a high level of confidence. The detailed methodology of this approach are discussed in Section \ref{sec:offchain-distributed-verification-approach}.
+
+To realize our novel approach, we propose a practical model that implements the approach and addresses security concerns. We then develop a prototype of the practical model for a decentralized marketplace application using Solidity on the Ethereum blockchain.
+
+The contributions of this paper include:
+\begin{itemize}
+    \item A novel approach for verifying computationally expensive parameters (in terms of gas cost) for smart contracts on the blockchain.
+    \item A proof-of-work-based incentive mechanism that motivates validators to participate in the distributed verification process and ensures the correctness of the submitted parameter with a high expected probability.
+    \item A practical model that realizes the proposed novel approach, along with a prototype implementation of the model for a Solidity smart contract application on the Ethereum blockchain.
+\end{itemize}
+
+
+The paper is structured as follows: The next section defines the parameter verification problems and presents use cases. Section \ref{sec:offchain-distributed-verification-approach} proposes the novel approach, while Section \ref{sec:practical-model} introduces its practical model. Section \ref{sec:gas-cost-analysis} analyzes the gas costs, comparing our proposed approach with the on-chain method. Section \ref{sec:prototype-implementation} details the prototype implementation. Section \ref{sec:related-work} discusses related work, and Section \ref{sec:concludes} concludes the paper.
+\section{Parameter Assertion Verification On-chain}
+\label{sec:parameter-assertion-verification-onchain}
+Our work focuses on parameters that are computationally expensive to verify on-chain. Specifically, we address cases where verifying a parameter assertion requires loops within the contract and the assertion can be formalized using universal or existential quantifiers.
+\subsection{Parameter Assertion Formalization}
+\paragraph{Universal Quantifier Formalization}
+An assertion can be formalized using the universal quantifier as follows:
+\begin{gather}
+  \label{eq:1}
+  \forall a \in A. \, P(a)
+\end{gather}
+This formula can be extended to assertions over multiple domains as:
+\begin{gather}
+  \label{eq:2}
+  \forall a \in A, \, \forall b \in B, \, \dots \, P(a, b, \dots)
+\end{gather}
+\paragraph{Existential Quantifier Formalization}
+In cases where an assertion involves the existence of an element, it can be formalized using existential quantifiers as follows:
+\begin{gather}
+  \label{eq:3}
+  \exists a \in A. \, P(a)
+\end{gather}
+This formula can also be extended to assertions over multiple domains:
+\begin{gather}
+  \label{eq:4}
+  \exists a \in A, \, \exists b \in B, \, \dots \, P(a, b, \dots)
+\end{gather}
+\subsection{On-chain Verification}
+Verifying these assertions on-chain requires iterating over the domain \(A\) within the contract. For the fomulas \ref{eq:5}, the verification fomulas is as follows.
+\begin{gather}
+  \label{eq:5}
+  \bigwedge_{a \in A} P(a)
+\end{gather}
+For multiple domains, the verification process becomes:
+\begin{gather}
+  \label{eq:6}
+  \bigwedge_{a \in A, b \in B, \dots} \dots P(a, b, \dots)
+\end{gather}
+Verifying these assertions in  the existential quantifier formalization requires iterating over the domain \(A\) until finding an element \(a\) that satisfies the predicate:
+\begin{gather}
+  \label{eq:7}
+  \bigvee_{a \in A} P(a)
+\end{gather}
+
+For multiple domains, the verification process becomes:
+\begin{gather}
+  \label{eq:8}
+  \bigvee_{a \in A, b \in B, \dots} \dots P(a, b, \dots)
+\end{gather}
+When the domain \(A\) is large or the predicate \(P\) is complex to evaluate, performing the verification on-chain incurs significant gas costs or even make the verification process infeasible due to gas limits. Given the current high gas prices, this can result in substantial costs.
+\subsection{Use Cases}
+Smart contract languages like Solidity, Vyper, Michelson, and Plutus support common data types such as numbers, booleans, strings, bytes, arrays, sets, and maps. Many properties of these types can be expressed using universal quantifiers, requiring loops for verification in smart contracts, but can often be disproven by a counterexample or proven with a proof. Below are key properties for each type:
+\subsubsection{Numbers}
+Number types exhibit some properties that are crucial in cryptographic applications, such as primality and coprimeness. For example, the condition for two numbers \(a\) and \(b\) to be coprime is:
+\begin{gather*}
+\label{}
+(\forall n \in \mathbb{N}) \ (2 \leq n \leq \min(a, b)) \Rightarrow \neg((a \mod n = 0) \wedge (b \mod n = 0))
+\end{gather*}
+\subsubsection{Booleans}
+SAT problems involve determining if there exists an assignment of variables that makes a formula \( F \) in propositional logic true. Verifying if a given assignment satisfies a formula \( F \), which is usually in Conjunctive Normal Form (CNF), requires looping over variables and clauses. Although finding a satisfying assignment is NP-complete, verifying an assignment takes \( O(n \times m) \), where \( n \) is the number of clauses and \( m \) is the number of variables.
+\subsubsection{Strings}
+String properties that require iteration include uniqueness (no repeated characters), character set membership, lexicographical order, pattern matching, and forbidden substrings. For instance, verifying that a string \(s\) does not contain a forbidden substring \(f\) of length \(k\) can be expressed as:
+\begin{gather*}
+(\forall i) \ (0 \leq i \leq n - k) \Rightarrow s[i, i+1, \dots, i+k-1] \neq f
+\end{gather*}
+\subsubsection{Bytes}
+Verifying byte arrays often requires loops for properties like uniformity, sorted order, specific byte patterns, uniqueness, valid range, and alternating patterns. For example, to check if all bytes in an array \(b\) lie within a range \([l, u]\), the condition is:
+\begin{gather*}
+(\forall i) \ (0 \leq i \leq n) \Rightarrow l \leq b[i] \leq u
+\end{gather*}
+\subsubsection{Arrays (or Lists)}
+Common properties of arrays include sortedness, uniqueness, boundedness, monotonicity, symmetry, cyclic structure, and constant values. %A tree-based structure like a max-heap, where each parent node is greater than or equal to its children, can be checked as:
+Tree-based structures like heaps can also be built from arrays, with properties such as the heap property. For example, in a max-heap, each parent node is greater than or equal to its children. This property can be expressed as:
+\begin{gather*}
+(\forall i) \ a[i] \geq a[2i+1] \land a[i] \geq a[2i+2]
+\end{gather*}
+\subsubsection{Sets}
+Set properties like subset verification, disjoint sets, element uniqueness, set equality, and set intersection often require loops. For example, verifying that two sets \(A\) and \(B\) share at least one element can be expressed as:
+\begin{gather*}
+(\exists a \in A) (\exists b \in B)\ a = b
+\end{gather*}
+Such properties can be computationally expensive for large sets.
+\section{Off-chain Distributed Verification Approach}
+\label{sec:offchain-distributed-verification-approach}
+\subsection{The Outline of the Approach}
+We propose a novel approach for verifying parameter assertions in blockchain-based smart contracts. Our approach distributes the verification process off-chain, submitting only the outcomes to the blockchain for re-verification. This strategy aims to significantly reduce the computational burden on the blockchain while maintaining the integrity of the contract.
+
+Our approach takes into account the key principle that assertions expressed with universal quantifiers can be disproven by counterexamples, while those with existential quantifiers can be proven with valid proofs. These counterexamples or proofs serve as checkpoints, representing specific elements within the domain. 
+
+The outline of our approach is as follows:
+\paragraph{\textbf{Determine the checkpoint formula.}}
+The first step is to establish the checkpoint formula used to identify counterexamples or proofs. For assertions with universal quantifiers, as shown in Equation~\ref{eq:1}, the checkpoint formula is the negation of the original assertion and is expressed using an existential quantifier as follows: 
+\begin{gather}
+\label{eq:9}
+(\exists a \in A) \ \neg P(a)
+\end{gather}
+For assertions over multiple domains, as in Equation~\ref{eq:2}, the checkpoint formula becomes:
+\begin{gather}
+\label{eq:10}
+(\exists a \in A) (\exists b \in B) \dots  \neg P(a, b, \dots)
+\end{gather}
+In the case of existential quantifier assertions, as in Equation~\ref{eq:3} and Equation~\ref{eq:4}, the checkpoint formula remains the same as the original assertion.
+\paragraph{\textbf{Off-chain distributed effors.}}These checkpoint formulas are then distributed to validators. Off-chain, the validators attempt to find counterexamples or proofs by identifying some \( a \in A \) such that the checkpoint formula is satisfied. For universal quantifier formalizations, this means finding \( a \) where \( \neg P(a) \) holds, and for existential quantifier formalizations, finding \( a \) where \( P(a) \) is true.
+\paragraph{\textbf{On-chain re-verification.}} Once a counterexample or proof involving an element \( a \) is found, the validator submits it to the blockchain, where it is re-verified by evaluating \( \neg P(a) \) or \( P(a) \) on-chain. For assertions with universal quantifiers, when a counterexample is successfully verified on-chain, the parameter assertion is proven to be invalid. Otherwise, it is considered valid, assuming that other points are checked by other validators. For assertions with existential quantifiers, the parameter assertion remains invalid until a proof is submitted and successfully re-checked on-chain.
+\paragraph{\textbf{Incentivization Mechanism.}} Finding a counterexample or proof incentivizes validators but requires computational resources. However, counterexamples are rare since callers typically avoid submitting invalid parameters to the blockchain. When no counterexample is found, the accuracy of the verification depends on the number of attempts made to check other checkpoints to disprove the assertion. More validators involved in the process increases the confidence in the correctness of the parameter. Therefore, an incentivization mechanism is crucial to guarantee the correctness of the parameter assertion with high confidence in the absence of a counterexample. To encourage participation, validators are rewarded for both finding counterexamples and contributing computational effort. However, counterexample discovery is prioritized with a substantially higher reward compared to providing a computational proof.
+%\end{enumerate}
+
+This approach aims to lessen the burden on the blockchain and reduce the high gas costs associated with on-chain verification. Instead of verifying the entire assertion, the smart contract checks only specific points (counterexamples or proofs). By limiting the number of checkpoints verified on-chain, the required gas is significantly lower than if the entire assertion were verified directly.
+\subsection{Proof-of-Work-Based Incentivization Mechanism}
+The computational effort is represented by a computation proof, which is then submitted on-chain by the validator to claim their reward. This approach encourages participation in the distributed verification process, ensuring thorough validation even without the discovery of counterexamples.
+
+However, significant challenges arise regarding (1) how to recheck the counterexample and the computation efforts on-chain at a reasonable gas cost, (2) how to ensure a significant number of checkpoints have been performed before a computation reward is issued, in order to guarantee an expected probability of correctness for the parameter, and (3) how to ensure that validators actually perform the checkpoint formula off-chain when no counterexample is found but a computation reward is provided.
+
+To overcome these challenges, we propose a proof-of-work-based incentivization mechanism. We utilize the proof-of-work concept by introducing a target hash \( t \), which sets the required difficulty level to earn the computation reward. The basic idea is that each verification process introduces a target hash. The validator attempts to perform the negation check and compute a hash that is less than or equal to the given target hash. The objective of the validator is to find either a counterexample or a computation that produces a hash smaller than or equal to the target hash \( t \).
+\subsubsection{Introduce a seed} To recheck the counterexample or computation proof on-chain at a reasonable gas cost, the counterexample or computation proof should be submitted on-chain in the form of the indication of the element \( a \in A \) where the assertion is invalid, in the case of a counterexample. The on-chain re-verification process is then straightforward, simply requiring the evaluation of \( \neg P(a) \).
+
+The next challenge is how to generate a random hash for each computation and devise a computational proof to incentivize computational effort. To address this, we introduce a seed \( s \) in each verification process.
+
+Let \( n \) denote the size of the domain \( A \). 
+\begin{gather*}
+n = |A|
+\end{gather*}
+where \(|A| \) denotes the number of elements in the domain $A$.
+
+Each number \( i \) in the range \([1, n]\) corresponds to an element in \( A \). 
+\begin{gather*}
+a=A[i]
+\end{gather*}
+where $A[i]$ denotes the $i$-th element in $A$.
+
+The seed \( s \) is a random number. 
+\begin{gather*}
+s \in \mathbb{N} 
+\end{gather*}
+The seed $s$  is then reduced with modulo \( n \) to obtain \( i \), which is associated with an element \( a \) in \( A \).
+\begin{gather}
+\label{eq:11}
+i = (s\mod n) + 1
+\end{gather}
+\subsubsection{Estimate the number of seeds:} To ensure that a sufficient number of checkpoints have been checked before a computational proof is found, we first estimate the number of seeds required to find a counterexample with the desired probability of correctness.
+
+Assuming the unsatisfied element is only the first element \( a_0 \) in \( A \) and the number of seeds is \( m \), each seed independently has a probability of \( \frac{1}{n} \) to detect the issue and \( \frac{n-1}{n} \) not to. If each seed associated with an element \( a \) in \( A \) is chosen uniformly and independently, the probability that no seed checks \( a_0 \) approaches 0 as \( m \) increases:
+\begin{gather*}
+\lim_{m \to \infty} \frac{(n-1)^m}{n^m} = \lim_{m \to \infty} \left( \frac{n-1}{n} \right)^m = 0
+\end{gather*}
+
+To determine the number of seeds needed based on the expected probability of detecting a problem, we define \( p \) as the expected probability of finding at least one counterexample. 
+\begin{itemize}
+    \item The probability of a single seed failing to find a counterexample is \( \frac{n-1}{n} \).
+    \item The probability of all \( m \) seeds failing is \( \left( \frac{n-1}{n} \right)^m \).
+    \item Thus, the probability of at least one seed finding a counterexample is:
+\begin{gather*}
+  p = 1 - \left( \frac{n-1}{n} \right)^m
+\end{gather*}
+\end{itemize}
+Rearranging this gives:
+\begin{gather*}
+\left( \frac{n-1}{n} \right)^m = 1 - p
+\end{gather*}
+Taking the natural logarithm:
+\begin{gather*}
+m \ln\left( \frac{n-1}{n} \right) = \ln(1 - p)
+\end{gather*}
+Solving for \( m \):
+\begin{gather}
+\label{eq:12}
+m = \frac{\ln(1 - p)}{\ln\left( \frac{n-1}{n} \right)}
+\end{gather}
+
+So the number of the seeds to achive the expected propety $p$ is great or at least equal to $m$. Note that, \( p \) represents the probability when only one validator participates. As more validators are involved, the probability of discovering a counterexample increases.
+\subsubsection{Set up the taget hash:}
+The above number of seed $m$ can then be used to set up the target hash $t$. The target hash $t$ can be calculated based on a desired difficulty level. In proof-of-work systems, difficulty is typically adjusted to ensure that the average efforts to find a valid hash. The target hash $t$ is often calculated by taking the maximum possible hash value and dividing it by the difficulty level.
+
+Given the expected number of seeds to generate, 
+the difficulty level \( D \) can be adjusted accordingly. Typically, \( D \) is set to ensure that a valid hash is found approximately once every \( m \) trials.
+
+If we want the probality of finding a valid hash to be $\frac{1}{m}$, then \( D \) equal to \( m \):
+\begin{gather}
+\label{eq:13}
+t = \frac{H_{\text{max}}}{m}
+\end{gather}
+
+Where \( H_{\text{max}} \) is the maximum possible hash value and \( m \) is the difficulty level, which can be adjusted based on the expected number of trials.
+\subsubsection{Conduct a Computation Hash:} To ensure that a computational proof includes the negation check, the computation of the checkpoint formula is integrated into the proof process. This guarantees that validators must execute the negation check as part of producing the computation proof.
+
+For each element \( a \), let \(\pi_{P_{a}}\) be the function that returns the essential components of evaluating the negation \(\neg P(a)\). The computation hash thus incorporates both the seed \( s \) and \(\pi_{P_{a}}\), ensuring proper validation.
+
+\begin{gather}
+\label{eq:14}
+t_s = \text{hash}(s, \pi_{P_{a}})
+\end{gather}
+where \(\text{hash}\) is a cryptographic hash function used to compute the hash value.
+
+Assertions in smart contract languages, such as Solidity and Michelson, are often represented as predicate logic, expressed through Boolean formulas. These are composed of relational operators like \( =, \neq, >, <, \geq, \leq \), logical operators such as \( \neg, \land, \lor\), and corresponding expressions.
+
+Thus, \(\pi_{P_{a}}\) represents the set of expressions involved in evaluating the predicate \(P_a\).
+\begin{gather*}
+\pi_{P_{a}} = \{ e_1, e_2, \ldots \}
+\end{gather*}
+where \(e_i\) are the expressions that contribute to the computation of the predicate \(P_a\).
+
+
+%For example, for each element \( i \), it returns \(a[i]\) and \(a[i + 1]\) in the evaluation of the negation predicate \( a[i] < a[i+1] \) in the sorted array example.
+
+%The expressions $\pi_{P_a}$ can be used to compute the hash, which involves the validator executing the condition check to find a reward computation.
+%\begin{equation}
+%t_s = \text{hash}(s, \pi_{P_{a}})
+%\end{equation}
+%where:
+%\begin{itemize}
+%    \item $s$ is the seed.
+%    \item $\pi_{P_{a}}$ is the set of expressions used in the computation of the predicate $P_a$.
+%    \item \text{hash} is the hash function that computes the hash based on the seed and the set of expressions $\pi_{P_{a}}$.
+%\end{itemize}
+\subsection{Off-chain distributed verification}
+For applications where the parameter assertion can be expressed using an existential quantifier, the validation process is relatively straightforward. Validators attempt to find a proof off-chain and submit it on-chain, where it is re-verified. If the proof is valid, the parameter is considered correct, and the validator is rewarded.
+
+However, for assertions involving universal quantifiers, the process becomes more complex. First, the size \( n \) of the domain \( A \) is calculated. Then, using the expected probability to ensure the correctness of the parameter assertion in the absence of a counterexample, the target hash is computed. Due to the setup of the target hash, a validator needs to generate approximately \( m \) seeds to have a chance of discovering either a counterexample or a computational proof, thereby confirming the validity or revealing the invalidity of the parameter.
+
+The process of finding a valid seed is outlined in Fig. \ref{fig:find_seed}. During this distributed process, each validator generates a seed \( s \) and performs the negation check until they either identify a counterexample or a computation proof for a reward. Once one of these outcomes is achieved, the validator can submit it on-chain to claim their reward.
+
+Both the counterexample and the computational proof are encoded by the seed, allowing the on-chain component to replicate and verify the result. If the verification is successful, the validator receives the reward.
+\begin{figure}[t]
+    \centering
+\begin{tikzpicture}[node distance=1.2cm]
+    % Nodes
+    \node (calc_n) [process] {\parbox{4cm}{\centering $n = |A|$ \\ $t_s$}}; 
+    \node (start) [startstop, below of=calc_n] {Generate $s$};
+    \node (calc_i) [process, below of=start] {\parbox{4cm}{\centering $i = (s \mod n) + 1$ \\ $a = A[i]$}};
+    \node (counterexample) [decision, below of=calc_i, yshift=-0.5cm] {$\neg P(a)$};
+    \node (calc_hash) [process, below of=counterexample, yshift=-0.5cm] {$t_s = \text{hash}(s, \text{eval}(\neg P(a)))$};
+    \node (compare) [decision, below of=calc_hash, yshift=-0.5cm] {$t_s <= t$};
+    \node (submit) [startstop, below of=compare, yshift=-0.5cm] {Submit on-chain};
+    % Arrows
+    \draw [arrow] (calc_n) -- (start);
+    \draw [arrow] (start) -- (calc_i);
+    \draw [arrow] (calc_i) -- (counterexample);
+    \draw [arrow] (counterexample) -- node[midway, above, sloped, anchor=center, yshift=0.5em] {No} (calc_hash);
+    \draw [arrow] (calc_hash) -- (compare);
+    \draw [arrow] (compare) -- (submit) node[midway, above, sloped, anchor=center, yshift=0.5em] {Yes};
+	\draw [arrow] (counterexample.east) -| node[pos=0.25, above] {Yes} ([xshift=2cm]submit.east) |- (submit);
+	\draw [arrow] (compare.west) -| node[pos=0.75, left] {No} ([xshift=-2cm]counterexample.west) |- (start);
+\end{tikzpicture}
+\caption{Finding a reward seed.}
+\label{fig:find_seed}
+\end{figure}
+\subsection{On-chain re-verification}
+Given a submitted seed \( s \), the on-chain contract verifies whether the seed produces a counterexample or a valid computational proof eligible for a reward. The verification process follows these steps:
+\begin{enumerate}
+    \item Compute \( n \), the size of the domain \( A \).
+    \item Identify the target value \( t \).
+    \item Determine \( i \in [1, n] \) from \( s \) using the modulo operation, and associate \( i \) with the corresponding element \( a \) in \( A \).
+    \item Perform the check \( \neg P(a) \) to see if \( a \) is a counterexample.
+    \item If no counterexample is found, compute the hash \( t_s \) derived from the seed \( s \).
+    \item Compare \( t_s \) to the target hash \( t \) to check if it qualifies for a reward.
+\end{enumerate}
+
+Following this process, the contract will either identify a counterexample or compute a hash based on the seed \( s \) and the evaluation \( \neg P(a) \). The computed hash is then compared to the target hash to determine if it qualifies for a reward. The possible outcomes are: finding a counterexample, validating a reward computation, or determining no reward computation.
+\section{Practical Model}
+\label{sec:practical-model}
+\subsection{Security risks}
+Off-chain distributed verification of assertions is indeed an intriguing concept, yet it faces the following security risks when proposing an incentive method:
+
+\begin{enumerate}
+\item Denial-of-service (DoS) attacks: The system is susceptible to DoS attacks, where a caller inundates the system with numerous invalid parameters, causing congestion and hindering its operation.
+\item Front-running attacks: The system is vulnerable to front-running attacks, where an attacker closely monitors the mempool to intercept a seed representing a counterexample or a computation proof, subsequently stealing the reward.
+\item Caller exploitation: A caller might exploit the system by running the negation check privately to (1) identify the reward before submitting the parameter on-chain, thereby swiftly claiming the reward ahead of the other validators, (2) fake the compuatation proofs before a counterexample can be found by other validators.
+\item Reward manipulation: For a system that allows multiple rewards. A validator may attempt to manipulate the reward system by resubmitting counterexamples or computation proofs multiple times to multiply their rewards.
+\end{enumerate}
+\subsection{Overview architect}
+This section presents a practical model that unifies theoretical principles and addresses the previously mentioned security concerns. The architectural design of this model is depicted in Figure \ref{fig.architect}.  
+\subsubsection{Main compoments.} The model consists of two main entities: the on-chain assertion contract and the off-chain validator program.
+\paragraph{On-chain assertion contract.}
+While additional functions may exist, the assertion contract must encompass the following two essential functions:
+\begin{itemize}
+\item The \( submit\_parameter \) function: Callers utilize this function to submit their parameters for validation. %Subsequently, the parameter is distributedly verified by validators.
+\item  The \( claim\_reward \) function: This function accepts a seed (or may some others) as inputs, yielding a result indicating whether the computation from the seed results in a counterexample, a reward computation, or a non-reward computation.
+\end{itemize}
+\paragraph{Off-chain validator program.}
+Since the off-chain program runs off-chain, it can be implemented according to the validator's preferences. However, the crucial point is that the off-chain contract must use the exact same \( claim\_reward \) function when attempting to find a counterexample or a computation proof. Additionally, it should support a function that assists the validator in finding a seed to earn a reward.
+\paragraph{Storage.}
+When a parameter is submitted for verification, the following information should be stored:
+\begin{itemize}
+\item Parameter: this includes the parameter itself. In cases where storing the parameter on-chain is impractical because of its size, it could be possible to store only its hash. Despite this, the hash remains sufficient for validation.
+\item Timestamp: this indicates the approximate time when the parameter was submitted.
+\end{itemize}
+\begin{figure}
+\centering
+\includegraphics[scale=.8]{assertion}
+\caption{The architecture of the practical model}
+\label{fig.architect}
+\end{figure}
+
+\subsubsection{Deploying and managing on/off-chain contracts.}
+On/off-chain contracts are provided and managed by their respective owners. The owner deploys the assertion contract on the blockchain while storing the validator program off the blockchain, thereby ensuring its accessibility to the validators. There are two ways to making these contracts available to validators.
+\begin{itemize}
+\item The owner stores the codes on a repository accessible to validators, or upon request, provide them directly to validators.
+\item The owner broadcards the contracts to the network using messaging systems such as Waku in Ethereum. In this scenario, the interested validators are responsible for locally storing off-chain code.
+\end{itemize}
+\subsubsection{Submitting a parameter.} 
+Before a parameter can be utilized in the actual work function or contract, a caller must initially submit it via the submit-parameter function in the on-chain assertion contract. 
+
+Upon the submission of a parameter, an event can be emitted, allowing validators to receive updates by monitoring the blockchain for the parameter submission event. Additionally, the caller may choose to broadcast their parameter to all validators via a messaging system when submitting it online.
+\subsubsection{Off-chain verification}
+After a parameter is submitted and stored on-chain, a validator can commence the verification process. To assess the validity of a parameter, each validator independently executes the off-chain validation program.
+
+A validator may attempt to try multiple times with different random seeds in order to find either a counterexample or a computational proof. A function called find-seed could be implemented, which in turn calls the claim-reward function to locate a seed.
+
+All events such as parameter submissions, the discovery of a counterexample, or the presentation of computational proofs can be broadcasted to the network using event emission. Validators can monitor these events to stay updated on the verification status in real-time. 
+\subsubsection{Calling a work function}
+A work function can indeed be encapsulated either as a private function in the assertion contract or implemented in another contract. In this process, a caller initiates the submission of a parameter for verification by invoking the submit-parameter function within the on-chain assertion contract. Upon successful verification of the parameter, a work contract can be triggered to execute the designated task, operating under the assumption of the parameter's validity.
+
+The invocation of the work function or contract is carried out by the on-chain validation contract or a caller. This call is subject to specific requirements being met, ensuring that the task is executed only when the verification process has been successfully completed and the parameter is deemed valid, such as a certain amount of time having passed, no counterexample being found, and receiving enough computation proofs. If all conditions are met, the actual work is executed, and in some application, the record of the parameter may be deleted from memory to free up storage.
+\subsection{Security Features}
+\subsubsection{DoS attacks}
+When submitting the parameter, the caller need to send a deposit stake in the form of a native token. This stake is claimed by a validator who finds a counterexample. This stake returns to the caller when the parameter is verified. 
+
+The deposit serves as a deterrent, as in the event of an invalid parameter, the deposit may be forfeited to prevent callers from submitting such parameters solving the DoS attack security risk. 
+\subsubsection{Front-running attacks}
+While a random number $r$ alone as a seed is sufficient to indicate the associated element $a$ in the domain $A$, to prevent the front-running attack, we enhance the randomness of the seed by combining a random number with the validator's address to calculate the seed. In deeds, the validator's address is converted to numerical values and use these numbers in combination with a random number to compute the seed. 
+
+Let's denote the validator's address by $addr$: \(\quad \text{addr} \in \text{Addresses}\)
+
+The address is converted to numerical values.
+\begin{equation}
+\text{addr\_num} = \text{init256}(\text{addr})
+\end{equation}
+
+
+This combination adds an extra level of security. So even watching the mempool and get the random number, a malicious validators cannot use the same random number $r$  because the combination with their address will not produce the same seed $s$.
+\subsubsection{Caller exploitation attack}
+A caller may run the validator program for their parameters before submitting it on-chain and the quickly submit it right after submitting the parameters to either get the computation reward or prove the valid of their parameters before  counterexamples found by other validators. 
+
+To prevent this security sisk, the block timestamps indicating when the parameter is submitted on the chain is included to calculate the seed. The seed is enhanced by combining a random number with the validator's address and timestamps.
+
+ Let's denote the timestamp by \( t \in \text{Timestamps}\). The seed $s$ is computed by combining these numerical values.
+\begin{equation}
+s = \text{hash}(r, \text{addr\_num}, t)
+\end{equation}
+where \(\text{hash}\) is a hash function that takes the three numerical values and returns a numerical value \( s \).
+As a result, any attempt to submit manipulated or before-run seeds will fail to produce either a counterexample or reward computation.
+
+Moreover, some application may want to set up a time fame such that a parameter can only valid if this amout of time is passed. This grantee enough time for validators to valide the parameter. Then, the parameter is valid if and only if a certain amount of time having passed, no counterexample being found, and receiving enough computation proofs. 
+\subsubsection{Reward manipulation attack}
+In some applications, multiple computational proofs may be allowed. There are a record to monitor the progress of the parameter's verification. Namely, it includes the following details of the addresses of the validators and the random number $r$ used in the verification process. This record is crucial for preventing reward manipulation attack as a validator can not reclaim a new reward with the same random number. 
+
+The validators' addresses and the random number $r$ play a vital role in preventing reward-manipulation attacks. A validator cannot resubmit with the same $r$. Therefore, this uniqueness prevents validators from submitting the same computation proof or a counterexample multiple times.
+\section{Gas Cost Analysis}
+\label{sec:gas-cost-analysis}
+This section evaluates the cost of the proposed distributed verification method and compares it to traditional on-chain verification.
+\subsection{Transaction Execution Costs}
+Transaction costs, measured in gas, can be divided into five key components:
+\begin{enumerate}
+\item Base cost: Fixed cost for initiating a transaction, covering operations like hashing, signature verification, and balance updates. For instance, transferring ETH in Ethereum costs 21,000 gas.
+\item Data cost: Gas tied to the size of the transaction’s data payload, with non-zero bytes incurring higher costs than zero bytes.
+\item Computational cost: Gas for executing smart contract operations, such as arithmetic, logic, control flow, cryptography, and memory tasks.
+\item Storage cost: Higher than computation, as it involves writing to persistent storage. %In Ethereum, writing a new value costs 20,000 gas, updates cost 5,000 gas, and reading costs 100 gas.
+\item Refund gas: Gas refunded for specific operations, like using SELFDESTRUCT or resetting storage values to zero.
+\end{enumerate}
+Thus, the total gas cost (execution cost) includes base, data, computational, and storage costs.
+\subsection{Comparative Analysis of On-Chain and Offline Distributed Methods}
+We can compare the gas costs of on-chain and off-chain verification by breaking down the components.
+\subsubsection{On-chain verification gas costs}
+Let \( G_{parameter} \) represent the intrinsic gas cost, which includes the base gas and data cost, primarily dependent on the size of the parameter \( p \). The total on-chain verification gas cost \( G_{on} \), as expressed in Equation \ref{on-gas}, consists of several parts:
+\begin{itemize}
+    \item The intrinsic gas \( G_{parameter} \),
+    \item Optional storage gas \( G_{storage} \) (depending on whether the parameter is stored),
+    \item Checking computation gas, which includes \( n \) checks of the parameter, each costing \( G_{check} \), where \( n \) is the size of the parameter,
+    \item The gas for executing the actual work computation \( G_{run} \).
+\end{itemize}
+\begin{equation}
+\label{on-gas}
+G_{on} = G_{parameter} + [G_{storage}] + n \cdot G_{check} + G_{run}
+\end{equation}
+If the parameter is invalid, the gas for running the actual computation \( G_{run} \) is not required.
+\subsubsection{Off-chain verification gas costs}
+For our offline distributed verification method, we consider the gas costs associated with verifying the parameter and performing the actual work. The total cost includes the gas to :
+\begin{itemize}
+    \item submit the parameter, \( G_{parameter} \),
+    \item store the parameter (or its hash), \( G_{storage} \),
+    \item submit the seed, \( G_{seed} \),
+    \item check the checkpoint corresponding to the seed, \( G_{check} \),
+    \item compute the hash and compare it with the target hash, \( G_{hash} \),
+    \item run the computation, \( G_{run} \), if the parameter is valid.
+\end{itemize}
+The total gas cost for the off-chain method is given by Equation \ref{gas-off}:
+\begin{equation}
+\label{gas-off}
+G_{off} = G_{parameter} + G_{storage} + (G_{seed} + G_{check} + G_{hash}) + G_{run}
+\end{equation}
+\subsubsection{Comparative Analysis}
+Let's compare the gas costs of both methods across different factors.
+
+\paragraph*{Intrinsic Cost} Both methods incur the same intrinsic gas cost, \( G_{parameter} \).
+
+\paragraph*{Storage Cost} The on-chain method has an optional storage cost \( [G_{storage}] \), while the offline method always includes \( G_{storage} \), although it may only store the parameter’s hash in some cases.
+
+\paragraph*{Parameter Checking} In the on-chain method, the parameter check costs \( n \cdot G_{check} \), where \( n \) is the parameter size. In the offline method, this cost is reduced to \( G_{check} \).
+
+\paragraph*{Additional Costs in the Offline Method} The offline method incurs additional costs for submitting seeds \( G_{seed} \) and computing/comparing hashes \( G_{hash} \), which the on-chain method does not require.
+
+\paragraph*{Computation Costs} Both methods share the same computation cost, \( G_{run} \).
+
+Let \( G_{base} \) represent the sum of the gas costs for submitting, storing, and running the parameter:
+
+\[
+G_{base} = G_{parameter} + [G_{storage}] + G_{run}
+\]
+
+Since centralized verification only incurs gas costs, while the distributed process uses a proof-of-work incentive, we convert the reward into gas terms. Let \( G_{reward} \) denote the gas equivalent of the reward for finding a counterexample or computation proof. Let \( G_{proof} \) represent the total gas cost to perform and reward the computation proof:
+
+\[
+G_{proof} = G_{seed} + G_{check} + G_{hash} + G_{reward}
+\]
+
+If the base gas does not include storage gas, then \( G_{proof} \) will factor it in.
+
+Figure \ref{fig:gas_compare} illustrates the gas consumption for both methods, assuming \( G_{base} \) remains unchanged regardless of parameter size. The red line represents the gas consumed by the on-chain verification method, which scales linearly with the parameter size. The blue line shows the gas cost of the offline distributed method. Initially, when the parameter size is small, the offline method is more costly, but as the parameter size grows, the offline method becomes more efficient.
+\begin{figure}
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+        title={Gas Consumption Chart},
+        xlabel={Parameter size},
+        ylabel={Gas},
+        grid=both,
+        major grid style={line width=.2pt,draw=gray!50},
+        minor grid style={line width=.1pt,draw=gray!20},
+        xtick={1,2,3,4,5,6,7,8},
+        xticklabels={1,2,3,,,,n,},
+        ytick={1,2,3,4,5,6,7,8},
+        yticklabels={$G_{base} + G_{check}$,$G_{base} + 2 \cdot G_{check}$, $G_{base} + 3 \cdot G_{check}$,,$G_{base}+ G_{proof}$,,$G_{base} + n \cdot G_{check}$,},
+    ]
+      \addplot[
+        color=red,
+        mark=square,
+        ]
+        coordinates {
+        (1,1)(2,2)(3,3)(4,4)(5,5)(6,6)(7,7)
+        };
+         \addplot[
+        color=blue,
+        mark=square,
+        ]
+        coordinates {
+        (1,5)(2,5)(3,5)(4,5)(5,5)(6,5)(7,5)
+        };
+    \end{axis}
+  \end{tikzpicture}
+  \caption{Gas Comparison (Storage)}
+  \label{fig:gas_compare}
+\end{figure}
+The on-Chain Verification Method is more suited for scenarios where all data and checks must be performed directly on the blockchain. It is potentially higher cost due to \( n \cdot G_{check} \) if \( n \) (size of the parameter) is large. It gets worse when the check is complicated and the parameter is larger, which means \( G_{check} \) is high and \( n \) is large.
+    
+The proposed offline Distributed Verification Method (\( G_{off} \)) is more efficient for large datasets since it reduces the number of checks. It does incurs additional costs for \( G_{seed} \) and \( G_{hash} \), but these are often outweighed by the savings from reducing the number of checks. The most concern is the cost to store the parameter for the verification process. In case the parameter needs to be stored anyway then there is no need to concern, but for the opposite case, this cost needs to be taken into account when estimating the cost of the method. Consider storing its hash instead since the hash could still be enough to verify the parameter. 
+
+Overall, the offline method (\( G_{off} \)) is generally more cost-effective for large parameters as it reduces the number of on-chain checks. However, the exact cost-effectiveness depends on the relative sizes of \( n \), the parameter storing gas, and the specific gas costs of \( G_{seed} \), \( G_{hash} \) and \( G_{reward} \).
+\section{Prototype Implementations}
+\label{sec:prototype-implementation}
+This section discusses the Decentralized Selling Platform (DSP) application. Initially, the application is implemented as a smart contract on the Ethereum blockchain, with the parameter assertion verified directly on-chain. We then demonstrate how our proposed approach can improve (in term of gas save) the implementation by distributing the verification process off-chain.
+\subsection{Decentralized Selling Platform}
+The DSP application offers a decentralized solution for users to manage and trade items. It enables sellers to create their own platforms, list items, and facilitate transactions with buyers. Sellers can set up platforms, list items with prices, and buyers can purchase directly from these platforms.
+
+Each item consists of:
+\begin{itemize}
+    \item \texttt{name}: The item's name.
+    \item \texttt{forSale}: Boolean indicating if the item is for sale.
+    \item \texttt{price}: The item's price in wei.
+    \item \texttt{owner}: The item's owner's address.
+\end{itemize}
+
+The DSP application provides the following key functions:
+
+\begin{itemize}
+    \item \texttt{createSellingPlatform(items)}: Allows users to create a selling platform with the list of items \texttt{items}, provided they pay a fee and the items are sorted by name.
+    \item \texttt{buyItem(sellingPlatform, name)}: Lets buyers purchase an item \texttt{name} from a given \texttt{sellingPlatform} if it is for sale and the price is paid. Ownership and funds are transferred accordingly.
+    \item \texttt{addNewItem(sellingPlatform, item)}: Enables the platform owner to add a new \texttt{item} to their \texttt{sellingPlatform}, ensuring the list remains sorted.
+\end{itemize}
+
+Additional functions, such as \texttt{setForSale} and \texttt{setPrice}, allow item owners to update the sale status and price of their items.
+
+The most critical assertion in the contract is that the list of items must be sorted by name when a seller creates their selling platform. All other functions rely on this assumption, and if the list is not sorted, the operations will fail.
+\subsection{Implementation of the Application with On-chain Parameter Verification}
+We begin by implementing the application as a smart contract on the Ethereum blockchain, where the parameter assertion is verified directly on-chain.
+
+Each seller manages their own selling platform. In Solidity, this can be implemented using a mapping that associates each seller's address with a list of items:
+\begin{lstlisting}[numbers=none]
+mapping(address => Item[]) public sellingPlatform;
+\end{lstlisting}
+
+Let \( len \) represent the function that returns the size of an item list. The formal assertion of the sorted list using a universal quantifier is given in Equation \ref{eq:1}:
+\[
+(\forall i) (0 \leq i < len(items) - 1) \Rightarrow items[i].name \leq items[i+1].name
+\]
+
+We define a function to check if the list of items is sorted by their names. This function iterates through the list, comparing adjacent elements using the \texttt{compareStrings} function. If any unsorted element is found, the function returns \texttt{false}. Otherwise, it returns \texttt{true} if all items are in order:
+\begin{lstlisting}[numbers=none]
+for (uint256 i = 0; i < items.length - 1; i++) {
+  if (compareStrings(items[i].name, items[i + 1].name) 
+     == 1) { return false; }
+}
+\end{lstlisting}
+
+The \texttt{createSellingPlatform} function calls this sorting check function to ensure that the list of items is sorted before creating the platform.
+
+Other functions mentioned earlier are implemented straightforwardly in the contract, assuming the item list is always sorted.
+
+
+%all of the functions emit an event when it is successly preform such as new flatform is create or the item is seting for sale. 
+\subsection{Applying the Proposed Approach to Off-chain Distributed Verification}
+In this section, we demonstrate how to apply our proposed method to implement the DSP application, where the parameter verification process is distributed and moved off-chain.
+
+Instead of verifying the item list \texttt{items} directly on-chain, we offload the verification to a distributed process.
+
+\subsubsection{System Setup}
+Following the proposed approach, we first define the key components to set up the system.
+
+\paragraph{Determine the Checkpoint Formula}
+The checkpoint formula is derived using Equation \ref{eq:3} as follows:
+\[
+\exists i, 0 \leq i < len(items) - 1, \; items[i].name > items[i+1].name
+\]
+This formula identifies any instance where the item list is not sorted by name.
+
+\paragraph{Introduce the Seed}
+Given a random seed \( s \), the seed is associated with the \( i+1 \)-th element of the item list, namely \( items[i] \), where \( i = s \mod n \) and \( n \) is the length of the item list.
+
+\paragraph{Estimate the Number of Seeds}
+Let \( P \) represent the probability that a computation proof will confirm the item list is sorted. The number of seeds \( m \) is estimated using Equation \ref{eq:12}:
+\[
+m = \frac{\ln(1 - P)}{\ln\left( \frac{P-1}{P} \right)}
+\]
+This calculation determines the expected number of seeds required to find a proof.
+
+\paragraph{Set up the Target Hash}
+Using a 256-bit hash, the maximum hash value \( H_{\text{max}} \) is \( 2^{256} - 1 \). The target hash \( t \) is computed using \( m \) as follows:
+\[
+t = \frac{H_{\text{max}}}{m}
+\]
+This sets the target difficulty for finding a valid proof.
+
+\paragraph{Conduct a Computation Hash}
+The negation formula of the parameter assertion is \( items[i].name > items[i+1].name \). The essential components for evaluating the formula for item \( i \) are:
+\[
+\pi_{P_{a}} = \{ items[i].name, items[i + 1].name \}
+\]
+To prevent front-running and exploitation attacks, as described in the practical model, the computation hash includes the seed, the validator's address, the timestamp of the item list submission, and the essential evaluation components:
+\[
+t_s = \text{hash}(s, \text{addr\_num}, t, items[i].name, items[i + 1].name)
+\]
+This ensures the integrity of the verification process while protecting against attacks.
+\subsubsection{On-chain Contract}
+As described in the practical model, the system includes two components: the on-chain smart contract and the off-chain verification program. The on-chain contract incorporates all the state variables and functions from the DSP on-chain contract, as described in \ref{}. However, to implement our proposed approach, it includes additional state variables, such as \texttt{probability}, \texttt{minimumDeposit}, \texttt{rewardPrice}, and \texttt{counterexamplePrice}, which are related to the verification and reward mechanism. The contract also contains some extra functions specific to this approach.
+
+When a user invokes the \texttt{createSellingPlatform(items)} function, the item list is submitted and stored as a record with two additional pieces of information. First, a \texttt{timestamp}, indicating when it was submitted, and second, a \texttt{status}, which is a boolean initially set to \texttt{false}. The caller must deposit a certain amount of money for the verification process, which will be forfeited as a penalty if the item list is found to be unsorted.
+
+The parameter (item list) then enters a waiting state to be verified. As long as the \texttt{status} remains \texttt{false}, no actions such as selling or updating the item list can occur. If a counterexample is found, the parameter record is deleted, and the caller incurs a penalty. However, if a computation proof is submitted and successfully verified on-chain, the \texttt{status} switches to \texttt{true}, allowing further actions on the item list, such as sales or updates.
+
+The on-chain contract includes a crucial function named \texttt{claimReward(sellingPlatform, seed)}, which accepts the selling platform address and a seed as inputs. This function checks whether the submission is a counterexample or a valid computation proof. Additionally, the contract includes functions to perform necessary calculations to set up the target hash for verification.
+
+The \texttt{DecentralizedSellingPlatform} contract provides a robust framework for decentralized item trading, incorporating off-chain verification and reward mechanisms to ensure secure, efficient, and fair transactions between sellers and buyers.
+\subsubsection{Off-chain program}
+\subsubsection{Gas Savings} We conducted experiments based on the size of the item array and compared the gas consumption between on-chain verification and our proposed off-chain approach. The results are shown in Table \ref{gas-save} and illustrated in Figure \ref{gas-compare}. As the size of the item array increases, the gas savings also increase. The data shows that with an array size of only 50, the proposed approach saves approximately 115,328 gas. Naturally, the final savings in terms of the native token depend on the computation reward setup.
+
+The smart contract can be further optimized by handling smaller arrays directly on-chain, while for larger arrays, the off-chain verification approach would be deployed. From this gas savings analysis, it shows that combining on-chain and off-chain methods can be beneficial. Specifically, when a parameter is submitted, if the item array is relatively small, on-chain verification can be sufficient. However, for larger arrays, the verification process should shift off-chain to save on gas costs.
+\begin{table}[h]
+\label{gas-save}
+\centering
+\caption{Gas Save}
+\begin{tabular}{c|>{\centering\arraybackslash}p{3cm}|>{\centering\arraybackslash}p{3cm}|c}
+\toprule
+Parameter Size & On-chain & Off-chain & Gas save \\
+\midrule
+05  &  504225   &  578196   &  -73971   \\
+10  &  903555   &  908838   &  -5283   \\
+20  &  1842037  &  1804283  &  37754  \\
+30  &  2797283  &  2733927  &  63356  \\
+50  &  4708543  &  4593215  &  115328 \\
+70  &  6714839  &  6545213  &  169626 \\
+100 &  9581470  &  9333977  &  247493 \\
+120 &  11492538 &  11193157 &  299381 \\
+150 &  14359469 &  13981933 &  377536 \\
+170 &  16270716 &  15841101 &  429615 \\
+200 &  19137934 &  18629877 &  508057 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%\begin{tikzpicture}
+%\begin{axis}[
+%    title={Gas Consumption Comparison},
+%    xlabel={Parameter Size},
+%    ylabel={Gas Consumption},
+%    legend pos=north west,
+%    grid=major,
+%    width=10cm,
+%    height=6cm
+%]
+
+% Line 1 data
+%\addplot[
+%    color=blue,
+%    mark=*,
+%    ]
+%    coordinates {
+%    (5, 504225) (10, 903555) (20, 1842037) (30, 2797283) (50, 4708543) (70, 6714839) (100, 9581470) (120, 11492538) (150, 14359469) (170, 16270716) (200, 19137934)
+%    };
+%    \addlegendentry{On-chain}
+
+% Line 2 data
+%\addplot[
+%    color=red,
+%    mark=square*,
+%    ]
+%    coordinates {
+%    (5, 578196) (10, 908838) (20, 1804283) (30, 2733927) (50, 4593215) (70, 6545213) (100, 9333977) (120, 11193157) (150, 13981933) (170, 15841101) (200, 18629877)
+%    };
+ %   \addlegendentry{Off-chain}
+
+%\end{axis}
+%\end{tikzpicture}
+
+
+\begin{tikzpicture}
+\label{gas-compare}
+\begin{axis}[
+    title={Amount of Gas Save for off-chain to on-chain },
+    xlabel={Parameter Size},
+    ylabel={Gas Save},
+    legend pos=north west,
+    grid=major,
+    width=10cm,
+    height=6cm
+]
+
+% Difference data
+\addplot[
+    color=green,
+    mark=square*,
+    ]
+    coordinates {
+    (5, -73971) (10, -5283) (20, 37754) (30, 63356) (50, 115328) (70, 169626) (100, 247493) (120, 299381) (150, 377536) (170, 429615) (200, 508057)
+    };
+    \addlegendentry{Off-chain}
+
+\end{axis}
+\end{tikzpicture}
+
+\section{Related work}
+\label{sec:related-work}
+\section{Conclusion}
+\label{sec:conclusion}
+\newpage
+\bibliographystyle{splncs04}
+\bibliography{bio}
+
+\end{document}
