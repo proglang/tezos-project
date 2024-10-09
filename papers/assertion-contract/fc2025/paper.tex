@@ -248,10 +248,9 @@ For assertions over multiple domains, as in Equation~\ref{eq:2}, the checkpoint 
 In the case of existential quantifier assertions, as in Equation~\ref{eq:3} and Equation~\ref{eq:4}, the checkpoint formula remains the same as the original assertion.
 \paragraph{\textbf{Off-chain distributed effors.}}These checkpoint formulas are then distributed to validators. Off-chain, the validators attempt to find counterexamples or proofs by identifying some \( a \in A \) such that the checkpoint formula is satisfied. For universal quantifier formalizations, this means finding \( a \) where \( \neg P(a) \) holds, and for existential quantifier formalizations, finding \( a \) where \( P(a) \) is true.
 \paragraph{\textbf{On-chain re-verification.}} Once a counterexample or proof involving an element \( a \) is found, the validator submits it to the blockchain, where it is re-verified by evaluating \( \neg P(a) \) or \( P(a) \) on-chain. For assertions with universal quantifiers, when a counterexample is successfully verified on-chain, the parameter assertion is proven to be invalid. Otherwise, it is considered valid, assuming that other points are checked by other validators. For assertions with existential quantifiers, the parameter assertion remains invalid until a proof is submitted and successfully re-checked on-chain.
-\paragraph{\textbf{Incentivization Mechanism.}} Finding a counterexample or proof incentivizes validators but requires computational resources. However, counterexamples are rare since callers typically avoid submitting invalid parameters to the blockchain. When no counterexample is found, the accuracy of the verification depends on the number of attempts made to check other checkpoints to disprove the assertion. More validators involved in the process increases the confidence in the correctness of the parameter. Therefore, an incentivization mechanism is crucial to guarantee the correctness of the parameter assertion with high confidence in the absence of a counterexample. To encourage participation, validators are rewarded for both finding counterexamples and contributing computational effort. However, counterexample discovery is prioritized with a substantially higher reward compared to providing a computational proof.
-%\end{enumerate}
+\paragraph{\textbf{Incentivization Mechanism.}} Validators are incentivized to find counterexamples or provide proofs, which require computational resources. Since counterexamples are rare (as callers avoid submitting invalid parameters), confidence in correctness grows with more validator attempts at different checkpoints. Thus, incentivization is crucial for ensuring correctness in the absence of counterexamples.Validators are rewarded for both finding counterexamples and contributing computational proofs, with  counterexample discovery prioritized through higher rewards. 
 
-This approach aims to lessen the burden on the blockchain and reduce the high gas costs associated with on-chain verification. Instead of verifying the entire assertion, the smart contract checks only specific points (counterexamples or proofs). By limiting the number of checkpoints verified on-chain, the required gas is significantly lower than if the entire assertion were verified directly.
+This approach reduces the blockchain's burden and lowers gas costs by verifying only specific checkpoints, rather than performing full on-chain verification.
 \subsection{Proof-of-Work-Based Incentivization Mechanism}
 The computational effort is represented by a computation proof, which is then submitted on-chain by the validator to claim their reward. This approach encourages participation in the distributed verification process, ensuring thorough validation even without the discovery of counterexamples.
 
@@ -533,16 +532,8 @@ G_{off} = G_{parameter} + G_{storage} + (G_{seed} + G_{check} + G_{hash}) + G_{r
 
 \subsubsection{Comparative Analysis}
 We compare the gas costs of both verification methods.
-
-\paragraph*{Intrinsic Cost} Both methods incur the same intrinsic cost, \( G_{parameter} \).
-
-\paragraph*{Storage Cost} On-chain storage cost \( [G_{storage}] \) is optional, whereas the offline method always includes \( G_{storage} \), which may store only the parameter's hash.
-
-\paragraph*{Parameter Checking} The on-chain method incurs \( n \cdot G_{check} \) for parameter checking, while the offline method reduces this to \( G_{check} \).
-
-\paragraph*{Additional Costs} The offline method includes costs for seed submission \( G_{seed} \) and hash computation \( G_{hash} \), which are not required on-chain.
-
-\paragraph*{Computation Costs} Both methods share the computation cost, \( G_{run} \).
+Both methods incur the same intrinsic cost, \( G_{parameter} \).
+On-chain storage cost \( [G_{storage}] \) is optional, whereas the offline method always includes \( G_{storage} \), which may store only the parameter's hash. The on-chain method incurs \( n \cdot G_{check} \) for parameter checking, while the offline method reduces this to \( G_{check} \). The offline method includes costs for seed submission \( G_{seed} \) and hash computation \( G_{hash} \), which are not required for the on-chain method. Finally, both methods share the computation cost, \( G_{run} \).
 
 Define \( G_{base} \) as the sum of submission, storage, and computation costs:
 \[
@@ -597,37 +588,27 @@ Overall, the offline method (\( G_{off} \)) is generally more cost-effective for
 \end{figure}
 \section{Prototype Implementations}
 \label{sec:prototype-implementation}
-
-This section outlines the implementation of the Decentralized Selling Platform (DSP) application. Initially, the application is deployed as a smart contract on the Ethereum blockchain, where the parameter verification is handled directly on-chain. We then showcase how the proposed off-chain verification approach can significantly improve the implementation by reducing gas costs.
-
+This section presents the implementation of the Decentralized Selling Platform (DSP) application. Initially, the DSP is deployed as a smart contract on the Ethereum blockchain, where parameter verification occurs on-chain. We then demonstrate how an off-chain verification approach can significantly reduce gas costs.
 \subsection{Decentralized Selling Platform}
-
-The DSP application provides a decentralized framework for users to manage and trade items. It allows sellers to establish their own platforms, list items for sale, and facilitate transactions with buyers. Sellers can set up platforms, list items with prices, and buyers can purchase directly from these platforms.
+The DSP application provides a decentralized framework for managing and trading items. Sellers can create platforms, list items, and facilitate buyer transactions. Buyers can directly purchase items listed for sale.
 
 Each item in the platform is characterized by:
-
 \begin{itemize}
     \item \texttt{product}: A struct representing the product, including its name and producer.
     \item \texttt{forSale}: A boolean indicating whether the item is available for sale.
     \item \texttt{price}: The price of the item, specified in wei.
     \item \texttt{owner}: The Ethereum address of the current item owner.
 \end{itemize}
-
 The DSP application provides several key functions:
-
 \begin{itemize}
-    \item \texttt{createSellingPlatform(items)}: Allows users to create a selling platform containing a list of items (\texttt{items}), provided they pay the required deposit and ensure the items are sorted by name.
-    \item \texttt{buyItem(sellingPlatform, product)}: Enables buyers to purchase a specified \texttt{product} from a particular \texttt{sellingPlatform}, provided the item is listed for sale and the correct price is paid. Ownership and funds are transferred accordingly.
-    \item \texttt{addNewItem(sellingPlatform, item)}: Allows platform owners to add a new \texttt{item} to their \texttt{sellingPlatform}, ensuring the item list remains sorted.
+    \item \texttt{createSellingPlatform(items)}: Creates a selling platform with a list of sorted items.
+    \item \texttt{buyItem(sellingPlatform, product)}: Enables buyers to purchase an item if listed for sale at the correct price, with ownership and funds transferred.
+    \item \texttt{addNewItem(sellingPlatform, item)}: Adds a new \texttt{item} to an existing platform, keeping the list sorted.
 \end{itemize}
+Additional functions like \texttt{setForSale} and \texttt{setPrice} allow item owners to update the sale status and price. To approximate the behavior of a typical selling platform, our implementation permits items with the same product name but different producers. The \texttt{searchItems} function allows users to search by product name.
 
-Additionally, functions like \texttt{setForSale} and \texttt{setPrice} enable item owners to update the sale status and price of their items.
-
-To approximate the behavior of a typical selling platform application, our implementation allows items with the same product name but different producers. Additionally, the application provides a search function, \texttt{searchItems}, which enables users to search for items by product name. To optimize gas costs for users performing operations such as buying, reselling, updating, or searching items, the item list is maintained in sorted order based on product names.
-
-Therefore, a critical assertion in the contract is that the list of items must be sorted by product name when a seller creates their selling platform. All subsequent operations rely on this condition, and if the list is unsorted, these operations will fail.
+To optimize gas costs for buying, reselling, updating, and searching, the item list is kept sorted by product name. Therefore, a critical requirement is that items must be sorted when creating a selling platform. If the list is unsorted, all related operations will fail.
 \subsection{Implementation of the Application with On-chain Parameter Verification}
-
 We begin by implementing the application as a smart contract on the Ethereum blockchain, where the verification of parameters is conducted directly on-chain.
 
 Each seller manages their own selling platform. In Solidity, this can be achieved using a \texttt{mapping} that associates each seller's address with a list of items:
@@ -636,60 +617,47 @@ Each seller manages their own selling platform. In Solidity, this can be achieve
 mapping(address => Item[]) public sellingPlatform;
 \end{lstlisting}
 
-Let \( \text{len} \) represent the function that returns the size of the item list. The formal assertion ensuring that the list is sorted, using a universal quantifier, is given by Equation \ref{eq:1}:
+To ensure the list is sorted, let \( \text{len} \) be the function that returns the size of the item list. The formal assertion using a universal quantifier given by Equation \ref{eq:1} is as follows:
 \[
 (\forall i) (0 \leq i < len(items) - 1) \Rightarrow items[i].product.name \leq items[i+1].product.name
 \]
 
-\label{eq:sorted_assertion}
-
 To verify this, we define a function that checks whether the list of items is sorted by name. This function iterates through the list, comparing adjacent elements using the \texttt{compareStrings} function. If any unsorted element is found, the function returns \texttt{false}. Otherwise, it returns \texttt{true} if the items are properly ordered:
-
 \begin{lstlisting}[numbers=none]
 for (uint256 i = 0; i < items.length - 1; i++) {
   if (compareStrings(items[i].product.name, 
   items[i + 1].product.name) == 1) { return false; }
 }
 \end{lstlisting}
+The \texttt{createSellingPlatform} function invokes this check to verify sorting before platform creation. Other functions mentioned previously are implemented in the contract, assuming  the list remains sorted.
 
-The \texttt{createSellingPlatform} function invokes this sorting check to ensure that the item list is ordered before allowing the platform to be created.
-
-Other functions mentioned previously are implemented in the contract, assuming the item list is always sorted.
+All functions emit events when successfully performed, such as platform creation or item updates.
 \subsection{Applying the Proposed Approach to Off-chain Distributed Verification}
-
-In this section, we demonstrate how to apply our proposed method to implement the DSP application, where the parameter verification process is distributed and moved off-chain.
-
-Instead of verifying the item list \texttt{items} directly on-chain, we offload the verification to a distributed process.
-
+This section presents the implementation of the DSP application using the proposed off-chain distributed verification.
 \subsubsection{System Setup}
-Following the proposed approach, we first define the key components to set up the system.
-
-\paragraph{Determine the Checkpoint Formula}
-The checkpoint formula is derived using Equation \ref{eq:3} as follows:
+Following the proposed approach, we define the key components to set up the system. 
+\paragraph{Checkpoint Formula}
+The checkpoint formula for identifying unsorted items, given by Equation \ref{eq:3}, is:
 \[
-(\exists i) (0 \leq i < \text{len(items)} - 1) \ \text{items}[i].\text{product.name} > \text{items}[i+1].\text{product.name}
+(\exists i) \; (0 \leq i < \text{len(items)} - 1) \ \text{items}[i].\text{product.name} > \text{items}[i+1].\text{product.name}
 \]
-This formula identifies any instance where the item list is not sorted by name.
-
 \paragraph{Introduce the Seed}
-Given a random seed \( s \), the seed is associated with the \( i+1 \)-th element of the item list, namely \( \text{items}[i] \), where \( i = s \mod n \) and \( n \) is the length of the item list.
+The seed \( s \) is associated with the \( i+1 \)-th element of the item list, where \( i = s \mod n \) and \( n \) is the length of the list.
 
-\paragraph{Estimate the Number of Seeds}
-Let \( P \) represent the probability that a computation proof will confirm the item list is sorted. The number of seeds \( m \) is estimated using Equation \ref{eq:12}:
+\paragraph{Number of Seeds}
+The expected number of seeds \( m \) is estimated using Equation \ref{eq:12}, where \( P \) represents the given expected probability:
 \[
 m = \frac{\ln(1 - P)}{\ln\left( \frac{P - 1}{P} \right)}
 \]
-This calculation determines the expected number of seeds required to find a proof.
 
-\paragraph{Set up the Target Hash}
-Using a 256-bit hash, the maximum hash value \( H_{\text{max}} \) is \( 2^{256} - 1 \). The target hash \( t \) is computed using \( m \) as follows:
+\paragraph{Target Hash}
+The target hash \( t \) is computed using a 256-bit maximum hash value \( H_{\text{max}} = 2^{256} - 1 \):
 \[
 t = \frac{H_{\text{max}}}{m}
 \]
-This sets the target difficulty for finding a valid proof.
 
-\paragraph{Conduct a Computation Hash}
-The essential components for evaluating the negation formula of the parameter assertion for item \( i \) are:
+\paragraph{Computation Hash}
+The negation formula components for item \( i \) are:
 \[
 \pi_{P_{a}} = \{ \text{items}[i].\text{product.name}, \text{items}[i+1].\text{product.name} \}
 \]
@@ -697,25 +665,19 @@ To prevent front-running and exploitation attacks, as described in the practical
 \[
 t_s = \text{hash}(s, \text{addr}, t, \pi_{P_{a}})
 \]
-This ensures the integrity of the verification process while protecting against these security attacks.
-
 \subsubsection{On-chain Contract}
-As described in the practical model, the system includes two components: the on-chain smart contract and the off-chain verification program. The on-chain contract incorporates all the state variables and functions from the DSP on-chain contract, as described in Section~\ref{}. However, to implement our proposed approach, it includes additional state variables and functions, such as \texttt{rewardPrice}, \texttt{counterexamplePrice}, and other extra functions specific to this approach.
+The system consists of an on-chain smart contract and an off-chain verification program. The on-chain contract extends the DSP contract (Section~\ref{}) with additional variables and functions, such as \texttt{rewardPrice} and \texttt{counterexamplePrice}, to support off-chain verification.
 
-When a user invokes the \texttt{createSellingPlatform(items)} function, the item list is submitted and stored as a record with two additional pieces of information: a \texttt{timestamp}, indicating when it was submitted, and a \texttt{status}, which is a boolean initially set to \texttt{false}. The caller must deposit a certain amount of money for the verification process, which will be forfeited as a penalty if the item list is found to be unsorted.
+When \texttt{createSellingPlatform(items)} is invoked, the item list is submitted with a \texttt{timestamp} and \texttt{status}, initially set to \texttt{false}. The caller deposits funds, forfeited if the item list is unsorted. The parameter waits in this state until verified. If a counterexample is found, the record is deleted, and the caller incurs a penalty. If verified successfully, \texttt{status} switches to \texttt{true}, enabling further actions, such as sales or updates.
 
-The parameter (item list) then enters a waiting state to be verified. As long as the \texttt{status} remains \texttt{false}, no actions, such as selling or updating the item list, can occur. If a counterexample is found, the parameter record is deleted, and the caller incurs a penalty. However, if a computation proof is submitted and successfully verified on-chain, the \texttt{status} switches to \texttt{true}, allowing further actions on the item list, such as sales or updates.
-
-The on-chain contract includes a crucial function named \texttt{claimReward(sellingPlatform, seed)}, which accepts the selling platform address and a seed as inputs. This function checks whether the submission is a counterexample or a valid computation proof. Additionally, the contract includes functions to perform necessary calculations to set up the target hash for verification.
-
-The \texttt{DecentralizedSellingPlatform} contract provides a robust framework for decentralized item trading, incorporating off-chain verification and reward mechanisms to ensure secure, efficient, and fair transactions between sellers and buyers.
-
-All of the functions emit an event when they are successfully performed, such as when a new platform is created or an item is set for sale.
+The contract includes the \texttt{claimReward(sellingPlatform, seed)} function, which checks if the submission is a counterexample or a valid proof. 
 \subsubsection{Off-chain program}
 The off-chain program is built using JavaScript with the Ether.js library. The program listens for events when a platform is submitted (or created). Once this event occurs, it triggers a function that generates a random seed \( s \), which is used to either find a counterexample or compute a valid proof. When one of these outcomes is achieved, the program calls the on-chain \texttt{claimReward} function to claim the associated reward.
-\subsubsection{Gas Savings} The on-chain verification contract is avaible at \cite{} and the on-chain contract for our proposed approach is on the blockchain at \cite{}. The off-chain program is stored at \ref{}. We conducted experiments based on the size of the item array and compared the gas consumption between on-chain verification and our proposed off-chain approach. The results are shown in Table \ref{gas-save} and illustrated in Figure \ref{gas-compare}. As the size of the item array increases, the gas savings also increase. The data shows that with an array size of only 50, the proposed approach saves approximately 115,328 gas. Naturally, the final savings in terms of the native token depend on the computation reward setup.
+\subsection{Gas Savings}
+The on-chain verification contract is deployed at \cite{}, while the proposed on-chain contract is available at \cite{}. The off-chain program is stored at \ref{}. We conducted experiments to compare gas consumption between on-chain verification and the proposed off-chain approach, based on item list size. The results are presented in Table \ref{gas-save} and illustrated in Figure \ref{gas-compare}. As the item list size increases, gas savings also increase; for instance, with an array size of 50, the proposed approach saves approximately 115,328 gas. Actual savings in native tokens depend on the computation reward setup.
 
-The smart contract can be further optimized by handling smaller arrays directly on-chain, while for larger arrays, the off-chain verification approach would be deployed. From this gas savings analysis, it shows that combining on-chain and off-chain methods can be beneficial. Specifically, when a parameter is submitted, if the item array is relatively small, on-chain verification can be sufficient. However, for larger arrays, the verification process should shift off-chain to save on gas costs.
+This smart contract application can be optimized by using on-chain verification for smaller lists and off-chain verification for larger ones. This hybrid approach can provide optimal gas efficiency: on-chain verification is sufficient for small item lists, while shifting to off-chain verification for larger lists significantly reduces gas costs.
+
 \begin{table}[h]
 \label{gas-save}
 \centering
@@ -738,40 +700,6 @@ Parameter Size & On-chain & Off-chain & Gas save \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-%\begin{tikzpicture}
-%\begin{axis}[
-%    title={Gas Consumption Comparison},
-%    xlabel={Parameter Size},
-%    ylabel={Gas Consumption},
-%    legend pos=north west,
-%    grid=major,
-%    width=10cm,
-%    height=6cm
-%]
-
-% Line 1 data
-%\addplot[
-%    color=blue,
-%    mark=*,
-%    ]
-%    coordinates {
-%    (5, 504225) (10, 903555) (20, 1842037) (30, 2797283) (50, 4708543) (70, 6714839) (100, 9581470) (120, 11492538) (150, 14359469) (170, 16270716) (200, 19137934)
-%    };
-%    \addlegendentry{On-chain}
-
-% Line 2 data
-%\addplot[
-%    color=red,
-%    mark=square*,
-%    ]
-%    coordinates {
-%    (5, 578196) (10, 908838) (20, 1804283) (30, 2733927) (50, 4593215) (70, 6545213) (100, 9333977) (120, 11193157) (150, 13981933) (170, 15841101) (200, 18629877)
-%    };
- %   \addlegendentry{Off-chain}
-
-%\end{axis}
-%\end{tikzpicture}
 
 
 \begin{tikzpicture}
@@ -801,12 +729,10 @@ Parameter Size & On-chain & Off-chain & Gas save \\
 
 \section{Related work}
 \label{sec:related-work}
-
 \section{Conclusion}
 \label{sec:conclusion}
 This paper proposes a method for parameter verification in smart contracts on the blockchain. The method addresses the challenge of performing computationally expensive verification processes directly on-chain. The core idea is to offload the verification process to an off-chain system, with only the verification results being submitted on-chain. To implement this approach, we propose an incentive mechanism that encourages validators to participate in the verification process while ensuring the correctness of the parameters when deemed valid. Our gas cost analysis demonstrates the benefits of this approach, particularly when dealing with large parameters that are costly to verify on-chain.
 \newpage
 \bibliographystyle{splncs04}
 \bibliography{bio}
-
 \end{document}
