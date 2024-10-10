@@ -74,11 +74,11 @@ In certain blockchain scenarios, verifying the properties of parameters may requ
 \section{Introduction}
 \label{sec:introduction}
 \lstset{language=solidity}
-A smart contract is a critical component of blockchain technology, with applications ranging from simple tasks like auctions to more complex systems such as decentralized markets. However, broader adoption of smart contracts faces challenges, with gas costs being among the most significant. Every computation performed by a smart contract on the blockchain incurs a cost, as each unit of computation and storage consumed by an algorithm must be paid for due to the burden it places on the system \cite{eth-whitepaper,yellowpaper}.
+A smart contract \cite{szabo1997smartcontracts,eth-whitepaper,tezos-whitepaper} is a critical component of blockchain technology, with applications ranging from simple tasks like auctions to more complex systems such as decentralized markets. However, broader adoption of smart contracts faces challenges, with gas costs being among the most significant. Every computation performed by a smart contract on the blockchain incurs a cost, as each unit of computation and storage consumed by an algorithm must be paid for due to the burden it places on the system \cite{eth-whitepaper,eth-yellowpaper,gas-cost}.
 
 When users (or other contracts) invoke a function in a smart contract, they must provide input data, known as parameters. In many cases, these parameters require verification. For instance, to minimize gas costs, an application might perform some computation off-chain and submit the result as a parameter to a smart contract. Such computations typically assert certain properties of the submitted parameters.
 
-Another scenario involves interactions with external data sources. Since smart contracts cannot directly access off-chain data, blockchain oracles supply this information. When external data becomes available, an oracle invokes a smart contract with the relevant information.
+Another scenario involves interactions with external data sources. Since smart contracts cannot directly access off-chain data, blockchain oracles \cite{blockchain-oracles,oracle-patterns,astraea,chainlink-whitepaper} supply this information. When external data becomes available, an oracle invokes a smart contract with the relevant information.
 
 However, while the contract should leverage off-chain computations or external data and assume that the submitted parameters are valid, there is a risk that off-chain computations could be incorrect, submitting invalid parameters, or that oracles could provide faulty data. Therefore, a mechanism is needed to verify these assumptions before the contract begins execution.
 
@@ -195,7 +195,7 @@ For multiple domains, the verification process becomes:
 \end{gather}
 When the domain \(A\) is large or the predicate \(P\) is complex to evaluate, performing the verification on-chain incurs significant gas costs or even make the verification process infeasible due to gas limits. Given the current high gas prices, this can result in substantial costs.
 \subsection{Use Cases}
-Smart contract languages like Solidity, Vyper, Michelson, and Plutus support common data types such as numbers, booleans, strings, bytes, arrays, sets, and maps. Many properties of these types can be expressed using universal quantifiers, requiring loops for verification in smart contracts, but can often be disproven by a counterexample or proven with a proof. Below are key properties for each type:
+Smart contract languages like Solidity \cite{solidity}, Vyper \cite{vyper}, Michelson \cite{michelson,michelson1}, and Plutus \cite{plutus} support common data types such as numbers, booleans, strings, bytes, arrays, sets, and maps. Many properties of these types can be expressed using universal quantifiers, requiring loops for verification in smart contracts, but can often be disproven by a counterexample or proven with a proof. Below are key properties for each type:
 \paragraph{\textbf{Numbers}}
 Number types exhibit some properties that are crucial in cryptographic applications, such as primality and coprimeness. For example, the condition for two numbers \(a\) and \(b\) to be coprime is:
 \begin{gather*}
@@ -256,7 +256,7 @@ The computational effort is represented by a computation proof, which is then su
 
 However, significant challenges arise regarding (1) how to recheck the counterexample and the computation efforts on-chain at a reasonable gas cost, (2) how to ensure a significant number of checkpoints have been performed before a computation reward is issued, in order to guarantee an expected probability of correctness for the parameter, and (3) how to ensure that validators actually perform the checkpoint formula off-chain when no counterexample is found but a computation reward is provided.
 
-To overcome these challenges, we propose a proof-of-work-based incentivization mechanism. We utilize the proof-of-work concept by introducing a target hash \( t \), which sets the required difficulty level to earn the computation reward. The basic idea is that each verification process introduces a target hash. The validator attempts to perform the negation check and compute a hash that is less than or equal to the given target hash. The objective of the validator is to find either a counterexample or a computation that produces a hash smaller than or equal to the target hash \( t \).
+To overcome these challenges, we propose a proof-of-work-based incentivization mechanism. We utilize the proof-of-work concept \cite{dwork1992pow,nakamoto2008bitcoin} by introducing a target hash \( t \), which sets the required difficulty level to earn the computation reward. The basic idea is that each verification process introduces a target hash. The validator attempts to perform the negation check and compute a hash that is less than or equal to the given target hash. The objective of the validator is to find either a counterexample or a computation that produces a hash smaller than or equal to the target hash \( t \).
 \subsubsection{Introduce a seed} To recheck the counterexample or computation proof on-chain at a reasonable gas cost, the counterexample or computation proof should be submitted on-chain in the form of the indication of the element \( a \in A \) where the assertion is invalid, in the case of a counterexample. The on-chain re-verification process is then straightforward, simply requiring the evaluation of \( \neg P(a) \).
 
 The next challenge is how to generate a random hash for each computation and devise a computational proof to incentivize computational effort. To address this, we introduce a seed \( s \) in each verification process.
@@ -282,7 +282,7 @@ The seed $s$  is then reduced with modulo \( n \) to obtain \( i \), which is as
 \label{eq:11}
 i = (s\mod n) + 1
 \end{gather}
-\subsubsection{Estimate the number of seeds:} To ensure that a sufficient number of checkpoints have been checked before a computational proof is found, we first estimate the number of seeds required to find a counterexample with the desired probability of correctness.
+\subsubsection{Estimate the number of seeds:} To ensure that a sufficient number of checkpoints have been checked before a computational proof is found, we first estimate the number of seeds required to find a counterexample with the desired probability of correctness \cite{ross2014probability,feller1968probability}.
 
 Assuming the unsatisfied element is only the first element \( a_0 \) in \( A \) and the number of seeds is \( m \), each seed independently has a probability of \( \frac{1}{n} \) to detect the issue and \( \frac{n-1}{n} \) not to. If each seed associated with an element \( a \) in \( A \) is chosen uniformly and independently, the probability that no seed checks \( a_0 \) approaches 0 as \( m \) increases:
 \begin{gather*}
@@ -314,7 +314,7 @@ m = \frac{\ln(1 - p)}{\ln\left( \frac{n-1}{n} \right)}
 
 So the number of the seeds to achive the expected propety $p$ is great or at least equal to $m$. Note that, \( p \) represents the probability when only one validator participates. As more validators are involved, the probability of discovering a counterexample increases.
 \subsubsection{Set up the taget hash:}
-The above number of seed $m$ can then be used to set up the target hash $t$. The target hash $t$ can be calculated based on a desired difficulty level. In proof-of-work systems, difficulty is typically adjusted to ensure that the average efforts to find a valid hash. The target hash $t$ is often calculated by taking the maximum possible hash value and dividing it by the difficulty level.
+The above number of seed $m$ can then be used to set up the target hash \cite{nakamoto2008bitcoin,bonneau2015sok}. The target hash $t$ can be calculated based on a desired difficulty level. In proof-of-work systems, difficulty is typically adjusted to ensure that the average efforts to find a valid hash. The target hash $t$ is often calculated by taking the maximum possible hash value and dividing it by the difficulty level.
 
 Given the expected number of seeds to generate, 
 the difficulty level \( D \) can be adjusted accordingly. Typically, \( D \) is set to ensure that a valid hash is found approximately once every \( m \) trials.
@@ -494,7 +494,7 @@ The inclusion of validators' addresses and \( r \) is crucial in preventing rewa
 \label{sec:gas-cost-analysis}
 This section evaluates the cost of the proposed distributed verification method and compares it to traditional on-chain verification.
 \subsection{Transaction Execution Costs}
-Transaction costs, measured in gas, can be divided into five key components:
+Transaction costs \cite{eth-yellowpaper,chen2019underoptimized,victor2019measuring}, measured in gas, can be divided into five key components:
 \begin{enumerate}
 \item Base cost: Fixed cost for initiating a transaction, covering operations like hashing, signature verification, and balance updates. For instance, transferring ETH in Ethereum costs 21,000 gas.
 \item Data cost: Gas tied to the size of the transaction’s data payload, with non-zero bytes incurring higher costs than zero bytes.
@@ -729,6 +729,15 @@ Parameter Size & On-chain & Off-chain & Gas save \\
 
 \section{Related work}
 \label{sec:related-work}
+Smart contracts have been widely adopted to automate and secure decentralized applications. However, intensive on-chain computation can lead to high gas costs or exceed gas limits. To address this, many approaches focus on moving computations off-chain and distributing the verification process.
+
+Layer 2 solutions like Plasma \cite{plasma-whitepaper} move heavy computation to a separate child chain anchored to the Ethereum Mainnet, improving scalability but not suited for parameter verification. More recently, optimistic rollups \cite{optimisticrollups} and zk-rollups \cite{zkrollups} emerged, offloading computation while preserving security. Optimistic rollups allow challenges through fraud proofs, similar to our counterexample mechanism, while zk-rollups use cryptographic proofs. However, both focus on transaction throughput, not complex parameter verification.
+
+Decentralized oracle networks like Chainlink \cite{chainlink} enable off-chain data validation but are designed for fetching external data, not parameter verification. Their incentive model also differs from our proof-of-work mechanism.
+
+zk-SNARKs and zk-STARKs \cite{groth2016snarks} allow efficient on-chain verification but are computationally demanding, making them impractical for continuous validation. Privacy-focused solutions like Hawk \cite{7546538} leverage hybrid on-chain/off-chain computation, aligning with our approach. Arbitrum \cite{10.5555/3277203.3277305} also supports off-chain computation, but primarily at the consensus level.
+
+Our work builds on these foundations by proposing a distributed, incentive-driven off-chain verification model to improve gas efficiency and enable counterexample searches. Unlike prior approaches, our method focuses on parameter verification using a distributed network of validators. The proof-of-work mechanism incentivizes validators, ensuring correctness without the high costs of on-chain verification.
 \section{Conclusion}
 \label{sec:conclusion}
 This paper proposes a method for parameter verification in smart contracts on the blockchain. The method addresses the challenge of performing computationally expensive verification processes directly on-chain. The core idea is to offload the verification process to an off-chain system, with only the verification results being submitted on-chain. To implement this approach, we propose an incentive mechanism that encourages validators to participate in the verification process while ensuring the correctness of the parameters when deemed valid. Our gas cost analysis demonstrates the benefits of this approach, particularly when dealing with large parameters that are costly to verify on-chain.
