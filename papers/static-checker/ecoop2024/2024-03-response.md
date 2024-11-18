@@ -106,4 +106,6 @@ Yes. See last comment to review 7B.
 The DSL enables users to specify properties with an basic understanding of Michelson data types, which are also present in higher-level languages. There is no need to modify the Michelson code. Therefore, to verify a smart contract written in a higher-level language, the only requirement is a tool that compiles code from a higher-level language to Michelson, which mostly already exists. This leads us to the idea of combining all these steps into a unified tool that allows users to directly verify smart contracts in a higher-level language.
 
 In contrast, Helmholtz requires users to write properties in the form of refinement type as input, which definitely necessitates formal method experts. Users are required to be Michelson programmers to integrate the property specifications into the code.
+Moreover, Helmholtz does not address lifecycle properties that relate different entry points like we do.
+
 
